@@ -2,21 +2,27 @@ import { Pool } from "pg";
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: {
-        rejectUnauthorized: false
-    }
+    // ssl: {
+    //     rejectUnauthorized: false
+    // }
 })
 
 export const db = {
-    async getUserById(id: string){
-        if (!id || typeof id !== 'string') return null
-        
-        const client = await pool.connect()
-        try{
-            const result = await client.query(`SELECT u.id, u.email, u.password_hash as password, u.role, u.role_selected, u.is_banned, u.created_at, u.updated_at, p.full_name as name, p.phone, p.city, p.address, p.newsletter_agreement, p.sms_code, p.sms_code_expires,  m.description, m.is_verified, m.is_partner, m.rating, m.total_sales FROM users u LEFT JOIN profiles p ON u.id = p.user_id LEFT JOIN masters m ON u.id = m.user_id WHERE u.id = $1`, [id])
-            return result.rows[0]
+    async getUserById(id: string) {
+        if (!id || typeof id !== 'string') return null;
+
+        let client;
+        try {
+            client = await pool.connect();
+            
+            const result = await client.query(`SELECT u.id, u.email, u.password_hash as password, u.role, u.role_selected, u.is_banned, u.created_at, u.updated_at, p.full_name as name, p.phone, p.city, p.address, p.avatar_url, p.newsletter_agreement, p.sms_code, p.sms_code_expires,  m.description, m.is_verified, m.is_partner, m.rating, m.total_sales FROM users u LEFT JOIN profiles p ON u.id = p.user_id LEFT JOIN masters m ON u.id = m.user_id WHERE u.id = $1`,[id]);
+            
+            return result.rows[0] || null;
+        } catch (error) {
+            console.error('Error in getUserById:', error);
+            throw error;
         } finally {
-            client.release()
+            if (client) client.release();
         }
     },
     async getUserByEmail(email: string){
@@ -289,7 +295,66 @@ export const db = {
         }finally{
             client.release()
         }
-    }
+    },
+
+    async updateUserProfile(userId: string, data: {fullname?: string,phone?: string,city?: string,address?: string,newsletterAgreement?: boolean,avatarUrl?: string}) {
+        let client;
+        try {
+            client = await pool.connect();
+            await client.query('BEGIN');
+
+            console.log("Updating user profile:", { userId, data });
+
+            const profileCheck = await client.query(`SELECT * FROM profiles WHERE user_id = $1`,[userId]);
+
+            const profileUpdates: string[] = [];
+            const profileValues: any[] = [];
+            let paramCount = 1;
+
+            if (data.fullname !== undefined) {
+                profileUpdates.push(`full_name = $${paramCount++}`);
+                profileValues.push(data.fullname);
+            }
+            if (data.phone !== undefined) {
+                profileUpdates.push(`phone = $${paramCount++}`);
+                profileValues.push(data.phone);
+            }
+            if (data.city !== undefined) {
+                profileUpdates.push(`city = $${paramCount++}`);
+                profileValues.push(data.city);
+            }
+            if (data.address !== undefined) {
+                profileUpdates.push(`address = $${paramCount++}`);
+                profileValues.push(data.address);
+            }
+            if (data.newsletterAgreement !== undefined) {
+                profileUpdates.push(`newsletter_agreement = $${paramCount++}`);
+                profileValues.push(data.newsletterAgreement);
+            }
+            if (data.avatarUrl !== undefined) {
+                profileUpdates.push(`avatar_url = $${paramCount++}`);
+                profileValues.push(data.avatarUrl);
+            }
+
+            if (profileUpdates.length > 0) {
+                profileValues.push(userId);
+                
+                if (profileCheck.rows.length === 0) {
+                    await client.query(`INSERT INTO profiles (user_id, full_name, phone, city, address, newsletter_agreement, avatar_url) VALUES ($1, $2, $3, $4, $5, $6, $7)`, [ userId, data.fullname || '', data.phone || '', data.city || '', data.address || '', data.avatarUrl || null]);
+                } else {
+                    await client.query(`UPDATE profiles SET ${profileUpdates.join(', ')} WHERE user_id = $${paramCount}`,profileValues);
+                }
+            }
+
+            await client.query('COMMIT');
+            return true;
+        } catch (error) {
+            if (client) await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            if (client) client.release();
+        }
+    },
 }
 
 export {pool}
