@@ -111,49 +111,70 @@ export const db = {
     async getDashBoardStats() {
         const client = await pool.connect()
         try{
-            const [usersCount, mastersCount, productsCount, ordersCount, pendingMasters, pendingProducts, recentUsers, recentOrders] = await Promise.all([client.query(`SELECT COUNT(*) as count FROM users WHERE role != 'admin'`), client.query(`SELECT COUNT(*) as count FROM masters WHERE is_verified = true`), client.query(`SELECT COUNT(*) as count FROM products WHERE status = "active"`), client.query(`SELECT COUNT(*) as count FROM orders`), client.query(`SELECT COUNT(*) as count FROM  masters WHERE is_verified = false`), client.query(`SELECT COUNT(*) as count FROM products WHERE status = "moderation"`), client.query(`SELECT u.id, u.name, u.email, u.role, u.created_at FROM users u  WHERE u.role != 'admin' ORDER BY u.created_at DESC LIMIT 5`), client.query(`SELECT o.id, o.order_number, o.total_amount, o.status, o.created_at, u.name as buyer_name, m.user_id as master_id FROM orders o JOIN users u ON o.buyer_id = u.id JOIN masters m ON o.master_id = m.user_id ORDER BY o.created_at DESC LIMIT 5`)])
-            return {totalUsers: parseInt(usersCount.rows[0].count), totalMasters: parseInt(mastersCount.rows[0].count), totalProducts: parseInt(productsCount.rows[0].count), totalOrders: parseInt(ordersCount.rows[0].count), pendingModeration: {masters: parseInt(pendingMasters.rows[0].count), products: parseInt(pendingProducts.rows[0].count)}, recentUsers: recentUsers.rows, recentOrders: recentOrders.rows}
+            const usersCount = await client.query(`SELECT COUNT(*) as count FROM users WHERE role != 'admin'`)
+            const mastersCount = await client.query(`SELECT COUNT(*) as count FROM masters WHERE is_verified = true`)
+            const productsCount = await client.query(`SELECT COUNT(*) as count FROM products WHERE status = 'active'`)
+            const ordersCount = await client.query(`SELECT COUNT(*) as count FROM orders`)
+            const pendingMasters = await client.query(`SELECT COUNT(*) as count FROM masters WHERE is_verified = false`)
+            const pendingProducts = await client.query(`SELECT COUNT(*) as count FROM products WHERE status = 'moderation'`)
+
+            const recentUsers = await client.query(`SELECT u.id, u.role, u.created_at, p.full_name as name FROM users u LEFT JOIN profiles p ON u.id = p.user_id WHERE u.role != 'admin' ORDER BY u.created_at DESC LIMIT 5`)
+            const recentOrders = await client.query(`SELECT o.id, o.order_number, o.total_amount, o.status, o.created_at, COALESCE(p.full_name, u.email) as buyer_name FROM orders o JOIN users u ON o.buyer_id = u.id LEFT JOIN profiles p ON u.id = p.user_id ORDER BY o.created_at DESC LIMIT 5`)
+            
+            return {totalUsers: parseInt(usersCount.rows[0]?.count || '0'), totalMasters: parseInt(mastersCount.rows[0]?.count || '0'), totalProducts: parseInt(productsCount.rows[0]?.count || '0'), totalOrders: parseInt(ordersCount.rows[0]?.count || '0'),  pendingModeration: {masters: parseInt(pendingMasters.rows[0]?.count || '0'), products: parseInt(pendingProducts.rows[0]?.count || '0')}, recentUsers: recentUsers.rows || [], recentOrders: recentOrders.rows || []}
+        }catch(error){
+            throw error
         }finally{
             client.release()
         }
     },
 
-    async getUsers(page = 1, limit = 10, filters: any = {}){
+    async getUsers(page = 1, limit = 10, filters: any = {}) {
         const client = await pool.connect()
-        try{
-            let query = `SELECT u.*, p.full_name, p.avatar_url, m.is_verified as master_verified, m.is_partner as master_partner 
-                        FROM users u 
-                        LEFT JOIN profiles p ON u.id = p.user_id 
-                        LEFT JOIN masters m ON u.id = m.user_id 
-                        WHERE 1=1`
+        try {
+            let query = `SELECT u.id, u.email, u.role, u.created_at, u.is_banned, p.full_name as name, p.phone, p.city, p.avatar_url,  COALESCE(m.is_verified, false) as master_verified, COALESCE(m.is_partner, false) as master_partner FROM users u LEFT JOIN profiles p ON u.id = p.user_id LEFT JOIN masters m ON u.id = m.user_id WHERE 1=1`
 
             const values: any[] = []
             let paramCount = 1
 
-            if (filters.search) {
-                query += ` AND (u.name ILIKE $${paramCount} OR u.email ILIKE $${paramCount} OR p.full_name ILIKE $${paramCount})`
+            if (filters.role && filters.role !== 'all') {
+                query += ` AND u.role = $${paramCount++}`
+                values.push(filters.role)
+            }
+
+            if (filters.search && filters.search.trim()) {
+                query += ` AND (p.full_name ILIKE $${paramCount} OR u.email ILIKE $${paramCount} OR p.phone ILIKE $${paramCount})`
                 values.push(`%${filters.search}%`)
                 paramCount++
             }
+            let countQuery = `SELECT COUNT(*) as total FROM users u LEFT JOIN profiles p ON u.id = p.user_id WHERE 1=1`
             
-            const countQuery = `SELECT COUNT(*) as count FROM users u 
-                            LEFT JOIN profiles p ON u.id = p.user_id 
-                            WHERE 1=1` + (filters.search ? ` AND (u.name ILIKE $1 OR u.email ILIKE $1 OR p.full_name ILIKE $1)` : '')
-            
-            const countResult = await client.query(countQuery, filters.search ? [`%${filters.search}%`] : [])
-            const total = parseInt(countResult.rows[0].count)
+            const countValues: any[] = []
+            let countParamCount = 1
+
+            if (filters.role && filters.role !== 'all') {
+                countQuery += ` AND u.role = $${countParamCount++}`
+                countValues.push(filters.role)
+            }
+
+            if (filters.search && filters.search.trim()) {
+                countQuery += ` AND (p.full_name ILIKE $${countParamCount} OR u.email ILIKE $${countParamCount} OR p.phone ILIKE $${countParamCount})`
+                countValues.push(`%${filters.search}%`)
+                countParamCount++
+            }
+
+            const countResult = await client.query(countQuery, countValues)
+            const total = parseInt(countResult.rows[0]?.total || '0')
 
             query += ` ORDER BY u.created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`
             values.push(limit, (page - 1) * limit)
 
             const result = await client.query(query, values)
 
-            return {
-                users: result.rows, 
-                total, 
-                page, 
-                totalPages: Math.ceil(total / limit)
-            }
+            return {users: result.rows, total: total, page: page, totalPages: Math.ceil(total / limit)}
+        } catch (error) {
+            console.error('Error in getUsers:', error)
+            throw error
         } finally {
             client.release()
         }
