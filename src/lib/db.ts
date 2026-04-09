@@ -252,17 +252,6 @@ export const db = {
         }
     },
 
-    async getPendingMasters() {
-        const client = await pool.connect()
-
-        try{
-            const result = await client.query(`SELECT u.id, u.name, u.email, u.phone, u.city, u.created_at, p.full_name, p.avatar_url, m.description, m.rating, (SELECT COUNT(*) FROM products WHERE master_id = m.user_id AND status = 'active') as products_count FROM users u JOIN masters m ON u.id = m.user_id LEFT JOIN profiles p ON u.id = p.user_id WHERE m.is_verified = false ORDER BY u.created_at DESC`)
-            return result.rows
-        }finally{
-            client.release()
-        }
-    },
-
     async getYarnCatalog(){
         const client = await pool.connect()
 
@@ -374,6 +363,38 @@ export const db = {
             throw error;
         } finally {
             if (client) client.release();
+        }
+    },
+    async getPendingMasters() {
+        const client = await pool.connect()
+        try {
+            const result = await client.query(`SELECT u.id, u.email, u.role, u.created_at, p.full_name as name, p.phone, p.city, p.avatar_url, m.description, m.is_verified, m.is_partner, m.rating, COALESCE(m.total_sales, 0) as products_count FROM users u LEFT JOIN profiles p ON u.id = p.user_id LEFT JOIN masters m ON u.id = m.user_id WHERE u.role = 'master' ORDER BY u.created_at DESC`)
+            const masters = result.rows.map(row => ({id: row.id, user_id: row.id, name: row.name || row.email, email: row.email,  phone: row.phone || '', city: row.city || '', description: row.description || '', is_verified: row.is_verified || false, is_partner: row.is_partner || false, created_at: row.created_at, products_count: parseInt(row.products_count) || 0, rating: parseFloat(row.rating) || 0, full_name: row.name || '', avatar_url: row.avatar_url || ''}))
+            
+            return masters
+        } catch (error) {
+            console.error('DB: Error in getPendingMasters:', error)
+            throw error
+        } finally {
+            client.release()
+        }
+    },
+    async updateMasterVerification(userId: string, isVerified: boolean, banReason?: string | null) {
+        const client = await pool.connect()
+        try {
+            await client.query('BEGIN')
+            await client.query(`UPDATE masters SET is_verified = $1, updated_at = NOW() WHERE user_id = $2`, [isVerified, userId])
+            
+            if (banReason) {await client.query(`UPDATE users SET ban_reason = $1 WHERE id = $2`, [banReason, userId])}
+            
+            await client.query('COMMIT')
+            
+            return true
+        } catch (error) {
+            await client.query('ROLLBACK')
+            throw error
+        } finally {
+            client.release()
         }
     },
 }
