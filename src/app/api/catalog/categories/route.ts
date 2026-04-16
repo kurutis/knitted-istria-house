@@ -1,85 +1,65 @@
-import { pool } from "@/lib/db"
-import { NextResponse } from "next/server"
+import { NextResponse } from "next/server";
+import { pool } from "@/lib/db";
 
-export async function GET(request:Request){
-    try{
-        const {searchParams} = new URL (request.url)
+export async function GET() {
+    let client;
+    try {
+        client = await pool.connect();
+        
+        const result = await client.query(`
+            SELECT 
+                c.id,
+                c.name,
+                c.description,
+                c.parent_category_id,
+                c.created_at,
+                c.updated_at,
+                COALESCE((
+                    SELECT COUNT(*) 
+                    FROM products p 
+                    WHERE p.category = c.name AND p.status = 'active'
+                ), 0) as products_count
+            FROM categories c
+            ORDER BY 
+                CASE 
+                    WHEN c.parent_category_id IS NULL THEN 0 
+                    ELSE 1 
+                END,
+                c.name ASC
+        `);
 
-        const category = searchParams.get('category')
-        const technique = searchParams.get('technique')
-        const minPrice = searchParams.get('minPrice')
-        const maxPrice = searchParams.get('maxPrice')
-        const search = searchParams.get('search')
-        const sort = searchParams.get('sort') || 'newest'
-        const page = parseInt(searchParams.get('page') || '1')
-        const limit = parseInt(searchParams.get('limit') || '12')
-        const offset = (page-1) * limit
+        // Строим дерево категорий (основные + подкатегории)
+        const categoriesMap = new Map();
+        const rootCategories: any[] = [];
 
-        const client = await pool.connect()
+        // Сначала создаем Map всех категорий
+        result.rows.forEach((cat: any) => {
+            categoriesMap.set(cat.id, {
+                ...cat,
+                subcategories: []
+            });
+        });
 
-        try{
-            let query = `SELECT p.id, p.title, p.description, p.price, p.status, p.category, t.technique, p.size, p.main_image_url, p.created_at, p.views, u.id as master_id, u.name as master_name, pv.rating as master_rating, (SELECT json_agg(json_build_object('id', pi.id, 'url', pi.image_url, 'sort_order', pi.sort_order)) FROM product_images pi WHERE pi.product_images = p.id) as images, ( SELECT COUNT(*) FROM reviews WHERE target_type = 'product' AND target_id = p.id::text) as reviews_count FROM products p JOIN masters m ON p.master_id = m.user_id JOIN users u ON m.user_id = u.id LEFT JOIN ( SELECT user_id, AVG(rating) as rating FROM reviews WHERE target_type = 'master' GROUP BY user_id) pv ON u.id = pv.user_id  WHERE p.status = 'active'` 
-            const values: any[] = []
-            let paramCount = 1
-
-            if (category && category !== 'all'){
-                query += ` AND p.category = $${paramCount}`
-                values.push(category)
-                paramCount++
+        // Затем формируем дерево
+        result.rows.forEach((cat: any) => {
+            if (cat.parent_category_id && categoriesMap.has(cat.parent_category_id)) {
+                // Это подкатегория - добавляем к родителю
+                const parent = categoriesMap.get(cat.parent_category_id);
+                parent.subcategories.push(categoriesMap.get(cat.id));
+            } else if (!cat.parent_category_id) {
+                // Это основная категория
+                rootCategories.push(categoriesMap.get(cat.id));
             }
+        });
 
-            if(technique){
-                query += ` AND p.technique = $${paramCount}`
-                values.push(technique)
-                paramCount++
-            }
-
-            if(minPrice){
-                query += ` AND p.price >= $${paramCount}`
-                values.push(parseInt(minPrice))
-                paramCount++
-            }
-
-            if(maxPrice){
-                query += ` AND p.price <= $${paramCount}`
-                values.push(parseInt(maxPrice))
-                paramCount++
-            }
-
-            if(search){
-                query += ` AND p.title ILIKE $${paramCount}`
-                values.push(`%${search}%`)
-                paramCount++
-            }
-
-            
-            const countQuery = `SELECT COUNT(*) as total FROM ($${query}) as subquery`
-            const countResult = await client.query(countQuery, values)
-            const total = parseInt(countResult.rows[0]?.total || '0')
-
-
-            switch(sort){
-                case 'price_asc': query += ` ORDER BY p.price ASC`
-                break
-                case 'price_desc': query += ` ORDER BY p.price DESC`
-                break
-                case 'popular': query += ` ORDER BY p.views DESC, p.created_at DESC`
-                break
-                case 'rating': query += ` ORDER BY rating DESC NULLS LAST, p.created_at DESC`
-                break
-                case 'newest': default: query += ` ORDER BY p.created_at DESC`
-            }
-
-            query += ` LIMIT $${paramCount} OFFSET $${paramCount + 1}`
-            values.push(limit, offset)
-
-            const result = await client.query(query, values)
-
-            return NextResponse.json({products: result.rows, pagination: {page, limit, total, totalPages: Math.ceil(total / limit), hasMore: offset + limit < total}})
-        }finally{
-            client.release()
-        }
-    }catch (error){
-        return NextResponse.json({error: 'Ошибка загрузки каталога'}, {status: 500})
+        return NextResponse.json({ categories: rootCategories }, { status: 200 });
+    } catch (error: any) {
+        console.error('Error fetching categories:', error);
+        return NextResponse.json({ 
+            categories: [],
+            error: error.message 
+        }, { status: 500 });
+    } finally {
+        if (client) client.release();
     }
 }

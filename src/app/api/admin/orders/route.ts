@@ -10,7 +10,6 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
 
-        // Заглушка заказов
         const orders = [
             {
                 id: '1',

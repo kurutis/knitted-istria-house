@@ -1,7 +1,26 @@
+'use client'
+
 import Link from "next/link";
 import HeroSlider from "@/components/HeroSlider"
+import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
+import MasterDashboard from "@/components/master/MasterDashboard";
 
 export default function HomePage() {
+  const { data: session, status } = useSession()
+  const [isMaster, setIsMaster] = useState(false)
+
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.role === 'master'){
+      setIsMaster(true)
+    } else{
+      setIsMaster(false)
+    }
+  }, [session, status])
+
+  if (isMaster) {
+    return <MasterDashboard session={session} />
+  }
   return (
     <div className="ml-[5%] w-[90%] mr-5%">
       <div>

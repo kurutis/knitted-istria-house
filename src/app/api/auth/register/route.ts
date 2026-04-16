@@ -23,10 +23,7 @@ export async function POST(request: Request) {
 
         if (password.length < 6){
             console.log("Password too short");
-            return NextResponse.json(
-                {error: 'Пароль должен быть не менее 6 символов'}, 
-                {status: 400}
-            );
+            return NextResponse.json({error: 'Пароль должен быть не менее 6 символов'}, {status: 400});
         }
 
         console.log("Checking existing user for email:", email);
@@ -34,42 +31,19 @@ export async function POST(request: Request) {
 
         if(existingUser){
             console.log("User already exists:", email);
-            return NextResponse.json(
-                {error: 'Пользователь с таким email уже существует'}, 
-                {status: 400}
-            );
+            return NextResponse.json({error: 'Пользователь с таким email уже существует'}, {status: 400});
         }
 
         console.log("Hashing password...");
         const hashedPassword  = await bcrypt.hash(password, 10);
         
-        console.log("Creating user with data:", {
-            name, email, phone, 
-            city: city || 'Москва', 
-            role: role || 'buyer', 
-            newsletterAgreement: newsletterAgreement || false
-        });
+        console.log("Creating user with data:", {name, email, phone, city: city || 'Москва', role: role || 'buyer', newsletterAgreement: newsletterAgreement || false});
         
-        const user = await db.createUser({
-            fullName: name,
-            email, 
-            password: hashedPassword, 
-            phone, 
-            city: city || 'Москва', 
-            role: role || 'buyer', 
-            newsletterAgreement: newsletterAgreement || false
-        });
+        const user = await db.createUser({fullName: name, email, password: hashedPassword, phone, city: city || 'Москва', role: role || 'buyer', newsletterAgreement: newsletterAgreement || false});
 
         console.log("User created successfully:", user.id);
         
-        return NextResponse.json(
-            {
-                message: "Регистрация успешна", 
-                userId: user.id, 
-                testSmsCode: '1111'
-            }, 
-            {status: 200}
-        );
+        return NextResponse.json({message: "Регистрация успешна", userId: user.id, testSmsCode: '1111'}, {status: 200});
     } catch(error: any){
         console.error("=== REGISTRATION ERROR ===");
         console.error("Error name:", error.name);

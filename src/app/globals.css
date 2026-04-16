@@ -14,15 +14,15 @@
   }
   
   body {
-    background-color: #F9F9F9;
+    background-color: #F9F9F9
   }
 }
 
 
 @theme{
-    --color-main: #f9f9f9;
+    --color-main: #f9f9f9
     --color-firm-pink:#D97C8E;
-    --color-firm-orange:#F4A67F;
+    --color-firm-orange:#F4A67F
 }
 
 .typography {

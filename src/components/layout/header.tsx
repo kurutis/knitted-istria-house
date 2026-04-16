@@ -15,6 +15,7 @@ export default function Header() {
   const isLoading = status === 'loading'
   const isAuthenticated = !!session?.user
   const isBuyer = session?.user?.role === 'buyer'
+  const isMaster = session?.user?.role === 'master'
 
   return (
     <header className="bg-main h-[10vh] flex items-center">
@@ -38,7 +39,7 @@ export default function Header() {
 
           <div>
             <ul className="flex justify-between gap-8 items-center">
-              {isAuthenticated && isBuyer &&(
+              {isAuthenticated && isBuyer || isMaster &&(
                 <li>
                   <Link href="/chats">
                     <Image src={chat} className="w-7 h-7" alt="chat" />

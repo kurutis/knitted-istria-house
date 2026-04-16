@@ -10,37 +10,19 @@ import VkProvider from "next-auth/providers/vk";
 export const authOptions: NextAuthOptions = {
     adapter: pgAdapter,
     providers: [
-        CredentialsProvider({
-            name: 'credentials',
-            credentials: {
-                email: { label: 'Email', type: 'email' }, 
-                password: { label: 'Password', type: 'password' }, 
-                smsCode: { label: 'SMS Code', type: 'text' }
-            },
+        CredentialsProvider({name: 'credentials', credentials: {email: { label: 'Email', type: 'email' }, password: { label: 'Password', type: 'password' }, smsCode: { label: 'SMS Code', type: 'text' }},
             async authorize(credentials) {
                 if (!credentials?.email || !credentials?.password) {
                     throw new Error('Введите email и пароль')
                 }
 
                 try {
-                    console.log("Attempting login for:", credentials.email)
                     
                     const user = await db.getUserByEmail(credentials.email)
                     
-                    console.log("User from DB:", user ? {
-                        id: user.id,
-                        email: user.email,
-                        hasPassword: !!user.password,
-                        role: user.role
-                    } : "User not found")
+                    if (!user) {throw new Error('Пользователь не найден')}
 
-                    if (!user) {
-                        throw new Error('Пользователь не найден')
-                    }
-
-                    if (!user.password) {
-                        throw new Error('Этот аккаунт создан через социальные сети. Используйте соответствующий вход.')
-                    }
+                    if (!user.password) {throw new Error('Этот аккаунт создан через социальные сети. Используйте соответствующий вход.')}
 
                     const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
 
@@ -51,32 +33,14 @@ export const authOptions: NextAuthOptions = {
                     const testMode = process.env.SMS_TEST_MODE === 'true'
                     
                     if (!testMode && credentials.smsCode) {
-                        if (credentials.smsCode !== user.sms_code) {
-                            throw new Error('Неверный SMS код')
-                        }
-
-                        if (user.sms_code_expires && new Date(user.sms_code_expires) < new Date()) {
-                            throw new Error('SMS код истек')
-                        }
+                        if (credentials.smsCode !== user.sms_code) {throw new Error('Неверный SMS код')}
+                        if (user.sms_code_expires && new Date(user.sms_code_expires) < new Date()) {throw new Error('SMS код истек')}
                     }
 
-                    if (user.is_banned) {
-                        throw new Error('Аккаунт заблокирован')
-                    }
+                    if (user.is_banned) {throw new Error('Аккаунт заблокирован')}
 
-                    return {
-                        id: user.id,
-                        email: user.email,
-                        name: user.name || user.full_name || user.email?.split('@')[0],
-                        role: user.role || 'buyer',
-                        role_selected: user.role_selected || false,
-                        phone: user.phone || user.profile_phone,
-                        city: user.city,
-                        is_verified: user.master_verified || false,
-                        is_partner: user.master_partner || false
-                    }
+                    return {id: user.id, email: user.email, name: user.name || user.full_name || user.email?.split('@')[0], role: user.role || 'buyer', role_selected: user.role_selected || false, phone: user.phone || user.profile_phone, city: user.city, is_verified: user.master_verified || false, is_partner: user.master_partner || false}
                 } catch (error: any) {
-                    console.error("Authorization error:", error.message)
                     throw new Error(error.message || 'Ошибка аутентификации')
                 }
             },
@@ -186,7 +150,7 @@ export const authOptions: NextAuthOptions = {
                         user.role_selected = false
                         user.role = 'buyer'
                     } else {
-                        user.id = existingUser.id // здесь existingUser.id уже UUID из базы
+                        user.id = existingUser.id
                         user.role = existingUser.role
                         user.role_selected = existingUser.role_selected
                     }
