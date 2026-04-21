@@ -3,16 +3,19 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { pool } from "@/lib/db";
 
+// ✅ 1. Функция должна быть асинхронной
+// ✅ 2. Тип params — Promise
 export async function POST(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
         return NextResponse.json({ error: 'Необходимо авторизоваться' }, { status: 401 });
     }
 
-    const { id } = params;
+    // ✅ 3. Await для доступа к params
+    const { id } = await params;
 
     let client;
     try {
@@ -21,7 +24,7 @@ export async function POST(
 
         // Проверяем наличие мест
         const classResult = await client.query(
-            `SELECT current_participants, max_participants FROM master_classes WHERE id = $1`,
+            `SELECT current_participants, max_participants FROM master_classes WHERE id = $1 AND status = 'published'`,
             [id]
         );
 

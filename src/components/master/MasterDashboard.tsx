@@ -638,7 +638,7 @@ export default function MasterDashboard({ session }: { session: any }) {
                                         <div className="grid grid-cols-4 gap-3">
                                             {imagePreviews.map((preview, idx) => (
                                                 <div key={idx} draggable onDragStart={(e) => {e.dataTransfer.setData('text/plain', idx.toString())}} onDragOver={(e) => e.preventDefault()} onDrop={(e) => {e.preventDefault(); const fromIndex = parseInt(e.dataTransfer.getData('text/plain')); moveImage(fromIndex, idx) }} className="relative group aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-firm-orange transition cursor-move">
-                                                    <Image src={preview} alt={`preview-${idx}`} className="w-full h-full object-cover"/>
+                                                    <Image width={160} height={160} src={preview} alt={`preview-${idx}`} className="w-full h-full object-cover"/>
                                                     <button type="button" onClick={() => removeImage(idx)} className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition">✕</button>
                                                     {idx === 0 && (
                                                         <div className="absolute bottom-1 left-1 bg-firm-orange text-white text-xs px-1.5 py-0.5 rounded">

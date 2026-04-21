@@ -514,16 +514,8 @@ export default function MasterClassesPage() {
                                 {formData.imagePreview && (
                                     <div className="mt-4">
                                         <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2 border-gray-200">
-                                            <Image src={formData.imagePreview} alt="preview" className="w-full h-full object-cover" />
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setFormData(prev => ({ ...prev, image: null, imagePreview: '' }))
-                                                }}
-                                                className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600 transition"
-                                            >
-                                                ✕
-                                            </button>
+                                            <img src={formData.imagePreview} alt="preview" className="w-full h-full object-cover" />
+                                            <button type="button" onClick={() => {setFormData(prev => ({ ...prev, image: null, imagePreview: '' }))}} className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600 transition">✕</button>
                                         </div>
                                     </div>
                                 )}
@@ -749,10 +741,10 @@ function MasterClassCard({ masterClass, session, onRegister, onCancel }: any) {
     }
 
     return (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
+        <div className="bg-white h-50 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
             <div className="flex">
                 {masterClass.image_url && (
-                    <div className="w-40 h-40 shrink-0">
+                    <div className="w-40 h-50 shrink-0">
                         <Image src={masterClass.image_url} alt={masterClass.title} width={160} height={160} className="w-full h-full object-cover" />
                     </div>
                 )}
@@ -835,53 +827,60 @@ function MyRegisteredClassCard({ masterClass, onCancel }: any) {
     }
 
     return (
-        <div className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition">
-            <div className="flex justify-between items-start">
-                <div>
-                    <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg">{masterClass.title}</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                        <span className="text-sm text-gray-500">👤 {masterClass.master_name}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-xs ${masterClass.type === 'online' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
-                            {masterClass.type === 'online' ? 'Онлайн' : 'Офлайн'}
-                        </span>
+        <div className="bg-white h-50 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
+            <div className="flex">
+                {masterClass.image_url && (
+                    <div className="w-40 h-50 shrink-0">
+                        <Image src={masterClass.image_url} alt={masterClass.title} width={160} height={160} className="w-full h-full object-cover" />
+                    </div>
+                )}
+                <div className="flex-1 p-4">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg">{masterClass.title}</h3>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="text-sm text-gray-500">👤 {masterClass.master_name}</span>
+                                <span className={`px-2 py-0.5 rounded-full text-xs ${masterClass.type === 'online' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
+                                    {masterClass.type === 'online' ? 'Онлайн' : 'Офлайн'}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-xl font-bold text-firm-orange">{masterClass.price} ₽</div>
+                            <div className="text-sm text-gray-500">мест: {masterClass.current_participants}/{masterClass.max_participants}</div>
+                        </div>
+                    </div>
+
+                    <p className="text-gray-600 mt-2 text-sm line-clamp-2">{masterClass.description}</p>
+
+                    <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
+                        <div className="flex items-center gap-1">📅 {formatDate(masterClass.date_time)}</div>
+                        <div className="flex items-center gap-1">⏰ {formatTime(masterClass.date_time)}</div>
+                        <div className="flex items-center gap-1">⏱️ {masterClass.duration_minutes} мин</div>
+                        {masterClass.type === 'offline' && masterClass.location && (
+                            <div className="flex items-center gap-1">📍 {masterClass.location}</div>
+                        )}
+                    </div>
+
+                    <div className="mt-3 flex justify-end">
+                            <div className="flex gap-2">
+                                {masterClass.type === 'online' && masterClass.online_link && (
+                                    <button
+                                        onClick={() => window.open(masterClass.online_link, '_blank')}
+                                        className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition"
+                                    >
+                                        Запустить
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => onCancel(masterClass.id)}
+                                    className="px-3 py-1.5 border border-red-500 text-red-500 rounded-lg text-sm hover:bg-red-500 hover:text-white transition"
+                                >
+                                    Отменить
+                                </button>
+                            </div>
                     </div>
                 </div>
-                <div className="text-right">
-                    <div className="text-lg font-bold text-firm-pink">{masterClass.price} ₽</div>
-                </div>
-            </div>
-
-            <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
-                <div className="flex items-center gap-1">📅 {formatDate(masterClass.date_time)}</div>
-                <div className="flex items-center gap-1">⏰ {formatTime(masterClass.date_time)}</div>
-                <div className="flex items-center gap-1">⏱️ {masterClass.duration_minutes} мин</div>
-                {masterClass.type === 'offline' && masterClass.location && (
-                    <div className="flex items-center gap-1">📍 {masterClass.location}</div>
-                )}
-            </div>
-
-            <div className="mt-3 flex justify-end gap-2">
-                {canJoin && (
-                    <button
-                        onClick={() => window.open(masterClass.online_link, '_blank')}
-                        className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition"
-                    >
-                        Запустить
-                    </button>
-                )}
-                {!isPast && (
-                    <button
-                        onClick={() => onCancel(masterClass.id)}
-                        className="px-3 py-1.5 border border-red-500 text-red-500 rounded-lg text-sm hover:bg-red-500 hover:text-white transition"
-                    >
-                        Отменить запись
-                    </button>
-                )}
-                {isPast && (
-                    <span className="px-3 py-1.5 bg-gray-200 text-gray-500 rounded-lg text-sm">
-                        Завершен
-                    </span>
-                )}
             </div>
         </div>
     )
@@ -901,7 +900,7 @@ function MyCreatedClassCard({ masterClass, getStatusBadge, onEdit, onDelete, onC
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <div className="flex">
                 {masterClass.image_url && (
-                    <div className="w-32 h-32 flex-shrink-0">
+                    <div className="w-40 h-50 shrink-0">
                         <Image src={masterClass.image_url} alt={masterClass.title} width={160} height={160} className="w-full h-full object-cover" />
                     </div>
                 )}
@@ -948,22 +947,9 @@ function MyCreatedClassCard({ masterClass, getStatusBadge, onEdit, onDelete, onC
                                 Отменить
                             </button>
                         )}
-                        {masterClass.status === 'draft' && (
-                            <>
-                                <button
-                                    onClick={() => onEdit(masterClass)}
-                                    className="px-3 py-1.5 bg-firm-orange text-white rounded-lg text-sm hover:bg-opacity-90 transition"
-                                >
-                                    Редактировать
-                                </button>
-                                <button
-                                    onClick={() => onDelete(masterClass.id)}
-                                    className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition"
-                                >
-                                    Удалить
-                                </button>
-                            </>
-                        )}
+                        <>
+                            <button onClick={() => onEdit(masterClass)} className="px-3 py-1.5 bg-firm-orange text-white rounded-lg text-sm hover:bg-opacity-90 transition">Редактировать</button>
+                        </>
                     </div>
                 </div>
             </div>

@@ -5,19 +5,29 @@ import { pool } from "@/lib/db";
 
 export async function DELETE(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
         return NextResponse.json({ error: 'Необходимо авторизоваться' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     let client;
     try {
         client = await pool.connect();
         await client.query('BEGIN');
+
+        // Проверяем, существует ли запись
+        const existing = await client.query(
+            `SELECT id FROM master_class_registrations WHERE master_class_id = $1 AND user_id = $2`,
+            [id, session.user.id]
+        );
+
+        if (existing.rows.length === 0) {
+            return NextResponse.json({ error: 'Вы не записаны на этот мастер-класс' }, { status: 400 });
+        }
 
         // Удаляем запись
         await client.query(

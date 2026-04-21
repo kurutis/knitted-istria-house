@@ -14,15 +14,27 @@
   }
   
   body {
-    background-color: #F9F9F9
+    background-color: #F9F9F9;
   }
 }
 
+.price-range-container {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.price-range-container .slider-track {
+    width: 100%;
+}
+
+.dashed-blue-ring {
+  ring: 4px dashed #007BFF; /* синий цвет пунктирной линии */
+}
 
 @theme{
     --color-main: #f9f9f9;
+    --color-firm-orange:#F4A67F;
     --color-firm-pink:#D97C8E;
-    --color-firm-orange:#F4A67F
 }
 
 .typography {

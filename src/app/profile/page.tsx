@@ -28,7 +28,6 @@ export default function ProfilePage() {
         return <LoadingSpinner />
     }
 
-    // Проверяем роль несколькими способами
     const userRole = session?.user?.role || session?.user?.userRole || session?.role
     
     if (userRole === 'master') {

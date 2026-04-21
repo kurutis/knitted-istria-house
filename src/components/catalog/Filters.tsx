@@ -20,9 +20,11 @@ interface Category {
 }
 
 export default function Filters({ filters, availableFilters, onFilterChange, onClearFilters }: FiltersProps) {
+   const maxPrice = availableFilters.priceRange?.max > 100000 ? 100000 : (availableFilters.priceRange?.max || 10000)
+
     const [priceRange, setPriceRange] = useState({
         min: filters.minPrice || availableFilters.priceRange?.min || 0,
-        max: filters.maxPrice || availableFilters.priceRange?.max || 10000
+        max: filters.maxPrice || maxPrice
     })
     const [categories, setCategories] = useState<Category[]>([])
     const [loadingCategories, setLoadingCategories] = useState(true)
@@ -136,15 +138,15 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
                     >
                         {/* Кнопка сворачивания/разворачивания */}
                         {hasSubcategories && (
-                            <button
+                            <span
                                 onClick={(e) => {
-                                    e.stopPropagation()
-                                    toggleCategory(cat.id)
+                                    e.stopPropagation();
+                                    toggleCategory(cat.id);
                                 }}
-                                className="w-5 h-5 text-firm-pink flex items-center justify-center rounded hover:bg-black/10"
+                                className="w-5 h-5 flex items-center justify-center rounded hover:bg-black/10 cursor-pointer"
                             >
                                 {isExpanded ? '▼' : '▶'}
-                            </button>
+                            </span>
                         )}
                         {!hasSubcategories && <span className="w-5" />}
                         
@@ -183,7 +185,7 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
                 {loadingCategories ? (
                     <div className="space-y-2">
                         {[1, 2, 3, 4].map(i => (
-                            <div key={i} className="h-10 bg-[#eaeaea] animate-pulse rounded-lg" />
+                            <div key={i} className="h-10 bg-[#f1f1f1] animate-pulse rounded-lg" />
                         ))}
                     </div>
                 ) : (
@@ -194,7 +196,7 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
                             className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
                                 filters.category === 'all'
                                     ? 'bg-firm-orange text-white'
-                                    : 'hover:bg-[#eaeaea]'
+                                    : 'hover:bg-[#f1f1f1]'
                             }`}
                         >
                             <span className="w-5" />
@@ -209,13 +211,15 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
             {/* Цена */}
             <div className="mb-8">
                 <h4 className="font-['Montserrat_Alternates'] font-medium mb-3">Цена</h4>
-                <PriceRange
-                    min={availableFilters.priceRange?.min || 0}
-                    max={availableFilters.priceRange?.max || 10000}
-                    currentMin={priceRange.min}
-                    currentMax={priceRange.max}
-                    onChange={handlePriceChange}
-                />
+                <div className="w-full max-w-full">
+                    <PriceRange
+                        min={availableFilters.priceRange?.min || 0}
+                        max={availableFilters.priceRange?.max || 10000}
+                        currentMin={priceRange.min}
+                        currentMax={priceRange.max}
+                        onChange={handlePriceChange}
+                    />
+                </div>
             </div>
 
             {/* Техники вязания */}
@@ -261,30 +265,30 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
                     <h4 className="font-['Montserrat_Alternates'] font-medium mb-2 text-sm">Активные фильтры:</h4>
                     <div className="flex flex-wrap gap-2">
                         {filters.category && filters.category !== 'all' && (
-                            <span className="px-2 py-1 bg-firm-orange bg-opacity-10 text-firm-orange rounded-full text-xs flex items-center gap-1">
+                            <span className="px-2 py-1 bg-firm-orange bg-opacity-10 text-white hover:cursor-pointer rounded-full text-xs flex items-center gap-1">
                                 {filters.category}
                                 <button onClick={() => onFilterChange({ category: 'all' })} className="hover:text-firm-pink">✕</button>
                             </span>
                         )}
                         {filters.technique && (
-                            <span className="px-2 py-1 bg-firm-pink bg-opacity-10 text-firm-pink rounded-full text-xs flex items-center gap-1">
+                            <span className="px-2 py-1 hover:cursor-pointer bg-firm-pink bg-opacity-10 text-white rounded-full text-xs flex items-center gap-1">
                                 {filters.technique}
-                                <button onClick={() => onFilterChange({ technique: '' })} className="hover:text-firm-orange">✕</button>
+                                <button onClick={() => onFilterChange({ technique: '' })} className="hover:text-white">✕</button>
                             </span>
                         )}
                         {(filters.minPrice || filters.maxPrice) && (
-                            <span className="px-2 py-1 bg-firm-orange bg-opacity-10 text-firm-orange rounded-full text-xs flex items-center gap-1">
+                            <span className="px-2 py-1 hover:cursor-pointer bg-firm-orange bg-opacity-10 text-white rounded-full text-xs flex items-center gap-1">
                                 {filters.minPrice || 0} - {filters.maxPrice || '∞'} ₽
                                 <button onClick={() => {
                                     setPriceRange({ min: availableFilters.priceRange?.min || 0, max: availableFilters.priceRange?.max || 10000 })
                                     onFilterChange({ minPrice: '', maxPrice: '' })
-                                }} className="hover:text-firm-pink">✕</button>
+                                }} className="hover:text-white">✕</button>
                             </span>
                         )}
                         {filters.inStock && (
-                            <span className="px-2 py-1 bg-firm-pink bg-opacity-10 text-firm-pink rounded-full text-xs flex items-center gap-1">
+                            <span className="px-2 py-1 hover:cursor-pointer bg-firm-pink bg-opacity-10 text-white rounded-full text-xs flex items-center gap-1">
                                 В наличии
-                                <button onClick={() => onFilterChange({ inStock: '' })} className="hover:text-firm-orange">✕</button>
+                                <button onClick={() => onFilterChange({ inStock: '' })} className="hover:text-white">✕</button>
                             </span>
                         )}
                     </div>

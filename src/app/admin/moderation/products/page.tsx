@@ -153,8 +153,8 @@ export default function AdminModerationProductsPage() {
                         {pendingProducts.map((product) => (
                             <div key={product.id} className="p-6 hover:bg-[#FAFAFA] transition-colors">
                                 <div className="flex gap-6">
-                                    <div className="w-32 h-32 bg-[#EAEAEA] rounded-lg overflow-hidden flex-shrink-0 cursor-pointer"onClick={() => openModal(product)}>
-                                        {product.main_image_url ? (<Image src={product.main_image_url} alt={product.title} className="w-full h-full object-cover"/>) : (<div className="w-full h-full flex items-center justify-center text-gray-400">Нет фото</div>)}
+                                    <div className="w-32 h-32 bg-[#EAEAEA] rounded-lg overflow-hidden hrink-0 cursor-pointer"onClick={() => openModal(product)}>
+                                        {product.main_image_url ? (<Image src={product.main_image_url} alt={product.title} width={160} height={160} className="w-full h-full object-cover"/>) : (<div className="w-full h-full flex items-center justify-center text-gray-400">Нет фото</div>)}
                                     </div>
                                     <div className="flex-1">
                                         <div className="flex justify-between items-start">
