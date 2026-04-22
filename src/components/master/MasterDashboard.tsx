@@ -4,6 +4,9 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import MediaGallery from '@/components/blog/MediaGallery'
+import { AnimatedButton } from '@/components/ui/AnimatedButton'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface Order {
     id: string
@@ -18,13 +21,19 @@ interface Order {
 interface BlogPost {
     id: string
     title: string
+    content: string
     excerpt: string
+    images?: Array<{ id: string; url: string; sort_order: number }>
+    main_image_url: string
     created_at: string
     views_count: number
     likes_count: number
     comments_count: number
     author_name: string
     author_avatar: string
+    master_id: string
+    is_liked?: boolean
+    comments?: any[]
 }
 
 interface Notification {
@@ -48,14 +57,19 @@ interface MasterStats {
 export default function MasterDashboard({ session }: { session: any }) {
     const router = useRouter()
     const [orders, setOrders] = useState<Order[]>([])
-    const [blogPosts, setBlogPosts] = useState<BlogPost[]>([])
+    const [recentPosts, setRecentPosts] = useState<BlogPost[]>([])
+    const [myPosts, setMyPosts] = useState<BlogPost[]>([])
     const [notifications, setNotifications] = useState<Notification[]>([])
     const [stats, setStats] = useState<MasterStats>({total_orders: 0, new_orders: 0, total_products: 0, total_views: 0, total_followers: 0})
     const [loading, setLoading] = useState(true)
     const [showNotifications, setShowNotifications] = useState(false)
     const [showAddProductModal, setShowAddProductModal] = useState(false)
     const [showAddPostModal, setShowAddPostModal] = useState(false)
+    const [showComments, setShowComments] = useState<string | null>(null)
+    const [commentText, setCommentText] = useState('')
+    const [commentLoading, setCommentLoading] = useState(false)
     const [saving, setSaving] = useState(false)
+    const [activeTab, setActiveTab] = useState<'recent' | 'my'>('recent')
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [categories, setCategories] = useState<any[]>([])
     const [yarns, setYarns] = useState<any[]>([])
@@ -175,7 +189,7 @@ export default function MasterDashboard({ session }: { session: any }) {
 
             setShowAddClassModal(false)
             resetClassForm()
-            alert('Мастер-класс успешно создан и отправлен на модерацию!')
+            alert('Мастер-класс успешно создан!')
         } catch (error) {
             console.error('Ошибка при создании мастер-класса:', error)
             alert('Ошибка при создании мастер-класса')
@@ -201,6 +215,95 @@ export default function MasterDashboard({ session }: { session: any }) {
         setClassImagePreviews([])
     }
 
+    const handleLike = async (postId: string, isFromMyPosts = false) => {
+        if (!session) {
+            window.location.href = '/auth/signin?callbackUrl=/master/dashboard'
+            return
+        }
+
+        try {
+            const post = isFromMyPosts ? myPosts.find(p => p.id === postId) : recentPosts.find(p => p.id === postId)
+            const response = await fetch(`/api/blog/posts/${postId}/like`, {
+                method: post?.is_liked ? 'DELETE' : 'POST'
+            })
+
+            if (response.ok) {
+                if (isFromMyPosts) {
+                    setMyPosts(prev => prev.map(p => 
+                        p.id === postId 
+                            ? { 
+                                ...p, 
+                                is_liked: !p.is_liked,
+                                likes_count: p.is_liked ? p.likes_count - 1 : p.likes_count + 1
+                              }
+                            : p
+                    ))
+                } else {
+                    setRecentPosts(prev => prev.map(p => 
+                        p.id === postId 
+                            ? { 
+                                ...p, 
+                                is_liked: !p.is_liked,
+                                likes_count: p.is_liked ? p.likes_count - 1 : p.likes_count + 1
+                              }
+                            : p
+                    ))
+                }
+            }
+        } catch (error) {
+            console.error('Error toggling like:', error)
+        }
+    }
+
+    const handleComment = async (postId: string, isFromMyPosts = false) => {
+        if (!session) {
+            window.location.href = '/auth/signin?callbackUrl=/master/dashboard'
+            return
+        }
+
+        if (!commentText.trim()) return
+
+        setCommentLoading(true)
+        try {
+            const response = await fetch(`/api/blog/posts/${postId}/comment`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: commentText })
+            })
+
+            if (response.ok) {
+                const newComment = await response.json()
+                if (isFromMyPosts) {
+                    setMyPosts(prev => prev.map(p =>
+                        p.id === postId
+                            ? {
+                                ...p,
+                                comments: [newComment, ...(p.comments || [])],
+                                comments_count: p.comments_count + 1
+                              }
+                            : p
+                    ))
+                } else {
+                    setRecentPosts(prev => prev.map(p =>
+                        p.id === postId
+                            ? {
+                                ...p,
+                                comments: [newComment, ...(p.comments || [])],
+                                comments_count: p.comments_count + 1
+                              }
+                            : p
+                    ))
+                }
+                setCommentText('')
+                setShowComments(postId)
+            }
+        } catch (error) {
+            console.error('Error adding comment:', error)
+        } finally {
+            setCommentLoading(false)
+        }
+    }
+
     const fetchMasterData = async () => {
         try {
             setLoading(true)
@@ -209,9 +312,13 @@ export default function MasterDashboard({ session }: { session: any }) {
             const ordersData = await ordersRes.json()
             setOrders(ordersData || [])
             
-            const blogRes = await fetch('/api/master/blog')
-            const blogData = await blogRes.json()
-            setBlogPosts(blogData || [])
+            const recentPostsRes = await fetch('/api/blog/posts?limit=4')
+            const recentPostsData = await recentPostsRes.json()
+            setRecentPosts(recentPostsData || [])
+            
+            const myPostsRes = await fetch('/api/master/blog')
+            const myPostsData = await myPostsRes.json()
+            setMyPosts(myPostsData || [])
             
             const notifRes = await fetch('/api/master/notifications')
             const notifData = await notifRes.json()
@@ -249,7 +356,7 @@ export default function MasterDashboard({ session }: { session: any }) {
     }
 
     const renderCategoryOptions = (categories: any[], level = 0) => {
-    const options: JSX.Element[] = [];
+        const options: JSX.Element[] = [];
         categories.forEach(cat => {
             const prefix = '—'.repeat(level);
             options.push(
@@ -436,7 +543,7 @@ export default function MasterDashboard({ session }: { session: any }) {
             setShowAddPostModal(false)
             resetPostForm()
             fetchMasterData()
-            alert('Пост успешно создан и отправлен на модерацию!')
+            alert('Пост успешно создан!')
         } catch (error) {
             console.error('Ошибка при создании поста:', error)
             alert('Ошибка при создании поста')
@@ -519,6 +626,16 @@ export default function MasterDashboard({ session }: { session: any }) {
         setImagePreviews([])
     }
 
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString)
+        const now = new Date()
+        const diff = Math.floor((now.getTime() - date.getTime()) / 1000 / 60 / 60)
+        
+        if (diff < 1) return 'только что'
+        if (diff < 24) return `${diff} ч назад`
+        return date.toLocaleDateString('ru-RU')
+    }
+
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
@@ -533,82 +650,663 @@ export default function MasterDashboard({ session }: { session: any }) {
     const unreadCount = notifications.filter(n => !n.is_read).length
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-6">
-            <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
-                <div>
-                    <h1 className="font-['Montserrat_Alternates'] font-bold text-2xl">Добро пожаловать, {session.user.name}!</h1>
-                    <p className="text-gray-500 text-sm mt-1">Вот что происходит с вашим магазином сегодня</p>
-                </div>
-                <div className="flex items-center gap-4">
-                    <Link href="/master/chats" className="relative">
-                        <div className="w-10 h-10 rounded-full bg-[#EAEAEA] flex items-center justify-center hover:bg-firm-orange hover:text-white transition-colors">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+            <div className="max-w-7xl mx-auto px-4 py-8">
+                {/* Анимированный заголовок */}
+                <motion.div 
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="bg-gradient-to-r from-firm-orange to-firm-pink rounded-2xl p-8 mb-8 text-white shadow-xl"
+                >
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <h1 className="font-['Montserrat_Alternates'] text-white font-bold text-3xl mb-2">
+                                Добро пожаловать, {session.user.name}!
+                            </h1>
+                            <p className="text-white/80">Вот что происходит с вашим магазином сегодня</p>
                         </div>
-                        {stats.total_followers > 0 && (<span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">{stats.total_followers > 9 ? '9+' : stats.total_followers}</span>)}
-                    </Link>
-
-                    <div className="relative">
-                        <button onClick={() => setShowNotifications(!showNotifications)} className="relative w-10 h-10 rounded-full bg-[#EAEAEA] flex items-center justify-center hover:bg-firm-orange hover:text-white transition-colors"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>{unreadCount > 0 && (<span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">{unreadCount > 9 ? '9+' : unreadCount}</span>)}</button>
-
-                        {showNotifications && (
-                            <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl z-50 border border-gray-200">
-                                <div className="p-3 border-b border-gray-200">
-                                    <h3 className="font-semibold">Уведомления</h3>
-                                </div>
-                                <div className="max-h-96 overflow-y-auto">
-                                    {notifications.length === 0 ? (
-                                        <div className="p-4 text-center text-gray-500">Нет уведомлений</div>
-                                    ) : (
-                                        notifications.map(notif => (
-                                            <div key={notif.id} className={`p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${!notif.is_read ? 'bg-blue-50' : ''}`} onClick={() => {markNotificationAsRead(notif.id); if (notif.link) router.push(notif.link); setShowNotifications(false)}}>
-                                                <div className="flex items-start gap-3">
-                                                    <span className="text-xl">{getNotificationIcon(notif.type)}</span>
-                                                    <div className="flex-1">
-                                                        <p className="font-medium text-sm">{notif.title}</p>
-                                                        <p className="text-xs text-gray-500 mt-1">{notif.message}</p>
-                                                        <p className="text-xs text-gray-400 mt-1">{new Date(notif.created_at).toLocaleDateString('ru-RU')}</p>
-                                                    </div>
-                                                    {!notif.is_read && (<div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>)}
-                                                </div>
-                                            </div>
-                                        ))
+                        <div className="flex items-center gap-4">
+                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                <Link href="/master/chats" className="relative block">
+                                    <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
+                                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                        </svg>
+                                    </div>
+                                    {stats.total_followers > 0 && (
+                                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse">
+                                            {stats.total_followers > 9 ? '9+' : stats.total_followers}
+                                        </span>
                                     )}
+                                </Link>
+                            </motion.div>
+
+                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="relative">
+                                <button 
+                                    onClick={() => setShowNotifications(!showNotifications)} 
+                                    className="relative w-12 h-12 bg-white/20 backdrop-blur rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
+                                >
+                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                    </svg>
+                                    {unreadCount > 0 && (
+                                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 text-white text-xs rounded-full flex items-center justify-center animate-bounce">
+                                            {unreadCount > 9 ? '9+' : unreadCount}
+                                        </span>
+                                    )}
+                                </button>
+
+                                <AnimatePresence>
+                                    {showNotifications && (
+                                        <motion.div 
+                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                            className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl z-50 border border-gray-100 overflow-hidden"
+                                        >
+                                            <div className="p-4 bg-gradient-to-r from-firm-orange to-firm-pink">
+                                                <h3 className="font-semibold text-white">Уведомления</h3>
+                                            </div>
+                                            <div className="max-h-96 overflow-y-auto">
+                                                {notifications.length === 0 ? (
+                                                    <div className="p-6 text-center text-gray-500">Нет уведомлений</div>
+                                                ) : (
+                                                    notifications.map((notif, idx) => (
+                                                        <motion.div 
+                                                            key={notif.id}
+                                                            initial={{ opacity: 0, x: -20 }}
+                                                            animate={{ opacity: 1, x: 0 }}
+                                                            transition={{ delay: idx * 0.05 }}
+                                                            className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-all duration-300 ${!notif.is_read ? 'bg-gradient-to-r from-firm-orange/5 to-firm-pink/5' : ''}`}
+                                                            onClick={() => {markNotificationAsRead(notif.id); if (notif.link) router.push(notif.link); setShowNotifications(false)}}
+                                                        >
+                                                            <div className="flex items-start gap-3">
+                                                                <span className="text-2xl">{getNotificationIcon(notif.type)}</span>
+                                                                <div className="flex-1">
+                                                                    <p className="font-medium text-sm">{notif.title}</p>
+                                                                    <p className="text-xs text-gray-500 mt-1">{notif.message}</p>
+                                                                    <p className="text-xs text-gray-400 mt-2">{new Date(notif.created_at).toLocaleDateString('ru-RU')}</p>
+                                                                </div>
+                                                                {!notif.is_read && <div className="w-2 h-2 bg-firm-orange rounded-full animate-pulse mt-2"></div>}
+                                                            </div>
+                                                        </motion.div>
+                                                    ))
+                                                )}
+                                            </div>
+                                            <div className="p-3 bg-gray-50 text-center">
+                                                <Link href="/master/notifications" className="text-sm text-firm-orange hover:underline">
+                                                    Все уведомления
+                                                </Link>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </motion.div>
+                        </div>
+                    </div>
+                </motion.div>
+
+                {/* Статистика с анимацией */}
+                <div className="grid grid-cols-4 gap-6 mb-8">
+                    {[
+                        { label: 'Новые заказы', value: stats.new_orders, icon: '🆕' },
+                        { label: 'Всего заказов', value: stats.total_orders, icon: '📦' },
+                        { label: 'Товаров', value: stats.total_products, icon: '🧶' },
+                        { label: 'Просмотров', value: stats.total_views, icon: '👁️' }
+                    ].map((stat, idx) => (
+                        <motion.div
+                            key={stat.label}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: idx * 0.1 }}
+                            whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                            className={`rounded-2xl p-6 shadow-lg text-gray-500`}
+                        >
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-gray-500 text-sm">{stat.label}</p>
+                                    <p className="text-3xl font-bold mt-1">{stat.value.toLocaleString()}</p>
                                 </div>
-                                <div className="p-2 border-t border-gray-200 text-center">
-                                    <Link href="/master/notifications" className="text-sm text-firm-orange hover:underline">Все уведомления</Link>
-                                </div>
+                                <span className="text-4xl">{stat.icon}</span>
                             </div>
+                        </motion.div>
+                    ))}
+                </div>
+
+                {/* Быстрые действия */}
+                <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="flex justify-center gap-6 mb-12"
+                >
+                    {[
+                        { onClick: () => setShowAddProductModal(true), label: 'Добавить товар', color: 'bg-firm-orange' },
+                        { onClick: () => setShowAddClassModal(true), label: 'Создать мастер-класс', color: 'bg-firm-pink' },
+                        { onClick: () => setShowAddPostModal(true), label: 'Написать пост', color: 'bg-gray-700' }
+                    ].map((action, idx) => (
+                        <motion.button
+                            key={action.label}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={action.onClick}
+                            className={`${action.color} text-white px-8 py-3 rounded-xl font-['Montserrat_Alternates'] font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2`}
+                        >
+                            {action.label}
+                        </motion.button>
+                    ))}
+                </motion.div>
+
+                {/* Заказы */}
+                <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="bg-white rounded-2xl shadow-xl mb-8 overflow-hidden"
+                >
+                    <div className="p-6 border-b border-gray-200">
+                        <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl flex items-center gap-2">
+                            📦 Заказы
+                            {orders.filter(o => o.status === 'new').length > 0 && (
+                                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full animate-pulse">
+                                    {orders.filter(o => o.status === 'new').length} новых
+                                </span>
+                            )}
+                        </h2>
+                    </div>
+                    <div className="divide-y divide-gray-100">
+                        {orders.length === 0 ? (
+                            <div className="p-12 text-center text-gray-500">У вас пока нет заказов</div>
+                        ) : (
+                            orders.slice(0, 5).map((order, idx) => (
+                                <motion.div 
+                                    key={order.id}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: idx * 0.05 }}
+                                    whileHover={{ backgroundColor: '#f9fafb' }}
+                                    className="p-6 transition-all duration-300"
+                                >
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                                                    {getStatusText(order.status)}
+                                                </span>
+                                                <span className="text-sm text-gray-500">№{order.order_number}</span>
+                                            </div>
+                                            <p className="font-medium text-lg">{order.product_title}</p>
+                                            <div className="flex gap-6 mt-2 text-sm text-gray-500">
+                                                <span>👤 {order.buyer_name}</span>
+                                                <span>💰 {order.total_amount.toLocaleString()} ₽</span>
+                                                <span>📅 {new Date(order.created_at).toLocaleDateString('ru-RU')}</span>
+                                            </div>
+                                        </div>
+                                        <Link href={`/master/orders/${order.id}`}>
+                                            <motion.button 
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                className="px-4 py-2 text-sm border-2 border-firm-orange text-firm-orange rounded-xl hover:bg-firm-orange hover:text-white transition-all duration-300"
+                                            >
+                                                Подробнее
+                                            </motion.button>
+                                        </Link>
+                                    </div>
+                                </motion.div>
+                            ))
                         )}
                     </div>
-                </div>
-            </div>
+                    {orders.length > 5 && (
+                        <div className="p-4 text-center border-t bg-gray-50">
+                            <Link href="/master/orders" className="text-sm text-firm-orange hover:underline">
+                                Все заказы →
+                            </Link>
+                        </div>
+                    )}
+                </motion.div>
 
-            <div className="grid grid-cols-4 gap-4 mb-8">
-                <div className="bg-white rounded-lg shadow-md p-4">
-                    <p className="text-gray-500 text-sm">Новые заказы</p>
-                    <p className="text-2xl font-bold text-firm-orange">{stats.new_orders}</p>
-                </div>
-                <div className="bg-white rounded-lg shadow-md p-4">
-                    <p className="text-gray-500 text-sm">Всего заказов</p>
-                    <p className="text-2xl font-bold text-firm-pink">{stats.total_orders}</p>
-                </div>
-                <div className="bg-white rounded-lg shadow-md p-4">
-                    <p className="text-gray-500 text-sm">Товаров</p>
-                    <p className="text-2xl font-bold text-firm-orange">{stats.total_products}</p>
-                </div>
-                <div className="bg-white rounded-lg shadow-md p-4">
-                    <p className="text-gray-500 text-sm">Просмотров</p>
-                    <p className="text-2xl font-bold text-firm-pink">{stats.total_views}</p>
-                </div>
-            </div>
+                {/* Лента новостей */}
+                <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                    className="bg-white rounded-2xl shadow-xl overflow-hidden"
+                >
+                    <div className="p-6 border-gray-200 border-b">
+                        <div className="flex gap-6">
+                            <button
+                                onClick={() => setActiveTab('recent')}
+                                className={`pb-2 font-['Montserrat_Alternates'] font-medium transition-all duration-300 relative ${activeTab === 'recent' ? 'text-firm-orange' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                Свежие посты
+                                {activeTab === 'recent' && (
+                                    <motion.div 
+                                        layoutId="underline"
+                                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-firm-orange to-firm-pink"
+                                    />
+                                )}
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('my')}
+                                className={`pb-2 font-['Montserrat_Alternates'] font-medium transition-all duration-300 relative ${activeTab === 'my' ? 'text-firm-pink' : 'text-gray-500 hover:text-gray-700'}`}
+                            >
+                                Мои посты
+                                {activeTab === 'my' && (
+                                    <motion.div 
+                                        layoutId="underline"
+                                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-firm-pink to-firm-orange"
+                                    />
+                                )}
+                            </button>
+                        </div>
+                    </div>
 
-            <div className="flex justify-center gap-4 mb-8">
-                <button onClick={() => setShowAddProductModal(true)} className="px-6 py-3 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition flex items-center gap-2"><span>+</span> Добавить товар</button>
-                <button onClick={() => setShowAddClassModal(true)} className="px-6 py-3 bg-firm-pink text-white rounded-lg hover:bg-opacity-90 transition flex items-center gap-2"><span>+</span> Создать мастер-класс</button>
-                <button onClick={() => setShowAddPostModal(true)} className="px-6 py-3 border-2 border-firm-orange text-firm-orange rounded-lg hover:bg-firm-orange hover:text-white transition">✍️ Написать пост</button>
-            </div>
+                    <AnimatePresence mode="wait">
+                        {activeTab === 'recent' && (
+                            <motion.div
+                                key="recent"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ duration: 0.3 }}
+                                className="divide-y divide-gray-100 flex justify-center"
+                            >
+                                {recentPosts.length === 0 ? (
+                                    <div className="p-12 text-center text-gray-500">
+                                        <p>Пока нет постов</p>
+                                    </div>
+                                ) : (
+                                    recentPosts.map((post, idx) => (
+                                        <motion.div 
+                                            key={post.id}
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: idx * 0.1 }}
+                                            whileHover={{ backgroundColor: '#f9fafb' }}
+                                            className="p-6 transition-all duration-300 w-1/2"
+                                        >
+                                            <div className="flex flex-col gap-4">
+                                                <Link href={`/masters/${post.master_id}`} className="flex items-center gap-3 group">
+                                                    <motion.div 
+                                                        whileHover={{ scale: 1.1 }}
+                                                        className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden"
+                                                    >
+                                                        {post.author_avatar ? (
+                                                            <img src={post.author_avatar} alt={post.author_name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            post.author_name?.charAt(0).toUpperCase()
+                                                        )}
+                                                    </motion.div>
+                                                    <div>
+                                                        <p className="font-semibold group-hover:text-firm-orange transition-colors">{post.author_name}</p>
+                                                        <p className="text-xs text-gray-400">{formatDate(post.created_at)}</p>
+                                                    </div>
+                                                </Link>
 
-            {showAddProductModal && (
+                                                <div>
+                                                    <h3 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-3 hover:text-firm-orange transition-colors">
+                                                        <Link href={`/blog/${post.id}`}>{post.title}</Link>
+                                                    </h3>
+                                                    
+                                                    {(post.images?.length > 0 || post.main_image_url) && (
+                                                        <MediaGallery 
+                                                            images={post.images || [post.main_image_url]} 
+                                                            video={null}
+                                                            title={post.title}
+                                                        />
+                                                    )}
+                                                    
+                                                    <p className="text-gray-600 mt-4 line-clamp-3">
+                                                        {post.excerpt || post.content?.substring(0, 300)}...
+                                                    </p>
+                                                    
+                                                    <Link 
+                                                        href={`/blog/${post.id}`}
+                                                        className="text-firm-orange hover:underline text-sm mt-3 inline-flex items-center gap-1 group"
+                                                    >
+                                                        Читать полностью
+                                                        <motion.span 
+                                                            initial={{ x: 0 }}
+                                                            whileHover={{ x: 5 }}
+                                                            className="inline-block"
+                                                        >
+                                                            →
+                                                        </motion.span>
+                                                    </Link>
+                                                </div>
+
+                                                <div className="flex items-center gap-8 pt-4 border-t border-gray-100">
+                                                    <AnimatedButton
+                                                        icon={
+                                                            <svg 
+                                                                className="w-6 h-6" 
+                                                                viewBox="0 0 24 24" 
+                                                                fill={post.is_liked ? "#D97C8E" : "none"}
+                                                                stroke={post.is_liked ? "#D97C8E" : "#F4A67F"}
+                                                                strokeWidth="1.5"
+                                                            >
+                                                                <path 
+                                                                    strokeLinecap="round" 
+                                                                    strokeLinejoin="round" 
+                                                                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
+                                                                />
+                                                            </svg>
+                                                        }
+                                                        count={post.likes_count}
+                                                        isActive={post.is_liked || false}
+                                                        onClick={() => handleLike(post.id, false)}
+                                                        activeColor="text-firm-pink"
+                                                    />
+                                                    
+                                                    <AnimatedButton
+                                                        icon={
+                                                            <svg 
+                                                                className="w-6 h-6" 
+                                                                viewBox="0 0 24 24" 
+                                                                fill="none" 
+                                                                stroke={showComments === post.id ? "#F97316" : "#9CA3AF"}
+                                                                strokeWidth="1.5"
+                                                            >
+                                                                <path 
+                                                                    strokeLinecap="round" 
+                                                                    strokeLinejoin="round" 
+                                                                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" 
+                                                                />
+                                                            </svg>
+                                                        }
+                                                        count={post.comments_count}
+                                                        isActive={showComments === post.id}
+                                                        onClick={() => setShowComments(showComments === post.id ? null : post.id)}
+                                                        activeColor="text-firm-orange"
+                                                    />
+                                                    
+                                                    <div className="flex-1"></div>
+                                                    <span className="text-sm text-gray-400 flex items-center gap-1">
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                        </svg>
+                                                        {post.views_count}
+                                                    </span>
+                                                </div>
+
+                                                <AnimatePresence>
+                                                    {showComments === post.id && (
+                                                        <motion.div 
+                                                            initial={{ opacity: 0, height: 0 }}
+                                                            animate={{ opacity: 1, height: 'auto' }}
+                                                            exit={{ opacity: 0, height: 0 }}
+                                                            className="mt-4 pt-4 border-t bg-gray-50 rounded-xl p-4 overflow-hidden"
+                                                        >
+                                                            {session && (
+                                                                <div className="flex gap-3 mb-4">
+                                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                                                                        {session.user.name?.charAt(0).toUpperCase()}
+                                                                    </div>
+                                                                    <div className="flex-1">
+                                                                        <textarea
+                                                                            value={commentText}
+                                                                            onChange={(e) => setCommentText(e.target.value)}
+                                                                            placeholder="Написать комментарий..."
+                                                                            rows={2}
+                                                                            className="w-full p-3 rounded-xl bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300"
+                                                                        />
+                                                                        <motion.button
+                                                                            whileHover={{ scale: 1.02 }}
+                                                                            whileTap={{ scale: 0.98 }}
+                                                                            onClick={() => handleComment(post.id, false)}
+                                                                            disabled={commentLoading || !commentText.trim()}
+                                                                            className="mt-2 px-5 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl text-sm hover:shadow-lg transition-all duration-300 disabled:opacity-50"
+                                                                        >
+                                                                            {commentLoading ? 'Отправка...' : 'Отправить'}
+                                                                        </motion.button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            
+                                                            <div className="space-y-3 max-h-96 overflow-y-auto">
+                                                                {post.comments?.length === 0 ? (
+                                                                    <p className="text-gray-400 text-sm text-center py-4">
+                                                                        Будьте первым, кто оставит комментарий
+                                                                    </p>
+                                                                ) : (
+                                                                    post.comments?.map((comment: any) => (
+                                                                        <div key={comment.id} className="flex gap-3">
+                                                                            <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 overflow-hidden">
+                                                                                {comment.author_avatar ? (
+                                                                                    <img src={comment.author_avatar} alt={comment.author_name} className="w-full h-full object-cover" />
+                                                                                ) : (
+                                                                                    comment.author_name?.charAt(0).toUpperCase()
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="flex-1">
+                                                                                <div className="bg-white rounded-xl p-3 shadow-sm">
+                                                                                    <p className="font-semibold text-sm">{comment.author_name}</p>
+                                                                                    <p className="text-gray-700 text-sm mt-1">{comment.content}</p>
+                                                                                </div>
+                                                                                <p className="text-xs text-gray-400 mt-1">{formatDate(comment.created_at)}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))
+                                                                )}
+                                                            </div>
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+                                            </div>
+                                        </motion.div>
+                                    ))
+                                )}
+                            </motion.div>
+                        )}
+
+                        {activeTab === 'my' && (
+                            <motion.div
+                                key="my"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                transition={{ duration: 0.3 }}
+                                className="divide-y divide-gray-100"
+                            >
+                                {myPosts.length === 0 ? (
+                                    <div className="p-12 text-center text-gray-500">
+                                        <p>У вас пока нет постов</p>
+                                        <motion.button 
+                                            whileHover={{ scale: 1.05 }}
+                                            onClick={() => setShowAddPostModal(true)} 
+                                            className="text-firm-orange hover:underline mt-2 inline-block"
+                                        >
+                                            Написать первый пост →
+                                        </motion.button>
+                                    </div>
+                                ) : (
+                                    myPosts.map((post, idx) => (
+                                        <motion.div 
+                                            key={post.id}
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: idx * 0.1 }}
+                                            whileHover={{ backgroundColor: '#f9fafb' }}
+                                            className="p-6 transition-all duration-300 flex justify-center"
+                                        >
+                                            <div className="flex flex-col gap-4 w-1/2">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden">
+                                                        {post.author_avatar ? (
+                                                            <img src={post.author_avatar} alt={post.author_name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            post.author_name?.charAt(0).toUpperCase()
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-semibold">{post.author_name}</p>
+                                                        <p className="text-xs text-gray-400">{formatDate(post.created_at)}</p>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <h3 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-3 hover:text-firm-orange transition-colors">
+                                                        <Link href={`/blog/${post.id}`}>{post.title}</Link>
+                                                    </h3>
+                                                    
+                                                    {(post.images?.length > 0 || post.main_image_url) && (
+                                                        <MediaGallery 
+                                                            images={post.images || [post.main_image_url]} 
+                                                            video={null}
+                                                            title={post.title}
+                                                        />
+                                                    )}
+                                                    
+                                                    <p className="text-gray-600 mt-4 line-clamp-3">
+                                                        {post.excerpt || post.content?.substring(0, 300)}...
+                                                    </p>
+                                                    
+                                                    <Link 
+                                                        href={`/blog/${post.id}`}
+                                                        className="text-firm-orange hover:underline text-sm mt-3 inline-flex items-center gap-1 group"
+                                                    >
+                                                        Читать полностью
+                                                        <motion.span 
+                                                            initial={{ x: 0 }}
+                                                            whileHover={{ x: 5 }}
+                                                            className="inline-block"
+                                                        >
+                                                            →
+                                                        </motion.span>
+                                                    </Link>
+                                                </div>
+
+                                                <div className="flex items-center gap-8 pt-4 border-t border-gray-100">
+                                                    <AnimatedButton
+                                                        icon={
+                                                            <svg 
+                                                                className="w-6 h-6" 
+                                                                viewBox="0 0 24 24" 
+                                                                fill={post.is_liked ? "#D97C8E" : "none"}
+                                                                stroke={post.is_liked ? "#D97C8E" : "#9CA3AF"}
+                                                                strokeWidth="1.5"
+                                                            >
+                                                                <path 
+                                                                    strokeLinecap="round" 
+                                                                    strokeLinejoin="round" 
+                                                                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
+                                                                />
+                                                            </svg>
+                                                        }
+                                                        count={post.likes_count}
+                                                        isActive={post.is_liked || false}
+                                                        onClick={() => handleLike(post.id, true)}
+                                                        activeColor="text-firm-pink"
+                                                    />
+                                                    
+                                                    <AnimatedButton
+                                                        icon={
+                                                            <svg 
+                                                                className="w-6 h-6" 
+                                                                viewBox="0 0 24 24" 
+                                                                fill="none" 
+                                                                stroke={showComments === post.id ? "#F4A67F" : "#9CA3AF"}
+                                                                strokeWidth="1.5"
+                                                            >
+                                                                <path 
+                                                                    strokeLinecap="round" 
+                                                                    strokeLinejoin="round" 
+                                                                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" 
+                                                                />
+                                                            </svg>
+                                                        }
+                                                        count={post.comments_count}
+                                                        isActive={showComments === post.id}
+                                                        onClick={() => setShowComments(showComments === post.id ? null : post.id)}
+                                                        activeColor="text-firm-orange"
+                                                    />
+                                                    
+                                                    <div className="flex-1"></div>
+                                                    <span className="text-sm text-gray-400 flex items-center gap-1">
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                        </svg>
+                                                        {post.views_count}
+                                                    </span>
+                                                </div>
+
+                                                <AnimatePresence>
+                                                    {showComments === post.id && (
+                                                        <motion.div 
+                                                            initial={{ opacity: 0, height: 0 }}
+                                                            animate={{ opacity: 1, height: 'auto' }}
+                                                            exit={{ opacity: 0, height: 0 }}
+                                                            className="mt-4 pt-4 border-t bg-gray-50 rounded-xl p-4 overflow-hidden"
+                                                        >
+                                                            {session && (
+                                                                <div className="flex gap-3 mb-4">
+                                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                                                                        {session.user.name?.charAt(0).toUpperCase()}
+                                                                    </div>
+                                                                    <div className="flex-1">
+                                                                        <textarea
+                                                                            value={commentText}
+                                                                            onChange={(e) => setCommentText(e.target.value)}
+                                                                            placeholder="Написать комментарий..."
+                                                                            rows={2}
+                                                                            className="w-full p-3 rounded-xl bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300"
+                                                                        />
+                                                                        <motion.button
+                                                                            whileHover={{ scale: 1.02 }}
+                                                                            whileTap={{ scale: 0.98 }}
+                                                                            onClick={() => handleComment(post.id, true)}
+                                                                            disabled={commentLoading || !commentText.trim()}
+                                                                            className="mt-2 px-5 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl text-sm hover:shadow-lg transition-all duration-300 disabled:opacity-50"
+                                                                        >
+                                                                            {commentLoading ? 'Отправка...' : 'Отправить'}
+                                                                        </motion.button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            
+                                                            <div className="space-y-3 max-h-96 overflow-y-auto">
+                                                                {post.comments?.length === 0 ? (
+                                                                    <p className="text-gray-400 text-sm text-center py-4">
+                                                                        Будьте первым, кто оставит комментарий
+                                                                    </p>
+                                                                ) : (
+                                                                    post.comments?.map((comment: any) => (
+                                                                        <div key={comment.id} className="flex gap-3">
+                                                                            <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 overflow-hidden">
+                                                                                {comment.author_avatar ? (
+                                                                                    <img src={comment.author_avatar} alt={comment.author_name} className="w-full h-full object-cover" />
+                                                                                ) : (
+                                                                                    comment.author_name?.charAt(0).toUpperCase()
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="flex-1">
+                                                                                <div className="bg-white rounded-xl p-3 shadow-sm">
+                                                                                    <p className="font-semibold text-sm">{comment.author_name}</p>
+                                                                                    <p className="text-gray-700 text-sm mt-1">{comment.content}</p>
+                                                                                </div>
+                                                                                <p className="text-xs text-gray-400 mt-1">{formatDate(comment.created_at)}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))
+                                                                )}
+                                                            </div>
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+                                            </div>
+                                        </motion.div>
+                                    ))
+                                )}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </motion.div>
+
+                {/* Модальные окна (оставлены без изменений) */}
+                {showAddProductModal && (
                 <div className="fixed inset-0 bg-[#00000059] bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowAddProductModal(false)}>
                     <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
@@ -738,7 +1436,7 @@ export default function MasterDashboard({ session }: { session: any }) {
                 </div>
             )}
 
-            {showAddClassModal && (
+                {showAddClassModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowAddClassModal(false)}>
                     <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
@@ -998,7 +1696,7 @@ export default function MasterDashboard({ session }: { session: any }) {
                 </div>
             )}
 
-            {showAddPostModal && (
+                {showAddPostModal && (
                 <div className="fixed inset-0 bg-[#00000059] bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowAddPostModal(false)}>
                     <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
@@ -1167,88 +1865,6 @@ export default function MasterDashboard({ session }: { session: any }) {
                     </div>
                 </div>
             )}
-
-            <div className="bg-white rounded-lg shadow-md mb-8">
-                <div className="p-4 border-b border-gray-200">
-                    <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl flex items-center gap-2">📦 Заказы {orders.filter(o => o.status === 'new').length > 0 && (<span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">{orders.filter(o => o.status === 'new').length} новых</span>)}</h2>
-                </div>
-                <div className="divide-y divide-gray-200">
-                    {orders.length === 0 ? (
-                        <div className="p-8 text-center text-gray-500">У вас пока нет заказов</div>
-                    ) : (
-                        orders.slice(0, 5).map(order => (
-                            <div key={order.id} className="p-4 hover:bg-gray-50 transition">
-                                <div className="flex justify-between items-start">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>{getStatusText(order.status)}</span>
-                                            <span className="text-sm text-gray-500">№{order.order_number}</span>
-                                        </div>
-                                        <p className="font-medium">{order.product_title}</p>
-                                        <div className="flex gap-4 mt-1 text-sm text-gray-500">
-                                            <span>👤 {order.buyer_name}</span>
-                                            <span>💰 {order.total_amount} ₽</span>
-                                            <span>📅 {new Date(order.created_at).toLocaleDateString('ru-RU')}</span>
-                                        </div>
-                                    </div>
-                                    <Link href={`/master/orders/${order.id}`}><button className="px-3 py-1 text-sm border border-firm-orange text-firm-orange rounded-lg hover:bg-firm-orange hover:text-white transition">Подробнее</button></Link>
-                                </div>
-                            </div>
-                        ))
-                    )}
-                </div>
-                {orders.length > 5 && (
-                    <div className="p-3 text-center border-t border-gray-200">
-                        <Link href="/master/orders" className="text-sm text-firm-orange hover:underline">Все заказы →</Link>
-                    </div>
-                )}
-            </div>
-
-            <div className="bg-white rounded-lg shadow-md">
-                <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-                    <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl flex items-center gap-2">📰 Лента новостей</h2>
-                    <Link href="/master/blog/new"><button className="text-sm text-firm-orange hover:underline flex items-center gap-1"><span>+</span> Написать пост</button></Link>
-                </div>
-                <div className="divide-y divide-gray-200">
-                    {blogPosts.length === 0 ? (
-                        <div className="p-8 text-center text-gray-500">
-                            <p>У вас пока нет постов</p>
-                            <Link href="/master/blog/new" className="text-firm-orange hover:underline mt-2 inline-block">Написать первый пост →</Link>
-                        </div>
-                    ) : (
-                        blogPosts.map(post => (
-                            <div key={post.id} className="p-4 hover:bg-gray-50 transition">
-                                <Link href={`/blog/${post.id}`}>
-                                    <div className="flex gap-4">
-                                        <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold flex-shrink-0">
-                                            {post.author_name?.charAt(0).toUpperCase()}
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="font-semibold">{post.author_name}</span>
-                                                <span className="text-xs text-gray-400">
-                                                    {new Date(post.created_at).toLocaleDateString('ru-RU')}
-                                                </span>
-                                            </div>
-                                            <h3 className="font-medium text-lg mb-1">{post.title}</h3>
-                                            <p className="text-gray-600 line-clamp-2">{post.excerpt}</p>
-                                            <div className="flex gap-4 mt-2 text-sm text-gray-500">
-                                                <span>👁️ {post.views_count}</span>
-                                                <span>❤️ {post.likes_count}</span>
-                                                <span>💬 {post.comments_count}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </Link>
-                            </div>
-                        ))
-                    )}
-                </div>
-                {blogPosts.length > 5 && (
-                    <div className="p-3 text-center border-t border-gray-200">
-                        <Link href="/master/blog" className="text-sm text-firm-orange hover:underline">Все записи →</Link>
-                    </div>
-                )}
             </div>
         </div>
     )

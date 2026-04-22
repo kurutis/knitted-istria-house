@@ -58,17 +58,18 @@ export default function PopularProducts() {
 
     return (
         <div className="py-16 bg-[#F9F9F9]">
-            <div className="text-center mb-12">
+            <div className="text-center mb-10">
                 <h2 className="font-['Montserrat_Alternates'] font-semibold text-3xl text-gray-800">
                     {activeTab === 'popular' ? 'Популярные изделия' : 'Новинки'}
                 </h2>
-                <div className="w-20 h-1 bg-linear-to-r from-firm-orange to-firm-pink mx-auto mt-3 rounded-full"></div>
+                
                 <p className="text-gray-500 mt-3 text-sm">
                     {activeTab === 'popular' 
                         ? 'Самые просматриваемые и любимые вещи наших покупателей' 
                         : 'Свежие поступления от мастеров'
                     }
                 </p>
+                <div className="w-20 h-1 bg-linear-to-r from-firm-orange to-firm-pink mx-auto mt-3 rounded-full"></div>
             </div>
 
             {/* Вкладки */}
@@ -102,7 +103,7 @@ export default function PopularProducts() {
                 ))}
             </div>
 
-            <div className="text-center mt-12 h-15">
+            <div className="text-center mt-10 h-0">
                 <Link href="/catalog">
                     <button className="font-['Montserrat_Alternates'] font-[450] border-2 border-firm-orange p-2 w-62.5 rounded-xl transition-all duration-300 hover:scale-105 hover:border-4 hover:bg-firm-orange hover:text-white hover:cursor-pointer">
                         Смотреть весь каталог
