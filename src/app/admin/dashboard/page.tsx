@@ -243,11 +243,7 @@ export default function AdminDashboardPage(){
                                 <tr key={user.id} className="border-b border-gray-200 hover:bg-[#EAEAEA]">
                                     <td className="p-3">{user.name || user.full_name || '-'}</td>
                                     <td className="p-3">{user.email}</td>
-                                    <td className="p-3">
-                                        <span className={`px-2 py-1 rounded-full text-xs ${user.role === 'master' ? 'bg-purple-100 text-purple-700' : user.role === 'admin' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                                            {user.role === 'master' ? 'Мастер' : user.role === 'admin' ? 'Админ' : 'Покупатель'}
-                                        </span>
-                                    </td>
+                                    <td className="p-3"><span className={`px-2 py-1 rounded-full text-xs ${user.role === 'master' ? 'bg-purple-100 text-purple-700' : user.role === 'admin' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>{user.role === 'master' ? 'Мастер' : user.role === 'admin' ? 'Админ' : 'Покупатель'}</span></td>
                                     <td className="p-3">{new Date(user.created_at).toLocaleDateString('ru-RU')}</td>
                                 </tr>
                             ))}

@@ -56,20 +56,11 @@ export default function AdminCategoriesPage() {
             const data = await response.json()
             setCategories(data || [])
             
-            // Собираем все категории для выбора родителя
             const allCategories: Category[] = []
-            const collectCategories = (cats: Category[]) => {
-                cats.forEach(cat => {
-                    allCategories.push(cat)
-                    if (cat.subcategories?.length) {
-                        collectCategories(cat.subcategories as Category[])
-                    }
-                })
-            }
+            const collectCategories = (cats: Category[]) => {cats.forEach(cat => {allCategories.push(cat);if (cat.subcategories?.length) {collectCategories(cat.subcategories as Category[])}})}
             collectCategories(data || [])
             setAvailableParents(allCategories)
         } catch (error) {
-            console.error('Ошибка загрузки категорий:', error)
             alert('Ошибка загрузки категорий')
         } finally {
             setLoading(false)
@@ -86,15 +77,7 @@ export default function AdminCategoriesPage() {
         setSaving(true)
         
         try {
-            const response = await fetch('/api/admin/categories', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: formData.name,
-                    description: formData.description,
-                    parent_category_id: formData.parent_category_id ? parseInt(formData.parent_category_id) : null
-                })
-            })
+            const response = await fetch('/api/admin/categories', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name: formData.name, description: formData.description, parent_category_id: formData.parent_category_id ? parseInt(formData.parent_category_id) : null})})
             
             if (!response.ok) {
                 const error = await response.json()
@@ -119,15 +102,7 @@ export default function AdminCategoriesPage() {
         setSaving(true)
         
         try {
-            const response = await fetch('/api/admin/categories', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: formData.name,
-                    description: formData.description,
-                    parent_category_id: parentCategoryId
-                })
-            })
+            const response = await fetch('/api/admin/categories', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name: formData.name, description: formData.description, parent_category_id: parentCategoryId})})
             
             if (!response.ok) {
                 const error = await response.json()
@@ -152,16 +127,7 @@ export default function AdminCategoriesPage() {
         setSaving(true)
         
         try {
-            const response = await fetch('/api/admin/categories', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: selectedCategory.id,
-                    name: formData.name,
-                    description: formData.description,
-                    parent_category_id: formData.parent_category_id ? parseInt(formData.parent_category_id) : null
-                })
-            })
+            const response = await fetch('/api/admin/categories', {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id: selectedCategory.id, name: formData.name, description: formData.description, parent_category_id: formData.parent_category_id ? parseInt(formData.parent_category_id) : null})})
             
             if (!response.ok) {
                 const error = await response.json()
@@ -200,11 +166,7 @@ export default function AdminCategoriesPage() {
 
     const openEditModal = (category: Category) => {
         setSelectedCategory(category)
-        setFormData({
-            name: category.name,
-            description: category.description || '',
-            parent_category_id: category.parent_category_id?.toString() || ''
-        })
+        setFormData({name: category.name, description: category.description || '', parent_category_id: category.parent_category_id?.toString() || ''})
         setShowEditModal(true)
     }
 
@@ -220,14 +182,7 @@ export default function AdminCategoriesPage() {
     }
 
     const getCategoryIcon = (categoryName: string) => {
-        const icons: Record<string, string> = {
-            'Свитера': '🧶', 'Свитер': '🧶',
-            'Шапки': '🧢', 'Шапка': '🧢',
-            'Шарфы': '🧣', 'Шарф': '🧣',
-            'Варежки': '🧤', 'Носки': '🧦',
-            'Пледы': '🛋️', 'Плед': '🛋️',
-            'Игрушки': '🧸', 'Игрушка': '🧸',
-        }
+        const icons: Record<string, string> = {'Свитера': '🧶', 'Свитер': '🧶', 'Шапки': '🧢', 'Шапка': '🧢', 'Шарфы': '🧣', 'Шарф': '🧣', 'Варежки': '🧤', 'Носки': '🧦', 'Пледы': '🛋️', 'Плед': '🛋️', 'Игрушки': '🧸', 'Игрушка': '🧸',}
         return icons[categoryName] || '📁'
     }
 
@@ -242,42 +197,18 @@ export default function AdminCategoriesPage() {
                             <div className="flex items-center gap-3 mb-2">
                                 <span className="text-2xl">{getCategoryIcon(category.name)}</span>
                                 <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg">{category.name}</h3>
-                                {level > 0 && (
-                                    <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
-                                        Подкатегория
-                                    </span>
-                                )}
+                                {level > 0 && (<span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">Подкатегория</span>)}
                             </div>
-                            {category.description && (
-                                <p className="text-gray-600 text-sm mb-2">{category.description}</p>
-                            )}
+                            {category.description && (<p className="text-gray-600 text-sm mb-2">{category.description}</p>)}
                             <div className="flex gap-4 text-sm text-gray-500">
                                 <span>📦 Товаров: {category.products_count || 0}</span>
                                 <span>📅 {new Date(category.created_at).toLocaleDateString('ru-RU')}</span>
                             </div>
                         </div>
                         <div className="flex gap-2 ml-4">
-                            <button
-                                onClick={() => openSubcategoryModal(category.id)}
-                                className="px-3 py-1 text-sm bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition"
-                                title="Добавить подкатегорию"
-                            >
-                                + Подкатегория
-                            </button>
-                            <button
-                                onClick={() => openEditModal(category)}
-                                className="p-2 text-gray-500 hover:text-firm-orange transition"
-                                title="Редактировать"
-                            >
-                                ✏️
-                            </button>
-                            <button
-                                onClick={() => handleDeleteCategory(category)}
-                                className="p-2 text-gray-500 hover:text-red-500 transition"
-                                title="Удалить"
-                            >
-                                🗑️
-                            </button>
+                            <button onClick={() => openSubcategoryModal(category.id)} className="px-3 py-1 text-sm bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition" title="Добавить подкатегорию">+ Подкатегория</button>
+                            <button onClick={() => openEditModal(category)} className="p-2 text-gray-500 hover:text-firm-orange transition" title="Редактировать">✏️</button>
+                            <button onClick={() => handleDeleteCategory(category)} className="p-2 text-gray-500 hover:text-red-500 transition" title="Удалить">🗑️</button>
                         </div>
                     </div>
                 </div>
@@ -304,22 +235,11 @@ export default function AdminCategoriesPage() {
                     <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl">Категории товаров</h1>
                     <p className="text-gray-500 text-sm mt-1">Управление основными категориями и подкатегориями</p>
                 </div>
-                <button
-                    onClick={() => setShowAddModal(true)}
-                    className="px-4 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition flex items-center gap-2"
-                >
-                    <span>+</span> Добавить категорию
-                </button>
+                <button onClick={() => setShowAddModal(true)} className="px-4 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition flex items-center gap-2"> + Добавить категорию</button>
             </div>
 
             <div className="space-y-3">
-                {categories.length === 0 ? (
-                    <div className="bg-white rounded-lg shadow-md p-12 text-center text-gray-500">
-                        Нет добавленных категорий
-                    </div>
-                ) : (
-                    categories.map(category => renderCategoryTree(category, 0))
-                )}
+                {categories.length === 0 ? (<div className="bg-white rounded-lg shadow-md p-12 text-center text-gray-500">Нет добавленных категорий</div> ) : (categories.map(category => renderCategoryTree(category, 0)))}
             </div>
             {showAddModal && (
                 <div className="fixed inset-0 bg-[#00000059] bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowAddModal(false)}>
@@ -332,31 +252,14 @@ export default function AdminCategoriesPage() {
                             <form onSubmit={handleAddCategory} className="space-y-4">
                                 <div>
                                     <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Название *</label>
-                                    <input
-                                        type="text"
-                                        name="name"
-                                        value={formData.name}
-                                        onChange={handleInputChange}
-                                        required
-                                        className="w-full p-2 rounded-lg bg-[#EAEAEA] outline-firm-orange"
-                                        placeholder="Свитера, Шапки, Шарфы..."
-                                    />
+                                    <input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full p-2 rounded-lg bg-[#EAEAEA] outline-firm-orange" placeholder="Свитера, Шапки, Шарфы..." />
                                 </div>
                                 <div>
                                     <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Описание</label>
-                                    <textarea
-                                        name="description"
-                                        value={formData.description}
-                                        onChange={handleInputChange}
-                                        rows={3}
-                                        className="w-full p-2 rounded-lg bg-[#EAEAEA] outline-firm-pink"
-                                        placeholder="Описание категории..."
-                                    />
+                                    <textarea name="description" value={formData.description} onChange={handleInputChange} rows={3} className="w-full p-2 rounded-lg bg-[#EAEAEA] outline-firm-pink" placeholder="Описание категории..." />
                                 </div>
                                 <div className="flex gap-3 pt-4">
-                                    <button type="submit" disabled={saving} className="flex-1 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50">
-                                        {saving ? 'Сохранение...' : 'Добавить'}
-                                    </button>
+                                    <button type="submit" disabled={saving} className="flex-1 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50">{saving ? 'Сохранение...' : 'Добавить'}</button>
                                     <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition">Отмена</button>
                                 </div>
                             </form>
@@ -376,31 +279,14 @@ export default function AdminCategoriesPage() {
                             <form onSubmit={handleAddSubcategory} className="space-y-4">
                                 <div>
                                     <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Название *</label>
-                                    <input
-                                        type="text"
-                                        name="name"
-                                        value={formData.name}
-                                        onChange={handleInputChange}
-                                        required
-                                        className="w-full p-2 rounded-lg bg-[#EAEAEA] outline-firm-orange"
-                                        placeholder="Например: Свитера оверсайз, Детские свитера..."
-                                    />
+                                    <input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full p-2 rounded-lg bg-[#EAEAEA] outline-firm-orange" placeholder="Например: Свитера оверсайз, Детские свитера..." />
                                 </div>
                                 <div>
                                     <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Описание</label>
-                                    <textarea
-                                        name="description"
-                                        value={formData.description}
-                                        onChange={handleInputChange}
-                                        rows={3}
-                                        className="w-full p-2 rounded-lg bg-[#EAEAEA] outline-firm-pink"
-                                        placeholder="Описание подкатегории..."
-                                    />
+                                    <textarea name="description" value={formData.description} onChange={handleInputChange} rows={3} className="w-full p-2 rounded-lg bg-[#EAEAEA] outline-firm-pink" placeholder="Описание подкатегории..." />
                                 </div>
                                 <div className="flex gap-3 pt-4">
-                                    <button type="submit" disabled={saving} className="flex-1 py-2 bg-firm-pink text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50">
-                                        {saving ? 'Сохранение...' : 'Добавить'}
-                                    </button>
+                                    <button type="submit" disabled={saving} className="flex-1 py-2 bg-firm-pink text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50">{saving ? 'Сохранение...' : 'Добавить'}</button>
                                     <button type="button" onClick={() => setShowSubcategoryModal(false)} className="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition">Отмена</button>
                                 </div>
                             </form>
@@ -409,7 +295,6 @@ export default function AdminCategoriesPage() {
                 </div>
             )}
 
-            {/* Модальное окно редактирования категории */}
             {showEditModal && selectedCategory && (
                 <div className="fixed inset-0 bg-[#00000059] bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowEditModal(false)}>
                     <div className="bg-white rounded-lg max-w-md w-full" onClick={(e) => e.stopPropagation()}>
@@ -421,29 +306,14 @@ export default function AdminCategoriesPage() {
                             <form onSubmit={handleEditCategory} className="space-y-4">
                                 <div>
                                     <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Название *</label>
-                                    <input
-                                        type="text"
-                                        name="name"
-                                        value={formData.name}
-                                        onChange={handleInputChange}
-                                        required
-                                        className="w-full p-2 rounded-lg bg-[#EAEAEA] outline-firm-orange"
-                                    />
+                                    <input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full p-2 rounded-lg bg-[#EAEAEA] outline-firm-orange" />
                                 </div>
                                 <div>
                                     <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Описание</label>
-                                    <textarea
-                                        name="description"
-                                        value={formData.description}
-                                        onChange={handleInputChange}
-                                        rows={3}
-                                        className="w-full p-2 rounded-lg bg-[#EAEAEA] outline-firm-pink"
-                                    />
+                                    <textarea name="description" value={formData.description} onChange={handleInputChange} rows={3} className="w-full p-2 rounded-lg bg-[#EAEAEA] outline-firm-pink" />
                                 </div>
                                 <div className="flex gap-3 pt-4">
-                                    <button type="submit" disabled={saving} className="flex-1 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50">
-                                        {saving ? 'Сохранение...' : 'Сохранить'}
-                                    </button>
+                                    <button type="submit" disabled={saving} className="flex-1 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50">{saving ? 'Сохранение...' : 'Сохранить'}</button>
                                     <button type="button" onClick={() => setShowEditModal(false)} className="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition">Отмена</button>
                                 </div>
                             </form>

@@ -3,7 +3,6 @@ import { pool } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 
-// GET - получить все категории с подкатегориями
 export async function GET() {
     let client
     try {
@@ -15,7 +14,6 @@ export async function GET() {
 
         client = await pool.connect()
         
-        // Получаем все категории с подсчетом товаров
         const result = await client.query(`
             SELECT 
                 c.id,
@@ -55,7 +53,6 @@ export async function GET() {
     }
 }
 
-// POST - создать новую категорию (основную или подкатегорию)
 export async function POST(request: Request) {
     let client
     try {
@@ -74,7 +71,6 @@ export async function POST(request: Request) {
 
         client = await pool.connect()
         
-        // Проверяем, существует ли уже такая категория
         const existing = await client.query(
             `SELECT id FROM categories WHERE LOWER(name) = LOWER($1) AND parent_category_id IS NOT DISTINCT FROM $2`,
             [name, parent_category_id || null]

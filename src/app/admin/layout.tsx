@@ -35,11 +35,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         )
     }
 
-    if (!session || session.user.role !== 'admin') {
-        return null
-    }
+    if (!session || session.user.role !== 'admin') {return null}
 
-    const navigation = [{name: 'Дашборд', href: '/admin/dashboard', icon: "📊"}, {name: 'Пользователи', href: '/admin/users', icon: "👥"},{name: 'Модерация', icon: "✅", children: [{ name: 'Мастера', href: '/admin/moderation/masters' },{ name: 'Товары', href: '/admin/moderation/products' }, { name: 'Блог', href: '/admin/moderation/blog' }]}, {name: 'Категории', icon: '📁', children: [{ name: 'Пряжа', href: '/admin/catalog/yarn' }, { name: 'Категории товаров', href: '/admin/catalog/categories' }]}]
+    const navigation = [{name: 'Дашборд', href: '/admin/dashboard', icon: "📊" }, {name: 'Пользователи', href: '/admin/users', icon: "👥" }, {name: 'Модерация', icon: "✅", children: [{ name: 'Мастера', href: '/admin/moderation/masters' }, { name: 'Товары', href: '/admin/moderation/products' }, { name: 'Блог', href: '/admin/moderation/blog' }] }, {name: 'Категории', icon: '📁', children: [{ name: 'Пряжа', href: '/admin/catalog/yarn' }, { name: 'Категории товаров', href: '/admin/catalog/categories' }]}, { name: 'Поддержка', icon: '💬', children: [{ name: 'Обращения', href: '/admin/support' }, { name: 'База знаний', href: '/admin/support/knowledge-base' }]}]
 
     const isActive = (href: string) => pathname === href
 
@@ -68,22 +66,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                     {item.children ? (
                                         <div>
                                             <div className="flex items-center gap-3 px-4 py-3 text-gray-700 font-['Montserrat_Alternates'] font-medium rounded-lg">
-                                                <span className="text-xl">{item.icon}</span>
-                                                <span>{item.name}</span>
+                                                <span className="text-xl">{item.icon}</span><span>{item.name}</span>
                                             </div>
                                             <ul className="ml-8 mt-1 space-y-1">
-                                                {item.children.map((child) => (
-                                                    <li key={child.name}>
-                                                        <Link href={child.href} onClick={() => setSidebarOpen(false)} className={`block px-4 py-2 rounded-lg transition-all duration-300 font-['Montserrat_Alternates'] ${isActive(child.href) ? 'bg-firm-orange text-white' : 'text-gray-600 hover:bg-[#EAEAEA]'} `}>{child.name}</Link>
-                                                    </li>
-                                                ))}
+                                                {item.children.map((child) => (<li key={child.name}><Link href={child.href} onClick={() => setSidebarOpen(false)} className={`block px-4 py-2 rounded-lg transition-all duration-300 font-['Montserrat_Alternates'] ${isActive(child.href) ? 'bg-firm-orange text-white' : 'text-gray-600 hover:bg-[#EAEAEA]'}`}>{child.name}</Link></li> ))}
                                             </ul>
                                         </div>
                                     ) : (
-                                        <Link href={item.href} onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 font-['Montserrat_Alternates'] ${isActive(item.href) ? 'bg-firm-orange text-white' : 'text-gray-700 hover:bg-[#EAEAEA]'}`}>
-                                            <span className="text-xl">{item.icon}</span>
-                                            <span>{item.name}</span>
-                                        </Link>
+                                        <Link href={item.href} onClick={() => setSidebarOpen(false)}  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 font-['Montserrat_Alternates'] ${isActive(item.href) ? 'bg-firm-orange text-white' : 'text-gray-700 hover:bg-[#EAEAEA]'}`}><span className="text-xl">{item.icon}</span><span>{item.name}</span></Link>
                                     )}
                                 </li>
                             ))}

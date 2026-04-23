@@ -240,8 +240,6 @@ export default function AdminModerationProductsPage() {
                                 <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">{selectedProduct.title}</h2>
                                 <button onClick={() => setShowModal(false)} className="text-gray-500 hover:text-gray-700">✕</button>
                             </div>
-
-                            {/* Изображения */}
                             <div className="grid grid-cols-3 gap-2 mb-4">
                                 {selectedProduct.main_image_url && (
                                     <div className="aspect-square bg-[#EAEAEA] rounded-lg overflow-hidden">
@@ -254,8 +252,6 @@ export default function AdminModerationProductsPage() {
                                     </div>
                                 ))}
                             </div>
-
-                            {/* Информация */}
                             <div className="space-y-3">
                                 <div>
                                     <p className="text-gray-500 text-sm">Мастер</p>
@@ -297,8 +293,7 @@ export default function AdminModerationProductsPage() {
                             <div className="flex gap-3 mt-6 pt-4 border-t">
                                 <button onClick={() => {handleApprove(selectedProduct.id); setShowModal(false) }} className="flex-1 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">Одобрить</button>
                                 <button onClick={() => {handleReturnToDraft(selectedProduct.id); setShowModal(false)}}className="flex-1 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition">На доработку</button>
-                                <button
-                                    onClick={() => {handleReject(selectedProduct.id); setShowModal(false)}} className="flex-1 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">Отклонить</button>
+                                <button onClick={() => {handleReject(selectedProduct.id); setShowModal(false)}} className="flex-1 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">Отклонить</button>
                             </div>
                         </div>
                     </div>

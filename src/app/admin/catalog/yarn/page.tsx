@@ -103,7 +103,6 @@ export default function AdminYarnCatalogPage() {
             resetForm()
             await loadYarns()
         } catch (error) {
-            console.error('Ошибка при обновлении пряжи:', error)
             alert('Ошибка при обновлении пряжи')
         } finally {
             setSaving(false)
@@ -123,7 +122,6 @@ export default function AdminYarnCatalogPage() {
             
             await loadYarns()
         } catch (error: any) {
-            console.error('Ошибка при удалении:', error)
             alert(error.message || 'Ошибка при удалении пряжи')
         }
     }
@@ -173,9 +171,7 @@ export default function AdminYarnCatalogPage() {
                         <tbody>
                             {yarns.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="text-center p-8 text-gray-500">
-                                        Нет добавленной пряжи
-                                    </td>
+                                    <td colSpan={7} className="text-center p-8 text-gray-500">Нет добавленной пряжи</td>
                                 </tr>
                             ) : (
                                 yarns.map((yarn) => (
@@ -207,9 +203,7 @@ export default function AdminYarnCatalogPage() {
                                             </div>
                                         </td>
                                         <td className="p-4">
-                                            <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
-                                                {yarn.used_in_products || 0} товаров
-                                            </span>
+                                            <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">{yarn.used_in_products || 0} товаров</span>
                                         </td>
                                         <td className="p-4">
                                             <div className="flex gap-2">

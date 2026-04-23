@@ -3,7 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { pool } from "@/lib/db";
 
-export async function POST(
+// PUT - редактирование комментария
+export async function PUT(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
@@ -22,52 +23,54 @@ export async function POST(
     let client;
     try {
         client = await pool.connect();
-        await client.query('BEGIN');
 
-        // Добавляем комментарий
-        const result = await client.query(
-            `INSERT INTO blog_comments (post_id, author_id, content, created_at, updated_at)
-             VALUES ($1, $2, $3, NOW(), NOW())
-             RETURNING id, content, created_at`,
-            [id, session.user.id, content.trim()]
-        );
-
-        // Увеличиваем счетчик комментариев
-        await client.query(
-            `UPDATE blog_posts SET comments_count = comments_count + 1 WHERE id = $1`,
+        // Проверяем, является ли пользователь автором комментария
+        const commentCheck = await client.query(
+            `SELECT author_id FROM blog_comments WHERE id = $1`,
             [id]
         );
 
-        // Получаем данные автора
-        const authorResult = await client.query(
-            `SELECT u.id, COALESCE(p.full_name, u.email) as name, p.avatar_url
-             FROM users u
-             LEFT JOIN profiles p ON u.id = p.user_id
-             WHERE u.id = $1`,
-            [session.user.id]
+        if (commentCheck.rows.length === 0) {
+            return NextResponse.json({ error: 'Комментарий не найден' }, { status: 404 });
+        }
+
+        if (commentCheck.rows[0].author_id !== session.user.id) {
+            return NextResponse.json({ error: 'Доступ запрещен' }, { status: 403 });
+        }
+
+        // Обновляем комментарий
+        await client.query(
+            `UPDATE blog_comments SET content = $1, updated_at = NOW() WHERE id = $2`,
+            [content.trim(), id]
         );
 
-        await client.query('COMMIT');
+        // Получаем обновленный комментарий
+        const result = await client.query(
+            `SELECT 
+                bc.id,
+                bc.content,
+                bc.created_at,
+                bc.updated_at,
+                bc.author_id,
+                COALESCE(p.full_name, u.email) as author_name,
+                p.avatar_url as author_avatar
+             FROM blog_comments bc
+             JOIN users u ON bc.author_id = u.id
+             LEFT JOIN profiles p ON u.id = p.user_id
+             WHERE bc.id = $1`,
+            [id]
+        );
 
-        const newComment = {
-            id: result.rows[0].id,
-            content: result.rows[0].content,
-            created_at: result.rows[0].created_at,
-            author_id: session.user.id,
-            author_name: authorResult.rows[0].name,
-            author_avatar: authorResult.rows[0].avatar_url
-        };
-
-        return NextResponse.json(newComment);
+        return NextResponse.json(result.rows[0]);
     } catch (error) {
-        if (client) await client.query('ROLLBACK');
-        console.error('Error adding comment:', error);
-        return NextResponse.json({ error: 'Ошибка при добавлении комментария' }, { status: 500 });
+        console.error('Error updating comment:', error);
+        return NextResponse.json({ error: 'Ошибка обновления комментария' }, { status: 500 });
     } finally {
         if (client) client.release();
     }
 }
 
+// DELETE - удаление комментария
 export async function DELETE(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -86,7 +89,7 @@ export async function DELETE(
 
         // Проверяем, может ли пользователь удалить комментарий
         const commentCheck = await client.query(
-            `SELECT bc.author_id, bp.master_id 
+            `SELECT bc.author_id, bp.master_id, bc.post_id
              FROM blog_comments bc
              JOIN blog_posts bp ON bc.post_id = bp.id
              WHERE bc.id = $1`,
@@ -108,15 +111,15 @@ export async function DELETE(
         // Удаляем комментарий
         await client.query(`DELETE FROM blog_comments WHERE id = $1`, [id]);
 
-        // Уменьшаем счетчик комментариев
+        // Уменьшаем счетчик комментариев в посте
         await client.query(
             `UPDATE blog_posts SET comments_count = comments_count - 1 WHERE id = $1`,
-            [comment.master_id]
+            [comment.post_id]
         );
 
         await client.query('COMMIT');
 
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ success: true, message: 'Комментарий удален' });
     } catch (error) {
         if (client) await client.query('ROLLBACK');
         console.error('Error deleting comment:', error);
