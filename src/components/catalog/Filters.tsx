@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import PriceRange from "./PriceRange"
 
 interface FiltersProps {
@@ -41,7 +42,6 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
             const data = await response.json()
             setCategories(data.categories || [])
             
-            // Автоматически разворачиваем категории, которые содержат выбранную подкатегорию
             if (filters.category && filters.category !== 'all') {
                 expandCategoryPath(filters.category, data.categories || [])
             }
@@ -52,7 +52,6 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
         }
     }
 
-    // Найти и развернуть путь к выбранной категории
     const expandCategoryPath = (categoryName: string, cats: Category[]) => {
         for (const cat of cats) {
             if (cat.name === categoryName) {
@@ -79,16 +78,11 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
         onFilterChange({ technique: newTechnique })
     }
 
-    const handleAvailabilityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        onFilterChange({ inStock: e.target.checked ? 'true' : '' })
-    }
-
     const hasActiveFilters = () => {
         return filters.category !== 'all' ||
             filters.technique ||
             filters.minPrice ||
-            filters.maxPrice ||
-            filters.inStock
+            filters.maxPrice
     }
 
     const getCategoryIcon = (categoryName: string) => {
@@ -119,7 +113,6 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
         })
     }
 
-    // Рекурсивная функция для рендеринга категорий с подкатегориями
     const renderCategories = (categoriesList: Category[], level: number = 0) => {
         return categoriesList.map((cat) => {
             const hasSubcategories = cat.subcategories && cat.subcategories.length > 0
@@ -127,7 +120,9 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
             
             return (
                 <div key={cat.id}>
-                    <button
+                    <motion.button
+                        whileHover={{ x: 5 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => onFilterChange({ category: cat.name })}
                         className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
                             filters.category === cat.name
@@ -136,7 +131,6 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
                         }`}
                         style={{ paddingLeft: `${12 + level * 20}px` }}
                     >
-                        {/* Кнопка сворачивания/разворачивания */}
                         {hasSubcategories && (
                             <span
                                 onClick={(e) => {
@@ -145,43 +139,70 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
                                 }}
                                 className="w-5 h-5 flex items-center justify-center rounded hover:bg-black/10 cursor-pointer"
                             >
-                                {isExpanded ? '▼' : '▶'}
+                                <motion.span
+                                    animate={{ rotate: isExpanded ? 90 : 0 }}
+                                    transition={{ duration: 0.2 }}
+                                >
+                                    ▶
+                                </motion.span>
                             </span>
                         )}
                         {!hasSubcategories && <span className="w-5" />}
                         
                         <span className="text-lg">{getCategoryIcon(cat.name)}</span>
-                        <span className="flex-1">{cat.name}</span>
+                        <span className="flex-1 text-sm">{cat.name}</span>
                         {cat.products_count !== undefined && cat.products_count > 0 && (
-                            <span className="text-sm opacity-75">{cat.products_count}</span>
+                            <span className="text-xs opacity-75">{cat.products_count}</span>
                         )}
-                    </button>
+                    </motion.button>
                     
-                    {/* Подкатегории */}
-                    {hasSubcategories && isExpanded && (
-                        <div className="ml-2">
-                            {renderCategories(cat.subcategories!, level + 1)}
-                        </div>
-                    )}
+                    <AnimatePresence>
+                        {hasSubcategories && isExpanded && (
+                            <motion.div 
+                                className="ml-2 overflow-hidden"
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                {renderCategories(cat.subcategories!, level + 1)}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             )
         })
     }
 
     return (
-        <div className="bg-white rounded-lg shadow-md p-6 sticky top-5">
+        <motion.div 
+            className="bg-white rounded-lg shadow-md p-4 md:p-6 sticky top-5"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5 }}
+        >
             <div className="flex justify-between items-center mb-6">
-                <h3 className="font-['Montserrat_Alternates'] font-semibold text-xl">Фильтры</h3>
+                <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg md:text-xl">Фильтры</h3>
                 {hasActiveFilters() && (
-                    <button onClick={onClearFilters} className="text-sm text-firm-orange hover:underline">
+                    <motion.button 
+                        onClick={onClearFilters} 
+                        className="text-sm text-firm-orange hover:underline"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                    >
                         Сбросить все
-                    </button>
+                    </motion.button>
                 )}
             </div>
 
-            {/* Категории с подкатегориями */}
-            <div className="mb-8">
-                <h4 className="font-['Montserrat_Alternates'] font-medium mb-3">Категории</h4>
+            {/* Категории */}
+            <motion.div 
+                className="mb-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1 }}
+            >
+                <h4 className="font-['Montserrat_Alternates'] font-medium mb-3 text-base">Категории</h4>
                 {loadingCategories ? (
                     <div className="space-y-2">
                         {[1, 2, 3, 4].map(i => (
@@ -189,9 +210,10 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
                         ))}
                     </div>
                 ) : (
-                    <div className="space-y-1">
-                        {/* Кнопка "Все категории" */}
-                        <button
+                    <div className="space-y-1 max-h-96 overflow-y-auto pr-2">
+                        <motion.button
+                            whileHover={{ x: 5 }}
+                            whileTap={{ scale: 0.98 }}
                             onClick={() => onFilterChange({ category: 'all' })}
                             className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
                                 filters.category === 'all'
@@ -201,34 +223,48 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
                         >
                             <span className="w-5" />
                             <span className="text-lg">📋</span>
-                            <span className="flex-1">Все категории</span>
-                        </button>
+                            <span className="flex-1 text-sm">Все категории</span>
+                        </motion.button>
                         {renderCategories(categories)}
                     </div>
                 )}
-            </div>
+            </motion.div>
 
             {/* Цена */}
-            <div className="mb-8">
-                <h4 className="font-['Montserrat_Alternates'] font-medium mb-3">Цена</h4>
-                <div className="w-full max-w-full">
-                    <PriceRange
-                        min={availableFilters.priceRange?.min || 0}
-                        max={availableFilters.priceRange?.max || 10000}
-                        currentMin={priceRange.min}
-                        currentMax={priceRange.max}
-                        onChange={handlePriceChange}
-                    />
-                </div>
-            </div>
+            <motion.div 
+                className="mb-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+            >
+                <h4 className="font-['Montserrat_Alternates'] font-medium mb-3 text-base">Цена</h4>
+                <PriceRange
+                    min={availableFilters.priceRange?.min || 0}
+                    max={availableFilters.priceRange?.max || 10000}
+                    currentMin={priceRange.min}
+                    currentMax={priceRange.max}
+                    onChange={handlePriceChange}
+                />
+            </motion.div>
 
             {/* Техники вязания */}
             {availableFilters.techniques?.length > 0 && (
-                <div className="mb-8">
-                    <h4 className="font-['Montserrat_Alternates'] font-medium mb-3">Техника вязания</h4>
+                <motion.div 
+                    className="mb-6"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                >
+                    <h4 className="font-['Montserrat_Alternates'] font-medium mb-3 text-base">Техника вязания</h4>
                     <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-                        {availableFilters.techniques.map((tech: any) => (
-                            <label key={tech.technique} className="flex items-center justify-between cursor-pointer hover:bg-[#eaeaea] p-2 rounded-lg transition-colors">
+                        {availableFilters.techniques.map((tech: any, idx: number) => (
+                            <motion.label 
+                                key={tech.technique} 
+                                className="flex items-center justify-between cursor-pointer hover:bg-[#eaeaea] p-2 rounded-lg transition-colors"
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: idx * 0.03 }}
+                            >
                                 <span className="flex items-center gap-2">
                                     <input
                                         type="checkbox"
@@ -239,61 +275,57 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
                                     <span className="text-sm">{tech.technique}</span>
                                 </span>
                                 <span className="text-sm text-gray-500">{tech.count}</span>
-                            </label>
+                            </motion.label>
                         ))}
                     </div>
-                </div>
+                </motion.div>
             )}
-
-            {/* Наличие */}
-            <div className="mb-8">
-                <h4 className="font-['Montserrat_Alternates'] font-medium mb-3">Наличие</h4>
-                <label className="flex items-center gap-2 cursor-pointer hover:bg-[#eaeaea] p-2 rounded-lg transition-colors">
-                    <input
-                        type="checkbox"
-                        checked={filters.inStock === 'true'}
-                        onChange={handleAvailabilityChange}
-                        className="w-4 h-4 accent-firm-orange"
-                    />
-                    <span className="text-sm">Товары в наличии</span>
-                </label>
-            </div>
 
             {/* Активные фильтры */}
             {hasActiveFilters() && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
+                <motion.div 
+                    className="mt-4 pt-4 border-t border-gray-200"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                >
                     <h4 className="font-['Montserrat_Alternates'] font-medium mb-2 text-sm">Активные фильтры:</h4>
                     <div className="flex flex-wrap gap-2">
                         {filters.category && filters.category !== 'all' && (
-                            <span className="px-2 py-1 bg-firm-orange bg-opacity-10 text-white hover:cursor-pointer rounded-full text-xs flex items-center gap-1">
+                            <motion.span 
+                                className="px-2 py-1 bg-firm-orange/10 text-firm-orange rounded-full text-xs flex items-center gap-1"
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                            >
                                 {filters.category}
                                 <button onClick={() => onFilterChange({ category: 'all' })} className="hover:text-firm-pink">✕</button>
-                            </span>
+                            </motion.span>
                         )}
                         {filters.technique && (
-                            <span className="px-2 py-1 hover:cursor-pointer bg-firm-pink bg-opacity-10 text-white rounded-full text-xs flex items-center gap-1">
+                            <motion.span 
+                                className="px-2 py-1 bg-firm-pink/10 text-firm-pink rounded-full text-xs flex items-center gap-1"
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                            >
                                 {filters.technique}
-                                <button onClick={() => onFilterChange({ technique: '' })} className="hover:text-white">✕</button>
-                            </span>
+                                <button onClick={() => onFilterChange({ technique: '' })} className="hover:text-firm-pink">✕</button>
+                            </motion.span>
                         )}
                         {(filters.minPrice || filters.maxPrice) && (
-                            <span className="px-2 py-1 hover:cursor-pointer bg-firm-orange bg-opacity-10 text-white rounded-full text-xs flex items-center gap-1">
+                            <motion.span 
+                                className="px-2 py-1 bg-firm-orange/10 text-firm-orange rounded-full text-xs flex items-center gap-1"
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                            >
                                 {filters.minPrice || 0} - {filters.maxPrice || '∞'} ₽
                                 <button onClick={() => {
                                     setPriceRange({ min: availableFilters.priceRange?.min || 0, max: availableFilters.priceRange?.max || 10000 })
                                     onFilterChange({ minPrice: '', maxPrice: '' })
-                                }} className="hover:text-white">✕</button>
-                            </span>
-                        )}
-                        {filters.inStock && (
-                            <span className="px-2 py-1 hover:cursor-pointer bg-firm-pink bg-opacity-10 text-white rounded-full text-xs flex items-center gap-1">
-                                В наличии
-                                <button onClick={() => onFilterChange({ inStock: '' })} className="hover:text-white">✕</button>
-                            </span>
+                                }}>✕</button>
+                            </motion.span>
                         )}
                     </div>
-                </div>
+                </motion.div>
             )}
-        </div>
+        </motion.div>
     )
 }

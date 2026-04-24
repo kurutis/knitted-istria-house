@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from "react"
+import { motion } from "framer-motion"
 
 interface PriceRangeProps {
     min: number
@@ -11,7 +12,6 @@ interface PriceRangeProps {
 }
 
 export default function PriceRange({ min, max, currentMin, currentMax, onChange }: PriceRangeProps) {
-    // Принудительно устанавливаем min = 0 для отображения
     const displayMin = 0
     const displayMax = max
     
@@ -40,26 +40,26 @@ export default function PriceRange({ min, max, currentMin, currentMax, onChange 
     const maxPercent = ((localMax - displayMin) / range) * 100
 
     return (
-        <div className="w-full max-w-full overflow-hidden">
+        <div className="w-full">
             <div className="px-2">
-                {/* Текущие значения над шкалой */}
                 <div className="flex justify-between mb-2 text-sm font-medium">
                     <span className="text-firm-orange">{localMin.toLocaleString()} ₽</span>
                     <span className="text-firm-pink">{localMax.toLocaleString()} ₽</span>
                 </div>
 
-                {/* Шкала */}
                 <div className="relative h-2 bg-gray-200 rounded-full my-4">
-                    <div 
+                    <motion.div 
                         className="absolute h-full bg-gradient-to-r from-firm-orange to-firm-pink rounded-full"
                         style={{
                             left: `${minPercent}%`,
                             width: `${maxPercent - minPercent}%`
                         }}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${maxPercent - minPercent}%` }}
+                        transition={{ duration: 0.2 }}
                     />
                 </div>
 
-                {/* Ползунок минимума */}
                 <input
                     type="range"
                     min={displayMin}
@@ -67,14 +67,10 @@ export default function PriceRange({ min, max, currentMin, currentMax, onChange 
                     step="100"
                     value={localMin}
                     onChange={(e) => handleMinChange(Number(e.target.value))}
-                    className="w-full h-2 bg-transparent appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-firm-orange [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform"
-                    style={{ 
-                        background: 'none',
-                        marginTop: '-14px'
-                    }}
+                    className="w-full h-2 bg-transparent appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 md:[&::-webkit-slider-thumb]:w-5 md:[&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-firm-orange [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform"
+                    style={{ marginTop: '-14px' }}
                 />
 
-                {/* Ползунок максимума */}
                 <input
                     type="range"
                     min={displayMin}
@@ -82,11 +78,8 @@ export default function PriceRange({ min, max, currentMin, currentMax, onChange 
                     step="100"
                     value={localMax}
                     onChange={(e) => handleMaxChange(Number(e.target.value))}
-                    className="w-full h-2 bg-transparent appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-firm-pink [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform"
-                    style={{ 
-                        background: 'none',
-                        marginTop: '-14px'
-                    }}
+                    className="w-full h-2 bg-transparent appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 md:[&::-webkit-slider-thumb]:w-5 md:[&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-firm-pink [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform"
+                    style={{ marginTop: '-14px' }}
                 />
             </div>
 
@@ -122,12 +115,14 @@ export default function PriceRange({ min, max, currentMin, currentMax, onChange 
                 <span>{displayMax.toLocaleString()} ₽</span>
             </div>
 
-            <button 
+            <motion.button 
                 onClick={() => onChange(localMin, localMax)} 
                 className="w-full mt-3 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition-colors text-sm"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
             >
                 Применить
-            </button>
+            </motion.button>
         </div>
     )
 }
