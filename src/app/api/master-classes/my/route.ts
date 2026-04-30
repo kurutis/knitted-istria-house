@@ -10,82 +10,99 @@ export async function GET() {
     }
 
     try {
-        // Получаем записи пользователя на мастер-классы
-        const { data: registrations, error } = await supabase
+        // Получаем ID мастер-классов, на которые записан пользователь
+        const { data: registrations, error: regError } = await supabase
             .from('master_class_registrations')
-            .select(`
-                id,
-                payment_status,
-                created_at as registered_at,
-                master_class_id,
-                master_classes!inner (
-                    id,
-                    title,
-                    description,
-                    type,
-                    status,
-                    price,
-                    max_participants,
-                    current_participants,
-                    date_time,
-                    duration_minutes,
-                    location,
-                    online_link,
-                    materials,
-                    image_url,
-                    created_at,
-                    updated_at,
-                    master_id,
-                    users!inner (
-                        id,
-                        email,
-                        profiles!left (
-                            full_name,
-                            avatar_url
-                        )
-                    )
-                )
-            `)
-            .eq('user_id', session.user.id)
-            .order('created_at', { ascending: false })
+            .select('master_class_id, payment_status, created_at')
+            .eq('user_id', session.user.id);
 
-        if (error) {
-            console.error('Error fetching my master classes:', error);
+        if (regError) {
+            console.error('Error fetching registrations:', regError);
             return NextResponse.json([], { status: 500 });
         }
 
-        // Форматируем данные
-        const formattedClasses = registrations?.map(reg => {
-            const mc = reg.master_classes
-            return {
-                id: reg.id,
-                payment_status: reg.payment_status,
-                registered_at: reg.registered_at,
-                master_class: {
-                    id: mc.id,
-                    title: mc.title,
-                    description: mc.description,
-                    type: mc.type,
-                    status: mc.status,
-                    price: mc.price,
-                    max_participants: mc.max_participants,
-                    current_participants: mc.current_participants,
-                    date_time: mc.date_time,
-                    duration_minutes: mc.duration_minutes,
-                    location: mc.location,
-                    online_link: mc.online_link,
-                    materials: mc.materials,
-                    image_url: mc.image_url,
-                    created_at: mc.created_at,
-                    updated_at: mc.updated_at,
-                    master_id: mc.master_id,
-                    master_name: mc.users?.profiles?.full_name || mc.users?.email,
-                    master_avatar: mc.users?.profiles?.avatar_url
-                }
-            }
-        }) || []
+        if (!registrations || registrations.length === 0) {
+            return NextResponse.json([]);
+        }
 
-        return NextResponse.json(formattedClasses)
+        const masterClassIds = registrations.map(r => r.master_class_id);
+        
+        // Получаем информацию о мастер-классах
+        const { data: masterClasses, error: mcError } = await supabase
+            .from('master_classes')
+            .select(`
+                id,
+                title,
+                description,
+                type,
+                status,
+                price,
+                max_participants,
+                current_participants,
+                date_time,
+                duration_minutes,
+                location,
+                online_link,
+                materials,
+                image_url,
+                created_at,
+                updated_at,
+                master_id,
+                users!inner (
+                    id,
+                    email,
+                    profiles!left (
+                        full_name,
+                        avatar_url
+                    )
+                )
+            `)
+            .in('id', masterClassIds)
+            .order('date_time', { ascending: true });
+
+        if (mcError) {
+            console.error('Error fetching master classes:', mcError);
+            return NextResponse.json([], { status: 500 });
+        }
+
+        // Создаем Map для быстрого доступа к информации о регистрации
+        const registrationMap = new Map();
+        registrations.forEach(reg => {
+            registrationMap.set(reg.master_class_id, {
+                payment_status: reg.payment_status,
+                registered_at: reg.created_at
+            });
+        });
+
+        // Форматируем результат
+        const formattedClasses = masterClasses?.map(mc => ({
+            id: registrationMap.get(mc.id)?.id,
+            payment_status: registrationMap.get(mc.id)?.payment_status || 'pending',
+            registered_at: registrationMap.get(mc.id)?.registered_at,
+            master_class: {
+                id: mc.id,
+                title: mc.title,
+                description: mc.description,
+                type: mc.type,
+                status: mc.status,
+                price: mc.price,
+                max_participants: mc.max_participants,
+                current_participants: mc.current_participants,
+                date_time: mc.date_time,
+                duration_minutes: mc.duration_minutes,
+                location: mc.location,
+                online_link: mc.online_link,
+                materials: mc.materials,
+                image_url: mc.image_url,
+                created_at: mc.created_at,
+                updated_at: mc.updated_at,
+                master_id: mc.master_id,
+                master_name: mc.users?.profiles?.full_name || mc.users?.email,
+                master_avatar: mc.users?.profiles?.avatar_url
+            }
+        })) || [];
+
+        return NextResponse.json(formattedClasses);
         
     } catch (error) {
         console.error('Error fetching my master classes:', error);

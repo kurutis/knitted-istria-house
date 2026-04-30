@@ -8,7 +8,10 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = { 
     title: "Дом Вязанных Историй",
-    description: "Платформа для продвижения авторских вязанных изделий"
+    description: "Платформа для продвижения авторских вязанных изделий",
+    icons: {
+        icon: '/logo.svg',
+    },
 };
 
 export default function RootLayout({children,}: Readonly<{children: React.ReactNode;}>) {
