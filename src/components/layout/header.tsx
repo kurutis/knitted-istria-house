@@ -18,14 +18,43 @@ export default function Header() {
   const isMaster = session?.user?.role === "master";
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
+  // Загружаем аватар из API профиля
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
+    const loadAvatar = async () => {
+      if (!isAuthenticated) return;
+      
+      try {
+        const response = await fetch('/api/user/profile');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.avatarUrl) {
+            setAvatarUrl(data.avatarUrl);
+            console.log('Avatar URL set:', data.avatarUrl);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading avatar:', error);
+      }
     };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+    
+    loadAvatar();
+  }, [isAuthenticated]);
+
+  const getInitials = () => {
+    if (!session?.user) return "U";
+    const name = session.user.name;
+    const email = session.user.email;
+    
+    if (name && name.length > 0) {
+      return name.charAt(0).toUpperCase();
+    }
+    if (email && email.length > 0) {
+      return email.charAt(0).toUpperCase();
+    }
+    return "U";
+  };
 
   const navLinks = [
     { href: "/catalog", label: "Каталог" },
@@ -138,7 +167,7 @@ export default function Header() {
                 </Link>
               </motion.div>
 
-              {/* Профиль */}
+              {/* Профиль - с аватаром */}
               <motion.div
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
@@ -146,25 +175,46 @@ export default function Header() {
                 {isLoading ? (
                   <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gray-300 animate-pulse" />
                 ) : isAuthenticated ? (
-                  <Link href="/profile">
-                    {session.user.image ? (
-                      <img
-                        src={session.user.image}
-                        alt="profile"
-                        className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover ring-2 ring-white/50 hover:ring-firm-orange transition-all duration-300"
-                      />
-                    ) : (
-                      <motion.div
-                        whileHover={{ scale: 1.05 }}
-                        className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-xs sm:text-sm font-bold"
-                      >
-                        {session.user.name?.charAt(0).toUpperCase() || "U"}
-                      </motion.div>
-                    )}
+                  <Link href="/profile" className="block">
+                    {avatarUrl ? (
+                        <img
+                          src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`}
+                          alt="profile"
+                          className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover ring-2 ring-white/50 hover:ring-firm-orange transition-all duration-300"
+                          onError={(e) => {
+                            console.error('Avatar failed to load');
+                            e.currentTarget.style.display = 'none';
+                            const parent = e.currentTarget.parentElement;
+                            if (parent) {
+                              const span = document.createElement('div');
+                              span.className = 'w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-xs sm:text-sm font-bold';
+                              span.textContent = getInitials();
+                              parent.appendChild(span);
+                              e.currentTarget.remove();
+                            }
+                          }}
+                        />
+                      ) : (
+                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-xs sm:text-sm font-bold">
+                          {getInitials()}
+                        </div>
+                      )}
                   </Link>
                 ) : (
-                  <Link href="/auth/signin">
-                    <Image src={profile} alt="profile" className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
+                  <Link href="/auth/signin" className="block">
+                    <svg 
+                      className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white hover:text-firm-orange transition-colors duration-300"
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" 
+                      />
+                    </svg>
                   </Link>
                 )}
               </motion.div>

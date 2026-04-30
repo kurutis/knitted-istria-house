@@ -15,7 +15,7 @@ export async function GET(request: Request) {
         const limit = parseInt(searchParams.get('limit') || '12')
         const offset = (page - 1) * limit
 
-        // Начинаем строить запрос
+        // Получаем товары
         let query = supabase
             .from('products')
             .select(`
@@ -30,20 +30,7 @@ export async function GET(request: Request) {
                 main_image_url,
                 created_at,
                 views,
-                master_id,
-                users!inner (
-                    id,
-                    email,
-                    profiles!left (
-                        full_name,
-                        avatar_url
-                    )
-                ),
-                product_images (
-                    id,
-                    image_url,
-                    sort_order
-                )
+                master_id
             `, { count: 'exact' })
 
         // Фильтры
@@ -80,7 +67,6 @@ export async function GET(request: Request) {
             case 'popular':
                 query = query.order('views', { ascending: false })
                 break
-            case 'newest':
             default:
                 query = query.order('created_at', { ascending: false })
         }
@@ -94,20 +80,26 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Ошибка загрузки каталога' }, { status: 500 });
         }
 
+        // Получаем имена мастеров отдельно (чтобы избежать сложных связей)
+        const masterIds = [...new Set(products?.map(p => p.master_id) || [])]
+        let mastersMap = new Map()
+        
+        if (masterIds.length > 0) {
+            const { data: masters } = await supabase
+                .from('users')
+                .select('id, email, profiles!left (full_name)')
+                .in('id', masterIds)
+            
+            masters?.forEach(m => {
+                mastersMap.set(m.id, m.profiles?.full_name || m.email)
+            })
+        }
+
         // Форматируем товары
         const formattedProducts = products?.map(product => ({
-            id: product.id,
-            title: product.title,
-            description: product.description,
-            price: product.price,
-            category: product.category,
-            technique: product.technique,
-            size: product.size,
-            main_image_url: product.main_image_url,
-            created_at: product.created_at,
-            master_id: product.master_id,
-            master_name: product.users?.profiles?.full_name || product.users?.email,
-            images: product.product_images?.sort((a, b) => a.sort_order - b.sort_order) || []
+            ...product,
+            master_name: mastersMap.get(product.master_id) || '',
+            images: []
         })) || []
 
         return NextResponse.json({

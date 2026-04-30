@@ -12,7 +12,7 @@
     "@auth/supabase-adapter": "^1.11.2",
     "@aws-sdk/client-s3": "^3.1037.0",
     "@neondatabase/serverless": "^1.1.0",
-    "@supabase/supabase-js": "^2.104.1",
+    "@supabase/supabase-js": "^2.105.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@yandex-cloud/nodejs-sdk": "^2.8.0",

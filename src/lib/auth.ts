@@ -1,5 +1,4 @@
 import { NextAuthOptions } from "next-auth";
-import { SupabaseAdapter } from "@auth/supabase-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { supabase } from "./supabase";
 import bcrypt from "bcryptjs";
@@ -118,11 +117,77 @@ async function getUserById(id: string) {
     }
 }
 
+// Функция для создания или обновления пользователя через OAuth
+async function createOrUpdateOAuthUser(profile: any, provider: string) {
+    try {
+        console.log('📝 createOrUpdateOAuthUser called:', { email: profile.email, provider })
+        
+        // Ищем пользователя по email
+        let user = await getUserByEmail(profile.email)
+        
+        if (!user) {
+            console.log('👤 Creating new user...')
+            
+            // Создаем нового пользователя
+            const { data: newUser, error: createError } = await supabase
+                .from('users')
+                .insert({
+                    id: profile.id, // Важно: используем ID из провайдера
+                    email: profile.email,
+                    role: 'buyer',
+                    role_selected: false,
+                    is_banned: false,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                })
+                .select()
+                .single()
+            
+            if (createError) {
+                console.error('❌ Error creating user:', createError)
+                return null
+            }
+            
+            console.log('✅ User created:', newUser.id)
+            
+            // Создаем профиль
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .insert({
+                    user_id: newUser.id,
+                    full_name: profile.name,
+                    avatar_url: profile.image,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                })
+            
+            if (profileError) {
+                console.error('❌ Error creating profile:', profileError)
+            } else {
+                console.log('✅ Profile created')
+            }
+            
+            user = {
+                id: newUser.id,
+                email: newUser.email,
+                role: newUser.role,
+                role_selected: newUser.role_selected,
+                is_banned: newUser.is_banned,
+                name: profile.name,
+                avatar_url: profile.image
+            }
+        } else {
+            console.log('👤 User already exists:', user.id)
+        }
+        
+        return user
+    } catch (error) {
+        console.error('❌ Error in createOrUpdateOAuthUser:', error)
+        return null
+    }
+}
+
 export const authOptions: NextAuthOptions = {
-    adapter: SupabaseAdapter({
-        url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        secret: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    }),
     providers: [
         CredentialsProvider({
             name: 'credentials',
@@ -233,6 +298,47 @@ export const authOptions: NextAuthOptions = {
         maxAge: 30 * 24 * 60 * 60,
     },
     callbacks: {
+        async signIn({ user, account }) {
+            // Для OAuth провайдеров создаем или обновляем пользователя
+            if (account?.provider !== 'credentials' && user.email) {
+                try {
+                    const dbUser = await createOrUpdateOAuthUser({
+                        email: user.email,
+                        name: user.name,
+                        image: user.image
+                    }, account.provider)
+                    
+                    if (!dbUser) {
+                        return false
+                    }
+                    
+                    user.id = dbUser.id
+                    user.role = dbUser.role
+                    user.role_selected = dbUser.role_selected
+                    user.image = dbUser.avatar_url
+                    
+                    return true
+                } catch (error) {
+                    console.error("Error in OAuth signIn:", error)
+                    return false
+                }
+            }
+            
+            // Проверка бана для всех пользователей
+            if (user.id) {
+                try {
+                    const dbUser = await getUserById(user.id)
+                    if (dbUser?.is_banned) {
+                        return false
+                    }
+                } catch (error) {
+                    console.error("Error checking ban status:", error)
+                }
+            }
+            
+            return true
+        },
+
         async jwt({ token, user, account, trigger, session: triggerSession }) {
             if (user) {
                 token.id = user.id
@@ -242,52 +348,40 @@ export const authOptions: NextAuthOptions = {
                 token.city = user.city
                 token.is_verified = user.is_verified
                 token.is_partner = user.is_partner
-                token.image = user.image || null
+                token.image = user.image || null  // <-- важно!
 
                 if (account?.provider !== 'credentials' && !user.role_selected) {
                     token.requiresRoleSelection = true
                 }
             }
 
-            // Получаем свежий avatar_url из БД при каждом обновлении токена
-            if (token.id && !trigger) {
+            // Получаем свежие данные из БД
+            if (token.id) {
                 try {
                     const { data: profile, error } = await supabase
                         .from('profiles')
-                        .select('avatar_url')
+                        .select('avatar_url, full_name')
                         .eq('user_id', token.id)
                         .single()
                     
-                    if (!error && profile && profile.avatar_url) {
-                        token.image = profile.avatar_url
+                    if (!error && profile) {
+                        if (profile.avatar_url) {
+                            token.image = profile.avatar_url  // <-- обновляем из БД
+                        }
+                        if (profile.full_name && !token.name) {
+                            token.name = profile.full_name
+                        }
                     }
                 } catch (error) {
-                    console.error('Error fetching avatar:', error)
+                    console.error('Error fetching profile:', error)
                 }
             }
 
-            // Обновление при trigger "update" (после изменения профиля)
+            // Обновление при trigger "update"
             if (trigger === "update" && triggerSession?.image) {
                 token.image = triggerSession.image
             }
 
-            if (token.id) {
-                try {
-                    const dbUser = await getUserById(token.id as string)
-                    if (dbUser) {
-                        token.role = dbUser.role
-                        token.roleSelected = dbUser.role_selected
-                        token.is_verified = dbUser.master_verified || false
-                        token.is_partner = dbUser.master_partner || false
-                        token.is_banned = dbUser.is_banned || false
-                        if (dbUser.avatar_url) {
-                            token.image = dbUser.avatar_url
-                        }
-                    }
-                } catch (error) {
-                    console.error("Error updating token from DB:", error)
-                }
-            }
             return token
         },
 
@@ -302,53 +396,10 @@ export const authOptions: NextAuthOptions = {
                 session.user.is_partner = token.is_partner as boolean
                 session.user.is_banned = token.is_banned as boolean
                 session.user.requiresRoleSelection = token.requiresRoleSelection as boolean
-                session.user.image = token.image as string || null
+                session.user.image = token.image as string || null  // <-- важно!
+                session.user.name = token.name as string || session.user.name
             }
-
             return session
-        },
-
-        async signIn({ user, account }) {
-            if (account?.provider !== 'credentials') {
-                try {
-                    const existingUser = await getUserByEmail(user.email!)
-
-                    if (!existingUser) {
-                        // Создаем профиль для нового пользователя
-                        const { error: profileError } = await supabase
-                            .from('profiles')
-                            .insert({
-                                user_id: user.id,
-                                full_name: user.name,
-                                avatar_url: user.image
-                            })
-                        
-                        if (profileError) {
-                            console.error('Error creating profile:', profileError)
-                        }
-                    } else {
-                        user.id = existingUser.id
-                        user.role = existingUser.role
-                        user.role_selected = existingUser.role_selected
-                        user.image = existingUser.avatar_url
-                    }
-                } catch (error) {
-                    console.error("Error in signIn callback:", error)
-                    return false
-                }
-            }
-            if (user.id) {
-                try {
-                    const dbUser = await getUserById(user.id)
-                    if (dbUser?.is_banned) {
-                        return false
-                    }
-                } catch (error) {
-                    console.error("Error checking ban status:", error)
-                }
-            }
-
-            return true
         },
 
         async redirect({ url, baseUrl }) {
