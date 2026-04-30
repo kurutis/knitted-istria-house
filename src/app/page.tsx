@@ -38,6 +38,7 @@ export default function HomePage() {
     const [commentLoading, setCommentLoading] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
 
+
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768)
         checkMobile()
@@ -267,10 +268,13 @@ export default function HomePage() {
                                         {post.title}
                                     </h3>
                                     
-                                    {/* Галерея изображений */}
                                     {(post.images?.length > 0 || post.main_image_url) && (
                                         <MediaGallery 
-                                            images={post.images || [post.main_image_url]} 
+                                            images={
+                                                post.images?.length 
+                                                    ? post.images 
+                                                    : (post.main_image_url ? [{ url: post.main_image_url, sort_order: 0 }] : [])
+                                            } 
                                             video={null}
                                             title={post.title}
                                         />
