@@ -200,12 +200,10 @@ export default function ProductCard({ product }: ProductCardProps) {
                 {/* Изображение */}
                 <div className="relative aspect-square bg-[#f5f5f5]">
                     {product.main_image_url ? (
-                        <Image
+                        <img
                             src={product.main_image_url}
                             alt={product.title}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            width={200}
-                            height={200}
                         />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center">
