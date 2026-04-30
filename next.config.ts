@@ -48,8 +48,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Важно для Vercel
-  output: 'standalone',
+  // Убираем output: 'standalone' пока (может вызвать проблемы)
+  // output: 'standalone',
   eslint: {
     ignoreDuringBuilds: true,
   },
