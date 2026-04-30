@@ -2,7 +2,9 @@
 
 import React, { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import Image from "next/image"
 import PriceRange from "./PriceRange"
+import allIcon from '../../../public/products.svg'
 
 interface FiltersProps {
     filters: any
@@ -16,6 +18,7 @@ interface Category {
     name: string
     description: string
     parent_category_id: number | null
+    icon_url: string | null
     products_count: number
     subcategories?: Category[]
 }
@@ -30,6 +33,7 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
     const [categories, setCategories] = useState<Category[]>([])
     const [loadingCategories, setLoadingCategories] = useState(true)
     const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set())
+    const [iconErrors, setIconErrors] = useState<Set<string>>(new Set())
 
     useEffect(() => {
         fetchCategories()
@@ -87,12 +91,11 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
 
     const getCategoryIcon = (categoryName: string) => {
         const icons: Record<string, string> = {
-            'Одежда': '👕',
             'Свитера': '🧶', 'Свитер': '🧶',
             'Шапки': '🧢', 'Шапка': '🧢',
             'Шарфы': '🧣', 'Шарф': '🧣',
-            'Варежки': '🧤',
-            'Носки': '🧦',
+            'Варежки': '🧤', 'Варежка': '🧤',
+            'Носки': '🧦', 'Носок': '🧦',
             'Пледы': '🛋️', 'Плед': '🛋️',
             'Игрушки': '🧸', 'Игрушка': '🧸',
             'Для дома': '🏠',
@@ -113,10 +116,15 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
         })
     }
 
+    const handleIconError = (categoryName: string) => {
+        setIconErrors(prev => new Set(prev).add(categoryName))
+    }
+
     const renderCategories = (categoriesList: Category[], level: number = 0) => {
         return categoriesList.map((cat) => {
             const hasSubcategories = cat.subcategories && cat.subcategories.length > 0
             const isExpanded = expandedCategories.has(cat.id)
+            const hasIconError = iconErrors.has(cat.name)
             
             return (
                 <div key={cat.id}>
@@ -127,7 +135,7 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
                         className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
                             filters.category === cat.name
                                 ? 'bg-firm-orange text-white'
-                                : 'hover:bg-[#eaeaea]'
+                                : 'hover:bg-[#f1f1f1]'
                         }`}
                         style={{ paddingLeft: `${12 + level * 20}px` }}
                     >
@@ -149,7 +157,18 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
                         )}
                         {!hasSubcategories && <span className="w-5" />}
                         
-                        <span className="text-lg">{getCategoryIcon(cat.name)}</span>
+                        {/* Иконка категории */}
+                        {cat.icon_url && !hasIconError ? (
+                            <img 
+                                src={cat.icon_url} 
+                                alt={cat.name}
+                                className="w-5 h-5 object-contain"
+                                onError={() => handleIconError(cat.name)}
+                            />
+                        ) : (
+                            <span className="text-lg">{getCategoryIcon(cat.name)}</span>
+                        )}
+                        
                         <span className="flex-1 text-sm">{cat.name}</span>
                         {cat.products_count !== undefined && cat.products_count > 0 && (
                             <span className="text-xs opacity-75">{cat.products_count}</span>
@@ -222,7 +241,15 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
                             }`}
                         >
                             <span className="w-5" />
-                            <span className="text-lg">📋</span>
+                            <span className="w-5 h-5 relative">
+                                <Image 
+                                    src={allIcon} 
+                                    alt="Все категории"
+                                    width={20}
+                                    height={20}
+                                    className="object-contain"
+                                />
+                            </span>
                             <span className="flex-1 text-sm">Все категории</span>
                         </motion.button>
                         {renderCategories(categories)}
