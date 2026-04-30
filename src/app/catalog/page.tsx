@@ -7,6 +7,15 @@ import { motion, AnimatePresence } from "framer-motion"
 import Filters from "@/components/catalog/Filters"
 import ProductCard from "@/components/catalog/ProductCard"
 import Pagination from "@/components/ui/Pagination"
+import allIcon from '../../../public/products.svg'
+import Image from "next/image"
+
+interface Category {
+    id: number
+    name: string
+    icon_url: string | null
+    parent_category_id: number | null
+}
 
 export default function CatalogPage() {
     const router = useRouter()
@@ -25,6 +34,9 @@ export default function CatalogPage() {
         page: parseInt(searchParams.get('page') || '1')
     })
     const [availableFilters, setAvailableFilters] = useState({techniques: [], priceRange: {min: 0, max: 10000}, sortOptions: []})
+    const [categories, setCategories] = useState<Category[]>([])
+    const [loadingCategories, setLoadingCategories] = useState(true)
+    const [iconErrors, setIconErrors] = useState<Set<string>>(new Set())
     const [isMobile, setIsMobile] = useState(false)
     const [showMobileFilters, setShowMobileFilters] = useState(false)
 
@@ -35,8 +47,14 @@ export default function CatalogPage() {
         return () => window.removeEventListener('resize', checkMobile)
     }, [])
 
-    useEffect(() => {fetchProducts()}, [filters])
-    useEffect(() => {fetchFilters()}, [])
+    useEffect(() => {
+        fetchProducts()
+        fetchCategories()
+    }, [filters])
+
+    useEffect(() => {
+        fetchFilters()
+    }, [])
 
     const fetchProducts = async () => {
         setLoading(true)
@@ -63,6 +81,19 @@ export default function CatalogPage() {
             setAvailableFilters(data)
         }catch (error){
             console.error('Error fetching filters:', error)
+        }
+    }
+
+    const fetchCategories = async () => {
+        try {
+            setLoadingCategories(true)
+            const response = await fetch('/api/catalog/categories')
+            const data = await response.json()
+            setCategories(data.categories || [])
+        } catch (error) {
+            console.error('Error fetching categories:', error)
+        } finally {
+            setLoadingCategories(false)
         }
     }
 
@@ -101,6 +132,21 @@ export default function CatalogPage() {
         return 'grid-cols-3 lg:grid-cols-4'
     }
 
+    const getCategoryIcon = (categoryName: string) => {
+        const emojis: Record<string, string> = {
+            'Свитера': '🧶', 'Шапки': '🧢', 'Шарфы': '🧣',
+            'Варежки': '🧤', 'Носки': '🧦', 'Пледы': '🛋️', 'Игрушки': '🧸'
+        }
+        return emojis[categoryName] || allIcon
+    }
+
+    const handleIconError = (categoryName: string) => {
+        setIconErrors(prev => new Set(prev).add(categoryName))
+    }
+
+    // Основные категории (без родителя)
+    const rootCategories = categories.filter(cat => cat.parent_category_id === null)
+
     return (
         <div className="mt-5 flex items-start justify-center px-3 sm:px-4">
             <div className="flex flex-col gap-5 w-full max-w-7xl">
@@ -109,6 +155,57 @@ export default function CatalogPage() {
                     <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl">Каталог изделий</h1>
                     <p className="text-gray-600 mt-1 text-sm">{pagination.total} уникальных изделий ручной работы</p>
                 </div>
+
+                {/* Category Icons Row */}
+                {!loadingCategories && rootCategories.length > 0 && (
+                    <div className="overflow-x-auto pb-2 px-2">
+                        <div className="flex gap-4 min-w-max">
+                            <button
+                                onClick={() => handleFilterChange({ category: 'all' })}
+                                className={`flex flex-col items-center gap-2 p-2 rounded-lg transition-all ${
+                                    filters.category === 'all' ? 'bg-firm-orange bg-opacity-10' : 'hover:bg-gray-50'
+                                }`}
+                            >
+                                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-2xl">
+                                    <Image src={allIcon} alt="all" className="w-6 h-6 object-contain" />
+                                </div>
+                                <span className={`text-xs font-medium ${filters.category === 'all' ? 'text-main' : 'text-gray-600'}`}>
+                                    Все
+                                </span>
+                            </button>
+
+                            {rootCategories.map((cat) => {
+                                const hasError = iconErrors.has(cat.name)
+                                
+                                return (
+                                    <button
+                                        key={cat.id}
+                                        onClick={() => handleFilterChange({ category: cat.name })}
+                                        className={`flex flex-col items-center gap-2 p-2 rounded-lg transition-all ${
+                                            filters.category === cat.name ? 'bg-firm-orange bg-opacity-10' : 'hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                                            {cat.icon_url && !hasError ? (
+                                                <img 
+                                                    src={cat.icon_url} 
+                                                    alt={cat.name}
+                                                    className="w-6 h-6 object-contain"
+                                                    onError={() => handleIconError(cat.name)}
+                                                />
+                                            ) : (
+                                                <span className="text-2xl">{getCategoryIcon(cat.name)}</span>
+                                            )}
+                                        </div>
+                                        <span className={`text-xs font-medium ${filters.category === cat.name ? 'text-firm-orange' : 'text-gray-600'}`}>
+                                            {cat.name}
+                                        </span>
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    </div>
+                )}
 
                 {/* Search and Mobile Filters Button */}
                 <div className="flex gap-3 items-center px-2">
