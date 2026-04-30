@@ -6,6 +6,10 @@ export default withAuth(
     const token = req.nextauth.token;
     const pathname = req.nextUrl.pathname;
 
+    console.log('Middleware - pathname:', pathname);
+    console.log('Middleware - token exists:', !!token);
+    console.log('Middleware - token role:', token?.role);
+
     // Админ-панель
     if (pathname.startsWith('/admin')) {
       if (!token) {
@@ -41,10 +45,22 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token }) => {
-        const publicPaths = ['/', '/auth/signin', '/auth/signup', '/auth/error', '/auth/role-selection', '/catalog', '/products', '/blog', '/api/auth', '/masters', '/master-classes'];
+        const publicPaths = [
+          '/', '/auth/signin', '/auth/signup', '/auth/error', 
+          '/auth/role-selection', '/catalog', '/products', '/blog', 
+          '/api/auth', '/masters', '/master-classes'
+        ];
         
-        const isPublicPath = publicPaths.some(path => req.nextUrl.pathname.startsWith(path));
-        return isPublicPath || !!token;
+        const isPublicPath = publicPaths.some(path => req.nextUrl.pathname === path || req.nextUrl.pathname.startsWith(path));
+        
+        // Для отладки
+        console.log('authorized - path:', req.nextUrl.pathname);
+        console.log('authorized - isPublicPath:', isPublicPath);
+        console.log('authorized - has token:', !!token);
+        
+        // Разрешаем доступ к публичным страницам всегда, к остальным - только с токеном
+        if (isPublicPath) return true;
+        return !!token;
       },
     }
   }
