@@ -1,0 +1,130 @@
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
+
+export async function DELETE(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+        return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    try {
+        // Проверяем, является ли пользователь автором сообщения
+        const { data: message, error: findError } = await supabase
+            .from('messages')
+            .select('sender_id')
+            .eq('id', id)
+            .single()
+
+        if (findError) {
+            if (findError.code === 'PGRST116') {
+                return NextResponse.json({ error: 'Сообщение не найдено' }, { status: 404 });
+            }
+            return NextResponse.json({ error: 'Ошибка поиска сообщения' }, { status: 500 });
+        }
+
+        if (message.sender_id !== session.user.id) {
+            return NextResponse.json({ error: 'Доступ запрещен' }, { status: 403 });
+        }
+
+        // Удаляем сообщение
+        const { error: deleteError } = await supabase
+            .from('messages')
+            .delete()
+            .eq('id', id)
+
+        if (deleteError) {
+            console.error('Error deleting message:', deleteError);
+            return NextResponse.json({ error: 'Ошибка удаления сообщения' }, { status: 500 });
+        }
+
+        return NextResponse.json({ success: true })
+        
+    } catch (error) {
+        console.error('Error deleting message:', error);
+        return NextResponse.json({ error: 'Ошибка удаления сообщения' }, { status: 500 });
+    }
+}
+
+export async function PUT(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+        return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const { content } = await request.json();
+
+    if (!content || !content.trim()) {
+        return NextResponse.json({ error: 'Сообщение не может быть пустым' }, { status: 400 });
+    }
+
+    try {
+        // Проверяем, является ли пользователь автором сообщения
+        const { data: message, error: findError } = await supabase
+            .from('messages')
+            .select('sender_id, chat_id')
+            .eq('id', id)
+            .single()
+
+        if (findError) {
+            if (findError.code === 'PGRST116') {
+                return NextResponse.json({ error: 'Сообщение не найдено' }, { status: 404 });
+            }
+            return NextResponse.json({ error: 'Ошибка поиска сообщения' }, { status: 500 });
+        }
+
+        if (message.sender_id !== session.user.id) {
+            return NextResponse.json({ error: 'Доступ запрещен' }, { status: 403 });
+        }
+
+        // Обновляем сообщение
+        const { data: updatedMessage, error: updateError } = await supabase
+            .from('messages')
+            .update({
+                content: content.trim(),
+                is_edited: true,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id)
+            .select()
+            .single()
+
+        if (updateError) {
+            console.error('Error updating message:', updateError);
+            return NextResponse.json({ error: 'Ошибка обновления сообщения' }, { status: 500 });
+        }
+
+        // Получаем информацию об отправителе
+        const { data: senderInfo } = await supabase
+            .from('users')
+            .select(`
+                email,
+                profiles!left (
+                    full_name,
+                    avatar_url
+                )
+            `)
+            .eq('id', session.user.id)
+            .single()
+
+        return NextResponse.json({
+            ...updatedMessage,
+            sender_name: senderInfo?.profiles?.full_name || senderInfo?.email,
+            sender_avatar: senderInfo?.profiles?.avatar_url
+        })
+        
+    } catch (error) {
+        console.error('Error updating message:', error);
+        return NextResponse.json({ error: 'Ошибка обновления сообщения' }, { status: 500 });
+    }
+}
