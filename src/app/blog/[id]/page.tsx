@@ -615,18 +615,14 @@ export default function BlogPostPage() {
 
       {/* Изображения */}
       {(post.images?.length || 0) > 0 || post.main_image_url ? (
-        <div className="mb-8">
-          <MediaGallery
-            images={
-              post.images ||
-              (post.main_image_url
-                ? [{ id: "main", url: post.main_image_url, sort_order: 0 }]
-                : [])
-            }
-            video={null}
-            title={post.title}
-          />
-        </div>
+          <div className="mb-8">
+              <MediaGallery
+                  images={post.images || []}
+                  mainImageUrl={post.main_image_url}
+                  video={null}
+                  title={post.title}
+              />
+          </div>
       ) : null}
 
       {/* Содержание */}
