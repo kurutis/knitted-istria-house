@@ -2,7 +2,7 @@
 
 import LoadingSpinner from "@/components/ui/LoadingSpinner"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Filters from "@/components/catalog/Filters"
 import ProductCard from "@/components/catalog/ProductCard"
@@ -17,7 +17,8 @@ interface Category {
     parent_category_id: number | null
 }
 
-export default function CatalogPage() {
+// Компонент, который использует useSearchParams
+function CatalogContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
 
@@ -166,10 +167,10 @@ export default function CatalogPage() {
                                     filters.category === 'all' ? 'bg-firm-orange bg-opacity-10' : 'hover:bg-gray-50'
                                 }`}
                             >
-                                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-2xl">
+                                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
                                     <Image src={allIcon} alt="all" className="w-6 h-6 object-contain" />
                                 </div>
-                                <span className={`text-xs font-medium ${filters.category === 'all' ? 'text-main' : 'text-gray-600'}`}>
+                                <span className={`text-xs font-medium ${filters.category === 'all' ? 'text-firm-orange' : 'text-gray-600'}`}>
                                     Все
                                 </span>
                             </button>
@@ -373,5 +374,14 @@ export default function CatalogPage() {
                 )}
             </AnimatePresence>
         </div>
+    )
+}
+
+// Основной компонент с Suspense
+export default function CatalogPage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center items-center min-h-[60vh]">Загрузка...</div>}>
+            <CatalogContent />
+        </Suspense>
     )
 }

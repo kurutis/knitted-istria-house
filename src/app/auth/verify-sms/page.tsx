@@ -1,10 +1,11 @@
 'use client'
 
 import { useRouter, useSearchParams } from "next/navigation"
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, Suspense } from "react"
 import Link from "next/link"
 
-export default function VerifySmsPage(){
+// Компонент, который использует useSearchParams
+function VerifySmsForm() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const email = searchParams.get('email')
@@ -42,7 +43,6 @@ export default function VerifySmsPage(){
         }
 
         try{
-            // Отправляем запрос на верификацию SMS кода
             const response = await fetch('/api/auth/verify-sms', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -55,7 +55,6 @@ export default function VerifySmsPage(){
                 throw new Error(data.error || 'Неверный SMS код')
             }
 
-            // Если успешно, перенаправляем на страницу входа или сразу авторизуем?
             router.push('/auth/signin?verified=true')
             
         }catch (err: any){
@@ -85,6 +84,16 @@ export default function VerifySmsPage(){
         }catch(err: any){
             setError(err.message)
         }
+    }
+
+    if (!email) {
+        return (
+            <div className="mt-5 flex items-center justify-center">
+                <div className="text-center">
+                    <p className="text-gray-600">Перенаправление...</p>
+                </div>
+            </div>
+        )
     }
 
     return(
@@ -163,5 +172,14 @@ export default function VerifySmsPage(){
                 </form>
             </div>
         </div>
+    )
+}
+
+// Основной компонент с Suspense
+export default function VerifySmsPage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center items-center min-h-[60vh]">Загрузка...</div>}>
+            <VerifySmsForm />
+        </Suspense>
     )
 }

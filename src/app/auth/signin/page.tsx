@@ -2,15 +2,15 @@
 
 import { signIn } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
-import React, { useState } from "react"
+import React, { useState, Suspense } from "react"
 import Link from "next/link";
 import Image from "next/image";
 import google from '../../../../public/google.svg'
 import yandex from '../../../../public/yandex.svg'
 import vk from '../../../../public/vk.svg'
 
-
-export default function SignInPage() {
+// Компонент, который использует useSearchParams
+function SignInForm() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const callbackUrl = searchParams.get('callbackUrl') || '/'
@@ -38,14 +38,14 @@ export default function SignInPage() {
                 router.push(callbackUrl)
                 router.refresh()
             }
-        }catch (err:any){
+        }catch (err: any){
             setError(err.message || 'Произошла ошибка')
         }finally{
             setLoading(false)
         }
     }
 
-    return(
+    return (
         <div className="mt-5 flex items-center justify-center">
             <div className="flex flex-col gap-5 w-[70%]">
                 <div>
@@ -64,7 +64,7 @@ export default function SignInPage() {
                             <input className="w-full p-2 rounded-l bg-[#EAEAEA] outline-firm-pink" id="password" name="password" type="password" autoComplete="current-password" required placeholder="Пароль" value={password} onChange={(e)=> setPassword(e.target.value)} />
                         </div>
                         <div>
-                            <input className="p-2 rounded-l bg-[#EAEAEA] outline-firm-orange" id="smsCode" name="smsCode" type="smsCode" placeholder="SMS код" value={smsCode} onChange={(e)=>setPassword(e.target.value)} />
+                            <input className="p-2 rounded-l bg-[#EAEAEA] outline-firm-orange" id="smsCode" name="smsCode" type="text" placeholder="SMS код" value={smsCode} onChange={(e)=>setSmsCode(e.target.value)} />
                         </div>
                     </div>
                     
@@ -104,5 +104,14 @@ export default function SignInPage() {
                 </form>
             </div>
         </div>
+    )
+}
+
+// Основной компонент с Suspense
+export default function SignInPage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center items-center min-h-[60vh]">Загрузка...</div>}>
+            <SignInForm />
+        </Suspense>
     )
 }
