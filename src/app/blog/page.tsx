@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import { useSession } from "next-auth/react";
 import { useEffect, useState, useCallback } from "react";
@@ -439,17 +439,17 @@ export default function BlogPage() {
       transition={{ duration: 0.5 }}
     >
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl">
+        <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
           Блог
         </h1>
         {isMaster && (
           <motion.button
             onClick={() => setShowAddPostModal(true)}
-            className="px-4 py-2 bg-firm-pink text-white rounded-lg hover:bg-opacity-90 transition flex items-center gap-2 text-sm sm:text-base"
+            className="px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition flex items-center gap-2 text-sm sm:text-base"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            Написать пост
+            ✍️ Написать пост
           </motion.button>
         )}
       </div>
@@ -477,7 +477,7 @@ export default function BlogPage() {
         {isMobile && (
           <motion.button
             onClick={() => setShowMobileMasters(!showMobileMasters)}
-            className="flex items-center justify-between w-full p-3 bg-white rounded-lg shadow-md"
+            className="flex items-center justify-between w-full p-3 bg-white rounded-xl shadow-md"
             whileTap={{ scale: 0.98 }}
           >
             <span className="font-['Montserrat_Alternates'] font-medium">
@@ -532,16 +532,16 @@ export default function BlogPage() {
         {/* Правая колонка - посты */}
         <div className="flex-1 min-w-0 space-y-5 sm:space-y-6 overflow-hidden">
           {showSearchResults && (
-            <div className="bg-gray-50 rounded-lg p-3 text-xs sm:text-sm text-gray-600 break-words">
-              Найдено {searchResults.masters?.length || 0} мастеров и{" "}
+            <div className="bg-gradient-to-r from-firm-orange/10 to-firm-pink/10 rounded-xl p-3 text-xs sm:text-sm text-gray-600 break-words">
+              🔍 Найдено {searchResults.masters?.length || 0} мастеров и{" "}
               {searchResults.posts?.length || 0} постов по запросу "
               {searchQuery}"
             </div>
           )}
 
           {displayPosts.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-md p-8 sm:p-12 text-center text-gray-500">
-              <p>{searchQuery ? "Посты не найдены" : "Пока нет постов"}</p>
+            <div className="bg-white rounded-2xl shadow-xl p-8 sm:p-12 text-center text-gray-500">
+              <p className="text-lg">{searchQuery ? "Посты не найдены" : "Пока нет постов"}</p>
             </div>
           ) : (
             <AnimatePresence>
@@ -556,15 +556,15 @@ export default function BlogPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1, duration: 0.4 }}
                     whileHover={{ y: -4 }}
-                    className="bg-white rounded-lg shadow-md overflow-hidden w-full"
+                    className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-300"
                   >
-                    <div className="p-3 sm:p-4 flex items-center justify-between border-b border-gray-200">
+                    <div className="p-3 sm:p-4 flex items-center justify-between border-b border-gray-100">
                       <Link
                         href={`/masters/${post.master_id}`}
                         className="flex items-center gap-2 sm:gap-3 group flex-shrink-0"
                       >
                         <motion.div
-                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden text-sm sm:text-base"
+                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden text-sm sm:text-base shadow-md"
                           whileHover={{ scale: 1.1 }}
                         >
                           {post.master_avatar ? (
@@ -602,23 +602,16 @@ export default function BlogPage() {
                         )}
                       </h3>
 
-                      {(post.images?.length > 0 || post.main_image_url) && (
-                        <div className="overflow-hidden rounded-lg">
-                          <MediaGallery
-                            images={
-                              post.images || [
-                                {
-                                  url: post.main_image_url,
-                                  id: "main",
-                                  sort_order: 0,
-                                },
-                              ]
-                            }
-                            video={null}
-                            title={post.title}
-                          />
-                        </div>
-                      )}
+                      {(post.images?.length || 0) > 0 || post.main_image_url ? (
+                            <div className="mb-8">
+                                <MediaGallery
+                                    images={post.images || []}
+                                    mainImageUrl={post.main_image_url}
+                                    video={null}
+                                    title={post.title}
+                                />
+                            </div>
+                        ) : null}
 
                       <div className="text-gray-700 mt-3 sm:mt-4 break-words">
                         {showSearchResults && post.highlighted_content ? (
@@ -650,7 +643,7 @@ export default function BlogPage() {
                       </Link>
                     </div>
 
-                    <div className="px-3 sm:px-4 py-2 sm:py-3 border-t border-gray-200 flex items-center gap-4 sm:gap-6 flex-wrap">
+                    <div className="px-3 sm:px-4 py-2 sm:py-3 border-t border-gray-100 flex items-center gap-4 sm:gap-6 flex-wrap">
                       <AnimatedButton
                         icon={
                           <svg
@@ -734,11 +727,11 @@ export default function BlogPage() {
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
                           transition={{ duration: 0.3 }}
-                          className="px-3 sm:px-4 py-3 border-t bg-gray-50"
+                          className="px-3 sm:px-4 py-3 border-t bg-gradient-to-b from-gray-50 to-white"
                         >
                           {session ? (
                             <div className="flex gap-2 sm:gap-3 mb-4">
-                              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-xs sm:text-sm font-bold flex-shrink-0">
+                              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-xs sm:text-sm font-bold flex-shrink-0 shadow-md">
                                 {session.user.name?.charAt(0).toUpperCase()}
                               </div>
                               <div className="flex-1 min-w-0">
@@ -747,12 +740,12 @@ export default function BlogPage() {
                                   onChange={(e) => setCommentText(e.target.value)}
                                   placeholder="Написать комментарий..."
                                   rows={2}
-                                  className="w-full p-2 rounded-lg bg-white border border-gray-200 outline-firm-orange text-sm resize-none"
+                                  className="w-full p-2 rounded-xl bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-firm-orange text-sm resize-none transition-all"
                                 />
                                 <motion.button
                                   onClick={() => handleComment(post.id)}
                                   disabled={commentLoading || !commentText.trim()}
-                                  className="mt-2 px-3 sm:px-4 py-1 sm:py-1.5 bg-firm-orange text-white rounded-lg text-xs sm:text-sm hover:bg-opacity-90 transition disabled:opacity-50"
+                                  className="mt-2 px-3 sm:px-4 py-1 sm:py-1.5 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-lg text-xs sm:text-sm hover:shadow-lg transition disabled:opacity-50"
                                   whileHover={{ scale: 1.02 }}
                                   whileTap={{ scale: 0.98 }}
                                 >
@@ -761,14 +754,14 @@ export default function BlogPage() {
                               </div>
                             </div>
                           ) : (
-                            <div className="bg-white rounded-lg p-4 text-center mb-4">
+                            <div className="bg-gradient-to-r from-gray-50 to-white rounded-xl p-4 text-center mb-4 border border-gray-100">
                               <p className="text-gray-500 text-sm mb-2 break-words">
                                 🔒 Чтобы оставить комментарий, необходимо
                                 авторизоваться
                               </p>
                               <Link
                                 href={`/auth/signin?callbackUrl=/blog`}
-                                className="inline-block px-4 py-2 bg-firm-orange text-white rounded-lg text-sm hover:bg-opacity-90 transition"
+                                className="inline-block px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-lg text-sm hover:shadow-lg transition"
                               >
                                 Войти
                               </Link>
@@ -782,10 +775,9 @@ export default function BlogPage() {
                               </p>
                             ) : (
                               <>
-                                {/* Показываем 3 последних комментария */}
                                 {comments.slice(-3).map((comment: Comment) => (
                                   <div key={comment.id} className="flex gap-2 sm:gap-3">
-                                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-300 flex items-center justify-center text-white text-xs sm:text-sm font-bold flex-shrink-0 overflow-hidden">
+                                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex items-center justify-center text-white text-xs sm:text-sm font-bold flex-shrink-0 overflow-hidden">
                                       {comment.author_avatar ? (
                                         <img
                                           src={comment.author_avatar}
@@ -797,7 +789,7 @@ export default function BlogPage() {
                                       )}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                      <div className="bg-white rounded-lg p-2 sm:p-3">
+                                      <div className="bg-white rounded-xl p-2 sm:p-3 shadow-sm border border-gray-100">
                                         <p className="font-semibold text-xs sm:text-sm break-words">
                                           {comment.author_name}
                                         </p>
@@ -812,12 +804,11 @@ export default function BlogPage() {
                                   </div>
                                 ))}
                                 
-                                {/* Ссылка на все комментарии, если их больше 3 */}
                                 {comments.length > 3 && (
                                   <div className="text-center pt-2">
                                     <Link
                                       href={`/blog/${post.id}`}
-                                      className="text-firm-orange hover:underline text-sm"
+                                      className="text-firm-orange hover:underline text-sm font-medium"
                                     >
                                       Показать все {comments.length} комментариев →
                                     </Link>
@@ -837,30 +828,31 @@ export default function BlogPage() {
         </div>
       </div>
 
-      {/* Модальное окно добавления поста */}
+      {/* Модальное окно добавления поста (оставляем без изменений) */}
       <AnimatePresence>
         {showAddPostModal && isMaster && (
           <motion.div
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setShowAddPostModal(false)}
           >
             <motion.div
-              className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
-                <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl sm:text-2xl">
-                  Новая запись в блоге
+                <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl sm:text-2xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
+                  Новая запись
                 </h2>
                 <button
                   onClick={() => setShowAddPostModal(false)}
-                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                  className="text-gray-400 hover:text-gray-600 text-2xl transition-colors"
                 >
                   ✕
                 </button>
@@ -868,10 +860,10 @@ export default function BlogPage() {
               <form onSubmit={handleSubmitPost} className="p-4 sm:p-6 space-y-5 sm:space-y-6">
                 <div>
                   <label className="block text-gray-700 mb-2 font-['Montserrat_Alternates'] font-medium text-sm sm:text-base">
-                    Добавьте фото
+                    📷 Фото
                   </label>
                   <div
-                    className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-firm-pink transition cursor-pointer"
+                    className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-firm-pink transition cursor-pointer bg-gray-50"
                     onClick={() =>
                       document.getElementById("post-image-input")?.click()
                     }
@@ -899,7 +891,7 @@ export default function BlogPage() {
                         />
                       </svg>
                       <span className="text-gray-500 text-sm">
-                        Загрузить изображение
+                        Нажмите для выбора файлов
                       </span>
                       <span className="text-xs text-gray-400">
                         PNG, JPG, WEBP до 10MB
@@ -912,7 +904,7 @@ export default function BlogPage() {
                         {postImagePreviews.map((preview, idx) => (
                           <div
                             key={idx}
-                            className="relative group aspect-square rounded-lg overflow-hidden border-2 border-gray-200"
+                            className="relative group aspect-square rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-100"
                           >
                             <img
                               src={preview}
@@ -942,7 +934,7 @@ export default function BlogPage() {
                     value={postForm.title}
                     onChange={handlePostInputChange}
                     required
-                    className="w-full p-3 rounded-lg bg-[#EAEAEA] outline-firm-pink text-sm sm:text-base"
+                    className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition text-sm sm:text-base"
                     placeholder="Например: Как выбрать пряжу для зимнего свитера"
                   />
                 </div>
@@ -954,7 +946,7 @@ export default function BlogPage() {
                     name="category"
                     value={postForm.category}
                     onChange={handlePostInputChange}
-                    className="w-full p-3 rounded-lg bg-[#EAEAEA] outline-firm-orange text-sm sm:text-base"
+                    className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition text-sm sm:text-base"
                   >
                     <option value="">Выберите категорию</option>
                     {blogTags.map((tag) => (
@@ -973,20 +965,20 @@ export default function BlogPage() {
                     name="tags"
                     value={postForm.tags}
                     onChange={handlePostInputChange}
-                    className="w-full p-3 rounded-lg bg-[#EAEAEA] outline-firm-pink text-sm sm:text-base"
+                    className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition text-sm sm:text-base"
                     placeholder="Мастер-класс, Обзор, Советы (через запятую)"
                   />
                 </div>
                 <div>
                   <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium text-sm sm:text-base">
-                    Краткое описание (анонс)
+                    Краткое описание
                   </label>
                   <textarea
                     name="excerpt"
                     value={postForm.excerpt}
                     onChange={handlePostInputChange}
                     rows={2}
-                    className="w-full p-3 rounded-lg bg-[#EAEAEA] outline-firm-orange text-sm sm:text-base"
+                    className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition text-sm sm:text-base"
                     placeholder="Краткое описание поста, которое будет отображаться в ленте..."
                   />
                 </div>
@@ -1000,7 +992,7 @@ export default function BlogPage() {
                     onChange={handlePostInputChange}
                     rows={10}
                     required
-                    className="w-full p-3 rounded-lg bg-[#EAEAEA] outline-firm-pink text-sm sm:text-base"
+                    className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition text-sm sm:text-base"
                     placeholder="Напишите ваш пост..."
                   />
                 </div>
@@ -1008,16 +1000,16 @@ export default function BlogPage() {
                   <motion.button
                     type="submit"
                     disabled={saving}
-                    className="flex-1 py-3 bg-firm-pink text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50 font-['Montserrat_Alternates'] font-medium"
+                    className="flex-1 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition disabled:opacity-50 font-['Montserrat_Alternates'] font-medium"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    {saving ? "Публикация..." : "Опубликовать пост"}
+                    {saving ? "⏳ Публикация..." : "📝 Опубликовать"}
                   </motion.button>
                   <button
                     type="button"
                     onClick={() => setShowAddPostModal(false)}
-                    className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
+                    className="px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition"
                   >
                     Отмена
                   </button>
@@ -1044,8 +1036,14 @@ function MastersSidebar({
   currentMasterId,
   handleFollow,
 }: any) {
+  // Проверяем, является ли мастер текущим пользователем (владельцем аккаунта)
+  const isCurrentMaster = (masterId: string) => {
+    return currentMasterId === masterId;
+  };
+
   return (
     <>
+      {/* Поиск */}
       <div className="mb-6">
         <div className="relative">
           <input
@@ -1053,7 +1051,7 @@ function MastersSidebar({
             placeholder="Поиск по блогу..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full p-3 pl-10 rounded-lg bg-[#f1f1f1] outline-firm-orange text-sm"
+            className="w-full p-3 pl-10 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition text-sm"
           />
           <svg
             className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"
@@ -1076,22 +1074,23 @@ function MastersSidebar({
         </div>
       </div>
 
-      {showSearchResults &&
-        searchResults?.masters &&
-        searchResults.masters.length > 0 && (
-          <motion.div
-            className="bg-white rounded-lg shadow-md p-4 mb-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <h2 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-3">
-              Мастера ({searchResults.masters.length})
-            </h2>
-            <div className="space-y-3">
-              {searchResults.masters.map((master: Master, idx: number) => (
+      {/* Результаты поиска мастеров */}
+      {showSearchResults && searchResults?.masters && searchResults.masters.length > 0 && (
+        <motion.div
+          className="bg-white rounded-2xl shadow-xl p-4 mb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <h2 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-3 bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
+            Мастера ({searchResults.masters.length})
+          </h2>
+          <div className="space-y-3">
+            {searchResults.masters.map((master: Master, idx: number) => {
+              const isCurrent = isCurrentMaster(master.id);
+              return (
                 <motion.div
                   key={master.id}
-                  className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded-lg transition"
+                  className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded-xl transition group"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: idx * 0.05 }}
@@ -1100,7 +1099,7 @@ function MastersSidebar({
                     href={`/masters/${master.id}`}
                     className="flex items-center gap-3 flex-1"
                   >
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden shadow-md">
                       {master.avatar_url ? (
                         <img
                           src={master.avatar_url}
@@ -1112,7 +1111,14 @@ function MastersSidebar({
                       )}
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium text-sm">{master.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm">{master.name}</p>
+                        {isCurrent && (
+                          <span className="px-2 py-0.5 bg-firm-orange/10 text-firm-orange text-xs rounded-full font-medium">
+                            Вы
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-gray-400">
                         {master.city || "Город не указан"}
                       </p>
@@ -1122,7 +1128,7 @@ function MastersSidebar({
                       </div>
                     </div>
                   </Link>
-                  {session && currentMasterId !== master.id && (
+                  {session && !isCurrent && (
                     <motion.button
                       onClick={() =>
                         handleFollow(master.id, master.is_following || false)
@@ -1130,7 +1136,7 @@ function MastersSidebar({
                       className={`text-xs px-3 py-1 rounded-full transition ${
                         master.is_following
                           ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                          : "bg-firm-orange text-white hover:bg-opacity-90"
+                          : "bg-gradient-to-r from-firm-orange to-firm-pink text-white hover:shadow-md"
                       }`}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
@@ -1138,135 +1144,162 @@ function MastersSidebar({
                       {master.is_following ? "Отписаться" : "Подписаться"}
                     </motion.button>
                   )}
+                  {!session && !isCurrent && (
+                    <Link
+                      href={`/auth/signin?callbackUrl=/blog`}
+                      className="text-xs px-3 py-1 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink text-white hover:shadow-md transition"
+                    >
+                      Подписаться
+                    </Link>
+                  )}
                 </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        )}
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
 
-      {!showSearchResults && (
-        <>
-          {followingMasters.length > 0 && (
-            <motion.div
-              className="bg-white rounded-lg shadow-md p-4 mb-6"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <h2 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-3">
-                Отслеживаемые
-              </h2>
-              <div className="space-y-3">
-                {followingMasters.map((master: Master) => (
-                  <div
-                    key={master.id}
-                    className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded-lg transition"
+      {/* Отслеживаемые мастера */}
+      {!showSearchResults && followingMasters.length > 0 && (
+        <motion.div
+          className="bg-white rounded-2xl shadow-xl p-4 mb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <h2 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-3 bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
+            Отслеживаемые
+          </h2>
+          <div className="space-y-3">
+            {followingMasters.map((master: Master) => {
+              const isCurrent = isCurrentMaster(master.id);
+              return (
+                <div
+                  key={master.id}
+                  className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded-xl transition group"
+                >
+                  <Link
+                    href={`/masters/${master.id}`}
+                    className="flex items-center gap-3 flex-1"
                   >
-                    <Link
-                      href={`/masters/${master.id}`}
-                      className="flex items-center gap-3 flex-1"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden">
-                        {master.avatar_url ? (
-                          <img
-                            src={master.avatar_url}
-                            alt={master.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          master.name?.charAt(0).toUpperCase()
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden shadow-md">
+                      {master.avatar_url ? (
+                        <img
+                          src={master.avatar_url}
+                          alt={master.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        master.name?.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm">{master.name}</p>
+                        {isCurrent && (
+                          <span className="px-2 py-0.5 bg-firm-orange/10 text-firm-orange text-xs rounded-full font-medium">
+                            Вы
+                          </span>
                         )}
                       </div>
-                      <div>
-                        <p className="font-medium text-sm">{master.name}</p>
-                        <p className="text-xs text-gray-400">{master.city}</p>
-                      </div>
-                    </Link>
-                    {currentMasterId !== master.id && (
-                      <button
-                        onClick={() => handleFollow(master.id, true)}
-                        className="text-xs px-3 py-1 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 transition"
-                      >
-                        Отписаться
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
-          {recommendedMasters.length > 0 && (
-            <motion.div
-              className="bg-white rounded-lg shadow-md p-4"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <h2 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-3">
-                Рекомендуемые
-              </h2>
-              <div className="space-y-3">
-                {recommendedMasters.map((master: Master, idx: number) => (
-                  <motion.div
-                    key={master.id}
-                    className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded-lg transition"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                  >
-                    <Link
-                      href={`/masters/${master.id}`}
-                      className="flex items-center gap-3 flex-1"
+                      <p className="text-xs text-gray-400">{master.city}</p>
+                    </div>
+                  </Link>
+                  {session && !isCurrent && (
+                    <button
+                      onClick={() => handleFollow(master.id, true)}
+                      className="text-xs px-3 py-1 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 transition"
                     >
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden">
-                        {master.avatar_url ? (
-                          <img
-                            src={master.avatar_url}
-                            alt={master.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          master.name?.charAt(0).toUpperCase()
+                      Отписаться
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Рекомендуемые мастера */}
+      {!showSearchResults && recommendedMasters.length > 0 && (
+        <motion.div
+          className="bg-white rounded-2xl shadow-xl p-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <h2 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-3 bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
+            Рекомендуемые
+          </h2>
+          <div className="space-y-3">
+            {recommendedMasters.map((master: Master, idx: number) => {
+              const isCurrent = isCurrentMaster(master.id);
+              return (
+                <motion.div
+                  key={master.id}
+                  className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded-xl transition group"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                >
+                  <Link
+                    href={`/masters/${master.id}`}
+                    className="flex items-center gap-3 flex-1"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden shadow-md">
+                      {master.avatar_url ? (
+                        <img
+                          src={master.avatar_url}
+                          alt={master.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        master.name?.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm">{master.name}</p>
+                        {isCurrent && (
+                          <span className="px-2 py-0.5 bg-firm-orange/10 text-firm-orange text-xs rounded-full font-medium">
+                            Вы
+                          </span>
                         )}
                       </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{master.name}</p>
-                        <p className="text-xs text-gray-400">
-                          {master.city || "Город не указан"}
-                        </p>
-                      </div>
+                      <p className="text-xs text-gray-400">
+                        {master.city || "Город не указан"}
+                      </p>
+                    </div>
+                  </Link>
+                  {session && !isCurrent && (
+                    <motion.button
+                      onClick={() =>
+                        handleFollow(master.id, master.is_following || false)
+                      }
+                      className={`text-xs px-3 py-1 rounded-full transition ${
+                        master.is_following
+                          ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                          : "bg-gradient-to-r from-firm-orange to-firm-pink text-white hover:shadow-md"
+                      }`}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      {master.is_following ? "Отписаться" : "Подписаться"}
+                    </motion.button>
+                  )}
+                  {!session && !isCurrent && (
+                    <Link
+                      href={`/auth/signin?callbackUrl=/blog`}
+                      className="text-xs px-3 py-1 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink text-white hover:shadow-md transition"
+                    >
+                      Подписаться
                     </Link>
-                    {session && currentMasterId !== master.id && (
-                      <motion.button
-                        onClick={() =>
-                          handleFollow(master.id, master.is_following || false)
-                        }
-                        className={`text-xs px-3 py-1 rounded-full transition ${
-                          master.is_following
-                            ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                            : "bg-firm-orange text-white hover:bg-opacity-90"
-                        }`}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        {master.is_following ? "Отписаться" : "Подписаться"}
-                      </motion.button>
-                    )}
-                    {!session && (
-                      <Link
-                        href={`/auth/signin?callbackUrl=/blog`}
-                        className="text-xs px-3 py-1 rounded-full bg-firm-orange text-white hover:bg-opacity-90 transition"
-                      >
-                        Подписаться
-                      </Link>
-                    )}
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </>
+                  )}
+                </motion.div>
+              );
+            })}
+          </div>
+        </motion.div>
       )}
     </>
   );
