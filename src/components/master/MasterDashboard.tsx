@@ -65,6 +65,7 @@ export default function MasterDashboard({ session }: { session: any }) {
     const [showNotifications, setShowNotifications] = useState(false)
     const [showAddProductModal, setShowAddProductModal] = useState(false)
     const [showAddPostModal, setShowAddPostModal] = useState(false)
+    const [showAddClassModal, setShowAddClassModal] = useState(false)
     const [showComments, setShowComments] = useState<string | null>(null)
     const [commentText, setCommentText] = useState('')
     const [commentLoading, setCommentLoading] = useState(false)
@@ -82,12 +83,11 @@ export default function MasterDashboard({ session }: { session: any }) {
     const postFileInputRef = useRef<HTMLInputElement>(null)
     const [postForm, setPostForm] = useState({title: '', content: '', excerpt: '', category: '', tags: ''})
     const blogTags = ['Мастер-класс', 'Обзор пряжи', 'Новая коллекция', 'Советы', 'Вдохновение', 'История создания', 'Техника вязания', 'Новости']
-    const [productForm, setProductForm] = useState({title: '', description: '', price: '', category: '', technique: '', size: '', care_instructions: '',  yarn_id: '', custom_yarn: '', color: ''})
+    const [productForm, setProductForm] = useState({title: '', description: '', price: '', category: '', technique: '', size: '', care_instructions: '', yarn_id: '', custom_yarn: '', color: ''})
     const [classImages, setClassImages] = useState<File[]>([])
-    const [showAddClassModal, setShowAddClassModal] = useState(false)
     const [classImagePreviews, setClassImagePreviews] = useState<string[]>([])
     const classFileInputRef = useRef<HTMLInputElement>(null)
-    const [classForm, setClassForm] = useState({title: '',  description: '', type: 'online', price: '', max_participants: '', date_time: '', duration_minutes: '', location: '', online_link: '', materials: ''})
+    const [classForm, setClassForm] = useState({title: '', description: '', type: 'online', price: '', max_participants: '', date_time: '', duration_minutes: '', location: '', online_link: '', materials: ''})
 
     useEffect(() => {fetchMasterData()}, [])
 
@@ -172,9 +172,9 @@ export default function MasterDashboard({ session }: { session: any }) {
             formData.append('online_link', classForm.online_link)
             formData.append('materials', classForm.materials)
 
-            classImages.forEach(image => {
-                formData.append('images', image)
-            })
+            if (classImages.length > 0) {
+                formData.append('image', classImages[0])
+            }
 
             const response = await fetch('/api/master/master-classes', {
                 method: 'POST',
@@ -189,6 +189,7 @@ export default function MasterDashboard({ session }: { session: any }) {
 
             setShowAddClassModal(false)
             resetClassForm()
+            fetchMasterData()
             alert('Мастер-класс успешно создан!')
         } catch (error) {
             console.error('Ошибка при создании мастер-класса:', error)
@@ -308,28 +309,38 @@ export default function MasterDashboard({ session }: { session: any }) {
         try {
             setLoading(true)
             
-            const ordersRes = await fetch('/api/master/orders')
+            const [ordersRes, recentPostsRes, myPostsRes, notifRes, statsRes] = await Promise.all([
+                fetch('/api/master/orders'),
+                fetch('/api/blog/posts?limit=4'),
+                fetch('/api/master/blog'),
+                fetch('/api/master/notifications'),
+                fetch('/api/master/stats')
+            ])
+            
             const ordersData = await ordersRes.json()
-            setOrders(ordersData || [])
-            
-            const recentPostsRes = await fetch('/api/blog/posts?limit=4')
             const recentPostsData = await recentPostsRes.json()
-            setRecentPosts(recentPostsData || [])
-            
-            const myPostsRes = await fetch('/api/master/blog')
             const myPostsData = await myPostsRes.json()
-            setMyPosts(myPostsData || [])
-            
-            const notifRes = await fetch('/api/master/notifications')
             const notifData = await notifRes.json()
-            setNotifications(notifData || [])
-            
-            const statsRes = await fetch('/api/master/stats')
             const statsData = await statsRes.json()
-            setStats(statsData)
+            
+            // ✅ Проверяем, что данные являются массивами
+            setOrders(Array.isArray(ordersData) ? ordersData : [])
+            setRecentPosts(Array.isArray(recentPostsData) ? recentPostsData : [])
+            setMyPosts(Array.isArray(myPostsData) ? myPostsData : [])
+            setNotifications(Array.isArray(notifData) ? notifData : [])
+            setStats(statsData || { total_orders: 0, new_orders: 0, total_products: 0, total_views: 0, total_followers: 0 })
+            
+            // ✅ Также проверьте products в stats, если там есть products
+            // Если statsData содержит products, убедитесь что это массив
             
         } catch (error) {
             console.error('Error fetching master data:', error)
+            // Устанавливаем значения по умолчанию при ошибке
+            setOrders([])
+            setRecentPosts([])
+            setMyPosts([])
+            setNotifications([])
+            setStats({ total_orders: 0, new_orders: 0, total_products: 0, total_views: 0, total_followers: 0 })
         } finally {
             setLoading(false)
         }
@@ -356,17 +367,18 @@ export default function MasterDashboard({ session }: { session: any }) {
     }
 
     const renderCategoryOptions = (categories: any[], level = 0) => {
-        const options: JSX.Element[] = [];
+        const options: JSX.Element[] = []
         categories.forEach(cat => {
-            const prefix = '—'.repeat(level);
+            const prefix = '—'.repeat(level)
             options.push(
                 <option key={cat.id} value={cat.name}>{prefix} {cat.name}</option>
-            );
-            if (cat.subcategories && cat.subcategories.length > 0) {options.push(...renderCategoryOptions(cat.subcategories, level + 1));}
-        });
-        
-        return options;
-    };
+            )
+            if (cat.subcategories && cat.subcategories.length > 0) {
+                options.push(...renderCategoryOptions(cat.subcategories, level + 1))
+            }
+        })
+        return options
+    }
 
     const handleProductInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target
@@ -609,6 +621,7 @@ export default function MasterDashboard({ session }: { session: any }) {
             setShowAddProductModal(false)
             resetProductForm()
             fetchMasterData()
+            alert('Товар успешно создан и отправлен на модерацию')
         } catch (error) {
             alert('Ошибка при создании товара')
         } finally {
@@ -638,12 +651,20 @@ export default function MasterDashboard({ session }: { session: any }) {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-[60vh]">
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex items-center justify-center min-h-[60vh]"
+            >
                 <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full animate-spin mx-auto"></div>
-                    <p className="mt-4 font-['Montserrat_Alternates'] text-gray-600">Загрузка...</p>
+                    <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto"
+                    />
+                    <p className="mt-4 font-['Montserrat_Alternates'] text-gray-600">Загрузка кабинета мастера...</p>
                 </div>
-            </div>
+            </motion.div>
         )
     }
 
@@ -659,7 +680,7 @@ export default function MasterDashboard({ session }: { session: any }) {
                     transition={{ duration: 0.5 }}
                     className="bg-gradient-to-r from-firm-orange to-firm-pink rounded-2xl p-8 mb-8 text-white shadow-xl"
                 >
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center flex-wrap gap-4">
                         <div>
                             <h1 className="font-['Montserrat_Alternates'] text-white font-bold text-3xl mb-2">
                                 Добро пожаловать, {session.user.name}!
@@ -748,12 +769,12 @@ export default function MasterDashboard({ session }: { session: any }) {
                 </motion.div>
 
                 {/* Статистика с анимацией */}
-                <div className="grid grid-cols-4 gap-6 mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     {[
-                        { label: 'Новые заказы', value: stats.new_orders, icon: '🆕' },
-                        { label: 'Всего заказов', value: stats.total_orders, icon: '📦' },
-                        { label: 'Товаров', value: stats.total_products, icon: '🧶' },
-                        { label: 'Просмотров', value: stats.total_views, icon: '👁️' }
+                        { label: 'Новые заказы', value: stats.new_orders, icon: '🆕', color: 'from-blue-500 to-blue-600' },
+                        { label: 'Всего заказов', value: stats.total_orders, icon: '📦', color: 'from-green-500 to-green-600' },
+                        { label: 'Товаров', value: stats.total_products, icon: '🧶', color: 'from-orange-500 to-orange-600' },
+                        { label: 'Просмотров', value: stats.total_views, icon: '👁️', color: 'from-purple-500 to-purple-600' }
                     ].map((stat, idx) => (
                         <motion.div
                             key={stat.label}
@@ -761,12 +782,14 @@ export default function MasterDashboard({ session }: { session: any }) {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: idx * 0.1 }}
                             whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                            className={`rounded-2xl p-6 shadow-lg text-gray-500`}
+                            className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-300"
                         >
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-gray-500 text-sm">{stat.label}</p>
-                                    <p className="text-3xl font-bold mt-1">{stat.value.toLocaleString()}</p>
+                                    <p className="text-gray-500 text-sm font-['Montserrat_Alternates']">{stat.label}</p>
+                                    <p className={`text-3xl font-bold mt-1 bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
+                                        {stat.value.toLocaleString()}
+                                    </p>
                                 </div>
                                 <span className="text-4xl">{stat.icon}</span>
                             </div>
@@ -779,23 +802,32 @@ export default function MasterDashboard({ session }: { session: any }) {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="flex justify-center gap-6 mb-12"
+                    className="flex flex-wrap justify-center gap-4 mb-12"
                 >
-                    {[
-                        { onClick: () => setShowAddProductModal(true), label: 'Добавить товар', color: 'bg-firm-orange' },
-                        { onClick: () => setShowAddClassModal(true), label: 'Создать мастер-класс', color: 'bg-firm-pink' },
-                        { onClick: () => setShowAddPostModal(true), label: 'Написать пост', color: 'bg-gray-700' }
-                    ].map((action, idx) => (
-                        <motion.button
-                            key={action.label}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={action.onClick}
-                            className={`${action.color} text-white px-8 py-3 rounded-xl font-['Montserrat_Alternates'] font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2`}
-                        >
-                            {action.label}
-                        </motion.button>
-                    ))}
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setShowAddProductModal(true)}
+                        className="px-6 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl font-['Montserrat_Alternates'] font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
+                    >
+                        🧶 Добавить товар
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setShowAddClassModal(true)}
+                        className="px-6 py-3 bg-gradient-to-r from-firm-pink to-purple-500 text-white rounded-xl font-['Montserrat_Alternates'] font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
+                    >
+                        🎓 Создать мастер-класс
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setShowAddPostModal(true)}
+                        className="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl font-['Montserrat_Alternates'] font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
+                    >
+                        ✍️ Написать пост
+                    </motion.button>
                 </motion.div>
 
                 {/* Заказы */}
@@ -828,16 +860,16 @@ export default function MasterDashboard({ session }: { session: any }) {
                                     whileHover={{ backgroundColor: '#f9fafb' }}
                                     className="p-6 transition-all duration-300"
                                 >
-                                    <div className="flex justify-between items-start">
+                                    <div className="flex justify-between items-start flex-wrap gap-4">
                                         <div className="flex-1">
-                                            <div className="flex items-center gap-3 mb-2">
+                                            <div className="flex items-center gap-3 mb-2 flex-wrap">
                                                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                                                     {getStatusText(order.status)}
                                                 </span>
                                                 <span className="text-sm text-gray-500">№{order.order_number}</span>
                                             </div>
                                             <p className="font-medium text-lg">{order.product_title}</p>
-                                            <div className="flex gap-6 mt-2 text-sm text-gray-500">
+                                            <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-500">
                                                 <span>👤 {order.buyer_name}</span>
                                                 <span>💰 {order.total_amount.toLocaleString()} ₽</span>
                                                 <span>📅 {new Date(order.created_at).toLocaleDateString('ru-RU')}</span>
@@ -910,7 +942,7 @@ export default function MasterDashboard({ session }: { session: any }) {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -20 }}
                                 transition={{ duration: 0.3 }}
-                                className="divide-y divide-gray-100 flex justify-center"
+                                className="divide-y divide-gray-100"
                             >
                                 {recentPosts.length === 0 ? (
                                     <div className="p-12 text-center text-gray-500">
@@ -922,12 +954,12 @@ export default function MasterDashboard({ session }: { session: any }) {
                                             key={post.id}
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: idx * 0.1 }}
+                                            transition={{ delay: idx * 0.05 }}
                                             whileHover={{ backgroundColor: '#f9fafb' }}
-                                            className="p-6 transition-all duration-300 w-1/2"
+                                            className="p-6 transition-all duration-300"
                                         >
-                                            <div className="flex flex-col gap-4">
-                                                <Link href={`/masters/${post.master_id}`} className="flex items-center gap-3 group">
+                                            <div className="max-w-3xl mx-auto">
+                                                <Link href={`/masters/${post.master_id}`} className="flex items-center gap-3 group mb-4">
                                                     <motion.div 
                                                         whileHover={{ scale: 1.1 }}
                                                         className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden"
@@ -976,7 +1008,7 @@ export default function MasterDashboard({ session }: { session: any }) {
                                                     </Link>
                                                 </div>
 
-                                                <div className="flex items-center gap-8 pt-4 border-t border-gray-100">
+                                                <div className="flex items-center gap-6 pt-4 mt-4 border-t border-gray-100">
                                                     <AnimatedButton
                                                         icon={
                                                             <svg 
@@ -1127,12 +1159,12 @@ export default function MasterDashboard({ session }: { session: any }) {
                                             key={post.id}
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: idx * 0.1 }}
+                                            transition={{ delay: idx * 0.05 }}
                                             whileHover={{ backgroundColor: '#f9fafb' }}
-                                            className="p-6 transition-all duration-300 flex justify-center"
+                                            className="p-6 transition-all duration-300"
                                         >
-                                            <div className="flex flex-col gap-4 w-1/2">
-                                                <div className="flex items-center gap-3">
+                                            <div className="max-w-3xl mx-auto">
+                                                <div className="flex items-center gap-3 mb-4">
                                                     <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden">
                                                         {post.author_avatar ? (
                                                             <img src={post.author_avatar} alt={post.author_name} className="w-full h-full object-cover" />
@@ -1178,7 +1210,7 @@ export default function MasterDashboard({ session }: { session: any }) {
                                                     </Link>
                                                 </div>
 
-                                                <div className="flex items-center gap-8 pt-4 border-t border-gray-100">
+                                                <div className="flex items-center gap-6 pt-4 mt-4 border-t border-gray-100">
                                                     <AnimatedButton
                                                         icon={
                                                             <svg 
@@ -1305,566 +1337,359 @@ export default function MasterDashboard({ session }: { session: any }) {
                     </AnimatePresence>
                 </motion.div>
 
-                {/* Модальные окна (оставлены без изменений) */}
-                {showAddProductModal && (
-                <div className="fixed inset-0 bg-[#00000059] bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowAddProductModal(false)}>
-                    <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
-                            <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">Добавить товар</h2>
-                            <button onClick={() => setShowAddProductModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
-                        </div>
-
-                        <form onSubmit={handleSubmitProduct} className="p-6 space-y-6">
-                            {/* Загрузка фото с предпросмотром */}
-                            <div>
-                                <label className="block text-gray-700 mb-2 font-['Montserrat_Alternates'] font-medium">Добавьте фото (до 10 шт.) <span className="text-red-500">*</span></label>
-                                
-                                {/* Кнопка загрузки */}
-                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-firm-orange transition cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                                    <input type="file" accept="image/*" multiple onChange={handleImageSelect} className="hidden" ref={fileInputRef} />
-                                    <div className="flex flex-col items-center gap-2">
-                                        <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                        <span className="text-gray-500">Нажмите для выбора файлов</span>
-                                        <span className="text-xs text-gray-400">PNG, JPG, WEBP до 10MB</span>
-                                    </div>
+                {/* Модальные окна с полупрозрачным фоном как в админке */}
+                <AnimatePresence>
+                    {showAddProductModal && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                            onClick={() => setShowAddProductModal(false)}
+                        >
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                                className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
+                                    <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
+                                        Добавить товар
+                                    </h2>
+                                    <button onClick={() => setShowAddProductModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl transition-colors">✕</button>
                                 </div>
-                                
-                                {/* Предпросмотр изображений */}
-                                {imagePreviews.length > 0 && (
-                                    <div className="mt-4">
-                                        <p className="text-sm text-gray-500 mb-2">Загружено фото: {imagePreviews.length}/10 <span className="text-xs text-gray-400 ml-2">(перетащите для изменения порядка)</span></p>
-                                        <div className="grid grid-cols-4 gap-3">
-                                            {imagePreviews.map((preview, idx) => (
-                                                <div key={idx} draggable onDragStart={(e) => {e.dataTransfer.setData('text/plain', idx.toString())}} onDragOver={(e) => e.preventDefault()} onDrop={(e) => {e.preventDefault(); const fromIndex = parseInt(e.dataTransfer.getData('text/plain')); moveImage(fromIndex, idx) }} className="relative group aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-firm-orange transition cursor-move">
-                                                    <Image width={160} height={160} src={preview} alt={`preview-${idx}`} className="w-full h-full object-cover"/>
-                                                    <button type="button" onClick={() => removeImage(idx)} className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition">✕</button>
-                                                    {idx === 0 && (
-                                                        <div className="absolute bottom-1 left-1 bg-firm-orange text-white text-xs px-1.5 py-0.5 rounded">
-                                                            Главное
+
+                                <form onSubmit={handleSubmitProduct} className="p-6 space-y-6">
+                                    {/* Форма товара - остаётся без изменений */}
+                                    <div>
+                                        <label className="block text-gray-700 mb-2 font-['Montserrat_Alternates'] font-medium">Добавьте фото (до 10 шт.) <span className="text-red-500">*</span></label>
+                                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-firm-orange transition cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                                            <input type="file" accept="image/*" multiple onChange={handleImageSelect} className="hidden" ref={fileInputRef} />
+                                            <div className="flex flex-col items-center gap-2">
+                                                <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                                <span className="text-gray-500">Нажмите для выбора файлов</span>
+                                                <span className="text-xs text-gray-400">PNG, JPG, WEBP до 10MB</span>
+                                            </div>
+                                        </div>
+                                        {imagePreviews.length > 0 && (
+                                            <div className="mt-4">
+                                                <p className="text-sm text-gray-500 mb-2">Загружено фото: {imagePreviews.length}/10</p>
+                                                <div className="grid grid-cols-4 gap-3">
+                                                    {imagePreviews.map((preview, idx) => (
+                                                        <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border-2 border-gray-200">
+                                                            <Image width={160} height={160} src={preview} alt="preview" className="w-full h-full object-cover"/>
+                                                            <button type="button" onClick={() => removeImage(idx)} className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition">✕</button>
+                                                            {idx === 0 && <div className="absolute bottom-1 left-1 bg-firm-orange text-white text-xs px-1.5 py-0.5 rounded">Главное</div>}
                                                         </div>
-                                                    )}
+                                                    ))}
                                                 </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Название товара <span className="text-red-500">*</span></label>
+                                            <input type="text" name="title" value={productForm.title} onChange={handleProductInputChange} required className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Категория <span className="text-red-500">*</span></label>
+                                            <select className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" name="category" value={productForm.category} onChange={handleProductInputChange} required>
+                                                <option value="">Выберите категорию</option>
+                                                {renderCategoryOptions(categories)}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Название пряжи</label>
+                                            <select name="yarn_id" value={productForm.yarn_id} onChange={handleProductInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300">
+                                                <option value="">Выберите пряжу</option>
+                                                {yarns.map(yarn => (<option key={yarn.id} value={yarn.id}>{yarn.name} - {yarn.brand}</option>))}
+                                                <option value="custom">Другая пряжа (указать вручную)</option>
+                                            </select>
+                                            {productForm.yarn_id === 'custom' && (<input type="text" name="custom_yarn" value={productForm.custom_yarn} onChange={handleProductInputChange} placeholder="Укажите название пряжи" className="w-full mt-2 p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />)}
+                                        </div>
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Техника вязки</label>
+                                            <select name="technique" value={productForm.technique} onChange={handleProductInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300">
+                                                <option value="">Выберите технику</option>
+                                                {techniques.map(tech => (<option key={tech} value={tech}>{tech}</option>))}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Описание</label>
+                                        <textarea name="description" value={productForm.description} onChange={handleProductInputChange} rows={4} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Цвет</label>
+                                            <input type="text" name="color" value={productForm.color} onChange={handleProductInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Уход</label>
+                                            <input type="text" name="care_instructions" value={productForm.care_instructions} onChange={handleProductInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Размер</label>
+                                        <div className="flex flex-wrap gap-3">
+                                            {sizes.map(size => (
+                                                <label key={size} className="flex items-center gap-2 cursor-pointer">
+                                                    <input type="radio" name="size" value={size} checked={productForm.size === size} onChange={handleProductInputChange} className="w-4 h-4 accent-firm-orange" />
+                                                    <span className="text-sm">{size}</span>
+                                                </label>
                                             ))}
                                         </div>
                                     </div>
-                                )}
-                            </div>
 
-                            {/* Название товара */}
-                            <div>
-                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Название товара <span className="text-red-500">*</span></label>
-                                <input type="text" name="title" value={productForm.title} onChange={handleProductInputChange} required className="w-full p-3 rounded-lg bg-[#f1f1f1] outline-firm-orange" placeholder="Например: Свитер «Зимний уют»" />
-                            </div>
-
-                            {/* Категория */}
-                            <div>
-                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Категория <span className="text-red-500">*</span></label>
-                                <select className="w-full p-3 rounded-lg bg-[#f1f1f1] outline-firm-pink" name="category" value={productForm.category} onChange={handleProductInputChange} required>
-                                    <option value="">Выберите категорию</option>
-                                    {renderCategoryOptions(categories)}
-                                </select>
-                            </div>
-
-                            {/* Пряжа */}
-                            <div>
-                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Название пряжи</label>
-                                <select name="yarn_id" value={productForm.yarn_id} onChange={handleProductInputChange} className="w-full p-3 rounded-lg bg-[#f1f1f1] outline-firm-orange">
-                                    <option value="">Выберите пряжу</option>
-                                        {yarns.map(yarn => (<option key={yarn.id} value={yarn.id}>{yarn.name} - {yarn.brand} ({yarn.color})</option>))}
-                                    <option value="custom">Другая пряжа (указать вручную)</option>
-                                </select>
-                                
-                                {productForm.yarn_id === 'custom' && (<input type="text" name="custom_yarn" value={productForm.custom_yarn} onChange={handleProductInputChange} placeholder="Укажите название пряжи" className="w-full mt-2 p-3 rounded-lg bg-[#EAEAEA] outline-firm-pink" />)}
-                            </div>
-
-                            {/* Техника вязки */}
-                            <div>
-                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Техника вязки</label>
-                                <select name="technique" value={productForm.technique} onChange={handleProductInputChange} className="w-full p-3 rounded-lg bg-[#f1f1f1] outline-firm-orange">
-                                    <option value="">Выберите технику</option>
-                                    {techniques.map(tech => (<option key={tech} value={tech}>{tech}</option>))}
-                                </select>
-                            </div>
-
-                            {/* Описание */}
-                            <div>
-                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Описание</label>
-                                <textarea name="description" value={productForm.description} onChange={handleProductInputChange} rows={4} className="w-full p-3 rounded-lg bg-[#f1f1f1] outline-firm-pink" placeholder="Опишите ваше изделие, особенности, материалы..." />
-                            </div>
-
-                            {/* Цвет */}
-                            <div>
-                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Цвет</label>
-                                <input type="text" name="color" value={productForm.color} onChange={handleProductInputChange} className="w-full p-3 rounded-lg bg-[#f1f1f1] outline-firm-orange" placeholder="Например: Серый, Бордовый, Меланж..." />
-                            </div>
-
-                            {/* Уход */}
-                            <div>
-                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Уход</label>
-                                <input type="text" name="care_instructions" value={productForm.care_instructions} onChange={handleProductInputChange} className="w-full p-3 rounded-lg bg-[#f1f1f1] outline-firm-pink" placeholder="Ручная стирка при 30°, не отбеливать, сушить в горизонтальном положении" />
-                            </div>
-
-                            {/* Размер */}
-                            <div>
-                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Размер</label>
-                                <div className="flex flex-wrap gap-3">
-                                    {sizes.map(size => (
-                                        <label key={size} className="flex items-center gap-2 cursor-pointer">
-                                            <input type="radio" name="size" value={size}  checked={productForm.size === size} onChange={handleProductInputChange} className="w-4 h-4 accent-firm-orange" />
-                                            <span className="text-sm">{size}</span>
-                                        </label>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Цена */}
-                            <div>
-                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Цена <span className="text-red-500">*</span></label>
-                                <div className="relative">
-                                    <input type="number" name="price" value={productForm.price} onChange={handleProductInputChange} required min="0" step="100" className="w-full p-3 rounded-lg bg-[#f1f1f1] outline-firm-orange pr-16" placeholder="3500" />
-                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">₽</span>
-                                </div>
-                            </div>
-
-                            {/* Кнопки */}
-                            <div className="flex gap-3 pt-4 border-t border-gray-200">
-                                <button type="submit" disabled={saving} className="flex-1 py-3 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50 font-['Montserrat_Alternates'] font-medium">{saving ? 'Сохранение...' : 'Опубликовать товар'}</button>
-                                <button type="button" onClick={() => setShowAddProductModal(false)}  className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-100 transition"> Отмена</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-                {showAddClassModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowAddClassModal(false)}>
-                    <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
-                            <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">Создать мастер-класс</h2>
-                            <button onClick={() => setShowAddClassModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl">
-                                ✕
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleSubmitClass} className="p-6 space-y-6">
-                            {/* Загрузка фото */}
-                            <div>
-                                <label className="block text-gray-700 mb-2 font-['Montserrat_Alternates'] font-medium">
-                                    Анонсирующее изображение
-                                </label>
-                                <div 
-                                    className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-firm-pink transition cursor-pointer"
-                                    onClick={() => classFileInputRef.current?.click()}
-                                >
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        multiple
-                                        onChange={handleClassImageSelect}
-                                        className="hidden"
-                                        ref={classFileInputRef}
-                                    />
-                                    <div className="flex flex-col items-center gap-2">
-                                        <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                        </svg>
-                                        <span className="text-gray-500">Загрузить изображение</span>
-                                        <span className="text-xs text-gray-400">PNG, JPG, WEBP до 10MB</span>
-                                    </div>
-                                </div>
-                                
-                                {/* Предпросмотр изображений */}
-                                {classImagePreviews.length > 0 && (
-                                    <div className="mt-4">
-                                        <div className="grid grid-cols-4 gap-3">
-                                            {classImagePreviews.map((preview, idx) => (
-                                                <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border-2 border-gray-200">
-                                                    <Image src={preview} alt="preview" className="w-full h-full object-cover" />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeClassImage(idx)}
-                                                        className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                                                    >
-                                                        ✕
-                                                    </button>
-                                                </div>
-                                            ))}
+                                    <div>
+                                        <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Цена <span className="text-red-500">*</span></label>
+                                        <div className="relative">
+                                            <input type="number" name="price" value={productForm.price} onChange={handleProductInputChange} required min="0" step="100" className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
+                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">₽</span>
                                         </div>
                                     </div>
-                                )}
-                            </div>
 
-                            {/* Название */}
-                            <div>
-                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">
-                                    Название мастер-класса <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    name="title"
-                                    value={classForm.title}
-                                    onChange={handleClassInputChange}
-                                    required
-                                    className="w-full p-3 rounded-lg bg-[#EAEAEA] outline-firm-orange"
-                                    placeholder="Например: Вязание свитера с косами для начинающих"
-                                />
-                            </div>
-
-                            {/* Описание */}
-                            <div>
-                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">
-                                    Описание <span className="text-red-500">*</span>
-                                </label>
-                                <textarea
-                                    name="description"
-                                    value={classForm.description}
-                                    onChange={handleClassInputChange}
-                                    rows={4}
-                                    required
-                                    className="w-full p-3 rounded-lg bg-[#EAEAEA] outline-firm-pink"
-                                    placeholder="Опишите, что будет на мастер-классе, какие навыки получат участники..."
-                                />
-                            </div>
-
-                            {/* Тип мастер-класса */}
-                            <div>
-                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">
-                                    Формат проведения
-                                </label>
-                                <div className="flex gap-4">
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                            type="radio"
-                                            name="type"
-                                            value="online"
-                                            checked={classForm.type === 'online'}
-                                            onChange={handleClassInputChange}
-                                            className="w-4 h-4 accent-firm-orange"
-                                        />
-                                        <span>Онлайн</span>
-                                    </label>
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                            type="radio"
-                                            name="type"
-                                            value="offline"
-                                            checked={classForm.type === 'offline'}
-                                            onChange={handleClassInputChange}
-                                            className="w-4 h-4 accent-firm-pink"
-                                        />
-                                        <span>Офлайн</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            {/* Цена */}
-                            <div>
-                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">
-                                    Стоимость (₽)
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        type="number"
-                                        name="price"
-                                        value={classForm.price}
-                                        onChange={handleClassInputChange}
-                                        min="0"
-                                        step="100"
-                                        className="w-full p-3 rounded-lg bg-[#EAEAEA] outline-firm-orange pr-16"
-                                        placeholder="Бесплатно"
-                                    />
-                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">₽</span>
-                                </div>
-                            </div>
-
-                            {/* Максимум участников */}
-                            <div>
-                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">
-                                    Максимум участников
-                                </label>
-                                <input
-                                    type="number"
-                                    name="max_participants"
-                                    value={classForm.max_participants}
-                                    onChange={handleClassInputChange}
-                                    min="1"
-                                    className="w-full p-3 rounded-lg bg-[#EAEAEA] outline-firm-pink"
-                                    placeholder="Например: 10"
-                                />
-                            </div>
-
-                            {/* Дата и время */}
-                            <div>
-                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">
-                                    Дата и время <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="datetime-local"
-                                    name="date_time"
-                                    value={classForm.date_time}
-                                    onChange={handleClassInputChange}
-                                    required
-                                    className="w-full p-3 rounded-lg bg-[#EAEAEA] outline-firm-orange"
-                                />
-                            </div>
-
-                            {/* Длительность */}
-                            <div>
-                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">
-                                    Длительность (минуты)
-                                </label>
-                                <input
-                                    type="number"
-                                    name="duration_minutes"
-                                    value={classForm.duration_minutes}
-                                    onChange={handleClassInputChange}
-                                    min="30"
-                                    step="30"
-                                    className="w-full p-3 rounded-lg bg-[#EAEAEA] outline-firm-pink"
-                                    placeholder="Например: 120"
-                                />
-                            </div>
-
-                            {/* Место проведения (для офлайн) */}
-                            {classForm.type === 'offline' && (
-                                <div>
-                                    <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">
-                                        Место проведения
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="location"
-                                        value={classForm.location}
-                                        onChange={handleClassInputChange}
-                                        className="w-full p-3 rounded-lg bg-[#EAEAEA] outline-firm-orange"
-                                        placeholder="Адрес, студия..."
-                                    />
-                                </div>
-                            )}
-
-                            {/* Ссылка (для онлайн) */}
-                            {classForm.type === 'online' && (
-                                <div>
-                                    <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">
-                                        Ссылка на трансляцию
-                                    </label>
-                                    <input
-                                        type="url"
-                                        name="online_link"
-                                        value={classForm.online_link}
-                                        onChange={handleClassInputChange}
-                                        className="w-full p-3 rounded-lg bg-[#EAEAEA] outline-firm-pink"
-                                        placeholder="https://zoom.us/... или https://meet.google.com/..."
-                                    />
-                                </div>
-                            )}
-
-                            {/* Необходимые материалы */}
-                            <div>
-                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">
-                                    Необходимые материалы
-                                </label>
-                                <textarea
-                                    name="materials"
-                                    value={classForm.materials}
-                                    onChange={handleClassInputChange}
-                                    rows={3}
-                                    className="w-full p-3 rounded-lg bg-[#EAEAEA] outline-firm-orange"
-                                    placeholder="Список материалов, которые понадобятся участникам..."
-                                />
-                            </div>
-
-                            {/* Кнопки */}
-                            <div className="flex gap-3 pt-4 border-t">
-                                <button
-                                    type="submit"
-                                    disabled={saving}
-                                    className="flex-1 py-3 bg-firm-pink text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50 font-['Montserrat_Alternates'] font-medium"
-                                >
-                                    {saving ? 'Создание...' : 'Создать мастер-класс'}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowAddClassModal(false)}
-                                    className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
-                                >
-                                    Отмена
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-                {showAddPostModal && (
-                <div className="fixed inset-0 bg-[#00000059] bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowAddPostModal(false)}>
-                    <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
-                            <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">Новая запись в блоге</h2>
-                            <button onClick={() => setShowAddPostModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl">
-                                ✕
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleSubmitPost} className="p-6 space-y-6">
-                            {/* Загрузка фото */}
-                            <div>
-                                <label className="block text-gray-700 mb-2 font-['Montserrat_Alternates'] font-medium">
-                                    Добавьте фото или видео
-                                </label>
-                                <div 
-                                    className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-firm-pink transition cursor-pointer"
-                                    onClick={() => postFileInputRef.current?.click()}
-                                >
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        multiple
-                                        onChange={handlePostImageSelect}
-                                        className="hidden"
-                                        ref={postFileInputRef}
-                                    />
-                                    <div className="flex flex-col items-center gap-2">
-                                        <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                        </svg>
-                                        <span className="text-gray-500">Загрузить с устройства</span>
-                                        <span className="text-xs text-gray-400">PNG, JPG, WEBP до 10MB</span>
+                                    <div className="flex gap-3 pt-4 border-t border-gray-200">
+                                        <motion.button type="submit" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} disabled={saving} className="flex-1 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 font-['Montserrat_Alternates'] font-medium">
+                                            {saving ? 'Сохранение...' : 'Опубликовать товар'}
+                                        </motion.button>
+                                        <button type="button" onClick={() => setShowAddProductModal(false)} className="px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-300">Отмена</button>
                                     </div>
+                                </form>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Модальное окно создания мастер-класса */}
+                <AnimatePresence>
+                    {showAddClassModal && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                            onClick={() => setShowAddClassModal(false)}
+                        >
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                                className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
+                                    <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl bg-gradient-to-r from-firm-pink to-purple-500 bg-clip-text text-transparent">
+                                        Создать мастер-класс
+                                    </h2>
+                                    <button onClick={() => setShowAddClassModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl transition-colors">✕</button>
                                 </div>
-                                
-                                {/* Предпросмотр изображений */}
-                                {postImagePreviews.length > 0 && (
-                                    <div className="mt-4">
-                                        <p className="text-sm text-gray-500 mb-2">
-                                            Загружено фото: {postImagePreviews.length}/10
-                                        </p>
-                                        <div className="grid grid-cols-4 gap-3">
-                                            {postImagePreviews.map((preview, idx) => (
-                                                <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border-2 border-gray-200">
-                                                    <Image src={preview} alt="preview" className="w-full h-full object-cover" />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removePostImage(idx)}
-                                                        className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                                                    >
-                                                        ✕
-                                                    </button>
+
+                                <form onSubmit={handleSubmitClass} className="p-6 space-y-6">
+                                    <div>
+                                        <label className="block text-gray-700 mb-2 font-['Montserrat_Alternates'] font-medium">Анонсирующее изображение</label>
+                                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-firm-pink transition cursor-pointer" onClick={() => classFileInputRef.current?.click()}>
+                                            <input type="file" accept="image/*" onChange={handleClassImageSelect} className="hidden" ref={classFileInputRef} />
+                                            <div className="flex flex-col items-center gap-2">
+                                                <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                                <span className="text-gray-500">Загрузить изображение</span>
+                                                <span className="text-xs text-gray-400">PNG, JPG, WEBP до 10MB</span>
+                                            </div>
+                                        </div>
+                                        {classImagePreviews.length > 0 && (
+                                            <div className="mt-4">
+                                                <div className="grid grid-cols-4 gap-3">
+                                                    {classImagePreviews.map((preview, idx) => (
+                                                        <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border-2 border-gray-200">
+                                                            <Image width={160} height={160} src={preview} alt="preview" className="w-full h-full object-cover" />
+                                                            <button type="button" onClick={() => removeClassImage(idx)} className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition">✕</button>
+                                                        </div>
+                                                    ))}
                                                 </div>
-                                            ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Название <span className="text-red-500">*</span></label>
+                                            <input type="text" name="title" value={classForm.title} onChange={handleClassInputChange} required className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Тип</label>
+                                            <div className="flex gap-4">
+                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                    <input type="radio" name="type" value="online" checked={classForm.type === 'online'} onChange={handleClassInputChange} className="w-4 h-4 accent-firm-orange" />
+                                                    <span>Онлайн</span>
+                                                </label>
+                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                    <input type="radio" name="type" value="offline" checked={classForm.type === 'offline'} onChange={handleClassInputChange} className="w-4 h-4 accent-firm-pink" />
+                                                    <span>Офлайн</span>
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
-                                )}
-                            </div>
 
-                            {/* Заголовок */}
-                            <div>
-                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">
-                                    Заголовок <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    name="title"
-                                    value={postForm.title}
-                                    onChange={handlePostInputChange}
-                                    required
-                                    className="w-full p-3 rounded-lg bg-[#EAEAEA] outline-firm-pink"
-                                    placeholder="Например: Как выбрать пряжу для зимнего свитера"
-                                />
-                            </div>
+                                    <div>
+                                        <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Описание <span className="text-red-500">*</span></label>
+                                        <textarea name="description" value={classForm.description} onChange={handleClassInputChange} rows={4} required className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
+                                    </div>
 
-                            {/* Категория блога */}
-                            <div>
-                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">
-                                    Категория
-                                </label>
-                                <select
-                                    name="category"
-                                    value={postForm.category}
-                                    onChange={handlePostInputChange}
-                                    className="w-full p-3 rounded-lg bg-[#EAEAEA] outline-firm-orange"
-                                >
-                                    <option value="">Выберите категорию</option>
-                                    {blogTags.map(tag => (
-                                        <option key={tag} value={tag}>{tag}</option>
-                                    ))}
-                                </select>
-                            </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Цена (₽)</label>
+                                            <input type="number" name="price" value={classForm.price} onChange={handleClassInputChange} min="0" step="100" className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Максимум участников</label>
+                                            <input type="number" name="max_participants" value={classForm.max_participants} onChange={handleClassInputChange} min="1" className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
+                                        </div>
+                                    </div>
 
-                            {/* Теги */}
-                            <div>
-                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">
-                                    Теги
-                                </label>
-                                <select
-                                    name="tags"
-                                    value={postForm.tags}
-                                    onChange={handlePostInputChange}
-                                    className="w-full p-3 rounded-lg bg-[#EAEAEA] outline-firm-pink"
-                                >
-                                    <option value="">Выберите тег</option>
-                                    {blogTags.map(tag => (
-                                        <option key={tag} value={tag}>{tag}</option>
-                                    ))}
-                                </select>
-                                <p className="text-xs text-gray-400 mt-1">Можно добавить несколько тегов через запятую</p>
-                            </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Дата и время <span className="text-red-500">*</span></label>
+                                            <input type="datetime-local" name="date_time" value={classForm.date_time} onChange={handleClassInputChange} required className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Длительность (мин)</label>
+                                            <input type="number" name="duration_minutes" value={classForm.duration_minutes} onChange={handleClassInputChange} min="30" step="30" className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
+                                        </div>
+                                    </div>
 
-                            {/* Краткое описание */}
-                            <div>
-                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">
-                                    Краткое описание (анонс)
-                                </label>
-                                <textarea
-                                    name="excerpt"
-                                    value={postForm.excerpt}
-                                    onChange={handlePostInputChange}
-                                    rows={2}
-                                    className="w-full p-3 rounded-lg bg-[#EAEAEA] outline-firm-orange"
-                                    placeholder="Краткое описание поста, которое будет отображаться в ленте..."
-                                />
-                            </div>
+                                    {classForm.type === 'offline' && (
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Место проведения</label>
+                                            <input type="text" name="location" value={classForm.location} onChange={handleClassInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
+                                        </div>
+                                    )}
 
-                            {/* Содержание */}
-                            <div>
-                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">
-                                    Содержание <span className="text-red-500">*</span>
-                                </label>
-                                <textarea
-                                    name="content"
-                                    value={postForm.content}
-                                    onChange={handlePostInputChange}
-                                    rows={10}
-                                    required
-                                    className="w-full p-3 rounded-lg bg-[#EAEAEA] outline-firm-pink"
-                                    placeholder="Напишите ваш пост... Используйте **жирный текст**, *курсив*, #теги..."
-                                />
-                                <p className="text-xs text-gray-400 mt-1">
-                                    Поддерживается Markdown: **жирный**, *курсив*, #теги
-                                </p>
-                            </div>
+                                    {classForm.type === 'online' && (
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Ссылка на трансляцию</label>
+                                            <input type="url" name="online_link" value={classForm.online_link} onChange={handleClassInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
+                                        </div>
+                                    )}
 
-                            {/* Кнопки */}
-                            <div className="flex gap-3 pt-4 border-t">
-                                <button
-                                    type="submit"
-                                    disabled={saving}
-                                    className="flex-1 py-3 bg-firm-pink text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50 font-['Montserrat_Alternates'] font-medium"
-                                >
-                                    {saving ? 'Публикация...' : 'Опубликовать пост'}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowAddPostModal(false)}
-                                    className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
-                                >
-                                    Отмена
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+                                    <div>
+                                        <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Необходимые материалы</label>
+                                        <textarea name="materials" value={classForm.materials} onChange={handleClassInputChange} rows={3} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
+                                    </div>
+
+                                    <div className="flex gap-3 pt-4 border-t">
+                                        <motion.button type="submit" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} disabled={saving} className="flex-1 py-3 bg-gradient-to-r from-firm-pink to-purple-500 text-white rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 font-['Montserrat_Alternates'] font-medium">
+                                            {saving ? 'Создание...' : 'Создать мастер-класс'}
+                                        </motion.button>
+                                        <button type="button" onClick={() => setShowAddClassModal(false)} className="px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-300">Отмена</button>
+                                    </div>
+                                </form>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Модальное окно создания поста */}
+                <AnimatePresence>
+                    {showAddPostModal && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                            onClick={() => setShowAddPostModal(false)}
+                        >
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                                className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
+                                    <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl bg-gradient-to-r from-gray-600 to-gray-700 bg-clip-text text-transparent">
+                                        Новая запись в блоге
+                                    </h2>
+                                    <button onClick={() => setShowAddPostModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl transition-colors">✕</button>
+                                </div>
+
+                                <form onSubmit={handleSubmitPost} className="p-6 space-y-6">
+                                    <div>
+                                        <label className="block text-gray-700 mb-2 font-['Montserrat_Alternates'] font-medium">Добавьте фото</label>
+                                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-500 transition cursor-pointer" onClick={() => postFileInputRef.current?.click()}>
+                                            <input type="file" accept="image/*" multiple onChange={handlePostImageSelect} className="hidden" ref={postFileInputRef} />
+                                            <div className="flex flex-col items-center gap-2">
+                                                <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                                <span className="text-gray-500">Загрузить с устройства</span>
+                                                <span className="text-xs text-gray-400">PNG, JPG, WEBP до 10MB</span>
+                                            </div>
+                                        </div>
+                                        {postImagePreviews.length > 0 && (
+                                            <div className="mt-4">
+                                                <div className="grid grid-cols-4 gap-3">
+                                                    {postImagePreviews.map((preview, idx) => (
+                                                        <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border-2 border-gray-200">
+                                                            <Image width={160} height={160} src={preview} alt="preview" className="w-full h-full object-cover" />
+                                                            <button type="button" onClick={() => removePostImage(idx)} className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition">✕</button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Заголовок <span className="text-red-500">*</span></label>
+                                        <input type="text" name="title" value={postForm.title} onChange={handlePostInputChange} required className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-gray-500 transition-all duration-300" />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Категория</label>
+                                            <select name="category" value={postForm.category} onChange={handlePostInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-gray-500 transition-all duration-300">
+                                                <option value="">Выберите категорию</option>
+                                                {blogTags.map(tag => (<option key={tag} value={tag}>{tag}</option>))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Теги</label>
+                                            <select name="tags" value={postForm.tags} onChange={handlePostInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-gray-500 transition-all duration-300">
+                                                <option value="">Выберите тег</option>
+                                                {blogTags.map(tag => (<option key={tag} value={tag}>{tag}</option>))}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Краткое описание (анонс)</label>
+                                        <textarea name="excerpt" value={postForm.excerpt} onChange={handlePostInputChange} rows={2} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-gray-500 transition-all duration-300" />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Содержание <span className="text-red-500">*</span></label>
+                                        <textarea name="content" value={postForm.content} onChange={handlePostInputChange} rows={10} required className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-gray-500 transition-all duration-300" />
+                                    </div>
+
+                                    <div className="flex gap-3 pt-4 border-t">
+                                        <motion.button type="submit" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} disabled={saving} className="flex-1 py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 font-['Montserrat_Alternates'] font-medium">
+                                            {saving ? 'Публикация...' : 'Опубликовать пост'}
+                                        </motion.button>
+                                        <button type="button" onClick={() => setShowAddPostModal(false)} className="px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-300">Отмена</button>
+                                    </div>
+                                </form>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     )
