@@ -72,10 +72,9 @@ export default function Header() {
   ];
 
   const bottomNavLinks = [
-    { href: "/", icon: "🏠", label: "Главная" },
-    { href: "/catalog", icon: "🧶", label: "Каталог" },
-    { href: "/favorites", icon: "❤️", label: "Избранное" },
-    { href: "/profile", icon: "👤", label: "Профиль" },
+    { href: "/", icon: "🏠" },
+    { href: "/catalog", icon: "🧶" },
+    { href: "/shopping-cart", icon: "🛒" },
   ];
 
   return (
@@ -89,11 +88,11 @@ export default function Header() {
           isScrolled
             ? "bg-main/95 backdrop-blur-md shadow-lg"
             : "bg-main"
-        } h-[10vh] min-h-[60px] flex items-center`}
+        } h-[60px] flex items-center`}
       >
         <nav className="container mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="flex justify-center lg:justify-between items-center gap-4">
-            {/* Логотип и название - по центру на мобилке, слева на десктопе */}
+            {/* Логотип и название */}
             <motion.div
               whileHover={{ scale: 1.05 }}
               transition={{ type: "spring", stiffness: 400, damping: 10 }}
@@ -200,30 +199,54 @@ export default function Header() {
       {/* Фиксированный остров снизу (только для мобильной версии) */}
       <div className="fixed bottom-4 left-0 right-0 z-40 lg:hidden">
         <div className="flex justify-center">
-          <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl px-4 py-2 mx-4">
-            <div className="flex items-center gap-6">
+          <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl px-3 py-2 mx-auto inline-flex">
+            <div className="flex items-center gap-5">
               {bottomNavLinks.map((link) => {
                 const isActive = typeof window !== 'undefined' && window.location.pathname === link.href;
                 return (
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-all duration-300 ${
-                      isActive ? 'text-firm-orange' : 'text-gray-500 hover:text-firm-orange'
+                    className={`flex items-center justify-center p-2 rounded-xl transition-all duration-300 ${
+                      isActive ? 'text-firm-orange bg-firm-orange/10' : 'text-gray-500 hover:text-firm-orange'
                     }`}
                   >
-                    <span className="text-xl">{link.icon}</span>
-                    <span className="text-[10px] font-['Montserrat_Alternates'] font-medium">
-                      {link.label}
-                    </span>
+                    <span className="text-2xl">{link.icon}</span>
                   </Link>
                 );
               })}
               
+              {/* Профиль в мобильной панели */}
+              <Link
+                href={isAuthenticated ? "/profile" : "/auth/signin"}
+                className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange"
+              >
+                {isLoading ? (
+                  <div className="w-6 h-6 rounded-full bg-gray-300 animate-pulse" />
+                ) : isAuthenticated ? (
+                  avatarUrl && !avatarError ? (
+                    <img
+                      src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`}
+                      alt="profile"
+                      className="w-6 h-6 rounded-full object-cover"
+                      onError={() => setAvatarError(true)}
+                    />
+                  ) : (
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-sm font-bold">
+                      {getInitials()}
+                    </div>
+                  )
+                ) : (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                )}
+              </Link>
+              
               {/* Кнопка меню (бургер) в нижней панели */}
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange"
+                className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange"
               >
                 <div className="relative w-6 h-6 flex flex-col items-center justify-center gap-1">
                   <motion.span
@@ -239,7 +262,6 @@ export default function Header() {
                     className="w-5 h-0.5 bg-current rounded-full transition-all duration-300"
                   />
                 </div>
-                <span className="text-[10px] font-['Montserrat_Alternates'] font-medium">Меню</span>
               </button>
             </div>
           </div>
@@ -304,6 +326,14 @@ export default function Header() {
                 {(isAuthenticated && (isBuyer || isMaster)) && (
                   <div className="mt-4 pt-4 border-t border-gray-200">
                     <Link
+                      href="/favorites"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"
+                    >
+                      <span className="text-xl">❤️</span>
+                      <span className="text-gray-700">Избранное</span>
+                    </Link>
+                    <Link
                       href="/chats"
                       onClick={() => setIsMenuOpen(false)}
                       className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"
@@ -359,10 +389,10 @@ export default function Header() {
       </AnimatePresence>
 
       {/* Отступ для фиксированного хедера */}
-      <div className="h-[10vh] min-h-[60px]" />
+      <div className="h-[60px]" />
       
       {/* Отступ для мобильного нижнего меню */}
-      <div className="h-20 lg:hidden" />
+      <div className="h-16 lg:hidden" />
     </>
   );
 }
