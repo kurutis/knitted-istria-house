@@ -41,11 +41,35 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
         favoriteCount: 0
     })
 
+    const [notifications, setNotifications] = useState({
+        orderStatus: true,
+        promotions: true,
+        messages: false
+    })
+    const [savingNotifications, setSavingNotifications] = useState(false)
+
     useEffect(() => {
         fetchProfileData()
         fetchOrders()
         fetchFavorites()
+        fetchNotificationSettings()
     }, [])
+
+    const fetchNotificationSettings = async () => {
+        try {
+            const response = await fetch('/api/user/notifications/settings')
+            if (response.ok) {
+                const data = await response.json()
+                setNotifications(data)
+            }
+        } catch (error) {
+            console.error('Error fetching notification settings:', error)
+        }
+    }
+
+    const handleNotificationChange = (key: string, value: boolean) => {
+        setNotifications(prev => ({ ...prev, [key]: value }))
+    }
 
     const fetchProfileData = async () => {
         try {
@@ -73,6 +97,28 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
             setStats(prev => ({ ...prev, totalOrders: data.length, totalSpent: total }))
         } catch (error) {
             console.error('Error fetching orders:', error)
+        }
+    }
+
+    const saveNotificationSettings = async () => {
+        setSavingNotifications(true)
+        try {
+            const response = await fetch('/api/user/notifications/settings', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(notifications)
+            })
+            
+            if (response.ok) {
+                toast.success('Настройки уведомлений сохранены')
+            } else {
+                toast.error('Ошибка при сохранении настроек')
+            }
+        } catch (error) {
+            console.error('Error saving notification settings:', error)
+            toast.error('Ошибка при сохранении настроек')
+        } finally {
+            setSavingNotifications(false)
         }
     }
 
@@ -689,6 +735,7 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
                                     >
                                         <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-6">Настройки</h2>
                                         <div className="space-y-6">
+                                            {/* Смена пароля */}
                                             <div>
                                                 <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-4">🔐 Смена пароля</h3>
                                                 <form className="space-y-4 max-w-md">
@@ -713,18 +760,81 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
                                                     </motion.button>
                                                 </form>
                                             </div>
+                                            
+                                            {/* Уведомления - с кастомными чекбоксами */}
                                             <div className="border-t border-gray-200 pt-6">
                                                 <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-4">🔔 Уведомления</h3>
                                                 <div className="space-y-3">
-                                                    <label className="flex items-center gap-3 cursor-pointer">
-                                                        <input type="checkbox" className="w-5 h-5 accent-firm-orange" defaultChecked />
-                                                        <span className="text-gray-700">О статусе заказов</span>
+                                                    <label className="flex items-center gap-3 cursor-pointer group">
+                                                        <div className="relative flex items-center">
+                                                            <input 
+                                                                type="checkbox" 
+                                                                checked={notifications.orderStatus}
+                                                                onChange={(e) => handleNotificationChange('orderStatus', e.target.checked)}
+                                                                className="w-5 h-5 appearance-none border-2 border-firm-orange rounded-md bg-white checked:bg-firm-orange checked:border-firm-orange transition-all duration-200 cursor-pointer"
+                                                            />
+                                                            {notifications.orderStatus && (
+                                                                <svg className="absolute w-4 h-4 text-white left-0.5 top-0.5 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                                                    <polyline points="20 6 9 17 4 12" />
+                                                                </svg>
+                                                            )}
+                                                        </div>
+                                                        <span className="text-gray-700 select-none group-hover:text-firm-orange transition-colors">
+                                                            О статусе заказов
+                                                        </span>
                                                     </label>
-                                                    <label className="flex items-center gap-3 cursor-pointer">
-                                                        <input type="checkbox" className="w-5 h-5 accent-firm-pink" defaultChecked />
-                                                        <span className="text-gray-700">О новинках и акциях</span>
+                                                    
+                                                    <label className="flex items-center gap-3 cursor-pointer group">
+                                                        <div className="relative flex items-center">
+                                                            <input 
+                                                                type="checkbox" 
+                                                                checked={notifications.promotions}
+                                                                onChange={(e) => handleNotificationChange('promotions', e.target.checked)}
+                                                                className="w-5 h-5 appearance-none border-2 border-firm-pink rounded-md bg-white checked:bg-firm-pink checked:border-firm-pink transition-all duration-200 cursor-pointer"
+                                                            />
+                                                            {notifications.promotions && (
+                                                                <svg className="absolute w-4 h-4 text-white left-0.5 top-0.5 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                                                    <polyline points="20 6 9 17 4 12" />
+                                                                </svg>
+                                                            )}
+                                                        </div>
+                                                        <span className="text-gray-700 select-none group-hover:text-firm-pink transition-colors">
+                                                            О новинках и акциях
+                                                        </span>
+                                                    </label>
+                                                    
+                                                    <label className="flex items-center gap-3 cursor-pointer group">
+                                                        <div className="relative flex items-center">
+                                                            <input 
+                                                                type="checkbox" 
+                                                                checked={notifications.messages}
+                                                                onChange={(e) => handleNotificationChange('messages', e.target.checked)}
+                                                                className="w-5 h-5 appearance-none border-2 border-firm-orange rounded-md bg-white checked:bg-firm-orange checked:border-firm-orange transition-all duration-200 cursor-pointer"
+                                                            />
+                                                            {notifications.messages && (
+                                                                <svg className="absolute w-4 h-4 text-white left-0.5 top-0.5 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                                                    <polyline points="20 6 9 17 4 12" />
+                                                                </svg>
+                                                            )}
+                                                        </div>
+                                                        <span className="text-gray-700 select-none group-hover:text-firm-orange transition-colors">
+                                                            О новых сообщениях
+                                                        </span>
                                                     </label>
                                                 </div>
+                                            </div>
+
+                                            {/* Сохранение настроек */}
+                                            <div className="border-t border-gray-200 pt-6">
+                                                <motion.button
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={saveNotificationSettings}
+                                                    disabled={savingNotifications}
+                                                    className="px-6 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl font-['Montserrat_Alternates'] font-medium hover:shadow-lg transition-all disabled:opacity-50"
+                                                >
+                                                    {savingNotifications ? '💾 Сохранение...' : '💾 Сохранить настройки уведомлений'}
+                                                </motion.button>
                                             </div>
                                         </div>
                                     </motion.div>
