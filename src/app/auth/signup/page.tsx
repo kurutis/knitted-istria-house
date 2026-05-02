@@ -23,7 +23,7 @@ export default function SignUpPage() {
         confirmPassword: '',
         role: 'buyer',
         newsletterAgreement: false,
-        verificationMethod: 'sms' // 'sms' or 'email'
+        verificationMethod: 'sms'
     })
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
@@ -37,10 +37,36 @@ export default function SignUpPage() {
         }
     }
 
+    // Валидация email
+    const isValidEmail = (email: string) => {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    }
+
+    // Валидация телефона
+    const isValidPhone = (phone: string) => {
+        const cleaned = phone.replace(/[^0-9]/g, '')
+        return cleaned.length >= 10 && cleaned.length <= 12
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setError('')
         setLoading(true)
+
+        // Валидация
+        if (!isValidEmail(formData.email)) {
+            setError('Введите корректный email адрес')
+            toast.error('Введите корректный email адрес')
+            setLoading(false)
+            return
+        }
+
+        if (!isValidPhone(formData.phone)) {
+            setError('Введите корректный номер телефона')
+            toast.error('Введите корректный номер телефона')
+            setLoading(false)
+            return
+        }
 
         if (formData.password !== formData.confirmPassword) {
             setError('Пароли не совпадают')
@@ -132,7 +158,8 @@ export default function SignUpPage() {
                     userId,
                     method: verifyMethod,
                     email: formData.email,
-                    phone: formData.phone
+                    phone: formData.phone,
+                    name: formData.name
                 })
             })
 
@@ -163,7 +190,11 @@ export default function SignUpPage() {
         }, 1000)
     }
 
+    // Страница верификации кода
     if (step === 'verify') {
+        const contact = verifyMethod === 'sms' ? formData.phone : formData.email
+        const icon = verifyMethod === 'sms' ? '📱' : '📧'
+        
         return (
             <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center py-12 px-4">
                 <motion.div
@@ -173,7 +204,7 @@ export default function SignUpPage() {
                 >
                     <div className="text-center">
                         <div className="mx-auto w-20 h-20 bg-gradient-to-r from-firm-orange to-firm-pink rounded-2xl flex items-center justify-center mb-4">
-                            <span className="text-3xl">📱</span>
+                            <span className="text-3xl">{icon}</span>
                         </div>
                         <h2 className="font-['Montserrat_Alternates'] font-bold text-2xl">
                             Подтверждение
@@ -184,6 +215,11 @@ export default function SignUpPage() {
                                 {verifyMethod === 'sms' ? formData.phone : formData.email}
                             </strong>
                         </p>
+                        {process.env.NODE_ENV === 'development' && (
+                            <p className="text-xs text-gray-400 mt-2">
+                                Тестовый код: <span className="text-firm-orange font-bold">1111</span>
+                            </p>
+                        )}
                     </div>
 
                     <div className="mt-6">
@@ -202,9 +238,13 @@ export default function SignUpPage() {
                     </div>
 
                     {error && (
-                        <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-3">
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            className="mt-4 bg-red-50 border border-red-200 rounded-xl p-3"
+                        >
                             <p className="text-red-600 text-sm text-center">{error}</p>
-                        </div>
+                        </motion.div>
                     )}
 
                     <motion.button
@@ -214,7 +254,14 @@ export default function SignUpPage() {
                         disabled={loading || code.length !== 4}
                         className="w-full mt-6 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-50"
                     >
-                        {loading ? 'Проверка...' : 'Подтвердить'}
+                        {loading ? (
+                            <div className="flex items-center justify-center gap-2">
+                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                <span>Проверка...</span>
+                            </div>
+                        ) : (
+                            'Подтвердить'
+                        )}
                     </motion.button>
 
                     <div className="text-center mt-4">
@@ -239,6 +286,7 @@ export default function SignUpPage() {
         )
     }
 
+    // Форма регистрации
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center py-12 px-4">
             <motion.div
