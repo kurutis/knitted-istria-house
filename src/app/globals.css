@@ -35,6 +35,11 @@
     --color-main: #f9f9f9;
     --color-firm-orange:#F4A67F;
     --color-firm-pink:#D97C8E;
+    --color-main-black: #1C1C18;
+    --color-forms: #F1F1F1;
+    --color-firm-red: #D77C7C;
+    --color-firm-green: #94D06C;
+    --color-footer: #EAEAEA;
 }
 
 .typography {
