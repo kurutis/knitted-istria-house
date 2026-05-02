@@ -4,6 +4,8 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
 import { useState, useEffect } from "react"
+import Image from "next/image"
+import logo from '../../../public/logo.svg'
 
 export default function Footer() {
     const pathname = usePathname()
@@ -44,9 +46,7 @@ export default function Footer() {
                     <div className="md:col-span-4">
                         <Link href="/" className="inline-block">
                             <div className="flex items-center gap-2 mb-4">
-                                <div className="w-10 h-10 bg-gradient-to-r from-firm-orange to-firm-pink rounded-xl flex items-center justify-center">
-                                    <span className="text-white text-xl">🧶</span>
-                                </div>
+                                <Image src={logo} alt="логотип" width={16} height={16} className="w-20 h-20" />
                                 <div>
                                     <div className="font-['Montserrat_Alternates'] font-bold leading-tight">
                                         <span className="text-firm-pink">Дом </span>
