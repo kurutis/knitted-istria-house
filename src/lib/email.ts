@@ -47,7 +47,7 @@ export async function sendVerificationEmail(email: string, code: string, name: s
                         <p>Если вы не регистрировались на нашем сайте, просто проигнорируйте это письмо.</p>
                     </div>
                     <div class="footer">
-                        <p>© 2024 Дом вязанных историй. Все права защищены.</p>
+                        <p>© 2026 Дом вязанных историй. Все права защищены.</p>
                     </div>
                 </div>
             </body>

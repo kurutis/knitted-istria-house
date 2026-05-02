@@ -12,6 +12,7 @@ export const generateSMSCode = (): string => {
 export const sendSMS = async (phone: string, code: string): Promise<boolean> => {
     // Очистка номера телефона (оставляем только цифры, убираем +, пробелы, скобки, тире)
     const cleanPhone = phone.replace(/[^0-9]/g, '')
+    console.log('Clean phone:', cleanPhone) // Добавьте для отладки
     
     // Валидация номера телефона (должен быть 10-15 цифр)
     if (cleanPhone.length < 10 || cleanPhone.length > 15) {
