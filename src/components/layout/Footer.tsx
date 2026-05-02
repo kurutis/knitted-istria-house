@@ -159,7 +159,7 @@ export default function Footer() {
                             <input
                                 type="email"
                                 placeholder="Ваш email"
-                                className="flex-1 px-4 py-2 rounded-lg bg-forms border border-gray-200 text-white placeholder-gray-500 focus:outline-none focus:border-firm-orange transition-colors text-sm"
+                                className="flex-1 px-4 py-2 rounded-lg bg-forms border border-gray-500 text-white placeholder-gray-500 focus:outline-none focus:border-firm-orange transition-colors text-sm"
                             />
                             <motion.button
                                 whileHover={{ scale: 1.02 }}
@@ -170,7 +170,7 @@ export default function Footer() {
                                 Подписаться
                             </motion.button>
                         </form>
-                        <div className="mt-6 pt-6 border-t border-gray-200">
+                        <div className="mt-6 pt-6 border-t border-gray-500">
                             <p className="text-gray-600 text-xs">
                                 <span className="text-gray-600">📞 +7 (495) 123-45-67</span>
                                 <br />
@@ -181,7 +181,7 @@ export default function Footer() {
                 </div>
 
                 {/* Копирайт */}
-                <div className="mt-12 pt-8 border-t border-gray-200 text-center">
+                <div className="mt-12 pt-8 border-t border-gray-500 text-center">
                     <p className="text-gray-600 text-xs">
                         © {currentYear} Дом вязанных историй. Все права защищены.
                     </p>
