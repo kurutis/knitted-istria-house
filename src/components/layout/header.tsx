@@ -20,6 +20,14 @@ export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   // Загружаем аватар из API профиля
   useEffect(() => {
     const loadAvatar = async () => {
@@ -31,7 +39,6 @@ export default function Header() {
           const data = await response.json();
           if (data.avatarUrl) {
             setAvatarUrl(data.avatarUrl);
-            console.log('Avatar URL set:', data.avatarUrl);
           }
         }
       } catch (error) {
@@ -57,9 +64,13 @@ export default function Header() {
   };
 
   const navLinks = [
-    { href: "/catalog", label: "Каталог" },
-    { href: "/blog", label: "Блог" },
-    { href: "/master-classes", label: "Мастер-классы" },
+    { href: "/", label: "🏠", name: "Главная" },
+    { href: "/catalog", label: "🧶", name: "Каталог" },
+    { href: "/blog", label: "📝", name: "Блог" },
+    { href: "/master-classes", label: "🎓", name: "Мастер-классы" },
+    { href: "/favorites", label: "❤️", name: "Избранное" },
+    { href: "/shopping-cart", label: "🛒", name: "Корзина" },
+    { href: "/profile", label: "👤", name: "Профиль" },
   ];
 
   return (
@@ -83,7 +94,7 @@ export default function Header() {
               className="flex gap-2 sm:gap-3 items-center flex-shrink-0"
             >
               <Link href="/" className="flex items-center gap-2 sm:gap-3">
-                <Image className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20" src={logo} alt="logo" />
+                <Image className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 lg:w-20 lg:h-20" src={logo} alt="logo" />
                 <div className="hidden sm:block">
                   <div className="font-['Montserrat_Alternates'] font-bold leading-tight">
                     <span className="text-firm-pink font-semibold font-['Montserrat_Alternates'] text-xs sm:text-sm md:text-base">
@@ -103,7 +114,7 @@ export default function Header() {
 
             {/* Десктопное меню */}
             <ul className="hidden lg:flex justify-between w-[600px] xl:gap-10">
-              {navLinks.map((link, index) => (
+              {navLinks.slice(0, 4).map((link, index) => (
                 <motion.li
                   key={link.href}
                   initial={{ opacity: 0, y: -20 }}
@@ -114,186 +125,189 @@ export default function Header() {
                     className="font-['Montserrat_Alternates'] font-semibold hover:font-bold transition-all duration-300 relative group"
                     href={link.href}
                   >
-                    {link.label}
+                    {link.name}
                     <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-firm-orange transition-all duration-300 group-hover:w-full" />
                   </Link>
                 </motion.li>
               ))}
             </ul>
 
-            {/* Иконки действий */}
-            <div className="flex items-center gap-3 sm:gap-4 md:gap-5 lg:gap-6">
+            {/* Правая часть (иконки) - только для десктопа */}
+            <div className="hidden lg:flex items-center gap-3 sm:gap-4 md:gap-5 lg:gap-6">
               {/* Чаты */}
               {(isAuthenticated && (isBuyer || isMaster)) && (
-                <motion.div
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  whileTap={{ scale: 0.95 }}
-                >
+                <motion.div whileHover={{ scale: 1.1, rotate: 5 }} whileTap={{ scale: 0.95 }}>
                   <Link href="/chats">
-                    <svg
-                      className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white hover:text-firm-orange transition-colors duration-300"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                      />
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white hover:text-firm-orange transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
                   </Link>
                 </motion.div>
               )}
 
               {/* Корзина */}
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-              >
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                 <Link href="/shopping-cart">
                   <Image src={cart} alt="shopping cart" className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
                 </Link>
               </motion.div>
 
               {/* Избранное */}
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-              >
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                 <Link href="/favorites">
                   <Image src={favorite} alt="favorites" className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
                 </Link>
               </motion.div>
 
-              {/* Профиль - с аватаром */}
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-              >
+              {/* Профиль */}
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                 {isLoading ? (
                   <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gray-300 animate-pulse" />
                 ) : isAuthenticated ? (
                   <Link href="/profile" className="block">
                     {avatarUrl ? (
-                        <img
-                          src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`}
-                          alt="profile"
-                          className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover ring-2 ring-white/50 hover:ring-firm-orange transition-all duration-300"
-                          onError={(e) => {
-                            console.error('Avatar failed to load');
-                            e.currentTarget.style.display = 'none';
-                            const parent = e.currentTarget.parentElement;
-                            if (parent) {
-                              const span = document.createElement('div');
-                              span.className = 'w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-xs sm:text-sm font-bold';
-                              span.textContent = getInitials();
-                              parent.appendChild(span);
-                              e.currentTarget.remove();
-                            }
-                          }}
-                        />
-                      ) : (
-                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-xs sm:text-sm font-bold">
-                          {getInitials()}
-                        </div>
-                      )}
+                      <img
+                        src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`}
+                        alt="profile"
+                        className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover ring-2 ring-white/50 hover:ring-firm-orange transition-all duration-300"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          const parent = e.currentTarget.parentElement;
+                          if (parent) {
+                            const span = document.createElement('div');
+                            span.className = 'w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-xs sm:text-sm font-bold';
+                            span.textContent = getInitials();
+                            parent.appendChild(span);
+                            e.currentTarget.remove();
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-xs sm:text-sm font-bold">
+                        {getInitials()}
+                      </div>
+                    )}
                   </Link>
                 ) : (
                   <Link href="/auth/signin" className="block">
-                    <svg 
-                      className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white hover:text-firm-orange transition-colors duration-300"
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                    >
-                      <path 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round" 
-                        strokeWidth={2} 
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" 
-                      />
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white hover:text-firm-orange transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   </Link>
                 )}
               </motion.div>
-
-              {/* Кнопка мобильного меню */}
-              <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="lg:hidden flex flex-col gap-1.5 p-1"
-              >
-                <motion.span
-                  animate={isMenuOpen ? { rotate: 45, y: 7 } : { rotate: 0, y: 0 }}
-                  className="w-6 h-0.5 bg-white rounded-full transition-all duration-300"
-                />
-                <motion.span
-                  animate={isMenuOpen ? { opacity: 0 } : { opacity: 1 }}
-                  className="w-6 h-0.5 bg-white rounded-full transition-all duration-300"
-                />
-                <motion.span
-                  animate={isMenuOpen ? { rotate: -45, y: -7 } : { rotate: 0, y: 0 }}
-                  className="w-6 h-0.5 bg-white rounded-full transition-all duration-300"
-                />
-              </button>
             </div>
+
+            {/* Кнопка мобильного меню - только для мобильной версии */}
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="lg:hidden flex flex-col gap-1.5 p-1 z-50"
+            >
+              <motion.span
+                animate={isMenuOpen ? { rotate: 45, y: 7 } : { rotate: 0, y: 0 }}
+                className="w-6 h-0.5 bg-white rounded-full transition-all duration-300"
+              />
+              <motion.span
+                animate={isMenuOpen ? { opacity: 0 } : { opacity: 1 }}
+                className="w-6 h-0.5 bg-white rounded-full transition-all duration-300"
+              />
+              <motion.span
+                animate={isMenuOpen ? { rotate: -45, y: -7 } : { rotate: 0, y: 0 }}
+                className="w-6 h-0.5 bg-white rounded-full transition-all duration-300"
+              />
+            </button>
           </div>
         </nav>
       </motion.header>
 
-      {/* Мобильное меню */}
+      {/* Мобильное меню - остров снизу */}
       <AnimatePresence>
         {isMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, x: "100%" }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed top-[10vh] right-0 bottom-0 w-64 bg-main/95 backdrop-blur-lg z-40 shadow-xl lg:hidden"
-          >
-            <nav className="flex flex-col p-6 pt-8 gap-4">
-              {navLinks.map((link, index) => (
-                <motion.div
-                  key={link.href}
-                  initial={{ opacity: 0, x: 50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <Link
-                    href={link.href}
-                    onClick={() => setIsMenuOpen(false)}
-                    className="block py-3 px-4 font-['Montserrat_Alternates'] font-semibold text-white text-lg hover:bg-white/10 rounded-lg transition-all duration-300"
-                  >
-                    {link.label}
-                  </Link>
-                </motion.div>
-              ))}
-              <div className="border-t border-white/20 my-2 pt-4">
-                <Link
-                  href="/profile"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="block py-3 px-4 font-['Montserrat_Alternates'] font-semibold text-white text-lg hover:bg-white/10 rounded-lg transition-all duration-300"
-                >
-                  Профиль
-                </Link>
-                <Link
-                  href="/shopping-cart"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="block py-3 px-4 font-['Montserrat_Alternates'] font-semibold text-white text-lg hover:bg-white/10 rounded-lg transition-all duration-300"
-                >
-                  Корзина
-                </Link>
-                <Link
-                  href="/favorites"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="block py-3 px-4 font-['Montserrat_Alternates'] font-semibold text-white text-lg hover:bg-white/10 rounded-lg transition-all duration-300"
-                >
-                  Избранное
-                </Link>
+          <>
+            {/* Затемнение фона */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMenuOpen(false)}
+              className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            />
+            
+            {/* Меню-остров снизу */}
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 right-0 z-50 lg:hidden"
+            >
+              <div className="bg-white/95 backdrop-blur-xl rounded-t-3xl shadow-2xl p-4 pb-8">
+                <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6" />
+                
+                <div className="grid grid-cols-4 gap-2">
+                  {navLinks.map((link, index) => (
+                    <motion.div
+                      key={link.href}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <Link
+                        href={link.href}
+                        onClick={() => setIsMenuOpen(false)}
+                        className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl hover:bg-gray-100 transition-all duration-300"
+                      >
+                        <span className="text-2xl">{link.label}</span>
+                        <span className="text-xs text-gray-600 font-['Montserrat_Alternates']">
+                          {link.name}
+                        </span>
+                      </Link>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Дополнительные иконки для авторизованных пользователей */}
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="flex justify-around">
+                    {isAuthenticated && (isBuyer || isMaster) && (
+                      <Link
+                        href="/chats"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="flex flex-col items-center gap-1 py-2 px-3 rounded-xl hover:bg-gray-100 transition"
+                      >
+                        <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        <span className="text-xs text-gray-600">Чаты</span>
+                      </Link>
+                    )}
+
+                    {!isAuthenticated && (
+                      <Link
+                        href="/auth/signin"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="flex flex-col items-center gap-1 py-2 px-3 rounded-xl hover:bg-gray-100 transition"
+                      >
+                        <span className="text-2xl">🔑</span>
+                        <span className="text-xs text-gray-600">Вход</span>
+                      </Link>
+                    )}
+
+                    {!isAuthenticated && (
+                      <Link
+                        href="/auth/signup"
+                        onClick={() => setIsMenuOpen(false)}
+                        className="flex flex-col items-center gap-1 py-2 px-3 rounded-xl hover:bg-gray-100 transition"
+                      >
+                        <span className="text-2xl">✨</span>
+                        <span className="text-xs text-gray-600">Регистрация</span>
+                      </Link>
+                    )}
+                  </div>
+                </div>
               </div>
-            </nav>
-          </motion.div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 
