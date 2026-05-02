@@ -29,16 +29,7 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
         city: '',
         address: '',
         avatarUrl: null as string | null,
-        newsletterAgreement: false,
         role: 'buyer'
-    })
-
-    const [orders, setOrders] = useState([])
-    const [favorites, setFavorites] = useState([])
-    const [stats, setStats] = useState({
-        totalOrders: 0,
-        totalSpent: 0,
-        favoriteCount: 0
     })
 
     const [notifications, setNotifications] = useState({
@@ -48,6 +39,14 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
     })
     const [savingNotifications, setSavingNotifications] = useState(false)
 
+    const [orders, setOrders] = useState([])
+    const [favorites, setFavorites] = useState([])
+    const [stats, setStats] = useState({
+        totalOrders: 0,
+        totalSpent: 0,
+        favoriteCount: 0
+    })
+
     useEffect(() => {
         fetchProfileData()
         fetchOrders()
@@ -55,29 +54,18 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
         fetchNotificationSettings()
     }, [])
 
-    const fetchNotificationSettings = async () => {
-        try {
-            const response = await fetch('/api/user/notifications/settings')
-            if (response.ok) {
-                const data = await response.json()
-                setNotifications(data)
-            }
-        } catch (error) {
-            console.error('Error fetching notification settings:', error)
-        }
-    }
-
-    const handleNotificationChange = (key: string, value: boolean) => {
-        setNotifications(prev => ({ ...prev, [key]: value }))
-    }
-
     const fetchProfileData = async () => {
         try {
             setLoading(true)
             const response = await fetch('/api/user/profile')
             const data = await response.json()
             setProfileData({
-                ...data,
+                fullname: data.fullname || '',
+                email: data.email || '',
+                phone: data.phone || '',
+                city: data.city || '',
+                address: data.address || '',
+                avatarUrl: data.avatarUrl || null,
                 role: data.role || 'buyer'
             })
         } catch (error) {
@@ -85,6 +73,22 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
             toast.error('Ошибка загрузки профиля')
         } finally {
             setLoading(false)
+        }
+    }
+
+    const fetchNotificationSettings = async () => {
+        try {
+            const response = await fetch('/api/user/notifications/settings')
+            if (response.ok) {
+                const data = await response.json()
+                setNotifications({
+                    orderStatus: data.orderStatus ?? true,
+                    promotions: data.promotions ?? true,
+                    messages: data.messages ?? false
+                })
+            }
+        } catch (error) {
+            console.error('Error fetching notification settings:', error)
         }
     }
 
@@ -97,28 +101,6 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
             setStats(prev => ({ ...prev, totalOrders: data.length, totalSpent: total }))
         } catch (error) {
             console.error('Error fetching orders:', error)
-        }
-    }
-
-    const saveNotificationSettings = async () => {
-        setSavingNotifications(true)
-        try {
-            const response = await fetch('/api/user/notifications/settings', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(notifications)
-            })
-            
-            if (response.ok) {
-                toast.success('Настройки уведомлений сохранены')
-            } else {
-                toast.error('Ошибка при сохранении настроек')
-            }
-        } catch (error) {
-            console.error('Error saving notification settings:', error)
-            toast.error('Ошибка при сохранении настроек')
-        } finally {
-            setSavingNotifications(false)
         }
     }
 
@@ -143,7 +125,6 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
             formData.append('phone', profileData.phone || '')
             formData.append('city', profileData.city || '')
             formData.append('address', profileData.address || '')
-            formData.append('newsletterAgreement', String(profileData.newsletterAgreement))
             
             if (avatarFile) {
                 formData.append('avatar', avatarFile)
@@ -207,6 +188,32 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
         }
     }
 
+    const handleNotificationChange = (key: string, value: boolean) => {
+        setNotifications(prev => ({ ...prev, [key]: value }))
+    }
+
+    const saveNotificationSettings = async () => {
+        setSavingNotifications(true)
+        try {
+            const response = await fetch('/api/user/notifications/settings', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(notifications)
+            })
+            
+            if (response.ok) {
+                toast.success('Настройки уведомлений сохранены')
+            } else {
+                toast.error('Ошибка при сохранении настроек')
+            }
+        } catch (error) {
+            console.error('Error saving notification settings:', error)
+            toast.error('Ошибка при сохранении настроек')
+        } finally {
+            setSavingNotifications(false)
+        }
+    }
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type, checked } = e.target
         setProfileData(prev => ({
@@ -264,23 +271,13 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
         )
     }
 
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
-    }
-
-    const itemVariants = {
-        hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0 }
-    }
-
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
             <Toaster position="top-right" />
             
             <div className="mt-5 flex items-start justify-center py-8 px-4">
                 <div className="flex flex-col gap-6 w-full max-w-7xl">
-                    {/* Header с анимацией */}
+                    {/* Header */}
                     <motion.div
                         initial={{ opacity: 0, y: -30 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -546,26 +543,6 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
                                                     </div>
                                                 </div>
                                                 
-                                                <div className="flex items-center gap-3">
-                                                    <div className="relative flex items-center">
-                                                        <input
-                                                            type="checkbox"
-                                                            name="newsletterAgreement"
-                                                            checked={profileData.newsletterAgreement}
-                                                            onChange={handleInputChange}
-                                                            className="w-5 h-5 appearance-none border-2 border-firm-orange rounded-md bg-white checked:bg-firm-orange checked:border-firm-orange transition-all duration-200 cursor-pointer"
-                                                        />
-                                                        {profileData.newsletterAgreement && (
-                                                            <svg className="absolute w-4 h-4 text-white left-0.5 top-0.5 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                                                <polyline points="20 6 9 17 4 12" />
-                                                            </svg>
-                                                        )}
-                                                    </div>
-                                                    <label className="text-gray-700 cursor-pointer select-none font-['Montserrat_Alternates'] text-sm">
-                                                        Получать рассылку о новинках и акциях
-                                                    </label>
-                                                </div>
-                                                
                                                 <motion.button
                                                     whileHover={{ scale: 1.02 }}
                                                     whileTap={{ scale: 0.98 }}
@@ -608,12 +585,6 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
                                                 <div className="bg-gray-50 rounded-xl p-4 hover:shadow-md transition-shadow md:col-span-2">
                                                     <p className="text-gray-500 text-sm font-['Montserrat_Alternates'] mb-1">Адрес доставки</p>
                                                     <p className="text-lg font-medium">{profileData.address || 'Не указано'}</p>
-                                                </div>
-                                                <div className="bg-gray-50 rounded-xl p-4 hover:shadow-md transition-shadow md:col-span-2">
-                                                    <p className="text-gray-500 text-sm font-['Montserrat_Alternates'] mb-1">Рассылка</p>
-                                                    <p className="text-lg font-medium">
-                                                        {profileData.newsletterAgreement ? '✅ Подписан' : '❌ Не подписан'}
-                                                    </p>
                                                 </div>
                                             </motion.div>
                                         )}
@@ -761,9 +732,9 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
                                                 </form>
                                             </div>
                                             
-                                            {/* Уведомления - с кастомными чекбоксами */}
+                                            {/* Уведомления и рассылка */}
                                             <div className="border-t border-gray-200 pt-6">
-                                                <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-4">🔔 Уведомления</h3>
+                                                <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-4">🔔 Уведомления и рассылка</h3>
                                                 <div className="space-y-3">
                                                     <label className="flex items-center gap-3 cursor-pointer group">
                                                         <div className="relative flex items-center">
@@ -799,7 +770,7 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
                                                             )}
                                                         </div>
                                                         <span className="text-gray-700 select-none group-hover:text-firm-pink transition-colors">
-                                                            О новинках и акциях
+                                                            О новинках и акциях (рассылка)
                                                         </span>
                                                     </label>
                                                     

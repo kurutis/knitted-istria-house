@@ -12,7 +12,7 @@ export async function GET() {
     try {
         const { data: profile, error } = await supabase
             .from('profiles')
-            .select('notification_order_status, notification_promotions, notification_messages')
+            .select('notification_order_status, notification_promotions, notification_messages, newsletter_agreement')
             .eq('user_id', session.user.id)
             .single()
 
@@ -23,7 +23,8 @@ export async function GET() {
         return NextResponse.json({
             orderStatus: profile?.notification_order_status ?? true,
             promotions: profile?.notification_promotions ?? true,
-            messages: profile?.notification_messages ?? false
+            messages: profile?.notification_messages ?? false,
+            newsletterAgreement: profile?.newsletter_agreement ?? false
         })
     } catch (error) {
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -37,7 +38,7 @@ export async function PUT(request: Request) {
     }
 
     try {
-        const { orderStatus, promotions, messages } = await request.json()
+        const { orderStatus, promotions, messages, newsletterAgreement } = await request.json()
 
         const { error } = await supabase
             .from('profiles')
@@ -45,6 +46,7 @@ export async function PUT(request: Request) {
                 notification_order_status: orderStatus,
                 notification_promotions: promotions,
                 notification_messages: messages,
+                newsletter_agreement: newsletterAgreement,
                 updated_at: new Date().toISOString()
             })
             .eq('user_id', session.user.id)
