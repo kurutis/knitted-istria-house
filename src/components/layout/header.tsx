@@ -100,19 +100,17 @@ export default function Header() {
             >
               <Link href="/" className="flex items-center gap-2 sm:gap-3">
                 <Image className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-16 lg:h-16" src={logo} alt="logo" />
-                <div className="hidden sm:block">
-                  <div className="font-['Montserrat_Alternates'] font-bold leading-tight">
-                    <span className="text-firm-pink font-semibold font-['Montserrat_Alternates'] text-xs sm:text-sm md:text-base">
-                      Дом{" "}
-                    </span>
-                    <span className="text-firm-orange font-semibold font-['Montserrat_Alternates'] text-xs sm:text-sm md:text-base">
-                      вязанных
-                    </span>
-                    <br />
-                    <span className="text-firm-pink font-semibold font-['Montserrat_Alternates'] text-xs sm:text-sm md:text-base">
-                      историй
-                    </span>
-                  </div>
+                <div className="font-['Montserrat_Alternates'] font-bold leading-tight">
+                  <span className="text-firm-pink font-semibold font-['Montserrat_Alternates'] text-xs sm:text-sm md:text-base">
+                    Дом{" "}
+                  </span>
+                  <span className="text-firm-orange font-semibold font-['Montserrat_Alternates'] text-xs sm:text-sm md:text-base">
+                    вязанных
+                  </span>
+                  <br />
+                  <span className="text-firm-pink font-semibold font-['Montserrat_Alternates'] text-xs sm:text-sm md:text-base">
+                    историй
+                  </span>
                 </div>
               </Link>
             </motion.div>
@@ -201,20 +199,29 @@ export default function Header() {
         <div className="flex justify-center">
           <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl px-3 py-2 mx-auto inline-flex">
             <div className="flex items-center gap-5">
-              {bottomNavLinks.map((link) => {
-                const isActive = typeof window !== 'undefined' && window.location.pathname === link.href;
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`flex items-center justify-center p-2 rounded-xl transition-all duration-300 ${
-                      isActive ? 'text-firm-orange bg-firm-orange/10' : 'text-gray-500 hover:text-firm-orange'
-                    }`}
-                  >
-                    <span className="text-2xl">{link.icon}</span>
-                  </Link>
-                );
-              })}
+              {/* Главная - логотип */}
+              <Link
+                href="/"
+                className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange"
+              >
+                <Image src={logo} alt="Главная" className="w-6 h-6" />
+              </Link>
+              
+              {/* Каталог */}
+              <Link
+                href="/catalog"
+                className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange"
+              >
+                <Image src={favorite} alt="Каталог" className="w-5 h-5" />
+              </Link>
+              
+              {/* Корзина */}
+              <Link
+                href="/shopping-cart"
+                className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange"
+              >
+                <Image src={cart} alt="Корзина" className="w-5 h-5" />
+              </Link>
               
               {/* Профиль в мобильной панели */}
               <Link
@@ -237,9 +244,7 @@ export default function Header() {
                     </div>
                   )
                 ) : (
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
+                  <Image src={profile} alt="Профиль" className="w-5 h-5" />
                 )}
               </Link>
               
@@ -301,38 +306,68 @@ export default function Header() {
                 </div>
                 
                 <div className="space-y-2">
-                  {navLinks.map((link, index) => (
-                    <motion.div
-                      key={link.href}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                    >
-                      <Link
-                        href={link.href}
-                        onClick={() => setIsMenuOpen(false)}
-                        className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"
-                      >
-                        <span className="text-xl">{link.label}</span>
-                        <span className="text-gray-700 font-['Montserrat_Alternates']">
-                          {link.name}
-                        </span>
-                      </Link>
-                    </motion.div>
-                  ))}
-                </div>
+                  {/* Главная */}
+                  <Link
+                    href="/"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"
+                  >
+                    <Image src={logo} alt="Главная" className="w-6 h-6" />
+                    <span className="text-gray-700 font-['Montserrat_Alternates']">Главная</span>
+                  </Link>
+                  
+                  {/* Каталог */}
+                  <Link
+                    href="/catalog"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"
+                  >
+                    <Image src={favorite} alt="Каталог" className="w-5 h-5" />
+                    <span className="text-gray-700 font-['Montserrat_Alternates']">Каталог</span>
+                  </Link>
+                  
+                  {/* Корзина */}
+                  <Link
+                    href="/shopping-cart"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"
+                  >
+                    <Image src={cart} alt="Корзина" className="w-5 h-5" />
+                    <span className="text-gray-700 font-['Montserrat_Alternates']">Корзина</span>
+                  </Link>
+                  
+                  {/* Избранное */}
+                  <Link
+                    href="/favorites"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"
+                  >
+                    <Image src={favorite} alt="Избранное" className="w-5 h-5" />
+                    <span className="text-gray-700 font-['Montserrat_Alternates']">Избранное</span>
+                  </Link>
+                  
+                  {/* Блог */}
+                  <Link
+                    href="/blog"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"
+                  >
+                    <span className="text-xl">📝</span>
+                    <span className="text-gray-700 font-['Montserrat_Alternates']">Блог</span>
+                  </Link>
+                  
+                  {/* Мастер-классы */}
+                  <Link
+                    href="/master-classes"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"
+                  >
+                    <span className="text-xl">🎓</span>
+                    <span className="text-gray-700 font-['Montserrat_Alternates']">Мастер-классы</span>
+                  </Link>
 
-                {/* Дополнительные пункты для авторизованных пользователей */}
-                {(isAuthenticated && (isBuyer || isMaster)) && (
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <Link
-                      href="/favorites"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"
-                    >
-                      <span className="text-xl">❤️</span>
-                      <span className="text-gray-700">Избранное</span>
-                    </Link>
+                  {/* Чаты (только для авторизованных) */}
+                  {(isAuthenticated && (isBuyer || isMaster)) && (
                     <Link
                       href="/chats"
                       onClick={() => setIsMenuOpen(false)}
@@ -343,23 +378,8 @@ export default function Header() {
                       </svg>
                       <span className="text-gray-700">Сообщения</span>
                     </Link>
-                  </div>
-                )}
-
-                {/* Кнопка выхода для авторизованных */}
-                {isAuthenticated && (
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <button
-                      onClick={() => {
-                        setIsMenuOpen(false);
-                      }}
-                      className="w-full flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-red-50 transition-all duration-300 text-red-600"
-                    >
-                      <span className="text-xl">🚪</span>
-                      <span>Выйти</span>
-                    </button>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 {/* Кнопки входа/регистрации для неавторизованных */}
                 {!isAuthenticated && (
@@ -370,7 +390,7 @@ export default function Header() {
                       className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"
                     >
                       <span className="text-xl">🔑</span>
-                      <span>Войти</span>
+                      <span className="text-gray-700">Войти</span>
                     </Link>
                     <Link
                       href="/auth/signup"
@@ -378,7 +398,7 @@ export default function Header() {
                       className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"
                     >
                       <span className="text-xl">✨</span>
-                      <span>Зарегистрироваться</span>
+                      <span className="text-gray-700">Зарегистрироваться</span>
                     </Link>
                   </div>
                 )}
@@ -387,9 +407,6 @@ export default function Header() {
           </>
         )}
       </AnimatePresence>
-
-      {/* Отступ для фиксированного хедера */}
-      <div className="h-[60px]" />
       
       {/* Отступ для мобильного нижнего меню */}
       <div className="h-16 lg:hidden" />
