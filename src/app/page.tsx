@@ -174,7 +174,7 @@ export default function HomePage() {
                     whileTap={{ scale: 0.95 }}
                     className="w-full sm:w-[60%] md:w-[40%] lg:w-[20%]"
                 >
-                    <Link href="/masters" className="w-full">
+                    <Link href="/profile?tab=profile" className="w-full">
                         <button className="w-full font-['Montserrat_Alternates'] font-[450] border-2 border-firm-orange p-2 rounded-xl transition-all duration-300 hover:border-4 hover:bg-firm-orange hover:text-white text-sm md:text-base">
                             Стать мастером
                         </button>

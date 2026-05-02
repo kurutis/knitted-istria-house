@@ -10,11 +10,12 @@ import { toast, Toaster } from 'react-hot-toast'
 
 interface BuyerProfileProps {
     session: any
+    initialTab?: string
 }
 
 export default function BuyerProfile({ session }: BuyerProfileProps) {
     const router = useRouter()
-    const [activeTab, setActiveTab] = useState('profile')
+    const [activeTab, setActiveTab] = useState(initialTab || 'profile')
     const [isEditing, setIsEditing] = useState(false)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)

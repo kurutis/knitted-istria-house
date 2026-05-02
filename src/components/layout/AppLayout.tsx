@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import Header from './header'
+import Footer from './Footer'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
@@ -9,11 +10,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const isAuthPage = pathname?.startsWith('/auth')
 
     return (
-        <>
+        <div className="min-h-screen flex flex-col">
             {!isAdminPage && <Header />}
-            <main className={!isAdminPage && !isAuthPage ? "container mx-auto mt-10" : ""}>
+            <main className={`flex-1 ${!isAdminPage && !isAuthPage ? "container mx-auto mt-20" : ""}`}>
                 {children}
             </main>
-        </>
+            <Footer />
+        </div>
     )
 }
