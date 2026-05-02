@@ -4,18 +4,21 @@ import { signOut } from "next-auth/react"
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 interface BuyerProfileProps {
     session: any
 }
 
 export default function BuyerProfile({ session }: BuyerProfileProps) {
+    const router = useRouter()
     const [activeTab, setActiveTab] = useState('profile')
     const [isEditing, setIsEditing] = useState(false)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [avatarFile, setAvatarFile] = useState<File | null>(null)
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+    const [becomeMasterLoading, setBecomeMasterLoading] = useState(false)
 
     const [profileData, setProfileData] = useState({
         fullname: '',
@@ -24,7 +27,8 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
         city: '',
         address: '',
         avatarUrl: null as string | null,
-        newsletterAgreement: false
+        newsletterAgreement: false,
+        role: 'buyer'
     })
 
     const [orders, setOrders] = useState([])
@@ -46,7 +50,10 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
             setLoading(true)
             const response = await fetch('/api/user/profile')
             const data = await response.json()
-            setProfileData(data)
+            setProfileData({
+                ...data,
+                role: data.role || 'buyer'
+            })
         } catch (error) {
             console.error('Error fetching profile:', error)
         } finally {
@@ -93,15 +100,12 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
                 formData.append('avatar', avatarFile)
             }
 
-            console.log("Sending profile update...")
-            
             const response = await fetch('/api/user/profile', {
                 method: 'PUT',
                 body: formData
             })
 
             const data = await response.json()
-            console.log("Update response:", data)
 
             if (response.ok) {
                 setIsEditing(false)
@@ -117,6 +121,39 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
             alert('Ошибка при обновлении профиля')
         } finally {
             setSaving(false)
+        }
+    }
+
+    const handleBecomeMaster = async () => {
+        if (!confirm('Вы уверены, что хотите стать мастером?\n\nПосле этого вы сможете добавлять товары, создавать мастер-классы и вести блог.')) {
+            return
+        }
+
+        setBecomeMasterLoading(true)
+        try {
+            const response = await fetch('/api/user/become-master', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    city: profileData.city,
+                    phone: profileData.phone
+                })
+            })
+
+            const data = await response.json()
+
+            if (response.ok) {
+                alert('Поздравляем! Вы стали мастером. Страница будет обновлена.')
+                // Обновляем сессию и перезагружаем страницу
+                window.location.href = '/profile'
+            } else {
+                alert(data.error || 'Ошибка при переходе в статус мастера')
+            }
+        } catch (error) {
+            console.error('Error becoming master:', error)
+            alert('Ошибка при переходе в статус мастера')
+        } finally {
+            setBecomeMasterLoading(false)
         }
     }
 
@@ -180,6 +217,12 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
                     <div>
                         <h1 className="font-['Montserrat_Alternates'] font-semibold text-3xl">Личный кабинет</h1>
                         <p className="text-gray-600 mt-1">Добро пожаловать, {profileData.fullname || session?.user?.name}</p>
+                        {profileData.role === 'buyer' && (
+                            <p className="text-sm text-firm-orange mt-1">Статус: Покупатель</p>
+                        )}
+                        {profileData.role === 'master' && (
+                            <p className="text-sm text-firm-pink mt-1">Статус: Мастер</p>
+                        )}
                     </div>
                     <div className="flex gap-4">
                         <div className="text-right">
@@ -242,17 +285,30 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
                             <div className="bg-white rounded-lg shadow-md p-6">
                                 <div className="flex justify-between items-center mb-6">
                                     <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">Мой профиль</h2>
-                                    {!isEditing ? (<button className="px-4 py-2 border-2 border-firm-orange rounded-lg hover:scale-105 hover:border-4 hover:bg-firm-orange hover:text-white transition-all duration-300 font-['Montserrat_Alternates']"onClick={() => setIsEditing(true)}>Редактировать</button>
-                                    ) : (<button className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-all duration-300 font-['Montserrat_Alternates']"
-                                            onClick={() => {
-                                                setIsEditing(false)
-                                                setAvatarFile(null)
-                                                setAvatarPreview(null)
-                                            }}
-                                        >
-                                            Отмена
-                                        </button>
-                                    )}
+                                    <div className="flex gap-3">
+                                        {profileData.role === 'buyer' && (
+                                            <button
+                                                onClick={handleBecomeMaster}
+                                                disabled={becomeMasterLoading}
+                                                className="px-4 py-2 border-2 border-firm-pink rounded-lg hover:scale-105 hover:border-4 hover:bg-firm-pink hover:text-white transition-all duration-300 font-['Montserrat_Alternates'] disabled:opacity-50"
+                                            >
+                                                {becomeMasterLoading ? 'Загрузка...' : 'Стать мастером'}
+                                            </button>
+                                        )}
+                                        {!isEditing ? (
+                                            <button className="px-4 py-2 border-2 border-firm-orange rounded-lg hover:scale-105 hover:border-4 hover:bg-firm-orange hover:text-white transition-all duration-300 font-['Montserrat_Alternates']" onClick={() => setIsEditing(true)}>Редактировать</button>
+                                        ) : (
+                                            <button className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-all duration-300 font-['Montserrat_Alternates']"
+                                                onClick={() => {
+                                                    setIsEditing(false)
+                                                    setAvatarFile(null)
+                                                    setAvatarPreview(null)
+                                                }}
+                                            >
+                                                Отмена
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {isEditing ? (
@@ -318,6 +374,7 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
                             </div>
                         )}
 
+                        {/* Orders, Favorites, Settings tabs remain the same */}
                         {activeTab === 'orders' && (
                             <div className="bg-white rounded-lg shadow-md p-6">
                                 <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-6">Мои заказы</h2>
@@ -389,7 +446,7 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
                                         <form className="space-y-4 max-w-md">
                                             <div>
                                                 <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Текущий пароль</label>
-                                                <input type="password" className="w-full p-2 rounded-lg bg-[#eaeaea] outline-firm-orange"placeholder="••••••••"/>
+                                                <input type="password" className="w-full p-2 rounded-lg bg-[#eaeaea] outline-firm-orange" placeholder="••••••••"/>
                                             </div>
                                             <div>
                                                 <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Новый пароль</label>

@@ -28,7 +28,8 @@ export async function GET() {
             city: user.profiles?.city || '',
             address: user.profiles?.address || '',
             avatarUrl: user.profiles?.avatar_url || null,
-            newsletterAgreement: user.profiles?.newsletter_agreement || false
+            newsletterAgreement: user.profiles?.newsletter_agreement || false,
+            role: user.role || 'buyer'  // Добавь это поле
         })
     } catch (error) {
         return NextResponse.json({ error: "Ошибка загрузки профиля" }, { status: 500 })

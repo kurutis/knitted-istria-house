@@ -176,7 +176,7 @@ export default function HomePage() {
                 >
                     <Link href="/masters" className="w-full">
                         <button className="w-full font-['Montserrat_Alternates'] font-[450] border-2 border-firm-orange p-2 rounded-xl transition-all duration-300 hover:border-4 hover:bg-firm-orange hover:text-white text-sm md:text-base">
-                            Найти своего мастера
+                            Стать мастером
                         </button>
                     </Link>
                 </motion.div>
