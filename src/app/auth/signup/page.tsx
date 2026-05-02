@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from "next/navigation"
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { toast } from 'react-hot-toast'
@@ -24,7 +24,8 @@ export default function SignUpPage() {
         role: 'buyer',
         newsletterAgreement: false
     })
-    const [contactMethod, setContactMethod] = useState<'email' | 'phone'>('email')
+    const [availableMethods, setAvailableMethods] = useState<('sms' | 'email')[]>([])
+    const [selectedMethod, setSelectedMethod] = useState<'sms' | 'email'>('email')
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
 
@@ -48,12 +49,29 @@ export default function SignUpPage() {
         return cleaned.length >= 10 && cleaned.length <= 12
     }
 
+    // Отслеживаем изменения email и phone для обновления доступных методов
+    useEffect(() => {
+        const hasEmail = isValidEmail(formData.email)
+        const hasPhone = isValidPhone(formData.phone)
+        
+        const methods: ('sms' | 'email')[] = []
+        if (hasEmail) methods.push('email')
+        if (hasPhone) methods.push('sms')
+        
+        setAvailableMethods(methods)
+        
+        // Выбираем метод по умолчанию: email если доступен, иначе sms
+        if (methods.length > 0) {
+            const defaultMethod = methods.includes('email') ? 'email' : 'sms'
+            setSelectedMethod(defaultMethod)
+        }
+    }, [formData.email, formData.phone])
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setError('')
         setLoading(true)
 
-        // Проверяем, что заполнено хотя бы одно из полей: email или телефон
         const hasEmail = isValidEmail(formData.email)
         const hasPhone = isValidPhone(formData.phone)
 
@@ -78,17 +96,13 @@ export default function SignUpPage() {
             return
         }
 
-        // Определяем метод верификации (приоритет: email если есть, иначе sms)
-        const verificationMethod = hasEmail ? 'email' : 'sms'
-        setContactMethod(verificationMethod)
-
         try {
             const response = await fetch("/api/auth/register", {
                 method: 'POST',
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     ...formData,
-                    verificationMethod
+                    verificationMethod: selectedMethod
                 })
             })
 
@@ -99,7 +113,7 @@ export default function SignUpPage() {
             }
 
             setUserId(data.userId)
-            setVerifyMethod(verificationMethod)
+            setVerifyMethod(selectedMethod)
             setStep('verify')
             startResendTimer()
             toast.success(data.message || 'Код отправлен!')
@@ -190,6 +204,7 @@ export default function SignUpPage() {
         }, 1000)
     }
 
+    // Страница верификации
     if (step === 'verify') {
         const contact = verifyMethod === 'sms' ? formData.phone : formData.email
         const icon = verifyMethod === 'sms' ? '📱' : '📧'
@@ -274,6 +289,7 @@ export default function SignUpPage() {
         )
     }
 
+    // Форма регистрации
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center py-12 px-4">
             <motion.div
@@ -339,6 +355,57 @@ export default function SignUpPage() {
                     <p className="text-xs text-gray-400 -mt-2">
                         * Укажите email или номер телефона для входа и подтверждения
                     </p>
+
+                    {/* Выбор способа подтверждения (показывается только если доступны оба метода) */}
+                    {availableMethods.length > 1 && (
+                        <div className="mt-2">
+                            <label className="block text-gray-700 mb-2 text-sm font-medium">
+                                Способ подтверждения
+                            </label>
+                            <div className="flex gap-4">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <div className="relative flex items-center">
+                                        <input
+                                            type="radio"
+                                            checked={selectedMethod === 'email'}
+                                            onChange={() => setSelectedMethod('email')}
+                                            className="w-4 h-4 appearance-none border-2 border-firm-pink rounded-full bg-white checked:bg-firm-pink checked:border-firm-pink transition-all cursor-pointer"
+                                        />
+                                        {selectedMethod === 'email' && (
+                                            <div className="absolute w-2 h-2 bg-white rounded-full left-1 top-1 pointer-events-none"></div>
+                                        )}
+                                    </div>
+                                    <span className="text-sm text-gray-700">📧 Email</span>
+                                </label>
+                                
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <div className="relative flex items-center">
+                                        <input
+                                            type="radio"
+                                            checked={selectedMethod === 'sms'}
+                                            onChange={() => setSelectedMethod('sms')}
+                                            className="w-4 h-4 appearance-none border-2 border-firm-orange rounded-full bg-white checked:bg-firm-orange checked:border-firm-orange transition-all cursor-pointer"
+                                        />
+                                        {selectedMethod === 'sms' && (
+                                            <div className="absolute w-2 h-2 bg-white rounded-full left-1 top-1 pointer-events-none"></div>
+                                        )}
+                                    </div>
+                                    <span className="text-sm text-gray-700">📱 SMS на телефон</span>
+                                </label>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Индикатор выбранного метода (если доступен только один) */}
+                    {availableMethods.length === 1 && (
+                        <div className="mt-2 p-3 bg-gray-50 rounded-xl">
+                            <p className="text-sm text-gray-600">
+                                {availableMethods[0] === 'email' 
+                                    ? '📧 Код подтверждения будет отправлен на указанный email' 
+                                    : '📱 Код подтверждения будет отправлен SMS на указанный телефон'}
+                            </p>
+                        </div>
+                    )}
 
                     <div>
                         <label className="block text-gray-700 mb-2 text-sm font-medium">Город *</label>

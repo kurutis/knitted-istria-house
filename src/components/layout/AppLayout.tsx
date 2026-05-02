@@ -11,7 +11,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (
         <>
             {!isAdminPage && <Header />}
-            <main className={!isAdminPage && !isAuthPage ? "container mx-auto mb-5" : ""}>
+            <main className={!isAdminPage && !isAuthPage ? "container mx-auto mt-5" : ""}>
                 {children}
             </main>
         </>
