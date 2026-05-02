@@ -68,18 +68,23 @@ export default function Header() {
     { href: "/catalog", label: "🧶", name: "Каталог" },
     { href: "/blog", label: "📝", name: "Блог" },
     { href: "/master-classes", label: "🎓", name: "Мастер-классы" },
-    { href: "/favorites", label: "❤️", name: "Избранное" },
-    { href: "/shopping-cart", label: "🛒", name: "Корзина" },
-    { href: "/profile", label: "👤", name: "Профиль" },
+  ];
+
+  const bottomNavLinks = [
+    { href: "/", icon: "🏠", label: "Главная" },
+    { href: "/catalog", icon: "🧶", label: "Каталог" },
+    { href: "/favorites", icon: "❤️", label: "Избранное" },
+    { href: "/profile", icon: "👤", label: "Профиль" },
   ];
 
   return (
     <>
+      {/* Верхняя шапка */}
       <motion.header
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5, type: "spring", stiffness: 100 }}
-        className={`fixed top-0 z-50 w-full transition-all duration-500 ${
+        className={`fixed top-0 z-40 w-full transition-all duration-500 ${
           isScrolled
             ? "bg-main/95 backdrop-blur-md shadow-lg"
             : "bg-main"
@@ -87,14 +92,17 @@ export default function Header() {
       >
         <nav className="container mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="flex justify-between items-center gap-4">
-            {/* Логотип и название */}
+            {/* Пустой div для баланса (только мобильная версия) */}
+            <div className="w-8 lg:hidden"></div>
+
+            {/* Логотип и название - по центру на мобилке, слева на десктопе */}
             <motion.div
               whileHover={{ scale: 1.05 }}
               transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              className="flex gap-2 sm:gap-3 items-center flex-shrink-0"
+              className="flex gap-2 sm:gap-3 items-center flex-shrink-0 lg:mr-0 mx-auto lg:mx-0"
             >
               <Link href="/" className="flex items-center gap-2 sm:gap-3">
-                <Image className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 lg:w-20 lg:h-20" src={logo} alt="logo" />
+                <Image className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-16 lg:h-16" src={logo} alt="logo" />
                 <div className="hidden sm:block">
                   <div className="font-['Montserrat_Alternates'] font-bold leading-tight">
                     <span className="text-firm-pink font-semibold font-['Montserrat_Alternates'] text-xs sm:text-sm md:text-base">
@@ -114,7 +122,7 @@ export default function Header() {
 
             {/* Десктопное меню */}
             <ul className="hidden lg:flex justify-between w-[600px] xl:gap-10">
-              {navLinks.slice(0, 4).map((link, index) => (
+              {navLinks.map((link, index) => (
                 <motion.li
                   key={link.href}
                   initial={{ opacity: 0, y: -20 }}
@@ -220,7 +228,34 @@ export default function Header() {
         </nav>
       </motion.header>
 
-      {/* Мобильное меню - остров снизу */}
+      {/* Фиксированный остров снизу (только для мобильной версии) */}
+      <div className="fixed bottom-4 left-0 right-0 z-40 lg:hidden">
+        <div className="flex justify-center">
+          <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl px-4 py-2 mx-4">
+            <div className="flex items-center gap-6">
+              {bottomNavLinks.map((link, index) => {
+                const isActive = typeof window !== 'undefined' && window.location.pathname === link.href;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-all duration-300 ${
+                      isActive ? 'text-firm-orange' : 'text-gray-500 hover:text-firm-orange'
+                    }`}
+                  >
+                    <span className="text-xl">{link.icon}</span>
+                    <span className="text-[10px] font-['Montserrat_Alternates'] font-medium">
+                      {link.label}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Мобильное меню - выдвигается при нажатии на кнопку */}
       <AnimatePresence>
         {isMenuOpen && (
           <>
@@ -230,35 +265,43 @@ export default function Header() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMenuOpen(false)}
-              className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+              className="fixed inset-0 bg-black/50 z-50 lg:hidden"
             />
             
-            {/* Меню-остров снизу */}
+            {/* Меню-остров по центру */}
             <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 z-50 lg:hidden"
+              className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 w-[85%] max-w-sm lg:hidden"
             >
-              <div className="bg-white/95 backdrop-blur-xl rounded-t-3xl shadow-2xl p-4 pb-8">
-                <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6" />
+              <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg">Меню</h3>
+                  <button
+                    onClick={() => setIsMenuOpen(false)}
+                    className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
+                  >
+                    ✕
+                  </button>
+                </div>
                 
-                <div className="grid grid-cols-4 gap-2">
+                <div className="space-y-2">
                   {navLinks.map((link, index) => (
                     <motion.div
                       key={link.href}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.05 }}
                     >
                       <Link
                         href={link.href}
                         onClick={() => setIsMenuOpen(false)}
-                        className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl hover:bg-gray-100 transition-all duration-300"
+                        className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"
                       >
-                        <span className="text-2xl">{link.label}</span>
-                        <span className="text-xs text-gray-600 font-['Montserrat_Alternates']">
+                        <span className="text-xl">{link.label}</span>
+                        <span className="text-gray-700 font-['Montserrat_Alternates']">
                           {link.name}
                         </span>
                       </Link>
@@ -266,45 +309,59 @@ export default function Header() {
                   ))}
                 </div>
 
-                {/* Дополнительные иконки для авторизованных пользователей */}
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <div className="flex justify-around">
-                    {isAuthenticated && (isBuyer || isMaster) && (
-                      <Link
-                        href="/chats"
-                        onClick={() => setIsMenuOpen(false)}
-                        className="flex flex-col items-center gap-1 py-2 px-3 rounded-xl hover:bg-gray-100 transition"
-                      >
-                        <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                        <span className="text-xs text-gray-600">Чаты</span>
-                      </Link>
-                    )}
-
-                    {!isAuthenticated && (
-                      <Link
-                        href="/auth/signin"
-                        onClick={() => setIsMenuOpen(false)}
-                        className="flex flex-col items-center gap-1 py-2 px-3 rounded-xl hover:bg-gray-100 transition"
-                      >
-                        <span className="text-2xl">🔑</span>
-                        <span className="text-xs text-gray-600">Вход</span>
-                      </Link>
-                    )}
-
-                    {!isAuthenticated && (
-                      <Link
-                        href="/auth/signup"
-                        onClick={() => setIsMenuOpen(false)}
-                        className="flex flex-col items-center gap-1 py-2 px-3 rounded-xl hover:bg-gray-100 transition"
-                      >
-                        <span className="text-2xl">✨</span>
-                        <span className="text-xs text-gray-600">Регистрация</span>
-                      </Link>
-                    )}
+                {/* Дополнительные пункты для авторизованных пользователей */}
+                {(isAuthenticated && (isBuyer || isMaster)) && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <Link
+                      href="/chats"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"
+                    >
+                      <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                      <span className="text-gray-700">Сообщения</span>
+                    </Link>
                   </div>
-                </div>
+                )}
+
+                {/* Кнопка выхода для авторизованных */}
+                {isAuthenticated && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        // signOut logic here
+                      }}
+                      className="w-full flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-red-50 transition-all duration-300 text-red-600"
+                    >
+                      <span className="text-xl">🚪</span>
+                      <span>Выйти</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Кнопки входа/регистрации для неавторизованных */}
+                {!isAuthenticated && (
+                  <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
+                    <Link
+                      href="/auth/signin"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"
+                    >
+                      <span className="text-xl">🔑</span>
+                      <span>Войти</span>
+                    </Link>
+                    <Link
+                      href="/auth/signup"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"
+                    >
+                      <span className="text-xl">✨</span>
+                      <span>Зарегистрироваться</span>
+                    </Link>
+                  </div>
+                )}
               </div>
             </motion.div>
           </>
@@ -313,6 +370,9 @@ export default function Header() {
 
       {/* Отступ для фиксированного хедера */}
       <div className="h-[10vh] min-h-[60px]" />
+      
+      {/* Отступ для мобильного нижнего меню */}
+      <div className="h-20 lg:hidden" />
     </>
   );
 }
