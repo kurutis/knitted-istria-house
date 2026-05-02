@@ -22,9 +22,9 @@ export default function SignUpPage() {
         password: '',
         confirmPassword: '',
         role: 'buyer',
-        newsletterAgreement: false,
-        verificationMethod: 'sms'
+        newsletterAgreement: false
     })
+    const [contactMethod, setContactMethod] = useState<'email' | 'phone'>('email')
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
 
@@ -37,13 +37,13 @@ export default function SignUpPage() {
         }
     }
 
-    // Валидация email
     const isValidEmail = (email: string) => {
+        if (!email) return false
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
     }
 
-    // Валидация телефона
     const isValidPhone = (phone: string) => {
+        if (!phone) return false
         const cleaned = phone.replace(/[^0-9]/g, '')
         return cleaned.length >= 10 && cleaned.length <= 12
     }
@@ -53,17 +53,13 @@ export default function SignUpPage() {
         setError('')
         setLoading(true)
 
-        // Валидация
-        if (!isValidEmail(formData.email)) {
-            setError('Введите корректный email адрес')
-            toast.error('Введите корректный email адрес')
-            setLoading(false)
-            return
-        }
+        // Проверяем, что заполнено хотя бы одно из полей: email или телефон
+        const hasEmail = isValidEmail(formData.email)
+        const hasPhone = isValidPhone(formData.phone)
 
-        if (!isValidPhone(formData.phone)) {
-            setError('Введите корректный номер телефона')
-            toast.error('Введите корректный номер телефона')
+        if (!hasEmail && !hasPhone) {
+            setError('Укажите email ИЛИ номер телефона')
+            toast.error('Укажите email ИЛИ номер телефона')
             setLoading(false)
             return
         }
@@ -82,13 +78,17 @@ export default function SignUpPage() {
             return
         }
 
+        // Определяем метод верификации (приоритет: email если есть, иначе sms)
+        const verificationMethod = hasEmail ? 'email' : 'sms'
+        setContactMethod(verificationMethod)
+
         try {
             const response = await fetch("/api/auth/register", {
                 method: 'POST',
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     ...formData,
-                    verificationMethod: formData.verificationMethod
+                    verificationMethod
                 })
             })
 
@@ -99,7 +99,7 @@ export default function SignUpPage() {
             }
 
             setUserId(data.userId)
-            setVerifyMethod(formData.verificationMethod)
+            setVerifyMethod(verificationMethod)
             setStep('verify')
             startResendTimer()
             toast.success(data.message || 'Код отправлен!')
@@ -190,7 +190,6 @@ export default function SignUpPage() {
         }, 1000)
     }
 
-    // Страница верификации кода
     if (step === 'verify') {
         const contact = verifyMethod === 'sms' ? formData.phone : formData.email
         const icon = verifyMethod === 'sms' ? '📱' : '📧'
@@ -212,7 +211,7 @@ export default function SignUpPage() {
                         <p className="text-gray-500 text-sm mt-2">
                             Мы отправили код подтверждения на <br />
                             <strong className="text-firm-orange">
-                                {verifyMethod === 'sms' ? formData.phone : formData.email}
+                                {contact}
                             </strong>
                         </p>
                         {process.env.NODE_ENV === 'development' && (
@@ -238,13 +237,9 @@ export default function SignUpPage() {
                     </div>
 
                     {error && (
-                        <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            className="mt-4 bg-red-50 border border-red-200 rounded-xl p-3"
-                        >
+                        <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-3">
                             <p className="text-red-600 text-sm text-center">{error}</p>
-                        </motion.div>
+                        </div>
                     )}
 
                     <motion.button
@@ -254,14 +249,7 @@ export default function SignUpPage() {
                         disabled={loading || code.length !== 4}
                         className="w-full mt-6 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-50"
                     >
-                        {loading ? (
-                            <div className="flex items-center justify-center gap-2">
-                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                <span>Проверка...</span>
-                            </div>
-                        ) : (
-                            'Подтвердить'
-                        )}
+                        {loading ? 'Проверка...' : 'Подтвердить'}
                     </motion.button>
 
                     <div className="text-center mt-4">
@@ -286,7 +274,6 @@ export default function SignUpPage() {
         )
     }
 
-    // Форма регистрации
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center py-12 px-4">
             <motion.div
@@ -326,30 +313,32 @@ export default function SignUpPage() {
                     </div>
 
                     <div>
-                        <label className="block text-gray-700 mb-2 text-sm font-medium">Email *</label>
+                        <label className="block text-gray-700 mb-2 text-sm font-medium">Email</label>
                         <input
                             className="w-full p-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20"
                             type="email"
                             name="email"
                             value={formData.email}
                             onChange={handleChange}
-                            required
                             placeholder="ivan@example.com"
                         />
                     </div>
 
                     <div>
-                        <label className="block text-gray-700 mb-2 text-sm font-medium">Телефон *</label>
+                        <label className="block text-gray-700 mb-2 text-sm font-medium">Телефон</label>
                         <input
                             className="w-full p-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20"
                             type="tel"
                             name="phone"
                             value={formData.phone}
                             onChange={handleChange}
-                            required
                             placeholder="+7 (999) 123-45-67"
                         />
                     </div>
+
+                    <p className="text-xs text-gray-400 -mt-2">
+                        * Укажите email или номер телефона для входа и подтверждения
+                    </p>
 
                     <div>
                         <label className="block text-gray-700 mb-2 text-sm font-medium">Город *</label>
@@ -425,45 +414,6 @@ export default function SignUpPage() {
                             required
                             placeholder="повторите пароль"
                         />
-                    </div>
-
-                    <div>
-                        <label className="block text-gray-700 mb-2 text-sm font-medium">Способ подтверждения *</label>
-                        <div className="flex gap-4">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <div className="relative flex items-center">
-                                    <input
-                                        type="radio"
-                                        name="verificationMethod"
-                                        value="sms"
-                                        checked={formData.verificationMethod === 'sms'}
-                                        onChange={handleChange}
-                                        className="w-4 h-4 appearance-none border-2 border-firm-orange rounded-full bg-white checked:bg-firm-orange checked:border-firm-orange transition-all cursor-pointer"
-                                    />
-                                    {formData.verificationMethod === 'sms' && (
-                                        <div className="absolute w-2 h-2 bg-white rounded-full left-1 top-1 pointer-events-none"></div>
-                                    )}
-                                </div>
-                                <span className="text-sm text-gray-700">📱 SMS на телефон</span>
-                            </label>
-
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <div className="relative flex items-center">
-                                    <input
-                                        type="radio"
-                                        name="verificationMethod"
-                                        value="email"
-                                        checked={formData.verificationMethod === 'email'}
-                                        onChange={handleChange}
-                                        className="w-4 h-4 appearance-none border-2 border-firm-pink rounded-full bg-white checked:bg-firm-pink checked:border-firm-pink transition-all cursor-pointer"
-                                    />
-                                    {formData.verificationMethod === 'email' && (
-                                        <div className="absolute w-2 h-2 bg-white rounded-full left-1 top-1 pointer-events-none"></div>
-                                    )}
-                                </div>
-                                <span className="text-sm text-gray-700">📧 Email</span>
-                            </label>
-                        </div>
                     </div>
 
                     <label className="flex items-center gap-3 cursor-pointer group">
