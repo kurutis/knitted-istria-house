@@ -19,6 +19,7 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarError, setAvatarError] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -91,15 +92,12 @@ export default function Header() {
         } h-[10vh] min-h-[60px] flex items-center`}
       >
         <nav className="container mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="flex justify-between items-center gap-4">
-            {/* Пустой div для баланса (только мобильная версия) */}
-            <div className="w-8 lg:hidden"></div>
-
+          <div className="flex justify-center lg:justify-between items-center gap-4">
             {/* Логотип и название - по центру на мобилке, слева на десктопе */}
             <motion.div
               whileHover={{ scale: 1.05 }}
               transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              className="flex gap-2 sm:gap-3 items-center flex-shrink-0 lg:mr-0 mx-auto lg:mx-0"
+              className="flex gap-2 sm:gap-3 items-center flex-shrink-0"
             >
               <Link href="/" className="flex items-center gap-2 sm:gap-3">
                 <Image className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-16 lg:h-16" src={logo} alt="logo" />
@@ -173,22 +171,12 @@ export default function Header() {
                   <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gray-300 animate-pulse" />
                 ) : isAuthenticated ? (
                   <Link href="/profile" className="block">
-                    {avatarUrl ? (
+                    {avatarUrl && !avatarError ? (
                       <img
                         src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`}
                         alt="profile"
                         className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover ring-2 ring-white/50 hover:ring-firm-orange transition-all duration-300"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          const parent = e.currentTarget.parentElement;
-                          if (parent) {
-                            const span = document.createElement('div');
-                            span.className = 'w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-xs sm:text-sm font-bold';
-                            span.textContent = getInitials();
-                            parent.appendChild(span);
-                            e.currentTarget.remove();
-                          }
-                        }}
+                        onError={() => setAvatarError(true)}
                       />
                     ) : (
                       <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-xs sm:text-sm font-bold">
@@ -205,25 +193,6 @@ export default function Header() {
                 )}
               </motion.div>
             </div>
-
-            {/* Кнопка мобильного меню - только для мобильной версии */}
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="lg:hidden flex flex-col gap-1.5 p-1 z-50"
-            >
-              <motion.span
-                animate={isMenuOpen ? { rotate: 45, y: 7 } : { rotate: 0, y: 0 }}
-                className="w-6 h-0.5 bg-white rounded-full transition-all duration-300"
-              />
-              <motion.span
-                animate={isMenuOpen ? { opacity: 0 } : { opacity: 1 }}
-                className="w-6 h-0.5 bg-white rounded-full transition-all duration-300"
-              />
-              <motion.span
-                animate={isMenuOpen ? { rotate: -45, y: -7 } : { rotate: 0, y: 0 }}
-                className="w-6 h-0.5 bg-white rounded-full transition-all duration-300"
-              />
-            </button>
           </div>
         </nav>
       </motion.header>
@@ -233,7 +202,7 @@ export default function Header() {
         <div className="flex justify-center">
           <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl px-4 py-2 mx-4">
             <div className="flex items-center gap-6">
-              {bottomNavLinks.map((link, index) => {
+              {bottomNavLinks.map((link) => {
                 const isActive = typeof window !== 'undefined' && window.location.pathname === link.href;
                 return (
                   <Link
@@ -250,12 +219,34 @@ export default function Header() {
                   </Link>
                 );
               })}
+              
+              {/* Кнопка меню (бургер) в нижней панели */}
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange"
+              >
+                <div className="relative w-6 h-6 flex flex-col items-center justify-center gap-1">
+                  <motion.span
+                    animate={isMenuOpen ? { rotate: 45, y: 6 } : { rotate: 0, y: 0 }}
+                    className="w-5 h-0.5 bg-current rounded-full transition-all duration-300"
+                  />
+                  <motion.span
+                    animate={isMenuOpen ? { opacity: 0 } : { opacity: 1 }}
+                    className="w-5 h-0.5 bg-current rounded-full transition-all duration-300"
+                  />
+                  <motion.span
+                    animate={isMenuOpen ? { rotate: -45, y: -6 } : { rotate: 0, y: 0 }}
+                    className="w-5 h-0.5 bg-current rounded-full transition-all duration-300"
+                  />
+                </div>
+                <span className="text-[10px] font-['Montserrat_Alternates'] font-medium">Меню</span>
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Мобильное меню - выдвигается при нажатии на кнопку */}
+      {/* Мобильное меню - выдвигается при нажатии на кнопку меню */}
       <AnimatePresence>
         {isMenuOpen && (
           <>
@@ -331,7 +322,6 @@ export default function Header() {
                     <button
                       onClick={() => {
                         setIsMenuOpen(false);
-                        // signOut logic here
                       }}
                       className="w-full flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-red-50 transition-all duration-300 text-red-600"
                     >
