@@ -30,16 +30,16 @@ export default function TopMasters() {
 
   const fetchTopMasters = async () => {
     try {
-        const response = await fetch('/api/masters/top')
-        const data = await response.json()
-        setMasters(Array.isArray(data) ? data : [])
+      const response = await fetch('/api/masters/top')
+      const data = await response.json()
+      setMasters(Array.isArray(data) ? data : [])
     } catch (error) {
-        console.error('Error fetching top masters:', error)
-        setMasters([])
+      console.error('Error fetching top masters:', error)
+      setMasters([])
     } finally {
-        setLoading(false)
+      setLoading(false)
     }
-}
+  }
 
   if (loading) {
     return (
@@ -53,7 +53,7 @@ export default function TopMasters() {
     )
   }
 
-  if (masters.length === 0) return null
+  if (!Array.isArray(masters) || masters.length === 0) return null
 
   const first = masters[0]
   const second = masters[1]
@@ -74,13 +74,13 @@ export default function TopMasters() {
   const itemVariants = {
     hidden: { y: 30, opacity: 0 },
     visible: { 
-        y: 0, 
-        opacity: 1,
-        transition: { duration: 0.5 }
+      y: 0, 
+      opacity: 1,
+      transition: { duration: 0.5 }
     }
-}
+  }
 
-  // Мобильная версия - компактный список
+  // Мобильная версия
   if (isMobile) {
     return (
       <motion.div 
@@ -107,9 +107,7 @@ export default function TopMasters() {
           />
         </div>
 
-        {/* ТОП-3 в ряд */}
         <div className="flex justify-around items-center gap-2 px-2 mb-6">
-          {/* 2 место */}
           {second && (
             <motion.div 
               className="flex-1 bg-white rounded-xl shadow-md p-3 text-center"
@@ -141,7 +139,6 @@ export default function TopMasters() {
             </motion.div>
           )}
 
-          {/* 1 место */}
           {first && (
             <motion.div 
               className="flex-1 bg-white rounded-xl shadow-lg p-4 text-center relative -mt-4"
@@ -174,7 +171,6 @@ export default function TopMasters() {
             </motion.div>
           )}
 
-          {/* 3 место */}
           {third && (
             <motion.div 
               className="flex-1 bg-white rounded-xl shadow-md p-3 text-center"
@@ -207,8 +203,7 @@ export default function TopMasters() {
           )}
         </div>
 
-        {/* Остальные мастера списком */}
-        {rest.length > 0 && (
+        {Array.isArray(rest) && rest.length > 0 && (
           <motion.div 
             className="px-4 space-y-2"
             initial={{ opacity: 0 }}
@@ -288,10 +283,9 @@ export default function TopMasters() {
       </div>
 
       <div className="flex justify-center items-end gap-4 lg:gap-8 flex-wrap">
-        {/* 2 место */}
         {second && (
           <motion.div 
-            className="border-gray-300 border-1 bg-white rounded-2xl shadow-lg p-6 w-56 lg:w-64 transform hover:-translate-y-2 transition-all duration-300"
+            className="bg-white rounded-2xl shadow-lg p-6 w-56 lg:w-64 transform hover:-translate-y-2 transition-all duration-300"
             variants={itemVariants}
             whileHover={{ y: -10, boxShadow: "0 20px 40px rgba(0,0,0,0.1)" }}
           >
@@ -337,7 +331,6 @@ export default function TopMasters() {
           </motion.div>
         )}
 
-        {/* 1 место */}
         {first && (
           <motion.div 
             className="bg-white rounded-2xl shadow-xl p-6 lg:p-8 w-64 lg:w-72 transform relative"
@@ -384,7 +377,6 @@ export default function TopMasters() {
           </motion.div>
         )}
 
-        {/* 3 место */}
         {third && (
           <motion.div 
             className="bg-white rounded-2xl shadow-lg p-6 w-56 lg:w-64 transform hover:-translate-y-2 transition-all duration-300"
@@ -434,8 +426,7 @@ export default function TopMasters() {
         )}
       </div>
 
-      {/* Остальные мастера для десктопа */}
-      {rest.length > 0 && (
+      {Array.isArray(rest) && rest.length > 0 && (
         <motion.div 
           className="mt-12 text-center"
           initial={{ opacity: 0 }}
