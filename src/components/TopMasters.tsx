@@ -30,15 +30,16 @@ export default function TopMasters() {
 
   const fetchTopMasters = async () => {
     try {
-      const response = await fetch('/api/masters/top')
-      const data = await response.json()
-      setMasters(data || [])
+        const response = await fetch('/api/masters/top')
+        const data = await response.json()
+        setMasters(Array.isArray(data) ? data : [])
     } catch (error) {
-      console.error('Error fetching top masters:', error)
+        console.error('Error fetching top masters:', error)
+        setMasters([])
     } finally {
-      setLoading(false)
+        setLoading(false)
     }
-  }
+}
 
   if (loading) {
     return (
