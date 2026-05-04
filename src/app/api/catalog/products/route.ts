@@ -20,13 +20,13 @@ const querySchema = z.object({
 });
 
 // Rate limiting для каталога
-const limiter = rateLimit({ limit: 60, windowMs: 60 * 1000 }); // 60 запросов в минуту
+const limiter = rateLimit({ limit: 60, windowMs: 60 * 1000 });
 
 export async function GET(request: Request) {
     const startTime = Date.now();
     
     try {
-        // 1. Rate limiting - исправлено: передаем request
+        // 1. Rate limiting
         const rateLimitResult = limiter(request);
         if (!rateLimitResult.success) {
             logInfo('Rate limit exceeded for products', { ip: getClientIP(request) });
@@ -54,11 +54,10 @@ export async function GET(request: Request) {
         const { category, technique, minPrice, maxPrice, search, sort, page, limit } = validatedParams;
         const offset = (page - 1) * limit;
 
-        // 3. Создаем ключ кэша на основе всех параметров
+        // 3. Создаем ключ кэша
         const cacheKey = `products_${JSON.stringify(validatedParams)}`;
         
         const result = await cachedQuery(cacheKey, async () => {
-            // 4. Оптимизированный запрос с join для получения имени мастера
             let query = supabase
                 .from('products')
                 .select(`
@@ -74,7 +73,7 @@ export async function GET(request: Request) {
                     created_at,
                     views,
                     master_id,
-                    users!products_master_id_fkey (
+                    users!inner (
                         email,
                         profiles!left (
                             full_name,
@@ -83,7 +82,6 @@ export async function GET(request: Request) {
                     )
                 `, { count: 'exact' });
 
-            // 5. Применяем фильтры
             query = query.eq('status', 'active');
             
             if (category && category !== 'all' && category !== 'null') {
@@ -103,12 +101,10 @@ export async function GET(request: Request) {
             }
 
             if (search && search.trim()) {
-                // Защита от SQL инъекций через ilike (экранирование спецсимволов)
                 const safeSearch = search.trim().replace(/[%_]/g, '\\$&');
                 query = query.ilike('title', `%${safeSearch}%`);
             }
 
-            // 6. Применяем сортировку
             switch (sort) {
                 case 'price_asc':
                     query = query.order('price', { ascending: true, nullsFirst: false });
@@ -119,16 +115,12 @@ export async function GET(request: Request) {
                 case 'popular':
                     query = query.order('views', { ascending: false, nullsFirst: false });
                     break;
-                case 'rating':
-                    query = query.order('created_at', { ascending: false });
-                    break;
                 case 'newest':
                 default:
                     query = query.order('created_at', { ascending: false });
                     break;
             }
 
-            // 7. Пагинация
             const { data: products, error, count } = await query
                 .range(offset, offset + limit - 1);
 
@@ -150,7 +142,6 @@ export async function GET(request: Request) {
                 };
             }
 
-            // 8. Форматируем товары с санитизацией
             const formattedProducts = products.map(product => ({
                 id: product.id,
                 title: sanitize.text(product.title),
@@ -180,7 +171,6 @@ export async function GET(request: Request) {
             };
         });
 
-        // 9. Добавляем мета информацию
         const response = {
             success: true,
             ...result,
@@ -191,7 +181,6 @@ export async function GET(request: Request) {
             }
         };
 
-        // Добавляем заголовки rate limit
         const headers = {
             'X-RateLimit-Limit': rateLimitResult.limit?.toString() || '60',
             'X-RateLimit-Remaining': rateLimitResult.remaining?.toString() || '60',
@@ -218,66 +207,5 @@ export async function GET(request: Request) {
             products: [],
             pagination: { page: 1, limit: 12, total: 0, totalPages: 0, hasMore: false }
         }, { status: 500 });
-    }
-}
-
-// Дополнительный эндпоинт для получения похожих товаров
-export async function GET_RELATED(request: Request) {
-    const startTime = Date.now();
-    
-    try {
-        const { searchParams } = new URL(request.url);
-        const productId = searchParams.get('productId');
-        const category = searchParams.get('category');
-        const limit = Math.min(parseInt(searchParams.get('limit') || '4'), 10);
-
-        if (!productId || !category) {
-            return NextResponse.json({ products: [] }, { status: 200 });
-        }
-
-        const cacheKey = `related_${productId}_${category}_${limit}`;
-        
-        const relatedProducts = await cachedQuery(cacheKey, async () => {
-            const { data: products } = await supabase
-                .from('products')
-                .select(`
-                    id,
-                    title,
-                    price,
-                    main_image_url,
-                    master_id,
-                    users!products_master_id_fkey (
-                        email,
-                        profiles!left (
-                            full_name,
-                            avatar_url
-                        )
-                    )
-                `)
-                .eq('status', 'active')
-                .eq('category', category)
-                .neq('id', productId)
-                .limit(limit);
-
-            return products?.map(p => ({
-                id: p.id,
-                title: sanitize.text(p.title),
-                price: parseFloat(p.price),
-                main_image_url: p.main_image_url,
-                master_name: sanitize.text(p.users?.[0]?.profiles?.[0]?.full_name || ''),
-                master_avatar: p.users?.[0]?.profiles?.[0]?.avatar_url
-            })) || [];
-        }, 300); // 5 минут кэширования для похожих товаров
-
-        logApiRequest('GET', '/api/products/related', 200, Date.now() - startTime);
-
-        return NextResponse.json({ 
-            success: true, 
-            products: relatedProducts 
-        });
-        
-    } catch (error) {
-        logError('Error fetching related products', error);
-        return NextResponse.json({ products: [] }, { status: 500 });
     }
 }
