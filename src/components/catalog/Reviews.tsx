@@ -6,8 +6,22 @@ import Link from 'next/link'
 
 interface ReviewsProps {
     productId: string
-    reviews: any[]
-    session: any
+    reviews: Array<{
+        id: string;
+        rating: number;
+        comment: string;
+        created_at: string;
+        author_name: string;
+        author_avatar?: string | null;
+    }>
+    session: {
+        user?: {
+            id?: string;
+            name?: string;
+            email?: string;
+            role?: string;
+        };
+    } | null
     onUpdate: () => void
 }
 
@@ -92,7 +106,7 @@ export default function Reviews({ productId, reviews, session, onUpdate }: Revie
                 </div>
             ) : (
                 <div className="space-y-6">
-                    {reviews.map((review: any) => (
+                    {reviews.map((review) => (
                         <div key={review.id} className="border-b border-gray-200 pb-6 last:border-0">
                             <div className="flex items-start gap-4">
                                 <div className="w-10 h-10 rounded-full bg-firm-orange flex items-center justify-center flex-shrink-0 overflow-hidden">

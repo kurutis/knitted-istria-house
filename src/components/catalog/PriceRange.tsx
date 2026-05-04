@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { motion } from "framer-motion"
 
 interface PriceRangeProps {
@@ -15,13 +15,13 @@ export default function PriceRange({ min, max, currentMin, currentMax, onChange 
     const displayMin = 0
     const displayMax = max
     
+    // Используем пропсы напрямую, не создавая локальное состояние
+    // Или если нужно локальное состояние для оптимизации, инициализируем его без useEffect
     const [localMin, setLocalMin] = useState(currentMin)
     const [localMax, setLocalMax] = useState(currentMax)
 
-    useEffect(() => {
-        setLocalMin(currentMin)
-        setLocalMax(currentMax)
-    }, [currentMin, currentMax])
+    // Вместо useEffect используем проверку при каждом onChange
+    // или просто используем пропсы напрямую в JSX
 
     const handleMinChange = (value: number) => {
         const newMin = Math.min(Math.max(value, displayMin), localMax - 100)

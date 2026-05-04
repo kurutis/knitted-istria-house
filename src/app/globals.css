@@ -1,20 +1,18 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat+Alternates:wght@400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
 @layer base {
   * {
     @apply text-[#242424];
-    font-family: "Raleway", sans-serif;
+    font-family: var(--font-raleway), "Raleway", sans-serif;
     font-weight: 500;
   }
   
   body {
     background-color: #F9F9F9;
+  }
+
+  .font-Montserrat_Alternates {
+    font-family: var(--font-montserrat-alternates), "Montserrat Alternates", sans-serif;
   }
 }
 
@@ -28,13 +26,13 @@
 }
 
 .dashed-blue-ring {
-  ring: 4px dashed #007BFF; /* синий цвет пунктирной линии */
+  ring: 4px dashed #007BFF;
 }
 
-@theme{
+@theme {
     --color-main: #f9f9f9;
-    --color-firm-orange:#F4A67F;
-    --color-firm-pink:#D97C8E;
+    --color-firm-orange: #F4A67F;
+    --color-firm-pink: #D97C8E;
     --color-main-black: #1C1C18;
     --color-forms: #F1F1F1;
     --color-firm-red: #D77C7C;

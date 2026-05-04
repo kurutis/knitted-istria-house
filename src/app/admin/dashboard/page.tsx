@@ -15,8 +15,23 @@ interface DashboardStats {
         masters: number
         products: number
     }
-    recentUsers: Array<any>
-    recentOrders: Array<any>
+    recentUsers: Array<{
+        id: string
+        name?: string
+        full_name?: string
+        email: string
+        role: string
+        created_at: string
+    }>
+    recentOrders: Array<{
+        id: string
+        order_number: string
+        total_amount: number
+        status: string
+        created_at: string
+        buyer_name?: string
+        buyer_email?: string
+    }>
 }
 
 export default function AdminDashboardPage() {
@@ -62,8 +77,9 @@ export default function AdminDashboardPage() {
             
             const data = await response.json()
             setStats(data)
-        } catch (error: any) {
-            setError(error.message)
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка'
+            setError(errorMessage)
         } finally {
             setLoading(false)
         }
@@ -102,8 +118,9 @@ export default function AdminDashboardPage() {
             setShowYarnModal(false)
             resetYarnForm()
             alert('Пряжа успешно добавлена')
-        } catch (error: any) {
-            alert(error.message || 'Ошибка при создании пряжи')
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Ошибка при создании пряжи'
+            alert(errorMessage)
         } finally {
             setSaving(false)
         }
@@ -142,8 +159,9 @@ export default function AdminDashboardPage() {
             resetUserForm()
             alert('Пользователь успешно создан')
             await loadDashboardStats()
-        } catch (error: any) {
-            alert(error.message || 'Ошибка при создании пользователя')
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Ошибка при создании пользователя'
+            alert(errorMessage)
         } finally {
             setSaving(false)
         }

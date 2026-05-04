@@ -4,8 +4,26 @@ import { useState } from 'react'
 import Link from 'next/link'
 
 interface ProductInfoProps {
-    product: any
-    session: any
+    product: {
+        id: string;
+        title: string;
+        price: number;
+        old_price?: number;
+        rating?: number;
+        reviews?: { length: number };
+        category?: string;
+        technique?: string;
+        size?: string;
+        views?: number;
+    }
+    session: {
+        user?: {
+            id?: string;
+            name?: string;
+            email?: string;
+            role?: string;
+        };
+    } | null
     onUpdate: () => void
 }
 

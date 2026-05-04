@@ -63,6 +63,8 @@ interface BlogPost {
   images?: Array<{ id: string; url: string; sort_order: number }>;
 }
 
+type DisplayPost = BlogPost | (SearchPost & { comments?: Comment[]; views_count?: number });
+
 export default function BlogPage() {
   const { data: session } = useSession();
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -534,8 +536,8 @@ export default function BlogPage() {
           {showSearchResults && (
             <div className="bg-gradient-to-r from-firm-orange/10 to-firm-pink/10 rounded-xl p-3 text-xs sm:text-sm text-gray-600 break-words">
               🔍 Найдено {searchResults.masters?.length || 0} мастеров и{" "}
-              {searchResults.posts?.length || 0} постов по запросу "
-              {searchQuery}"
+              {searchResults.posts?.length || 0} постов по запросу &quot;
+              {searchQuery}&quot;
             </div>
           )}
 
@@ -545,7 +547,7 @@ export default function BlogPage() {
             </div>
           ) : (
             <AnimatePresence>
-              {displayPosts.map((post: any, index: number) => {
+              {displayPosts.map((post: DisplayPost, index: number) => {
                 const comments = post.comments || [];
                 const hasComments = comments.length > 0;
                 
@@ -590,7 +592,7 @@ export default function BlogPage() {
 
                     <div className="p-3 sm:p-4">
                       <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg sm:text-xl mb-2 break-words">
-                        {showSearchResults && post.highlighted_title ? (
+                        {showSearchResults && 'highlighted_title' in post && post.highlighted_title ? (
                           <div
                             dangerouslySetInnerHTML={{
                               __html: post.highlighted_title,
@@ -614,7 +616,7 @@ export default function BlogPage() {
                         ) : null}
 
                       <div className="text-gray-700 mt-3 sm:mt-4 break-words">
-                        {showSearchResults && post.highlighted_content ? (
+                        {showSearchResults && 'highlighted_content' in post && post.highlighted_content ? (
                           <div
                             dangerouslySetInnerHTML={{
                               __html: post.highlighted_content + "...",
@@ -715,7 +717,7 @@ export default function BlogPage() {
                             d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
                           />
                         </svg>
-                        {post.views_count}
+                        {'views_count' in post ? post.views_count : 0}
                       </span>
                     </div>
 
@@ -1035,7 +1037,25 @@ function MastersSidebar({
   session,
   currentMasterId,
   handleFollow,
-}: any) {
+}: {
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  isSearching: boolean;
+  showSearchResults: boolean;
+  searchResults: { masters: Master[]; posts: SearchPost[] } | null;
+  followingMasters: Master[];
+  recommendedMasters: Master[];
+  session: {
+    user?: {
+      id?: string;
+      name?: string | null;
+      email?: string | null;
+      role?: string;
+    };
+  } | null;
+  currentMasterId: string | undefined;
+  handleFollow: (masterId: string, isFollowing: boolean) => Promise<void>;
+}) {
   // Проверяем, является ли мастер текущим пользователем (владельцем аккаунта)
   const isCurrentMaster = (masterId: string) => {
     return currentMasterId === masterId;

@@ -46,7 +46,7 @@ export default function KnowledgeBasePage() {
 
   useEffect(() => {
     if (status === "loading") return;
-    if (!session || session.user?.role !== "admin") {
+    if (!session || session.user?.role !== 'admin') {
       router.push("/auth/signin");
       return;
     }

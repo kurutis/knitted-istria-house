@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, JSX } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
@@ -45,6 +45,12 @@ interface Product {
     status: string
 }
 
+type Category = {
+    id: string;
+    name: string;
+    subcategories?: Category[];
+}
+
 export default function ProductPage() {
     const { id } = useParams()
     const router = useRouter()
@@ -74,7 +80,8 @@ export default function ProductPage() {
         color: '',
         care_instructions: ''
     })
-    const [categories, setCategories] = useState<any[]>([])
+   const [categories, setCategories] = useState<Category[]>([])
+
 
     useEffect(() => {
         if (id) {
@@ -109,8 +116,8 @@ export default function ProductPage() {
                 color: data.color || '',
                 care_instructions: data.care_instructions || ''
             })
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Произошла ошибка')
         } finally {
             setLoading(false)
         }
@@ -120,13 +127,14 @@ export default function ProductPage() {
         try {
             const response = await fetch('/api/catalog/categories')
             const data = await response.json()
-            setCategories(data.categories || [])
+            const categoriesData = data.categories || []
+            setCategories(categoriesData as Category[])
         } catch (error) {
             console.error('Ошибка загрузки категорий:', error)
         }
     }
 
-    const renderCategoryOptions = (categories: any[], level = 0) => {
+    const renderCategoryOptions = (categories: Category[], level = 0) => {
         const options: JSX.Element[] = []
         categories.forEach(cat => {
             const prefix = '—'.repeat(level)
@@ -144,7 +152,7 @@ export default function ProductPage() {
         try {
             const response = await fetch('/api/cart')
             const data = await response.json()
-            const cartItem = data.items?.find((item: any) => item.product_id === id)
+            const cartItem = data.items?.find((item: { product_id: string; quantity: number }) => item.product_id === id)
             if (cartItem) {
                 setIsInCart(true)
                 setQuantity(cartItem.quantity)
@@ -158,7 +166,7 @@ export default function ProductPage() {
         try {
             const response = await fetch('/api/user/favorites')
             const data = await response.json()
-            const isFav = data.some((item: any) => item.id === id)
+            const isFav = data.some((item: { id: string }) => item.id === id)
             setIsFavorite(!!isFav)
         } catch (error) {
             console.error('Error checking favorite status:', error)
@@ -631,7 +639,7 @@ export default function ProductPage() {
                                             <div className="flex py-1 justify-between items-start">
                                                 <span className="text-gray-500 text-sm w-2/5 md:w-1/3">Пряжа:</span>
                                                 <span className="font-medium text-sm text-right w-3/5 md:w-2/3">
-                                                    {product.yarns.map((y: any) => y.name).join(', ')}
+                                                    {product.yarns.map((y: { name: string }) => y.name).join(', ')}
                                                 </span>
                                             </div>
                                         )}

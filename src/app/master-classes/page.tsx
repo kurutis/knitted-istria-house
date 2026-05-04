@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { Session } from "next-auth"
 
 interface MasterClass {
     id: string
@@ -25,7 +26,16 @@ interface MasterClass {
     master_avatar: string
     status: string
     is_registered?: boolean
-    registrations?: Array<any>
+    registrations?: Array<{
+        id: string;
+        user_id: string;
+        status: string;
+        created_at: string;
+        user?: {
+            name: string;
+            email: string;
+        };
+    }>
 }
 
 export default function MasterClassesPage() {
@@ -727,7 +737,17 @@ export default function MasterClassesPage() {
 }
 
 // Компонент карточки мастер-класса для всех пользователей
-function MasterClassCard({ masterClass, session, onRegister, onCancel }: any) {
+function MasterClassCard({ 
+        masterClass, 
+        session, 
+        onRegister, 
+        onCancel 
+    }: { 
+        masterClass: MasterClass;
+        session: Session | null;
+        onRegister: (id: string) => Promise<void>;
+        onCancel: (id: string) => Promise<void>;
+    }) {
     const isPast = new Date(masterClass.date_time) < new Date()
     const isFull = masterClass.current_participants >= masterClass.max_participants
     const isRegistered = masterClass.is_registered
@@ -814,7 +834,13 @@ function MasterClassCard({ masterClass, session, onRegister, onCancel }: any) {
 }
 
 // Компонент карточки моих записей
-function MyRegisteredClassCard({ masterClass, onCancel }: any) {
+function MyRegisteredClassCard({ 
+        masterClass, 
+        onCancel 
+    }: { 
+        masterClass: MasterClass;
+        onCancel: (id: string) => Promise<void>;
+    }) {
     const isPast = new Date(masterClass.date_time) < new Date()
     const canJoin = !isPast && masterClass.type === 'online' && masterClass.online_link
 
@@ -887,7 +913,23 @@ function MyRegisteredClassCard({ masterClass, onCancel }: any) {
 }
 
 // Компонент карточки созданных мастер-классов (для мастеров)
-function MyCreatedClassCard({ masterClass, getStatusBadge, onEdit, onDelete, onCancel, onViewParticipants, isPast = false }: any) {
+function MyCreatedClassCard({ 
+    masterClass, 
+    getStatusBadge, 
+    onEdit, 
+    onDelete, 
+    onCancel, 
+    onViewParticipants, 
+    isPast = false 
+}: { 
+    masterClass: MasterClass;
+    getStatusBadge: (status: string) => React.ReactNode;
+    onEdit: (masterClass: MasterClass) => void;
+    onDelete: (id: string) => void;
+    onCancel: (id: string) => void;
+    onViewParticipants: (masterClass: MasterClass) => void;
+    isPast?: boolean;
+}) {
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
     }

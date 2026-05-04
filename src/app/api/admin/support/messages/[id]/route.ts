@@ -2,41 +2,74 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
+import { rateLimit, getClientIP } from "@/lib/rate-limit";
+import { logError, logInfo, logApiRequest } from "@/lib/error-logger";
+import { sanitize } from "@/lib/sanitize";
+import { invalidateCache } from "@/lib/db-optimized";
+import { z } from "zod";
+
+// Схема валидации для PUT запроса
+const updateMessageSchema = z.object({
+    content: z.string().min(1, 'Сообщение не может быть пустым').max(5000, 'Сообщение не может превышать 5000 символов'),
+});
+
+// Rate limiting
+const limiter = rateLimit({ limit: 30, windowMs: 60 * 1000 });
+
+// Валидация UUID
+function isValidUUID(uuid: string): boolean {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+}
 
 export async function DELETE(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const session = await getServerSession(authOptions);
-    if (!session?.user || session.user.role !== 'admin') {
-        return NextResponse.json({ error: 'Доступ запрещен' }, { status: 401 });
-    }
-
-    const { id } = await params;
-
+    const startTime = Date.now();
+    
     try {
-        // Проверяем существование сообщения и права доступа
+        // Rate limiting
+        const ip = getClientIP(request);
+        const rateLimitResult = limiter(request);
+        if (!rateLimitResult.success) {
+            logInfo('Rate limit exceeded for admin message delete', { ip });
+            return NextResponse.json({ 
+                error: 'Слишком много запросов. Попробуйте через минуту.' 
+            }, { status: 429 });
+        }
+
+        const session = await getServerSession(authOptions);
+        if (!session?.user || session.user.role !== 'admin') {
+            logInfo('Unauthorized admin message delete attempt', { ip });
+            return NextResponse.json({ error: 'Доступ запрещен' }, { status: 401 });
+        }
+
+        const { id } = await params;
+        
+        // Валидация ID
+        if (!id || !isValidUUID(id)) {
+            return NextResponse.json({ error: 'Неверный формат ID сообщения' }, { status: 400 });
+        }
+
+        // Проверяем существование сообщения
         const { data: message, error: findError } = await supabase
             .from('messages')
-            .select('sender_id')
+            .select('sender_id, chat_id, content, created_at')
             .eq('id', id)
             .single();
 
         if (findError) {
             if (findError.code === 'PGRST116') {
+                logInfo('Message not found for admin delete', { messageId: id });
                 return NextResponse.json({ error: 'Сообщение не найдено' }, { status: 404 });
             }
-            console.error('Error finding message:', findError);
+            logError('Error finding message for admin delete', findError);
             return NextResponse.json({ error: 'Ошибка поиска сообщения' }, { status: 500 });
         }
 
-        if (!message) {
-            return NextResponse.json({ error: 'Сообщение не найдено' }, { status: 404 });
-        }
-
-        if (message.sender_id !== session.user.id) {
-            return NextResponse.json({ error: 'Доступ запрещен' }, { status: 403 });
-        }
+        // Сохраняем информацию для аудита с санитизацией
+        const safeContentPreview = sanitize.text(message.content?.substring(0, 100) || '');
 
         // Удаляем сообщение
         const { error: deleteError } = await supabase
@@ -45,14 +78,46 @@ export async function DELETE(
             .eq('id', id);
 
         if (deleteError) {
-            console.error('Error deleting message:', deleteError);
+            logError('Error deleting message', deleteError);
             return NextResponse.json({ error: 'Ошибка удаления сообщения' }, { status: 500 });
         }
 
-        return NextResponse.json({ success: true });
+        // Инвалидируем кэш чата
+        invalidateCache(new RegExp(`chat_messages_${message.chat_id}`));
+        invalidateCache(new RegExp(`chat_${message.chat_id}`));
+
+        // Логируем действие администратора
+        await supabase
+            .from('audit_logs')
+            .insert({
+                user_id: session.user.id,
+                action: 'MESSAGE_DELETED',
+                entity_type: 'message',
+                entity_id: id,
+                old_values: { 
+                    chat_id: message.chat_id, 
+                    content_preview: safeContentPreview,
+                    sender_id: message.sender_id,
+                    created_at: message.created_at
+                },
+                created_at: new Date().toISOString()
+            });
+
+        logApiRequest('DELETE', `/api/admin/messages/${id}`, 200, Date.now() - startTime, session.user.id);
+        logInfo(`Admin deleted message`, { 
+            messageId: id, 
+            adminId: session.user.id,
+            chatId: message.chat_id,
+            senderId: message.sender_id
+        });
+
+        return NextResponse.json({ 
+            success: true, 
+            message: 'Сообщение успешно удалено'
+        }, { status: 200 });
         
     } catch (error) {
-        console.error('Error deleting message:', error);
+        logError('Error in admin message DELETE', error);
         return NextResponse.json({ error: 'Ошибка удаления сообщения' }, { status: 500 });
     }
 }
@@ -61,85 +126,132 @@ export async function PUT(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const session = await getServerSession(authOptions);
-    if (!session?.user || session.user.role !== 'admin') {
-        return NextResponse.json({ error: 'Доступ запрещен' }, { status: 401 });
-    }
-
-    const { id } = await params;
-    const { content } = await request.json();
-
-    if (!content || !content.trim()) {
-        return NextResponse.json({ error: 'Сообщение не может быть пустым' }, { status: 400 });
-    }
-
+    const startTime = Date.now();
+    
     try {
-        // Проверяем существование сообщения и права доступа
+        // Rate limiting
+        const ip = getClientIP(request);
+        const rateLimitResult = limiter(request);
+        if (!rateLimitResult.success) {
+            logInfo('Rate limit exceeded for admin message update', { ip });
+            return NextResponse.json({ 
+                error: 'Слишком много запросов. Попробуйте через минуту.' 
+            }, { status: 429 });
+        }
+
+        const session = await getServerSession(authOptions);
+        if (!session?.user || session.user.role !== 'admin') {
+            logInfo('Unauthorized admin message update attempt', { ip });
+            return NextResponse.json({ error: 'Доступ запрещен' }, { status: 401 });
+        }
+
+        const { id } = await params;
+        
+        // Валидация ID
+        if (!id || !isValidUUID(id)) {
+            return NextResponse.json({ error: 'Неверный формат ID сообщения' }, { status: 400 });
+        }
+
+        const body = await request.json();
+        
+        // Валидация входных данных
+        const validatedData = updateMessageSchema.parse({
+            content: body.content
+        });
+
+        const { content } = validatedData;
+        const sanitizedContent = sanitize.text(content.trim());
+
+        // Проверяем существование сообщения
         const { data: message, error: findError } = await supabase
             .from('messages')
-            .select('sender_id, chat_id')
+            .select('sender_id, chat_id, content, created_at')
             .eq('id', id)
             .single();
 
         if (findError) {
             if (findError.code === 'PGRST116') {
+                logInfo('Message not found for admin update', { messageId: id });
                 return NextResponse.json({ error: 'Сообщение не найдено' }, { status: 404 });
             }
-            console.error('Error finding message:', findError);
+            logError('Error finding message for admin update', findError);
             return NextResponse.json({ error: 'Ошибка поиска сообщения' }, { status: 500 });
         }
 
-        if (!message) {
-            return NextResponse.json({ error: 'Сообщение не найдено' }, { status: 404 });
-        }
-
-        if (message.sender_id !== session.user.id) {
-            return NextResponse.json({ error: 'Доступ запрещен' }, { status: 403 });
-        }
+        // Сохраняем старый контент для аудита с санитизацией
+        const oldContentPreview = sanitize.text(message.content?.substring(0, 100) || '');
+        const newContentPreview = sanitizedContent.substring(0, 100);
 
         // Обновляем сообщение
         const { data: updatedMessage, error: updateError } = await supabase
             .from('messages')
             .update({
-                content: content.trim(),
+                content: sanitizedContent,
                 is_edited: true,
-                updated_at: new Date().toISOString()
+                edited_at: new Date().toISOString(),
+                edited_by: session.user.id
             })
             .eq('id', id)
-            .select('id, chat_id, sender_id, content, is_read, is_edited, created_at, attachments')
+            .select('id, chat_id, sender_id, content, is_read, is_edited, created_at, updated_at, edited_at, attachments')
             .single();
 
         if (updateError) {
-            console.error('Error updating message:', updateError);
+            logError('Error updating message', updateError);
             return NextResponse.json({ error: 'Ошибка обновления сообщения' }, { status: 500 });
         }
 
-        // Получаем информацию об отправителе
-        const { data: senderInfo, error: senderError } = await supabase
-            .from('users')
-            .select(`
-                email,
-                profiles!left (
-                    full_name
-                )
-            `)
-            .eq('id', session.user.id)
-            .single();
+        // Инвалидируем кэш чата
+        invalidateCache(new RegExp(`chat_messages_${message.chat_id}`));
 
-        if (senderError) {
-            console.error('Error fetching sender info:', senderError);
-        }
+        // Логируем редактирование
+        await supabase
+            .from('audit_logs')
+            .insert({
+                user_id: session.user.id,
+                action: 'MESSAGE_EDITED',
+                entity_type: 'message',
+                entity_id: id,
+                old_values: { content_preview: oldContentPreview },
+                new_values: { content_preview: newContentPreview },
+                created_at: new Date().toISOString()
+            });
 
-        const senderName = senderInfo?.profiles?.full_name || senderInfo?.email || session.user.email;
+        logApiRequest('PUT', `/api/admin/messages/${id}`, 200, Date.now() - startTime, session.user.id);
+        logInfo(`Admin edited message`, { 
+            messageId: id, 
+            adminId: session.user.id,
+            chatId: message.chat_id,
+            originalSenderId: message.sender_id
+        });
+
+        // Форматируем ответ
+        const formattedMessage = {
+            id: updatedMessage.id,
+            chat_id: updatedMessage.chat_id,
+            sender_id: updatedMessage.sender_id,
+            content: updatedMessage.content,
+            is_read: updatedMessage.is_read,
+            is_edited: updatedMessage.is_edited,
+            edited_at: updatedMessage.edited_at,
+            attachments: updatedMessage.attachments || [],
+            created_at: updatedMessage.created_at,
+            updated_at: updatedMessage.updated_at,
+            sender_name: 'Администратор',
+            sender_avatar: session.user.image || null,
+            sender_role: 'admin'
+        };
 
         return NextResponse.json({
-            ...updatedMessage,
-            sender_name: senderName,
-            sender_role: 'admin'
-        });
+            success: true,
+            message: 'Сообщение успешно обновлено',
+            data: formattedMessage
+        }, { status: 200 });
         
     } catch (error) {
-        console.error('Error updating message:', error);
+        if (error instanceof z.ZodError) {
+            return NextResponse.json({ error: error.issues[0]?.message || 'Ошибка валидации' }, { status: 400 });
+        }
+        logError('Error in admin message PUT', error);
         return NextResponse.json({ error: 'Ошибка обновления сообщения' }, { status: 500 });
     }
 }

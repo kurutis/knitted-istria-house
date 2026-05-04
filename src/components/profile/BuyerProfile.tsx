@@ -9,11 +9,18 @@ import { motion, AnimatePresence } from "framer-motion"
 import { toast, Toaster } from 'react-hot-toast'
 
 interface BuyerProfileProps {
-    session: any
+    session: {
+        user?: {
+            id?: string;
+            name?: string | null;
+            email?: string;
+            role?: string;
+        };
+    } | null
     initialTab?: string
 }
 
-export default function BuyerProfile({ session }: BuyerProfileProps) {
+export default function BuyerProfile({ session, initialTab }: BuyerProfileProps) {
     const router = useRouter()
     const [activeTab, setActiveTab] = useState(initialTab || 'profile')
     const [isEditing, setIsEditing] = useState(false)
@@ -98,7 +105,7 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
             const response = await fetch('/api/user/orders')
             const data = await response.json()
             setOrders(data)
-            const total = data.reduce((sum: number, order: any) => sum + order.total_amount, 0)
+            const total = data.reduce((sum: number, order: { total_amount: number }) => sum + order.total_amount, 0)
             setStats(prev => ({ ...prev, totalOrders: data.length, totalSpent: total }))
         } catch (error) {
             console.error('Error fetching orders:', error)
@@ -612,7 +619,7 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
                                             </div>
                                         ) : (
                                             <div className="space-y-4">
-                                                {orders.map((order: any, idx: number) => (
+                                                {orders.map((order: { id: string; order_number: string; status: string; created_at: string; items_count: number; total_amount: number }, idx: number) => (
                                                     <motion.div
                                                         key={order.id}
                                                         initial={{ opacity: 0, y: 20 }}
@@ -668,7 +675,7 @@ export default function BuyerProfile({ session }: BuyerProfileProps) {
                                             </div>
                                         ) : (
                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                                                {favorites.map((item: any, idx: number) => (
+                                                {favorites.map((item: { id: string; title: string; price: number; image?: string; master_name?: string }, idx: number) => (
                                                     <motion.div
                                                         key={item.id}
                                                         initial={{ opacity: 0, scale: 0.9 }}

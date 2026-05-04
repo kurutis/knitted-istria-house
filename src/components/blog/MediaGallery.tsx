@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface MediaItem {
@@ -115,7 +115,7 @@ function MediaGalleryModal({ media, initialIndex, title, onClose }: MediaGallery
 }
 
 interface MediaGalleryProps {
-    images: Array<{ id: string; url: string; sort_order: number }> | string[] | any[]
+    images: Array<{ id: string; url: string; sort_order: number } | { image_url: string } | string>
     mainImageUrl?: string | null
     video?: string | null
     title: string
@@ -123,9 +123,8 @@ interface MediaGalleryProps {
 
 export default function MediaGallery({ images, mainImageUrl, video, title }: MediaGalleryProps) {
     const [selectedMediaIndex, setSelectedMediaIndex] = useState<number | null>(null)
-    const [allMedia, setAllMedia] = useState<MediaItem[]>([])
 
-    useEffect(() => {
+    const allMedia = useMemo(() => {
         const imageUrls: string[] = []
         
         // Добавляем main_image_url, если есть
@@ -139,9 +138,9 @@ export default function MediaGallery({ images, mainImageUrl, video, title }: Med
                 if (typeof img === 'string') {
                     imageUrls.push(img)
                 } else if (img && typeof img === 'object') {
-                    if (img.image_url) {
+                    if ('image_url' in img && img.image_url) {
                         imageUrls.push(img.image_url)
-                    } else if (img.url) {
+                    } else if ('url' in img && img.url) {
                         imageUrls.push(img.url)
                     }
                 }
@@ -153,7 +152,7 @@ export default function MediaGallery({ images, mainImageUrl, video, title }: Med
             ...imageUrls.map(url => ({ type: 'image' as const, url }))
         ]
         
-        setAllMedia(media)
+        return media
     }, [images, mainImageUrl, video])
 
     const openModal = (index: number) => {

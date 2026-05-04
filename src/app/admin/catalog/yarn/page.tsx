@@ -151,8 +151,9 @@ export default function AdminYarnCatalogPage() {
             }
             
             await loadYarns()
-        } catch (error: any) {
-            alert(error.message || 'Ошибка при удалении пряжи')
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Ошибка при удалении пряжи'
+            alert(errorMessage)
         }
     }
 
@@ -256,7 +257,7 @@ export default function AdminYarnCatalogPage() {
                 </div>
                 <select
                     value={filterInStock}
-                    onChange={(e) => setFilterInStock(e.target.value as any)}
+                    onChange={(e) => setFilterInStock(e.target.value as 'all' | 'in_stock' | 'out_of_stock')}
                     className="p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300 cursor-pointer"
                 >
                     <option value="all">Все</option>
@@ -295,7 +296,9 @@ export default function AdminYarnCatalogPage() {
                                     >
                                         <td colSpan={7} className="text-center p-12 text-gray-500">
                                             <p className="text-lg">Нет добавленной пряжи</p>
-                                            <p className="text-sm mt-2">Нажмите кнопку "Добавить пряжу" чтобы начать</p>
+                                            <p className="text-sm mt-2">
+                                                Нажмите кнопку &quot;Добавить пряжу&quot; чтобы начать
+                                            </p>
                                         </td>
                                     </motion.tr>
                                 ) : (

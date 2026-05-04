@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { motion } from "framer-motion"
 
-interface Product {
+export interface Product {
     id: string
     title: string
     price: number

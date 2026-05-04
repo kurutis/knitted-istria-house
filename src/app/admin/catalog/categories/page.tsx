@@ -57,12 +57,15 @@ export default function AdminCategoriesPage() {
         try {
             setLoading(true)
             const response = await fetch('/api/admin/categories')
-            if (!response.ok) throw new Error('Failed to load categories')
-            
-            const data = await response.json()
+            if (!response.ok) {
+                const errorData = await response.json() as { error?: string }
+                throw new Error(errorData.error || 'Failed to load categories')
+            }
+            const data = await response.json() as Category[]
             setCategories(data || [])
         } catch (error) {
-            alert('Ошибка загрузки категорий')
+            const errorMessage = error instanceof Error ? error.message : 'Ошибка загрузки категорий'
+            alert(errorMessage)
         } finally {
             setLoading(false)
         }
@@ -111,9 +114,10 @@ export default function AdminCategoriesPage() {
             resetForm()
             await loadCategories()
             alert('Категория успешно добавлена')
-        } catch (error: any) {
-            alert(error.message || 'Ошибка при создании категории')
-        } finally {
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Ошибка при создании категории'
+            alert(errorMessage)
+        }  finally {
             setSaving(false)
         }
     }
@@ -147,8 +151,9 @@ export default function AdminCategoriesPage() {
             resetForm()
             await loadCategories()
             alert('Подкатегория успешно добавлена')
-        } catch (error: any) {
-            alert(error.message || 'Ошибка при создании подкатегории')
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Ошибка при создании подкатегории'
+            alert(errorMessage)
         } finally {
             setSaving(false)
         }
@@ -190,8 +195,9 @@ export default function AdminCategoriesPage() {
             resetForm()
             await loadCategories()
             alert('Категория успешно обновлена')
-        } catch (error: any) {
-            alert(error.message || 'Ошибка при обновлении категории')
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Ошибка при обновлении категории'
+            alert(errorMessage)
         } finally {
             setSaving(false)
         }
@@ -204,14 +210,15 @@ export default function AdminCategoriesPage() {
             const response = await fetch(`/api/admin/categories?id=${category.id}`, { method: 'DELETE' })
             
             if (!response.ok) {
-                const error = await response.json()
-                throw new Error(error.error || 'Failed to delete')
+                const errorData = await response.json() as { error?: string }
+                throw new Error(errorData.error || 'Failed to delete')
             }
             
             await loadCategories()
             alert('Категория удалена')
-        } catch (error: any) {
-            alert(error.message || 'Ошибка при удалении категории')
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Ошибка при удалении категории'
+            alert(errorMessage)
         }
     }
 
@@ -389,7 +396,9 @@ export default function AdminCategoriesPage() {
                 {categories.length === 0 ? (
                     <div className="bg-white rounded-2xl shadow-xl p-12 text-center text-gray-500">
                         <p className="text-lg">Нет добавленных категорий</p>
-                        <p className="text-sm mt-2">Нажмите кнопку "Добавить категорию" чтобы начать</p>
+                        <p className="text-sm mt-2">
+                            Нажмите кнопку &quot;Добавить категорию&quot; чтобы начать
+                        </p>
                     </div>
                 ) : (
                     categories.map(category => renderCategoryTree(category, 0))

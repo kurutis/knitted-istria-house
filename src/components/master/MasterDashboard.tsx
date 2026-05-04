@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, JSX } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -33,7 +33,13 @@ interface BlogPost {
     author_avatar: string
     master_id: string
     is_liked?: boolean
-    comments?: any[]
+    comments?: Array<{
+        id: string;
+        content: string;
+        created_at: string;
+        author_name: string;
+        author_avatar?: string;
+    }>
 }
 
 interface Notification {
@@ -54,7 +60,13 @@ interface MasterStats {
     total_followers: number
 }
 
-export default function MasterDashboard({ session }: { session: any }) {
+type CategoryItem = {
+    id: number;
+    name: string;
+    subcategories?: CategoryItem[];
+}
+
+export default function MasterDashboard({ session }: { session: { user: { id: string; name: string; email: string; role: string } } | null }) {
     const router = useRouter()
     const [orders, setOrders] = useState<Order[]>([])
     const [recentPosts, setRecentPosts] = useState<BlogPost[]>([])
@@ -72,8 +84,8 @@ export default function MasterDashboard({ session }: { session: any }) {
     const [saving, setSaving] = useState(false)
     const [activeTab, setActiveTab] = useState<'recent' | 'my'>('recent')
     const fileInputRef = useRef<HTMLInputElement>(null)
-    const [categories, setCategories] = useState<any[]>([])
-    const [yarns, setYarns] = useState<any[]>([])
+    const [categories, setCategories] = useState<{ id: number; name: string; subcategories?: { id: number; name: string; subcategories?: unknown[] }[] }[]>([])
+    const [yarns, setYarns] = useState<{ id: string; name: string; brand: string }[]>([])
     const [images, setImages] = useState<File[]>([])
     const [imagePreviews, setImagePreviews] = useState<string[]>([])
     const techniques = ['Лицевая гладь', 'Изнаночная гладь', 'Резинка', 'Платочная вязка', 'Косы', 'Араны', 'Жаккард', 'Ленивый жаккард', 'Патентная резинка', 'Ажур', 'Сетка', 'Рис', 'Путанка', 'Бриошь', 'Другое']
@@ -366,7 +378,7 @@ export default function MasterDashboard({ session }: { session: any }) {
         }
     }
 
-    const renderCategoryOptions = (categories: any[], level = 0) => {
+    const renderCategoryOptions = (categories: CategoryItem[], level = 0) => {
         const options: JSX.Element[] = []
         categories.forEach(cat => {
             const prefix = '—'.repeat(level)
@@ -683,7 +695,7 @@ export default function MasterDashboard({ session }: { session: any }) {
                     <div className="flex justify-between items-center flex-wrap gap-4">
                         <div>
                             <h1 className="font-['Montserrat_Alternates'] text-white font-bold text-3xl mb-2">
-                                Добро пожаловать, {session.user.name}!
+                                Добро пожаловать, {session?.user?.name}!
                             </h1>
                             <p className="text-white/80">Вот что происходит с вашим магазином сегодня</p>
                         </div>
@@ -981,7 +993,7 @@ export default function MasterDashboard({ session }: { session: any }) {
                                                         <Link href={`/blog/${post.id}`}>{post.title}</Link>
                                                     </h3>
                                                     
-                                                    {(post.images?.length > 0 || post.main_image_url) && (
+                                                    {((post.images && post.images.length > 0) || post.main_image_url) && (
                                                         <MediaGallery 
                                                             images={post.images || [post.main_image_url]} 
                                                             video={null}
@@ -1103,7 +1115,7 @@ export default function MasterDashboard({ session }: { session: any }) {
                                                                         Будьте первым, кто оставит комментарий
                                                                     </p>
                                                                 ) : (
-                                                                    post.comments?.map((comment: any) => (
+                                                                    post.comments?.map((comment: { id: string; content: string; created_at: string; author_name: string; author_avatar?: string }) => (
                                                                         <div key={comment.id} className="flex gap-3">
                                                                             <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 overflow-hidden">
                                                                                 {comment.author_avatar ? (
@@ -1183,7 +1195,7 @@ export default function MasterDashboard({ session }: { session: any }) {
                                                         <Link href={`/blog/${post.id}`}>{post.title}</Link>
                                                     </h3>
                                                     
-                                                    {(post.images?.length > 0 || post.main_image_url) && (
+                                                    {((post.images && post.images.length > 0) || post.main_image_url) && (
                                                         <MediaGallery 
                                                             images={post.images || [post.main_image_url]} 
                                                             video={null}
@@ -1305,7 +1317,7 @@ export default function MasterDashboard({ session }: { session: any }) {
                                                                         Будьте первым, кто оставит комментарий
                                                                     </p>
                                                                 ) : (
-                                                                    post.comments?.map((comment: any) => (
+                                                                    post.comments?.map((comment: { id: string; content: string; created_at: string; author_name: string; author_avatar?: string }) => (
                                                                         <div key={comment.id} className="flex gap-3">
                                                                             <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 overflow-hidden">
                                                                                 {comment.author_avatar ? (
@@ -1399,7 +1411,7 @@ export default function MasterDashboard({ session }: { session: any }) {
                                             <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">Категория <span className="text-red-500">*</span></label>
                                             <select className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" name="category" value={productForm.category} onChange={handleProductInputChange} required>
                                                 <option value="">Выберите категорию</option>
-                                                {renderCategoryOptions(categories)}
+                                                {renderCategoryOptions(categories as unknown as CategoryItem[])}
                                             </select>
                                         </div>
                                     </div>

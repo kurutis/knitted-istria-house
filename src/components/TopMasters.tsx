@@ -73,11 +73,11 @@ export default function TopMasters() {
   const itemVariants = {
     hidden: { y: 30, opacity: 0 },
     visible: { 
-      y: 0, 
-      opacity: 1,
-      transition: { type: "spring", stiffness: 100, damping: 15 }
+        y: 0, 
+        opacity: 1,
+        transition: { duration: 0.5 }
     }
-  }
+}
 
   // Мобильная версия - компактный список
   if (isMobile) {

@@ -1,15 +1,13 @@
 'use client'
 
 import Link from "next/link";
-import HeroSlider from "@/components/HeroSlider"
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import MasterDashboard from "@/components/master/MasterDashboard";
-import TopMasters from "@/components/TopMasters";
-import PopularProducts from "@/components/PopularProducts";
 import MediaGallery from "@/components/blog/MediaGallery";
 import { AnimatedButton } from "@/components/ui/AnimatedButton";
+import dynamic from 'next/dynamic';
 
 interface BlogPost {
     id: string
@@ -26,7 +24,28 @@ interface BlogPost {
     comments_count: number
     is_liked: boolean
     views_count: number
+    comments?: Array<{
+        id: string;
+        content: string;
+        created_at: string;
+        author_name: string;
+        author_avatar?: string;
+    }>
 }
+
+const TopMasters = dynamic(() => import('@/components/TopMasters'), {
+    loading: () => <div className="h-64 animate-pulse bg-gray-100 rounded-xl" />,
+    ssr: true,
+});
+
+const PopularProducts = dynamic(() => import('@/components/PopularProducts'), {
+    loading: () => <div className="h-96 animate-pulse bg-gray-100 rounded-xl" />,
+    ssr: true,
+});
+
+const HeroSlider = dynamic(() => import('@/components/HeroSlider'), {
+    ssr: false,
+});
 
 export default function HomePage() {
     const { data: session, status } = useSession()
@@ -146,7 +165,15 @@ export default function HomePage() {
     }
 
     if (isMaster) {
-        return <MasterDashboard session={session} />
+        const adaptedSession = session ? {
+            user: {
+                id: session.user?.id || '',
+                name: session.user?.name || '',
+                email: session.user?.email || '',
+                role: session.user?.role || 'master'
+            }
+        } : null
+        return <MasterDashboard session={adaptedSession} />
     }
 
     return (
@@ -268,17 +295,17 @@ export default function HomePage() {
                                         {post.title}
                                     </h3>
                                     
-                                    {(post.images?.length > 0 || post.main_image_url) && (
+                                    {(post.images && post.images.length > 0) || post.main_image_url ? (
                                         <MediaGallery 
                                             images={
                                                 post.images?.length 
-                                                    ? post.images 
-                                                    : (post.main_image_url ? [{ url: post.main_image_url, sort_order: 0 }] : [])
+                                                    ? post.images.map(img => img.url) 
+                                                    : (post.main_image_url ? [post.main_image_url] : [])
                                             } 
                                             video={null}
                                             title={post.title}
                                         />
-                                    )}
+                                    ) : null}
                                     
                                     <p className="text-gray-700 mt-3 md:mt-4 line-clamp-3 text-sm md:text-base">
                                         {post.excerpt || post.content?.substring(0, 300)}...
@@ -391,12 +418,18 @@ export default function HomePage() {
                                         )}
                                         
                                         <div className="space-y-3 max-h-96 overflow-y-auto">
-                                            {post.comments?.length === 0 ? (
+                                            {!post.comments || post.comments.length === 0 ? (
                                                 <p className="text-gray-400 text-xs md:text-sm text-center py-4">
                                                     Будьте первым, кто оставит комментарий
                                                 </p>
                                             ) : (
-                                                post.comments?.map((comment: any, idx: number) => (
+                                                post.comments?.map((comment: {
+                                                    id: string;
+                                                    content: string;
+                                                    created_at: string;
+                                                    author_name: string;
+                                                    author_avatar?: string;
+                                                }, idx: number) => (
                                                     <motion.div 
                                                         key={comment.id} 
                                                         className="flex gap-2 md:gap-3"

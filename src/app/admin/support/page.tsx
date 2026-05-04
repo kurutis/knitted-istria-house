@@ -201,7 +201,7 @@ export default function AdminSupportPage() {
             const response = await fetch(`/api/admin/support/tickets/${selectedTicket.id}/status`, {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ status })})
             
             if (response.ok) {
-                setSelectedTicket(prev => prev ? { ...prev, status: status as any } : null)
+                setSelectedTicket(prev => prev ? { ...prev, status: status as 'open' | 'in_progress' | 'closed' } : null)
                 loadTickets()
             }
         } catch (error) {
@@ -216,7 +216,7 @@ export default function AdminSupportPage() {
             const response = await fetch(`/api/admin/support/tickets/${selectedTicket.id}/priority`, {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({priority})})
             
             if (response.ok) {
-                setSelectedTicket(prev => prev ? { ...prev, priority: priority as any } : null)
+                setSelectedTicket(prev => prev ? { ...prev, priority: priority as 'low' | 'medium' | 'high' } : null)
             }
         } catch (error) {
             console.error('Error updating ticket priority:', error)

@@ -9,14 +9,10 @@ import logo from '../../../public/logo.svg'
 
 export default function Footer() {
     const pathname = usePathname()
-    const [isVisible, setIsVisible] = useState(true)
 
     // Скрываем footer на страницах авторизации и админки
-    useEffect(() => {
-        const hidePaths = ['/auth/signin', '/auth/signup', '/auth/verify', '/auth/forgot-password', '/auth/reset-password', '/admin']
-        const shouldHide = hidePaths.some(path => pathname?.startsWith(path))
-        setIsVisible(!shouldHide)
-    }, [pathname])
+    const hidePaths = ['/auth/signin', '/auth/signup', '/auth/verify', '/auth/forgot-password', '/auth/reset-password', '/admin']
+    const isVisible = !hidePaths.some(path => pathname?.startsWith(path))
 
     if (!isVisible) return null
 

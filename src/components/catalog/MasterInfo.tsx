@@ -4,7 +4,15 @@ import Link from 'next/link'
 import Image from 'next/image'
 
 interface MasterInfoProps {
-    master: any
+    master: {
+        master_id: string;
+        master_name: string;
+        master_avatar?: string | null;
+        master_rating?: number;
+        total_sales?: number;
+        is_verified?: boolean;
+        is_partner?: boolean;
+    }
 }
 
 export default function MasterInfo({ master }: MasterInfoProps) {

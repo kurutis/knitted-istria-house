@@ -84,9 +84,10 @@ function SignInForm() {
                 router.push(callbackUrl)
                 router.refresh()
             }
-        } catch (err: any) {
-            setError(err.message || 'Произошла ошибка')
-            toast.error(err.message || 'Произошла ошибка')
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Произошла ошибка'
+            setError(errorMessage)
+            toast.error(errorMessage)
         } finally {
             setLoading(false)
         }

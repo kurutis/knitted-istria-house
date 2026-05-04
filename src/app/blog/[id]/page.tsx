@@ -87,8 +87,9 @@ export default function BlogPostPage() {
         category: data.category || "",
         tags: data.tags?.join(", ") || "",
       });
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Произошла ошибка';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

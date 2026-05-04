@@ -32,6 +32,13 @@ interface UsersResponse {
     totalPages: number
 }
 
+interface UserUpdates {
+    is_verified?: boolean
+    is_partner?: boolean
+    is_banned?: boolean
+    ban_reason?: string | null
+}
+
 export default function AdminUsersPage() {
     const { data: session, status } = useSession()
     const router = useRouter()
@@ -91,7 +98,7 @@ export default function AdminUsersPage() {
         }
     }
 
-    const handleUpdateStatus = async (userId: string, updates: any) => {
+    const handleUpdateStatus = async (userId: string, updates: UserUpdates) => {
         try {
             const response = await fetch('/api/admin/users', {
                 method: 'PUT',

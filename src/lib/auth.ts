@@ -1,3 +1,4 @@
+// lib/auth.ts
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { supabase } from "./supabase";
@@ -5,186 +6,274 @@ import bcrypt from "bcryptjs";
 import GoogleProvider from "next-auth/providers/google";
 import YandexProvider from "next-auth/providers/yandex";
 import VkProvider from "next-auth/providers/vk";
+import { logError, logInfo } from "./error-logger";
 
-// Вспомогательные функции для работы с пользователями через Supabase
-async function getUserByEmail(email: string) {
-    const { data: user, error } = await supabase
-        .from('users')
-        .select(`
-            id,
-            email,
-            password_hash,
-            role,
-            role_selected,
-            is_banned,
-            created_at,
-            updated_at,
-            profiles!left (
-                full_name,
-                phone,
-                city,
-                avatar_url,
-                sms_code,
-                sms_code_expires
-            ),
-            masters!left (
-                is_verified,
-                is_partner
-            )
-        `)
-        .eq('email', email)
-        .maybeSingle()
+// Константы
+const SESSION_MAX_AGE = 30 * 24 * 60 * 60; // 30 дней
+const SMS_CODE_EXPIRY_MINUTES = 10;
 
-    if (error || !user) return null
-
-    return {
-        id: user.id,
-        email: user.email,
-        password: user.password_hash,
-        role: user.role,
-        role_selected: user.role_selected,
-        is_banned: user.is_banned,
-        created_at: user.created_at,
-        updated_at: user.updated_at,
-        name: user.profiles?.full_name,
-        avatar_url: user.profiles?.avatar_url,
-        phone: user.profiles?.phone,
-        city: user.profiles?.city,
-        sms_code: user.profiles?.sms_code,
-        sms_code_expires: user.profiles?.sms_code_expires,
-        master_verified: user.masters?.is_verified,
-        master_partner: user.masters?.is_partner
-    }
+// Типы
+export interface UserData {
+    id: string;
+    email: string;
+    password?: string | null;
+    role: string;
+    role_selected: boolean;
+    is_banned: boolean;
+    created_at: string;
+    updated_at: string;
+    name?: string | null;
+    phone?: string | null;
+    city?: string | null;
+    address?: string | null;
+    avatar_url?: string | null;
+    newsletter_agreement?: boolean;
+    // Мастер поля
+    master_verified?: boolean;
+    master_partner?: boolean;
+    description?: string | null;
+    rating?: number;
+    total_sales?: number;
+    // SMS
+    sms_code?: string | null;
+    sms_code_expires?: string | null;
 }
 
-async function getUserById(id: string) {
-    const { data: user, error } = await supabase
-        .from('users')
-        .select(`
-            id,
-            email,
-            password_hash,
-            role,
-            role_selected,
-            is_banned,
-            created_at,
-            updated_at,
-            profiles!left (
-                full_name,
-                phone,
-                city,
-                address,
-                avatar_url,
-                newsletter_agreement,
-                sms_code,
-                sms_code_expires
-            ),
-            masters!left (
-                description,
-                is_verified,
-                is_partner,
-                rating,
-                total_sales
-            )
-        `)
-        .eq('id', id)
-        .maybeSingle()
-
-    if (error || !user) return null
-
-    return {
-        id: user.id,
-        email: user.email,
-        password: user.password_hash,
-        role: user.role,
-        role_selected: user.role_selected,
-        is_banned: user.is_banned,
-        created_at: user.created_at,
-        updated_at: user.updated_at,
-        name: user.profiles?.full_name,
-        phone: user.profiles?.phone,
-        city: user.profiles?.city,
-        address: user.profiles?.address,
-        avatar_url: user.profiles?.avatar_url,
-        newsletter_agreement: user.profiles?.newsletter_agreement,
-        sms_code: user.profiles?.sms_code,
-        sms_code_expires: user.profiles?.sms_code_expires,
-        master_verified: user.masters?.is_verified,
-        master_partner: user.masters?.is_partner,
-        description: user.masters?.description,
-        rating: user.masters?.rating,
-        total_sales: user.masters?.total_sales
-    }
+interface ProfileUpdateData {
+    updated_at: string;
+    full_name?: string | null;
+    avatar_url?: string | null;
 }
 
-// Функция для создания или обновления пользователя через OAuth
-async function createOrUpdateOAuthUser(profile: any, provider: string) {
+// Вспомогательные функции
+function normalizeEmail(email: string): string {
+    return email.toLowerCase().trim();
+}
+
+// Получение пользователя по email
+async function getUserByEmail(email: string): Promise<UserData | null> {
     try {
-        console.log('📝 createOrUpdateOAuthUser called:', { email: profile.email, provider })
+        const normalizedEmail = normalizeEmail(email);
         
-        // Ищем пользователя по email
-        let user = await getUserByEmail(profile.email)
+        const { data: user, error } = await supabase
+            .from('users')
+            .select(`
+                id,
+                email,
+                password_hash,
+                role,
+                role_selected,
+                is_banned,
+                created_at,
+                updated_at,
+                profiles!left (
+                    full_name,
+                    phone,
+                    city,
+                    address,
+                    avatar_url,
+                    newsletter_agreement,
+                    sms_code,
+                    sms_code_expires
+                ),
+                masters!left (
+                    is_verified,
+                    is_partner,
+                    description,
+                    rating,
+                    total_sales
+                )
+            `)
+            .eq('email', normalizedEmail)
+            .maybeSingle();
+
+        if (error || !user) {
+            if (error) logError('Error fetching user by email', error, 'warning');
+            return null;
+        }
+
+        return {
+            id: user.id,
+            email: user.email,
+            password: user.password_hash,
+            role: user.role || 'buyer',
+            role_selected: user.role_selected || false,
+            is_banned: user.is_banned || false,
+            created_at: user.created_at,
+            updated_at: user.updated_at,
+            name: user.profiles?.[0]?.full_name,
+            avatar_url: user.profiles?.[0]?.avatar_url,
+            phone: user.profiles?.[0]?.phone,
+            city: user.profiles?.[0]?.city,
+            address: user.profiles?.[0]?.address,
+            newsletter_agreement: user.profiles?.[0]?.newsletter_agreement,
+            sms_code: user.profiles?.[0]?.sms_code,
+            sms_code_expires: user.profiles?.[0]?.sms_code_expires,
+            master_verified: user.masters?.[0]?.is_verified || false,
+            master_partner: user.masters?.[0]?.is_partner || false,
+            description: user.masters?.[0]?.description,
+            rating: user.masters?.[0]?.rating || 0,
+            total_sales: user.masters?.[0]?.total_sales || 0
+        };
+    } catch (error) {
+        logError('Error in getUserByEmail', error);
+        return null;
+    }
+}
+
+// Получение пользователя по ID
+async function getUserById(id: string): Promise<UserData | null> {
+    try {
+        const { data: user, error } = await supabase
+            .from('users')
+            .select(`
+                id,
+                email,
+                password_hash,
+                role,
+                role_selected,
+                is_banned,
+                created_at,
+                updated_at,
+                profiles!left (
+                    full_name,
+                    phone,
+                    city,
+                    address,
+                    avatar_url,
+                    newsletter_agreement,
+                    sms_code,
+                    sms_code_expires
+                ),
+                masters!left (
+                    description,
+                    is_verified,
+                    is_partner,
+                    rating,
+                    total_sales
+                )
+            `)
+            .eq('id', id)
+            .maybeSingle();
+
+        if (error || !user) {
+            if (error) logError('Error fetching user by id', error, 'warning');
+            return null;
+        }
+
+        return {
+            id: user.id,
+            email: user.email,
+            password: user.password_hash,
+            role: user.role || 'buyer',
+            role_selected: user.role_selected || false,
+            is_banned: user.is_banned || false,
+            created_at: user.created_at,
+            updated_at: user.updated_at,
+            name: user.profiles?.[0]?.full_name,
+            avatar_url: user.profiles?.[0]?.avatar_url,
+            phone: user.profiles?.[0]?.phone,
+            city: user.profiles?.[0]?.city,
+            address: user.profiles?.[0]?.address,
+            newsletter_agreement: user.profiles?.[0]?.newsletter_agreement,
+            sms_code: user.profiles?.[0]?.sms_code,
+            sms_code_expires: user.profiles?.[0]?.sms_code_expires,
+            master_verified: user.masters?.[0]?.is_verified || false,
+            master_partner: user.masters?.[0]?.is_partner || false,
+            description: user.masters?.[0]?.description,
+            rating: user.masters?.[0]?.rating || 0,
+            total_sales: user.masters?.[0]?.total_sales || 0
+        };
+    } catch (error) {
+        logError('Error in getUserById', error);
+        return null;
+    }
+}
+
+// Создание или обновление пользователя через OAuth
+async function createOrUpdateOAuthUser(profile: { email: string; name?: string | null; image?: string | null }, provider: string): Promise<UserData | null> {
+    try {
+        let user = await getUserByEmail(profile.email);
         
         if (!user) {
-            console.log('👤 Creating new user...')
+            const now = new Date().toISOString();
             
-            // Создаем нового пользователя
+            // Создаем пользователя
             const { data: newUser, error: createError } = await supabase
                 .from('users')
                 .insert({
-                    id: profile.id, // Важно: используем ID из провайдера
-                    email: profile.email,
+                    email: normalizeEmail(profile.email),
                     role: 'buyer',
                     role_selected: false,
                     is_banned: false,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
+                    created_at: now,
+                    updated_at: now
                 })
                 .select()
-                .single()
+                .single();
             
             if (createError) {
-                console.error('❌ Error creating user:', createError)
-                return null
+                logError('Error creating OAuth user', createError);
+                return null;
             }
-            
-            console.log('✅ User created:', newUser.id)
             
             // Создаем профиль
             const { error: profileError } = await supabase
                 .from('profiles')
                 .insert({
                     user_id: newUser.id,
-                    full_name: profile.name,
-                    avatar_url: profile.image,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                })
+                    full_name: profile.name || null,
+                    avatar_url: profile.image || null,
+                    created_at: now,
+                    updated_at: now
+                });
             
             if (profileError) {
-                console.error('❌ Error creating profile:', profileError)
-            } else {
-                console.log('✅ Profile created')
+                logError('Error creating profile for OAuth user', profileError, 'warning');
             }
             
             user = {
                 id: newUser.id,
                 email: newUser.email,
-                role: newUser.role,
-                role_selected: newUser.role_selected,
-                is_banned: newUser.is_banned,
+                role: 'buyer',
+                role_selected: false,
+                is_banned: false,
+                created_at: now,
+                updated_at: now,
                 name: profile.name,
                 avatar_url: profile.image
-            }
+            };
+            
+            logInfo('New OAuth user created', { userId: user.id, provider, email: profile.email });
         } else {
-            console.log('👤 User already exists:', user.id)
+            // Обновляем существующий профиль, если нужно
+            if (profile.name || profile.image) {
+                const updateData: ProfileUpdateData = { updated_at: new Date().toISOString() };
+                if (profile.name && !user.name) updateData.full_name = profile.name;
+                if (profile.image && !user.avatar_url) updateData.avatar_url = profile.image;
+                
+                if (Object.keys(updateData).length > 1) {
+                    await supabase
+                        .from('profiles')
+                        .update(updateData)
+                        .eq('user_id', user.id);
+                }
+            }
         }
         
-        return user
+        return user;
     } catch (error) {
-        console.error('❌ Error in createOrUpdateOAuthUser:', error)
-        return null
+        logError('Error in createOrUpdateOAuthUser', error);
+        return null;
     }
+}
+
+// Валидация SMS кода
+function validateSMSCode(inputCode: string, storedCode: string | null | undefined, expiresAt: string | null | undefined): boolean {
+    if (!storedCode || !expiresAt) return false;
+    if (inputCode !== storedCode) return false;
+    if (new Date(expiresAt) < new Date()) return false;
+    return true;
 }
 
 export const authOptions: NextAuthOptions = {
@@ -198,55 +287,61 @@ export const authOptions: NextAuthOptions = {
             },
             async authorize(credentials) {
                 if (!credentials?.email || !credentials?.password) {
-                    throw new Error('Введите email и пароль')
+                    throw new Error('Введите email и пароль');
                 }
 
                 try {
-                    const user = await getUserByEmail(credentials.email)
+                    const user = await getUserByEmail(credentials.email);
                     
                     if (!user) {
-                        throw new Error('Пользователь не найден')
-                    }
-
-                    if (!user.password) {
-                        throw new Error('Этот аккаунт создан через социальные сети. Используйте соответствующий вход.')
-                    }
-
-                    const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
-
-                    if (!isPasswordValid) {
-                        throw new Error('Неверный пароль')
-                    }
-
-                    const testMode = process.env.SMS_TEST_MODE === 'true'
-                    
-                    if (!testMode && credentials.smsCode) {
-                        if (credentials.smsCode !== user.sms_code) {
-                            throw new Error('Неверный SMS код')
-                        }
-                        if (user.sms_code_expires && new Date(user.sms_code_expires) < new Date()) {
-                            throw new Error('SMS код истек')
-                        }
+                        throw new Error('Пользователь не найден');
                     }
 
                     if (user.is_banned) {
-                        throw new Error('Аккаунт заблокирован')
+                        throw new Error('Аккаунт заблокирован');
                     }
 
+                    if (!user.password) {
+                        throw new Error('Этот аккаунт создан через социальные сети. Используйте соответствующий вход.');
+                    }
+
+                    const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
+                    if (!isPasswordValid) {
+                        throw new Error('Неверный пароль');
+                    }
+
+                    // Проверка SMS кода
+                    const testMode = process.env.SMS_TEST_MODE === 'true';
+                    if (!testMode && credentials.smsCode) {
+                        if (!validateSMSCode(credentials.smsCode, user.sms_code, user.sms_code_expires)) {
+                            throw new Error('Неверный или истекший SMS код');
+                        }
+                        
+                        // Очищаем использованный код
+                        await supabase
+                            .from('profiles')
+                            .update({ sms_code: null, sms_code_expires: null })
+                            .eq('user_id', user.id);
+                    }
+
+                    logInfo('User logged in', { userId: user.id, email: user.email });
+                    
                     return {
                         id: user.id,
                         email: user.email,
                         name: user.name || user.email?.split('@')[0],
                         role: user.role || 'buyer',
                         role_selected: user.role_selected || false,
-                        phone: user.phone,
-                        city: user.city,
+                        phone: user.phone || undefined,
+                        city: user.city || undefined,
                         is_verified: user.master_verified || false,
                         is_partner: user.master_partner || false,
-                        image: user.avatar_url || null
-                    }
-                } catch (error: any) {
-                    throw new Error(error.message || 'Ошибка аутентификации')
+                        image: user.avatar_url || undefined   
+                    };
+                } catch (error) {
+                    logError('Credentials authorization error', error, 'warning');
+                    const errorMessage = error instanceof Error ? error.message : 'Ошибка аутентификации';
+                    throw new Error(errorMessage);
                 }
             },
         }),
@@ -261,7 +356,7 @@ export const authOptions: NextAuthOptions = {
                     image: profile.picture,
                     role: 'buyer',
                     role_selected: false
-                }
+                };
             }
         }),
         YandexProvider({
@@ -275,7 +370,7 @@ export const authOptions: NextAuthOptions = {
                     image: profile.default_avatar_id ? `https://avatars.yandex.net/get-yapic/${profile.default_avatar_id}/islands-200` : null,
                     role: 'buyer',
                     role_selected: false
-                }
+                };
             }
         }),
         VkProvider({
@@ -289,131 +384,145 @@ export const authOptions: NextAuthOptions = {
                     image: profile.photo_max,
                     role: 'buyer',
                     role_selected: false
-                }
+                };
             }
         }),
     ],
     session: {
         strategy: 'jwt',
-        maxAge: 30 * 24 * 60 * 60,
+        maxAge: SESSION_MAX_AGE,
     },
     callbacks: {
         async signIn({ user, account }) {
             // Для OAuth провайдеров создаем или обновляем пользователя
-            if (account?.provider !== 'credentials' && user.email) {
+            if (account && account.provider !== 'credentials' && user.email) {
                 try {
                     const dbUser = await createOrUpdateOAuthUser({
                         email: user.email,
                         name: user.name,
                         image: user.image
-                    }, account.provider)
+                    }, account.provider);
                     
                     if (!dbUser) {
-                        return false
+                        logError('OAuth signIn failed - user creation failed', { provider: account.provider, email: user.email });
+                        return false;
                     }
                     
-                    user.id = dbUser.id
-                    user.role = dbUser.role
-                    user.role_selected = dbUser.role_selected
-                    user.image = dbUser.avatar_url
+                    user.id = dbUser.id;
+                    user.role = dbUser.role;
+                    user.role_selected = dbUser.role_selected;
+                    user.image = dbUser.avatar_url;
                     
-                    return true
+                    return true;
                 } catch (error) {
-                    console.error("Error in OAuth signIn:", error)
-                    return false
+                    logError('Error in OAuth signIn', error);
+                    return false;
                 }
             }
             
             // Проверка бана для всех пользователей
             if (user.id) {
                 try {
-                    const dbUser = await getUserById(user.id)
+                    const dbUser = await getUserById(user.id);
                     if (dbUser?.is_banned) {
-                        return false
+                        logInfo('Banned user attempted to sign in', { userId: user.id, email: user.email });
+                        return false;
                     }
                 } catch (error) {
-                    console.error("Error checking ban status:", error)
+                    logError('Error checking ban status', error);
                 }
             }
             
-            return true
+            return true;
         },
 
         async jwt({ token, user, account, trigger, session: triggerSession }) {
             if (user) {
-                token.id = user.id
-                token.role = user.role
-                token.roleSelected = user.role_selected
-                token.phone = user.phone
-                token.city = user.city
-                token.is_verified = user.is_verified
-                token.is_partner = user.is_partner
-                token.image = user.image || null  // <-- важно!
+                token.id = user.id;
+                token.role = user.role;
+                token.roleSelected = user.role_selected;
+                token.phone = user.phone;
+                token.city = user.city;
+                token.is_verified = user.is_verified;
+                token.is_partner = user.is_partner;
+                token.image = user.image ?? undefined;
 
                 if (account?.provider !== 'credentials' && !user.role_selected) {
-                    token.requiresRoleSelection = true
+                    token.requiresRoleSelection = true;
                 }
             }
 
-            // Получаем свежие данные из БД
-            if (token.id) {
+            // Получаем свежие данные из БД при каждом обновлении токена
+            if (token.id && !trigger) {
                 try {
                     const { data: profile, error } = await supabase
                         .from('profiles')
                         .select('avatar_url, full_name')
-                        .eq('user_id', token.id)
-                        .single()
+                        .eq('user_id', token.id as string)
+                        .maybeSingle();
                     
                     if (!error && profile) {
                         if (profile.avatar_url) {
-                            token.image = profile.avatar_url  // <-- обновляем из БД
+                            token.image = profile.avatar_url;
                         }
                         if (profile.full_name && !token.name) {
-                            token.name = profile.full_name
+                            token.name = profile.full_name;
                         }
                     }
                 } catch (error) {
-                    console.error('Error fetching profile:', error)
+                    // Не логируем ошибку, так как это может быть часто
                 }
             }
 
             // Обновление при trigger "update"
-            if (trigger === "update" && triggerSession?.image) {
-                token.image = triggerSession.image
+            if (trigger === "update" && triggerSession) {
+                if (triggerSession.image) token.image = triggerSession.image;
+                if (triggerSession.name) token.name = triggerSession.name;
+                if (triggerSession.role) token.role = triggerSession.role;
+                if (triggerSession.roleSelected !== undefined) token.roleSelected = triggerSession.roleSelected;
             }
 
-            return token
+            return token;
         },
 
         async session({ session, token }) {
             if (session.user) {
-                session.user.id = token.id as string
-                session.user.role = token.role as string
-                session.user.roleSelected = token.roleSelected as boolean
-                session.user.phone = token.phone as string
-                session.user.city = token.city as string
-                session.user.is_verified = token.is_verified as boolean
-                session.user.is_partner = token.is_partner as boolean
-                session.user.is_banned = token.is_banned as boolean
-                session.user.requiresRoleSelection = token.requiresRoleSelection as boolean
-                session.user.image = token.image as string || null  // <-- важно!
-                session.user.name = token.name as string || session.user.name
+                session.user.id = token.id as string;
+                session.user.role = token.role as string;
+                session.user.roleSelected = token.roleSelected as boolean;
+                session.user.phone = token.phone as string;
+                session.user.city = token.city as string;
+                session.user.is_verified = token.is_verified as boolean;
+                session.user.is_partner = token.is_partner as boolean;
+                session.user.is_banned = token.is_banned as boolean;  // теперь тип существует
+                session.user.requiresRoleSelection = token.requiresRoleSelection as boolean;
+                session.user.image = token.image as string || null;
+                session.user.name = (token.name as string) || session.user.name;
             }
-            return session
+            return session;
         },
 
         async redirect({ url, baseUrl }) {
-            if (url.startsWith('/')) return `${baseUrl}${url}`
-            else if (new URL(url).origin === baseUrl) return url
-            return baseUrl
+            // Безопасный редирект
+            if (url.startsWith('/')) return `${baseUrl}${url}`;
+            if (new URL(url).origin === baseUrl) return url;
+            return baseUrl;
         }
     },
     pages: {
         signIn: "/auth/signin",
-        signUp: '/auth/signup',
         error: "/auth/error",
         newUser: '/auth/role-selection'
     },
     secret: process.env.NEXTAUTH_SECRET,
-    debug: process.env.NODE_ENV === 'development'
-}
+    debug: process.env.NODE_ENV === 'development',
+    // Добавляем логирование
+    events: {
+        async signIn({ user }) {
+            logInfo('User signed in', { userId: user.id, email: user.email });
+        },
+        async signOut({ token }) {
+            logInfo('User signed out', { userId: token.sub });
+        }
+    }
+};

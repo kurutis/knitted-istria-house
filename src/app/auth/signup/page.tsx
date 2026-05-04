@@ -118,9 +118,10 @@ export default function SignUpPage() {
             startResendTimer()
             toast.success(data.message || 'Код отправлен!')
 
-        } catch (err: any) {
-            setError(err.message)
-            toast.error(err.message)
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Произошла ошибка'
+            setError(errorMessage)
+            toast.error(errorMessage)
         } finally {
             setLoading(false)
         }
@@ -153,9 +154,10 @@ export default function SignUpPage() {
             toast.success('Аккаунт успешно подтвержден!')
             router.push(`/auth/signin?verified=true`)
 
-        } catch (err: any) {
-            setError(err.message)
-            toast.error(err.message)
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Произошла ошибка'
+            setError(errorMessage)
+            toast.error(errorMessage)
         } finally {
             setLoading(false)
         }
@@ -186,8 +188,9 @@ export default function SignUpPage() {
             toast.success('Код отправлен повторно!')
             startResendTimer()
 
-        } catch (err: any) {
-            toast.error(err.message)
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Произошла ошибка'
+            toast.error(errorMessage)
         }
     }
 

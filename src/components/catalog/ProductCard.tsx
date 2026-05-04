@@ -6,7 +6,13 @@ import React, { useState, useEffect } from "react"
 import Image from 'next/image'
 
 interface ProductCardProps {
-    product: any
+    product: {
+        id: string;
+        title: string;
+        price: number;
+        main_image_url: string | null;
+        master_name?: string;
+    }
 }
 
 // SVG иконка избранного (сердечко)
@@ -74,7 +80,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         try {
             const response = await fetch('/api/cart')
             const data = await response.json()
-            const cartItem = data.items?.find((item: any) => item.product_id === product.id)
+            const cartItem = data.items?.find((item: { product_id: string; quantity: number }) => item.product_id === product.id)
             if (cartItem) {
                 setIsInCart(true)
                 setQuantity(cartItem.quantity)
@@ -88,7 +94,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         try {
             const response = await fetch('/api/user/favorites')
             const data = await response.json()
-            const isFav = data.some((item: any) => item.id === product.id)
+            const isFav = data.some((item: { id: string }) => item.id === product.id)
             setIsFavorite(!!isFav)
         } catch (error) {
             console.error('Error checking favorite status:', error)

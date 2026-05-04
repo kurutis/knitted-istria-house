@@ -7,9 +7,29 @@ import PriceRange from "./PriceRange"
 import allIcon from '../../../public/products.svg'
 
 interface FiltersProps {
-    filters: any
-    availableFilters: any
-    onFilterChange: (filters: any) => void
+    filters: {
+        category: string;
+        technique: string;
+        minPrice: string | number;
+        maxPrice: string | number;
+        search?: string;
+        sort?: string;
+        page?: number;
+    }
+    availableFilters: {
+        techniques?: Array<{ technique: string; count: number }>;
+        priceRange?: { min: number; max: number };
+        sortOptions?: string[];
+    }
+    onFilterChange: (filters: {
+        category?: string;
+        technique?: string;
+        minPrice?: string | number;
+        maxPrice?: string | number;
+        search?: string;
+        sort?: string;
+        page?: number;
+    }) => void
     onClearFilters: () => void
 }
 
@@ -24,7 +44,7 @@ interface Category {
 }
 
 export default function Filters({ filters, availableFilters, onFilterChange, onClearFilters }: FiltersProps) {
-   const maxPrice = availableFilters.priceRange?.max > 100000 ? 100000 : (availableFilters.priceRange?.max || 10000)
+   const maxPrice = availableFilters.priceRange?.max ? (availableFilters.priceRange.max > 100000 ? 100000 : availableFilters.priceRange.max) : 10000
 
     const [priceRange, setPriceRange] = useState({
         min: filters.minPrice || availableFilters.priceRange?.min || 0,
@@ -268,14 +288,14 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
                 <PriceRange
                     min={availableFilters.priceRange?.min || 0}
                     max={availableFilters.priceRange?.max || 10000}
-                    currentMin={priceRange.min}
-                    currentMax={priceRange.max}
+                    currentMin={Number(priceRange.min)}
+                    currentMax={Number(priceRange.max)}
                     onChange={handlePriceChange}
                 />
             </motion.div>
 
             {/* Техники вязания */}
-            {availableFilters.techniques?.length > 0 && (
+            {availableFilters.techniques && availableFilters.techniques.length > 0 && (
                 <motion.div 
                     className="mb-6"
                     initial={{ opacity: 0 }}
@@ -284,7 +304,7 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
                 >
                     <h4 className="font-['Montserrat_Alternates'] font-medium mb-3 text-base">Техника вязания</h4>
                     <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-                        {availableFilters.techniques.map((tech: any, idx: number) => (
+                        {availableFilters.techniques && availableFilters.techniques.map((tech: { technique: string; count: number }, idx: number) => (
                             <motion.label 
                                 key={tech.technique} 
                                 className="flex items-center justify-between cursor-pointer hover:bg-[#eaeaea] p-2 rounded-lg transition-colors"

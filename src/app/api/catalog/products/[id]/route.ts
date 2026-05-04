@@ -1,166 +1,240 @@
-import { supabase } from "@/lib/supabase";
+// app/api/catalog/products/[id]/route.ts
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
+import { rateLimit, getClientIP } from "@/lib/rate-limit";
+import { logError, logInfo, logApiRequest } from "@/lib/error-logger";
+import { invalidateCache } from "@/lib/db-optimized";
+import { z } from "zod";
 
-export async function GET(
+// Схема валидации
+const updateCartSchema = z.object({
+    quantity: z.number().int().min(0, 'Количество не может быть отрицательным').max(999, 'Максимальное количество 999 единиц'),
+});
+
+// Rate limiting для корзины (20 запросов в минуту)
+const limiter = rateLimit({ limit: 20, windowMs: 60 * 1000 });
+
+// Валидация UUID
+function isValidUUID(uuid: string): boolean {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+}
+
+export async function PATCH(
     request: Request,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: Promise<{ id: string }> }  // Изменено: productId → id
 ) {
+    const startTime = Date.now();
+    
     try {
-        const { id } = await params;
-
-        // Увеличиваем счетчик просмотров
-        const { data: currentProduct } = await supabase
-            .from('products')
-            .select('views')
-            .eq('id', id)
-            .single();
-
-        if (currentProduct) {
-            await supabase
-                .from('products')
-                .update({ views: (currentProduct.views || 0) + 1 })
-                .eq('id', id);
+        const rateLimitResult = limiter(request);
+        if (!rateLimitResult.success) {
+            logInfo('Rate limit exceeded for cart PATCH', { ip: getClientIP(request) });
+            return NextResponse.json({ 
+                error: 'Слишком много запросов. Попробуйте через минуту.' 
+            }, { status: 429 });
         }
 
-        // Получаем товар с данными пользователя и изображениями
-        const { data: product, error } = await supabase
+        const session = await getServerSession(authOptions);
+        if (!session?.user) {
+            logInfo('Unauthorized cart update attempt', { ip: getClientIP(request) });
+            return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
+        }
+
+        const { id } = await params;  // Изменено: productId → id
+        const body = await request.json();
+        
+        // Валидация ID товара
+        if (!id || !isValidUUID(id)) {
+            return NextResponse.json({ error: 'Неверный формат ID товара' }, { status: 400 });
+        }
+
+        // Валидация количества
+        const validatedData = updateCartSchema.parse({
+            quantity: body.quantity
+        });
+        const { quantity } = validatedData;
+
+        // Проверяем, существует ли товар и активен ли он
+        const { data: product, error: productError } = await supabase
             .from('products')
-            .select(`
-                *,
-                users!products_master_id_fkey (
-                    id,
-                    email,
-                    profiles!left (
-                        full_name,
-                        avatar_url,
-                        city
-                    )
-                ),
-                product_images (
-                    id,
-                    image_url,
-                    sort_order
-                ),
-                product_yarn!left (
-                    yarn_id,
-                    is_custom,
-                    yarn_catalog!inner (
-                        id,
-                        name,
-                        article,
-                        brand,
-                        color,
-                        composition
-                    )
-                )
-            `)
-            .eq('id', id)
+            .select('id, title, status, price, stock_quantity, is_available')
+            .eq('id', id)  // Изменено: productId → id
             .single();
 
-        if (error) {
-            if (error.code === 'PGRST116') {
-                return NextResponse.json({ error: 'Товар не найден' }, { status: 404 });
+        if (productError || !product) {
+            logInfo('Product not found for cart update', { productId: id });
+            return NextResponse.json({ error: 'Товар не найден' }, { status: 404 });
+        }
+
+        // Проверяем, активен ли товар
+        if (product.status !== 'active' || product.is_available === false) {
+            return NextResponse.json({ error: 'Товар недоступен для добавления в корзину' }, { status: 400 });
+        }
+
+        // Проверка наличия на складе
+        if (quantity > 0 && product.stock_quantity !== null && product.stock_quantity < quantity) {
+            return NextResponse.json({ 
+                error: `Недостаточно товара на складе. Доступно: ${product.stock_quantity}`,
+                maxAvailable: product.stock_quantity
+            }, { status: 400 });
+        }
+
+        const now = new Date().toISOString();
+
+        if (quantity <= 0) {
+            // Удаляем товар из корзины
+            const { error: deleteError } = await supabase
+                .from('cart')
+                .delete()
+                .eq('user_id', session.user.id)
+                .eq('product_id', id);  // Изменено: productId → id
+
+            if (deleteError) {
+                logError('Error deleting from cart', deleteError);
+                return NextResponse.json({ error: 'Ошибка удаления из корзины' }, { status: 500 });
             }
-            console.error('Error fetching product:', error);
-            return NextResponse.json({ error: 'Ошибка загрузки товара' }, { status: 500 });
-        }
-
-        // Получаем отзывы отдельным запросом
-        const { data: reviewsData } = await supabase
-            .from('reviews')
-            .select(`
-                id,
-                rating,
-                comment,
-                created_at,
-                author_id,
-                users!reviews_author_id_fkey (
-                    id,
-                    email,
-                    profiles!left (
-                        full_name,
-                        avatar_url
-                    )
-                )
-            `)
-            .eq('target_type', 'product')
-            .eq('target_id', id)
-            .order('created_at', { ascending: false });
-
-        // Получаем данные мастера
-        let masterRating = 0;
-        let totalSales = 0;
-        let isVerified = false;
-        let isPartner = false;
-        let customOrdersEnabled = false;
-
-        if (product.master_id) {
-            const { data: masterData } = await supabase
-                .from('masters')
-                .select('rating, total_sales, is_verified, is_partner, custom_orders_enabled')
-                .eq('user_id', product.master_id)
-                .single();
             
-            if (masterData) {
-                masterRating = masterData.rating || 0;
-                totalSales = masterData.total_sales || 0;
-                isVerified = masterData.is_verified || false;
-                isPartner = masterData.is_partner || false;
-                customOrdersEnabled = masterData.custom_orders_enabled || false;
+            logInfo('Item removed from cart', { 
+                userId: session.user.id, 
+                productId: id,
+                productTitle: product.title
+            });
+        } else {
+            // Проверяем, существует ли товар в корзине
+            const { data: existingItem, error: checkError } = await supabase
+                .from('cart')
+                .select('id, quantity')
+                .eq('user_id', session.user.id)
+                .eq('product_id', id)  // Изменено: productId → id
+                .maybeSingle();
+
+            if (checkError && checkError.code !== 'PGRST116') {
+                logError('Error checking cart', checkError);
+                return NextResponse.json({ error: 'Ошибка проверки корзины' }, { status: 500 });
+            }
+
+            if (!existingItem) {
+                const { error: insertError } = await supabase
+                    .from('cart')
+                    .insert({
+                        user_id: session.user.id,
+                        product_id: id,  // Изменено: productId → id
+                        quantity: quantity,
+                        created_at: now,
+                        updated_at: now
+                    });
+
+                if (insertError) {
+                    logError('Error inserting into cart', insertError);
+                    return NextResponse.json({ error: 'Ошибка добавления в корзину' }, { status: 500 });
+                }
+                
+                logInfo('Item added to cart', { 
+                    userId: session.user.id, 
+                    productId: id,
+                    quantity,
+                    productTitle: product.title
+                });
+            } else {
+                const { error: updateError } = await supabase
+                    .from('cart')
+                    .update({
+                        quantity: quantity,
+                        updated_at: now
+                    })
+                    .eq('user_id', session.user.id)
+                    .eq('product_id', id);  // Изменено: productId → id
+
+                if (updateError) {
+                    logError('Error updating cart', updateError);
+                    return NextResponse.json({ error: 'Ошибка обновления корзины' }, { status: 500 });
+                }
+                
+                logInfo('Cart quantity updated', { 
+                    userId: session.user.id, 
+                    productId: id,
+                    oldQuantity: existingItem.quantity,
+                    newQuantity: quantity,
+                    productTitle: product.title
+                });
             }
         }
 
-        // Форматируем отзывы
-        const formattedReviews = (reviewsData || []).map((review: any) => ({
-            id: review.id,
-            rating: review.rating,
-            comment: review.comment,
-            created_at: review.created_at,
-            author_name: review.users?.profiles?.full_name || review.users?.email,
-            author_avatar: review.users?.profiles?.avatar_url
-        }));
+        // Инвалидируем кэш корзины пользователя
+        invalidateCache(`cart_${session.user.id}`);
 
-        // Вычисляем рейтинг товара
-        const reviewsCount = formattedReviews.length;
-        const rating = reviewsCount > 0 
-            ? formattedReviews.reduce((sum, r) => sum + r.rating, 0) / reviewsCount 
-            : 0;
+        // Получаем обновлённое количество товаров в корзине
+        const { data: cartItems, error: countError } = await supabase
+            .from('cart')
+            .select('quantity')
+            .eq('user_id', session.user.id);
 
-        // Форматируем ответ
-        const formattedProduct = {
-            id: product.id,
-            title: product.title,
-            description: product.description,
-            price: product.price,
-            category: product.category,
-            technique: product.technique,
-            size: product.size,
-            care_instructions: product.care_instructions,
-            color: product.color,
-            main_image_url: product.main_image_url,
-            images: product.product_images?.sort((a: any, b: any) => a.sort_order - b.sort_order) || [],
-            master_id: product.master_id,
-            master_name: product.users?.profiles?.full_name || product.users?.email,
-            master_avatar: product.users?.profiles?.avatar_url,
-            master_city: product.users?.profiles?.city,
-            master_rating: masterRating,
-            total_sales: totalSales,
-            is_verified: isVerified,
-            is_partner: isPartner,
-            custom_orders_enabled: customOrdersEnabled,
-            rating: parseFloat(rating.toFixed(2)),
-            reviews_count: reviewsCount,
-            reviews: formattedReviews,
-            yarns: product.product_yarn?.map((py: any) => py.yarn_catalog).filter(Boolean) || [],
-            views: product.views || 0,
-            created_at: product.created_at,
-            status: product.status
-        };
+        if (countError) {
+            logError('Error getting cart count', countError, 'warning');
+        }
 
-        return NextResponse.json(formattedProduct);
+        const cartCount = cartItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+
+        logApiRequest('PATCH', `/api/cart/${id}`, 200, Date.now() - startTime, session.user.id);
+
+        return NextResponse.json({ 
+            success: true, 
+            cartCount: cartCount,
+            message: quantity <= 0 ? 'Товар удален из корзины' : 'Количество обновлено',
+            item: quantity > 0 ? {
+                product_id: id,
+                quantity: quantity,
+                price: product.price
+            } : null
+        }, { status: 200 });
         
     } catch (error) {
-        console.error('Error fetching product:', error);
-        return NextResponse.json({ error: 'Ошибка загрузки товара' }, { status: 500 });
+        if (error instanceof z.ZodError) {
+            return NextResponse.json({ error: error.issues[0]?.message || 'Ошибка валидации' }, { status: 400 });
+        }
+        logError('Error updating cart', error);
+        return NextResponse.json({ error: 'Ошибка обновления корзины' }, { status: 500 });
+    }
+}
+
+// GET - получить количество товара в корзине
+export async function GET(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }  // Изменено: productId → id
+) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session?.user) {
+            return NextResponse.json({ quantity: 0 }, { status: 200 });
+        }
+
+        const { id } = await params;  // Изменено: productId → id
+        
+        if (!id || !isValidUUID(id)) {
+            return NextResponse.json({ quantity: 0 }, { status: 200 });
+        }
+
+        const { data: cartItem, error } = await supabase
+            .from('cart')
+            .select('quantity')
+            .eq('user_id', session.user.id)
+            .eq('product_id', id)  // Изменено: productId → id
+            .maybeSingle();
+
+        if (error) {
+            logError('Error getting cart item', error, 'warning');
+            return NextResponse.json({ quantity: 0 }, { status: 200 });
+        }
+
+        return NextResponse.json({ 
+            quantity: cartItem?.quantity || 0 
+        }, { status: 200 });
+        
+    } catch (error) {
+        logError('Error getting cart item', error);
+        return NextResponse.json({ quantity: 0 }, { status: 200 });
     }
 }

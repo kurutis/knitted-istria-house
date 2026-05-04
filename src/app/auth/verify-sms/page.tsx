@@ -57,8 +57,9 @@ function VerifySmsForm() {
 
             router.push('/auth/signin?verified=true')
             
-        }catch (err: any){
-            setError(err.message || 'Произошла ошибка')
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Произошла ошибка'
+            setError(errorMessage)
         }finally{
             setLoading(false)
         }
@@ -81,8 +82,9 @@ function VerifySmsForm() {
 
             setResendTimer(60)
             setCanResend(false)
-        }catch(err: any){
-            setError(err.message)
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Произошла ошибка'
+            setError(errorMessage)
         }
     }
 

@@ -14,6 +14,7 @@ interface FavoriteProduct {
     master_name: string
 }
 
+
 export default function FavoritesPage() {
     const { data: session, status } = useSession()
     const router = useRouter()
@@ -101,8 +102,6 @@ export default function FavoritesPage() {
                             <ProductCard 
                                 key={product.id}
                                 product={product}
-                                showRemoveFromFavorites={true}
-                                onRemoveFromFavorites={handleRemoveFromFavorites}
                             />
                         ))}
                     </div>

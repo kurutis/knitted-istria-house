@@ -39,8 +39,8 @@ export default function RoleSelectionPage(){
             await update({...session, user:{...session?.user, ...formData, roleSelected: true}})
             
             router.push('/')
-        }catch(err: any){
-            setError(err.message)
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Произошла ошибка')
         }finally{
             setLoading(false)
         }

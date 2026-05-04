@@ -20,7 +20,7 @@ interface Product {
     size: string
     created_at: string
     master_id: string
-    images?: any[]
+    images?: Array<{ id: string; url: string; sort_order: number }>
 }
 
 export default function PopularProducts() {
