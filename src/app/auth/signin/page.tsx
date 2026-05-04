@@ -69,9 +69,9 @@ function SignInForm() {
 
         try {
             const result = await signIn('credentials', {
-                identifier,
-                password,
-                smsCode,
+                email: identifier,
+                password: password,
+                smsCode: smsCode,
                 redirect: false,
                 callbackUrl
             })
