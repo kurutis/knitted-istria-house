@@ -5,7 +5,7 @@ import MasterProfile from "@/components/profile/MasterProfile";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, Suspense } from "react";
 
 type AdaptedSession = {
   user?: {
@@ -21,7 +21,8 @@ function ProfileContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
-  const [loading, setLoading] = useState(true);
+  const loading = status === "loading";
+  const isAuthenticated = status === "authenticated";
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -33,12 +34,16 @@ function ProfileContent() {
     return <LoadingSpinner />;
   }
 
-  const userRole =
-    session?.user?.role || (session?.user as { userRole?: string })?.userRole;
+  if (!isAuthenticated || !session) {
+    return null;
+  }
+
+  const userRole = session?.user?.role;
 
   if (userRole === "master") {
     return <MasterProfile session={session as AdaptedSession} />;
   }
+  
   return (
     <BuyerProfile
       session={session as AdaptedSession}
