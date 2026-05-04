@@ -133,6 +133,20 @@ interface MasterClassesApiResponse {
   };
 }
 
+interface BlogPostFromApi {
+    id: string;
+    title: string;
+    status: string;
+    created_at: string;
+    excerpt: string | null;
+    content: string;
+    views: number;
+    stats?: {
+        comments_count: number;
+        likes_count: number;
+    };
+}
+
 export default function MasterProfile({ session }: MasterProfileProps) {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isEditing, setIsEditing] = useState(false);
@@ -259,10 +273,21 @@ export default function MasterProfile({ session }: MasterProfileProps) {
       // Blog
       let blog: BlogPost[] = [];
       if (blogRes.ok) {
-        blog = await blogRes.json();
-        if (!Array.isArray(blog)) blog = [];
-      }
-      setBlogPosts(blog);
+        const blogData = await blogRes.json();
+            // API возвращает { success: true, posts: [], pagination: {} }
+            if (blogData.posts && Array.isArray(blogData.posts)) {
+        blog = blogData.posts.map((post: BlogPostFromApi) => ({
+            id: post.id,
+            title: post.title,
+            status: post.status,
+            created_at: post.created_at,
+            excerpt: post.excerpt || post.content?.substring(0, 200),
+            content: post.content,
+            views_count: post.views || 0,
+            comments_count: post.stats?.comments_count || 0,
+            likes_count: post.stats?.likes_count || 0,
+        }));
+    }
 
       // Master Classes
       let classes: MasterClass[] = [];
@@ -1047,291 +1072,52 @@ export default function MasterProfile({ session }: MasterProfileProps) {
             )}
 
             {/* Blog Tab */}
-            {activeTab === "blog" && (
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">
-                    Мой блог
-                  </h2>
-                  <Link
-                    href="/master/blog/new"
-                    className="px-4 py-2 bg-firm-pink text-white rounded-lg hover:bg-opacity-90 transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-2"
-                  >
-                    + Новая запись
-                  </Link>
-                </div>
-                <div className="space-y-4">
-                  {blogPosts.map((post: BlogPost) => (
-                    <div
-                      key={post.id}
-                      className="border rounded-lg p-5 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg">
-                            {post.title}
-                          </h3>
-                          <p className="text-sm text-gray-500 mt-1">
-                            {formatDate(post.created_at)}
-                          </p>
-                        </div>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(post.status)}`}
-                        >
-                          {getStatusText(post.status)}
-                        </span>
-                      </div>
-                      <p className="text-gray-600 mb-3 line-clamp-2">
-                        {post.excerpt || post.content?.substring(0, 200)}...
-                      </p>
-                      <div className="flex justify-between items-center">
-                        <div className="flex gap-4 text-sm text-gray-500">
-                          <span>👁️ {post.views_count || 0} просмотров</span>
-                          <span>
-                            💬 {post.comments_count || 0} комментариев
-                          </span>
-                          <span>❤️ {post.likes_count || 0} лайков</span>
-                        </div>
-                        <div className="flex gap-3">
-                          <Link
-                            href={`/master/blog/${post.id}/edit`}
-                            className="text-sm text-blue-600 hover:underline"
-                          >
-                            Редактировать
-                          </Link>
-                          <button
-                            onClick={() => handleBlogPostDelete(post.id)}
-                            className="text-sm text-red-600 hover:underline"
-                          >
-                            Удалить
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Master Classes Tab */}
-            {activeTab === "master-classes" && (
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">
-                    Мои мастер-классы
-                  </h2>
-                  <Link
-                    href="/master/master-classes/new"
-                    className="px-4 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-2"
-                  >
-                    + Создать мастер-класс
-                  </Link>
-                </div>
-
-                <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-                  <button
-                    onClick={() => setMasterClassFilter("all")}
-                    className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition ${masterClassFilter === "all" ? "bg-firm-orange text-white" : "border border-gray-300 hover:bg-gray-50"}`}
-                  >
-                    Все ({masterClasses.length})
-                  </button>
-                  <button
-                    onClick={() => setMasterClassFilter("published")}
-                    className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition ${masterClassFilter === "published" ? "bg-firm-orange text-white" : "border border-gray-300 hover:bg-gray-50"}`}
-                  >
-                    Опубликованные (
-                    {
-                      masterClasses.filter(
-                        (mc: { status: string }) => mc.status === "published",
-                      ).length
-                    }
-                    )
-                  </button>
-                  <button
-                    onClick={() => setMasterClassFilter("draft")}
-                    className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition ${masterClassFilter === "draft" ? "bg-firm-orange text-white" : "border border-gray-300 hover:bg-gray-50"}`}
-                  >
-                    Черновики (
-                    {
-                      masterClasses.filter(
-                        (mc: { status: string }) => mc.status === "draft",
-                      ).length
-                    }
-                    )
-                  </button>
-                  <button
-                    onClick={() => setMasterClassFilter("cancelled")}
-                    className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition ${masterClassFilter === "cancelled" ? "bg-firm-orange text-white" : "border border-gray-300 hover:bg-gray-50"}`}
-                  >
-                    Отмененные (
-                    {
-                      masterClasses.filter(
-                        (mc: { status: string }) => mc.status === "cancelled",
-                      ).length
-                    }
-                    )
-                  </button>
-                </div>
-
-                {masterClasses.length === 0 ? (
-                  <div className="text-center py-12 bg-gray-50 rounded-lg">
-                    <p className="text-gray-500 mb-4">
-                      У вас нет созданных мастер-классов
+            {blogPosts.map((post: BlogPost) => (
+              <div
+                key={post.id}
+                className="border rounded-lg p-5 hover:shadow-md transition-shadow"
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg">
+                      {post.title}
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {formatDate(post.created_at)}
                     </p>
+                  </div>
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(post.status)}`}
+                  >
+                    {getStatusText(post.status)}
+                  </span>
+                </div>
+                <p className="text-gray-600 mb-3 line-clamp-2">
+                  {post.excerpt || post.content?.substring(0, 200)}...
+                </p>
+                <div className="flex justify-between items-center">
+                  <div className="flex gap-4 text-sm text-gray-500">
+                    <span>👁️ {post.views_count || 0} просмотров</span>
+                    <span>💬 {post.comments_count || 0} комментариев</span>
+                    <span>❤️ {post.likes_count || 0} лайков</span>
+                  </div>
+                  <div className="flex gap-3">
                     <Link
-                      href="/master/master-classes/new"
-                      className="inline-block px-6 py-3 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition"
+                      href={`/master/blog/${post.id}/edit`}
+                      className="text-sm text-blue-600 hover:underline"
                     >
-                      Создать первый мастер-класс →
+                      Редактировать
                     </Link>
+                    <button
+                      onClick={() => handleBlogPostDelete(post.id)}
+                      className="text-sm text-red-600 hover:underline"
+                    >
+                      Удалить
+                    </button>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    {masterClasses
-                      .filter(
-                        (mc: { status: string }) =>
-                          masterClassFilter === "all" ||
-                          mc.status === masterClassFilter,
-                      )
-                      .map(
-                        (mc: {
-                          id: string;
-                          title: string;
-                          image_url?: string;
-                          type: string;
-                          status: string;
-                          price: number;
-                          current_participants?: number;
-                          max_participants: number;
-                          description: string;
-                          date_time: string;
-                          duration_minutes: number;
-                          location?: string;
-                          registrations?: Array<{
-                            id: string;
-                            user_name?: string;
-                            user_email: string;
-                            user_phone?: string;
-                            created_at: string;
-                            payment_status: string;
-                          }>;
-                        }) => (
-                          <div
-                            key={mc.id}
-                            className="border border-gray-100 rounded-lg p-5 hover:shadow-md transition-shadow"
-                          >
-                            <div className="flex gap-4">
-                              {mc.image_url && (
-                                <div className="w-32 h-32 shrink-0 rounded-lg overflow-hidden bg-gray-100">
-                                  <Image
-                                    src={mc.image_url}
-                                    alt={mc.title}
-                                    className="w-full h-full object-cover"
-                                    width={160}
-                                    height={160}
-                                  />
-                                </div>
-                              )}
-                              <div className="flex-1">
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg">
-                                      {mc.title}
-                                    </h3>
-                                    <div className="flex items-center gap-2 mt-1">
-                                      <span
-                                        className={`px-2 py-0.5 rounded-full text-xs ${mc.type === "online" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}
-                                      >
-                                        {mc.type === "online"
-                                          ? "🖥️ Онлайн"
-                                          : "📍 Офлайн"}
-                                      </span>
-                                      <span
-                                        className={`px-2 py-0.5 rounded-full text-xs ${getStatusColor(mc.status)}`}
-                                      >
-                                        {getStatusText(mc.status)}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    <div className="text-xl font-bold text-firm-orange">
-                                      {mc.price} ₽
-                                    </div>
-                                    <div className="text-sm text-gray-500">
-                                      {mc.current_participants || 0}/
-                                      {mc.max_participants} участников
-                                    </div>
-                                  </div>
-                                </div>
-                                <p className="text-gray-600 mt-2 text-sm line-clamp-2">
-                                  {mc.description}
-                                </p>
-                                <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
-                                  <div className="flex items-center gap-1">
-                                    📅 {formatDate(mc.date_time)}
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    ⏰ {formatTime(mc.date_time)}
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    ⏱️ {mc.duration_minutes} мин
-                                  </div>
-                                  {mc.type === "offline" && mc.location && (
-                                    <div className="flex items-center gap-1">
-                                      📍 {mc.location}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="mt-3 flex justify-end gap-2">
-                                  <button
-                                    onClick={() => {
-                                      setSelectedMasterClass(mc);
-                                      setShowParticipantsModal(true);
-                                    }}
-                                    className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition"
-                                  >
-                                    👥 Участники (
-                                    {mc.registrations?.length || 0})
-                                  </button>
-                                  {mc.status === "published" &&
-                                    new Date(mc.date_time) > new Date() && (
-                                      <button
-                                        onClick={() =>
-                                          handleCancelMasterClass(mc.id)
-                                        }
-                                        className="px-3 py-1.5 border border-red-500 text-red-500 rounded-lg text-sm hover:bg-red-500 hover:text-white transition"
-                                      >
-                                        Отменить
-                                      </button>
-                                    )}
-                                  {mc.status === "draft" && (
-                                    <>
-                                      <Link
-                                        href={`/master/master-classes/${mc.id}/edit`}
-                                        className="px-3 py-1.5 bg-firm-orange text-white rounded-lg text-sm hover:bg-opacity-90 transition"
-                                      >
-                                        Редактировать
-                                      </Link>
-                                      <button
-                                        onClick={() =>
-                                          handleDeleteMasterClass(mc.id)
-                                        }
-                                        className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition"
-                                      >
-                                        Удалить
-                                      </button>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ),
-                      )}
-                  </div>
-                )}
+                </div>
               </div>
-            )}
+            ))}
 
             {/* Participants Modal */}
             {showParticipantsModal && selectedMasterClass && (
