@@ -336,6 +336,7 @@ export const authOptions: NextAuthOptions = {
                         city: user.city || undefined,
                         is_verified: user.master_verified || false,
                         is_partner: user.master_partner || false,
+                        is_banned: user.is_banned || false,
                         image: user.avatar_url || undefined   
                     };
                 } catch (error) {
