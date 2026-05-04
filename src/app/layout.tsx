@@ -3,6 +3,7 @@ import localFont from "next/font/local"
 import "./globals.css"
 import { Providers } from "./providers"
 import AppLayout from "@/components/layout/AppLayout"
+import ErrorHandler from "@/components/ErrorHandler"
 
 const raleway = localFont({
     src: [
@@ -68,6 +69,7 @@ export default function RootLayout({children,}: Readonly<{children: React.ReactN
     return (
         <html lang="ru">
             <body className={`${raleway.variable} ${montserratAlternates.variable}`}>
+                <ErrorHandler />
                 <Providers>
                     <AppLayout>
                         {children}
