@@ -81,9 +81,11 @@ export default function HomePage() {
         try {
             const response = await fetch('/api/blog/posts?limit=4')
             const data = await response.json()
-            setRecentPosts(data)
+            const postsData = Array.isArray(data) ? data : []
+            setRecentPosts(postsData)
         } catch (error) {
             console.error('Error fetching recent posts:', error)
+            setRecentPosts([])
         } finally {
             setLoadingPosts(false)
         }
@@ -259,7 +261,7 @@ export default function HomePage() {
                     </div>
                 ) : (
                     <div className="space-y-6 flex flex-col items-center px-4">
-                        {recentPosts.map((post, index) => (
+                        {Array.isArray(recentPosts) && recentPosts.map((post, index) => (
                             <motion.div 
                                 key={post.id} 
                                 className="bg-white rounded-lg shadow-md overflow-hidden w-full max-w-2xl lg:max-w-3xl"
