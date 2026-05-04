@@ -101,35 +101,35 @@ export async function GET(request: Request) {
         
         const profile = await cachedQuery(cacheKey, async () => {
             const { data: masterData, error } = await supabase
-                .from('users')
-                .select(`
-                    id,
-                    email,
-                    role,
+            .from('users')
+            .select(`
+                id,
+                email,
+                role,
+                created_at,
+                profiles!user_id (
+                    full_name,
+                    phone,
+                    city,
+                    address,
+                    avatar_url,
+                    newsletter_agreement,
                     created_at,
-                    profiles!left (
-                        full_name,
-                        phone,
-                        city,
-                        address,
-                        avatar_url,
-                        newsletter_agreement,
-                        created_at,
-                        updated_at
-                    ),
-                    masters!left (
-                        description,
-                        is_verified,
-                        is_partner,
-                        rating,
-                        total_sales,
-                        custom_orders_enabled,
-                        moderation_status,
-                        is_banned
-                    )
-                `)
-                .eq('id', session.user.id)
-                .single();
+                    updated_at
+                ),
+                masters!user_id (
+                    description,
+                    is_verified,
+                    is_partner,
+                    rating,
+                    total_sales,
+                    custom_orders_enabled,
+                    moderation_status,
+                    is_banned
+                )
+            `)
+            .eq('id', session.user.id)
+            .single();
 
             if (error) {
                 logError('Error fetching master profile', error);
