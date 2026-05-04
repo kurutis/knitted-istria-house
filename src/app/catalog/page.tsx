@@ -198,7 +198,7 @@ function CatalogContent() {
   );
 
   return (
-    <div className="mt-5 flex items-start justify-center px-3 sm:px-4">
+    <div className="flex items-start justify-center px-3 sm:px-4">
       <div className="flex flex-col gap-5 w-full max-w-7xl">
         {/* Header */}
         <div className="px-2">

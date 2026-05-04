@@ -11,20 +11,17 @@ import google from '../../../../public/google.svg'
 import yandex from '../../../../public/yandex.svg'
 import vk from '../../../../public/vk.svg'
 
-// Компонент, который использует useSearchParams
 function SignInForm() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const callbackUrl = searchParams.get('callbackUrl') || '/'
     const verified = searchParams.get('verified')
 
-    const [identifier, setIdentifier] = useState('') // email или телефон
+    const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
-    const [smsCode, setSmsCode] = useState('')
     const [rememberMe, setRememberMe] = useState(false)
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
-    const [isPhoneLogin, setIsPhoneLogin] = useState(false) // определяем тип входа
 
     React.useEffect(() => {
         if (verified === 'true') {
@@ -32,46 +29,15 @@ function SignInForm() {
         }
     }, [verified])
 
-    // Определяем, является ли введённое значение email или телефоном
-    const detectLoginType = (value: string) => {
-        const phoneRegex = /^[\+]?[(]?[0-9]{1,3}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,5}[-\s\.]?[0-9]{1,5}$/
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-        
-        if (phoneRegex.test(value) || value.replace(/[^0-9]/g, '').length >= 10) {
-            return 'phone'
-        }
-        if (emailRegex.test(value)) {
-            return 'email'
-        }
-        return 'unknown'
-    }
-
-    const handleIdentifierChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value
-        setIdentifier(value)
-        const type = detectLoginType(value)
-        setIsPhoneLogin(type === 'phone')
-    }
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
         setError('')
 
-        const loginType = detectLoginType(identifier)
-        
-        if (loginType === 'unknown') {
-            setError('Введите корректный email или номер телефона')
-            toast.error('Введите корректный email или номер телефона')
-            setLoading(false)
-            return
-        }
-
         try {
             const result = await signIn('credentials', {
-                email: identifier,
+                email: email,
                 password: password,
-                smsCode: smsCode,
                 redirect: false,
                 callbackUrl
             })
@@ -113,7 +79,7 @@ function SignInForm() {
                     <h2 className="font-['Montserrat_Alternates'] font-bold text-3xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
                         Добро пожаловать
                     </h2>
-                    <p className="mt-2 text-gray-500 text-sm">Войдите через email или номер телефона</p>
+                    <p className="mt-2 text-gray-500 text-sm">Войдите через email</p>
                 </div>
 
                 {error && (
@@ -129,26 +95,16 @@ function SignInForm() {
                 <form onSubmit={handleSubmit} className="mt-8 space-y-5">
                     <div>
                         <label className="block text-gray-700 mb-2 text-sm font-medium">
-                            Email или номер телефона
+                            Email
                         </label>
                         <input
                             className="w-full p-3 rounded-xl bg-gray-50 border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all"
-                            type="text"
-                            value={identifier}
-                            onChange={handleIdentifierChange}
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
                             required
-                            placeholder="ivan@example.com или +7 (999) 123-45-67"
+                            placeholder="ivan@example.com"
                         />
-                        {isPhoneLogin && (
-                            <p className="text-xs text-gray-400 mt-1">
-                                📱 Вход по номеру телефона
-                            </p>
-                        )}
-                        {!isPhoneLogin && identifier && (
-                            <p className="text-xs text-gray-400 mt-1">
-                                ✉️ Вход по email
-                            </p>
-                        )}
                     </div>
 
                     <div>
@@ -265,7 +221,6 @@ function SignInForm() {
     )
 }
 
-// Основной компонент с Suspense
 export default function SignInPage() {
     return (
         <Suspense fallback={<div className="flex justify-center items-center min-h-[60vh]">Загрузка...</div>}>

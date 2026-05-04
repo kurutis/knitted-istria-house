@@ -11,7 +11,6 @@ interface CategoryNode {
     description: string
     parent_category_id: number | null
     icon_url?: string
-    slug: string
     sort_order: number
     products_count: number
     subcategories: CategoryNode[]
@@ -19,14 +18,12 @@ interface CategoryNode {
     path: string[]
 }
 
-// Rate limiting для публичного эндпоинта
-const limiter = rateLimit({ limit: 60, windowMs: 60 * 1000 }); // 60 запросов в минуту
+const limiter = rateLimit({ limit: 60, windowMs: 60 * 1000 });
 
 export async function GET(request: Request) {
     const startTime = Date.now();
     
     try {
-        // 1. Rate limiting - исправлено: передаем request, а не ip
         const rateLimitResult = limiter(request);
         if (!rateLimitResult.success) {
             logInfo('Rate limit exceeded for categories', { ip: getClientIP(request) });
@@ -36,14 +33,12 @@ export async function GET(request: Request) {
             }, { status: 429 });
         }
 
-        // 2. Кэширование результата
         const cacheKey = 'categories_full_tree';
         const result = await cachedQuery(cacheKey, async () => {
-            // 3. Оптимизированный запрос - получаем все категории одним запросом
+            // Получаем категории - убрал slug и is_active
             const { data: categories, error } = await supabase
                 .from('categories')
-                .select('id, name, description, parent_category_id, icon_url, slug, sort_order')
-                .eq('is_active', true)
+                .select('id, name, description, parent_category_id, icon_url, sort_order')
                 .order('sort_order', { ascending: true, nullsFirst: false })
                 .order('name', { ascending: true });
 
@@ -56,28 +51,26 @@ export async function GET(request: Request) {
                 return { categories: [] };
             }
 
-            // 4. Оптимизированный подсчет товаров - один запрос
+            // Подсчет товаров
             const { data: productsCount } = await supabase
                 .from('products')
-                .select('category_id')
+                .select('category')
                 .eq('status', 'active')
-                .not('category_id', 'is', null);
+                .not('category', 'is', null);
 
-            // Создаем Map для быстрого доступа к количеству товаров
             const countMap = new Map();
             if (productsCount) {
                 productsCount.forEach(p => {
-                    if (p.category_id) {
-                        countMap.set(p.category_id, (countMap.get(p.category_id) || 0) + 1);
+                    if (p.category) {
+                        countMap.set(p.category, (countMap.get(p.category) || 0) + 1);
                     }
                 });
             }
 
-            // 5. Оптимизированное построение дерева (один проход)
+            // Построение дерева
             const categoriesMap = new Map();
             const rootCategories = [];
 
-            // Первый проход: создаем Map со всеми категориями с санитизацией
             for (const cat of categories) {
                 categoriesMap.set(cat.id, {
                     id: cat.id,
@@ -85,22 +78,19 @@ export async function GET(request: Request) {
                     description: sanitize.text(cat.description || ''),
                     parent_category_id: cat.parent_category_id,
                     icon_url: cat.icon_url,
-                    slug: cat.slug,
                     sort_order: cat.sort_order || 0,
-                    products_count: countMap.get(cat.id) || 0,
+                    products_count: countMap.get(cat.name) || 0,
                     subcategories: [],
                     level: 0,
                     path: [sanitize.text(cat.name)]
                 });
             }
 
-            // Второй проход: формируем дерево
             for (const cat of categories) {
                 const categoryNode = categoriesMap.get(cat.id);
                 if (cat.parent_category_id && categoriesMap.has(cat.parent_category_id)) {
                     const parent = categoriesMap.get(cat.parent_category_id);
                     parent.subcategories.push(categoryNode);
-                    // Наследуем уровень и путь от родителя
                     categoryNode.level = parent.level + 1;
                     categoryNode.path = [...parent.path, categoryNode.name];
                 } else if (!cat.parent_category_id) {
@@ -108,7 +98,6 @@ export async function GET(request: Request) {
                 }
             }
 
-            // Сортировка подкатегорий
             const sortSubcategories = (items: CategoryNode[]) => {
                 items.sort((a, b) => {
                     if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
@@ -122,40 +111,19 @@ export async function GET(request: Request) {
             };
             sortSubcategories(rootCategories);
 
-            // Получаем список всех категорий для SEO (плоский список)
-            const flatCategories = Array.from(categoriesMap.values()).map(cat => ({
-                id: cat.id,
-                name: cat.name,
-                slug: cat.slug,
-                products_count: cat.products_count,
-                level: cat.level
-            }));
-
-            return { 
-                categories: rootCategories,
-                flat_categories: flatCategories,
-                total_categories: categories.length,
-                total_products: countMap.size
-            };
-        }, 300); // TTL 5 минут для категорий (меняются редко)
-
-        // Добавляем заголовки кэширования
-        const headers = {
-            'Cache-Control': 'public, max-age=300, stale-while-revalidate=60',
-            'X-RateLimit-Limit': rateLimitResult.limit?.toString() || '60',
-            'X-RateLimit-Remaining': rateLimitResult.remaining?.toString() || '60'
-        };
+            return { categories: rootCategories };
+        }, 300);
 
         logApiRequest('GET', '/api/categories', 200, Date.now() - startTime);
 
         return NextResponse.json({ 
             success: true,
-            ...result,
+            categories: result.categories,
             meta: {
                 cached: Date.now() - startTime < 50,
                 timestamp: new Date().toISOString()
             }
-        }, { status: 200, headers });
+        }, { status: 200 });
         
     } catch (error) {
         logError('Error fetching categories', error);

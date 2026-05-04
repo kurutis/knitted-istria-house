@@ -409,7 +409,7 @@ export default function Header() {
       </AnimatePresence>
 
       {/* Отступ для фиксированного хедера */}
-      <div className="h-10" />
+      <div className="h-8" />
       
       {/* Отступ для мобильного нижнего меню */}
       <div className="h-16 lg:hidden" />
