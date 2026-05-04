@@ -18,7 +18,6 @@ export default function Footer() {
 
     const footerLinks = {
         masters: [
-            { href: "/masters", label: "Мастера" },
             { href: "/about", label: "Изучение" },
             { href: "/master-classes", label: "Мастер-классы" },
             { href: "/blog", label: "Блог" },
