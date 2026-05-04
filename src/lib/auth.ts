@@ -7,6 +7,8 @@ import GoogleProvider from "next-auth/providers/google";
 import YandexProvider from "next-auth/providers/yandex";
 import VkProvider from "next-auth/providers/vk";
 
+console.log('=== AUTH.TS LOADED ===');
+
 // Константы
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 
@@ -147,6 +149,7 @@ async function getUserById(id: string) {
 
 // Создание или обновление пользователя через OAuth
 async function createOrUpdateOAuthUser(profile: { email: string; name?: string | null; image?: string | null }, provider: string) {
+    
     try {
         let user = await getUserByEmail(profile.email);
         
@@ -219,6 +222,9 @@ export const authOptions: NextAuthOptions = {
                 password: { label: 'Password', type: 'password' }
             },
             async authorize(credentials) {
+                console.log('=== AUTHORIZE CALLED ===');
+                console.log('Email:', credentials?.email);
+                console.log('Has password:', !!credentials?.password);
                 if (!credentials?.email || !credentials?.password) {
                     throw new Error('Введите email и пароль');
                 }
