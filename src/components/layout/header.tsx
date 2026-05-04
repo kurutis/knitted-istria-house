@@ -33,28 +33,43 @@ export default function Header() {
   useEffect(() => {
     const loadAvatar = async () => {
       if (!isAuthenticated) return;
-      
+
       try {
-        const response = await fetch('/api/user/profile');
+        // Определяем какой API использовать в зависимости от роли
+        const apiUrl = isMaster ? "/api/master/profile" : "/api/user/profile";
+        const response = await fetch(apiUrl);
+
         if (response.ok) {
           const data = await response.json();
-          if (data.avatarUrl) {
-            setAvatarUrl(data.avatarUrl);
+          // API мастера возвращает { success: true, profile: { avatar_url } }
+          // API пользователя возвращает { avatarUrl }
+          let avatar: string | null = null;
+
+          if (isMaster && data.profile?.avatar_url) {
+            avatar = data.profile.avatar_url;
+          } else if (data.avatarUrl) {
+            avatar = data.avatarUrl;
+          } else if (data.avatar_url) {
+            avatar = data.avatar_url;
+          }
+
+          if (avatar) {
+            setAvatarUrl(avatar);
           }
         }
       } catch (error) {
-        console.error('Error loading avatar:', error);
+        console.error("Error loading avatar:", error);
       }
     };
-    
+
     loadAvatar();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isMaster]);
 
   const getInitials = () => {
     if (!session?.user) return "U";
     const name = session.user.name;
     const email = session.user.email;
-    
+
     if (name && name.length > 0) {
       return name.charAt(0).toUpperCase();
     }
@@ -85,9 +100,7 @@ export default function Header() {
         animate={{ y: 0 }}
         transition={{ duration: 0.5, type: "spring", stiffness: 100 }}
         className={`fixed top-0 z-40 w-full transition-all duration-500 ${
-          isScrolled
-            ? "bg-main/95 backdrop-blur-md shadow-lg"
-            : "bg-main"
+          isScrolled ? "bg-main/95 backdrop-blur-md shadow-lg" : "bg-main"
         } h-[60px] flex items-center`}
       >
         <nav className="container mx-auto px-4 sm:px-6 lg:px-8 w-full">
@@ -99,7 +112,11 @@ export default function Header() {
               className="flex gap-2 sm:gap-3 items-center flex-shrink-0"
             >
               <Link href="/" className="flex items-center gap-2 sm:gap-3">
-                <Image className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-16 lg:h-16" src={logo} alt="logo" />
+                <Image
+                  className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-16 lg:h-16"
+                  src={logo}
+                  alt="logo"
+                />
                 <div className="font-['Montserrat_Alternates'] font-bold leading-tight">
                   <span className="text-firm-pink font-semibold font-['Montserrat_Alternates'] text-xs sm:text-sm md:text-base">
                     Дом{" "}
@@ -138,32 +155,62 @@ export default function Header() {
             {/* Правая часть (иконки) - только для десктопа */}
             <div className="hidden lg:flex items-center gap-3 sm:gap-4 md:gap-5 lg:gap-6">
               {/* Чаты */}
-              {(isAuthenticated && (isBuyer || isMaster)) && (
-                <motion.div whileHover={{ scale: 1.1, rotate: 5 }} whileTap={{ scale: 0.95 }}>
+              {isAuthenticated && (isBuyer || isMaster) && (
+                <motion.div
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  whileTap={{ scale: 0.95 }}
+                >
                   <Link href="/chats">
-                    <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white hover:text-firm-orange transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    <svg
+                      className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white hover:text-firm-orange transition-colors duration-300"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                      />
                     </svg>
                   </Link>
                 </motion.div>
               )}
 
               {/* Корзина */}
-              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+              >
                 <Link href="/shopping-cart">
-                  <Image src={cart} alt="shopping cart" className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
+                  <Image
+                    src={cart}
+                    alt="shopping cart"
+                    className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7"
+                  />
                 </Link>
               </motion.div>
 
               {/* Избранное */}
-              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+              >
                 <Link href="/favorites">
-                  <Image src={favorite} alt="favorites" className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
+                  <Image
+                    src={favorite}
+                    alt="favorites"
+                    className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7"
+                  />
                 </Link>
               </motion.div>
 
               {/* Профиль */}
-              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+              >
                 {isLoading ? (
                   <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gray-300 animate-pulse" />
                 ) : isAuthenticated ? (
@@ -183,8 +230,18 @@ export default function Header() {
                   </Link>
                 ) : (
                   <Link href="/auth/signin" className="block">
-                    <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white hover:text-firm-orange transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    <svg
+                      className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white hover:text-firm-orange transition-colors duration-300"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
                     </svg>
                   </Link>
                 )}
@@ -206,7 +263,7 @@ export default function Header() {
               >
                 <Image src={logo} alt="Главная" className="w-6 h-6" />
               </Link>
-              
+
               {/* Каталог */}
               <Link
                 href="/catalog"
@@ -214,7 +271,7 @@ export default function Header() {
               >
                 <Image src={favorite} alt="Каталог" className="w-5 h-5" />
               </Link>
-              
+
               {/* Корзина */}
               <Link
                 href="/shopping-cart"
@@ -222,7 +279,7 @@ export default function Header() {
               >
                 <Image src={cart} alt="Корзина" className="w-5 h-5" />
               </Link>
-              
+
               {/* Профиль в мобильной панели */}
               <Link
                 href={isAuthenticated ? "/profile" : "/auth/signin"}
@@ -247,7 +304,7 @@ export default function Header() {
                   <Image src={profile} alt="Профиль" className="w-5 h-5" />
                 )}
               </Link>
-              
+
               {/* Кнопка меню (бургер) в нижней панели */}
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -255,7 +312,9 @@ export default function Header() {
               >
                 <div className="relative w-6 h-6 flex flex-col items-center justify-center gap-1">
                   <motion.span
-                    animate={isMenuOpen ? { rotate: 45, y: 6 } : { rotate: 0, y: 0 }}
+                    animate={
+                      isMenuOpen ? { rotate: 45, y: 6 } : { rotate: 0, y: 0 }
+                    }
                     className="w-5 h-0.5 bg-current rounded-full transition-all duration-300"
                   />
                   <motion.span
@@ -263,7 +322,9 @@ export default function Header() {
                     className="w-5 h-0.5 bg-current rounded-full transition-all duration-300"
                   />
                   <motion.span
-                    animate={isMenuOpen ? { rotate: -45, y: -6 } : { rotate: 0, y: 0 }}
+                    animate={
+                      isMenuOpen ? { rotate: -45, y: -6 } : { rotate: 0, y: 0 }
+                    }
                     className="w-5 h-0.5 bg-current rounded-full transition-all duration-300"
                   />
                 </div>
@@ -285,7 +346,7 @@ export default function Header() {
               onClick={() => setIsMenuOpen(false)}
               className="fixed inset-0 bg-black/50 z-50 lg:hidden"
             />
-            
+
             {/* Меню-остров по центру */}
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
@@ -296,7 +357,9 @@ export default function Header() {
             >
               <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-6">
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg">Меню</h3>
+                  <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg">
+                    Меню
+                  </h3>
                   <button
                     onClick={() => setIsMenuOpen(false)}
                     className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
@@ -304,7 +367,7 @@ export default function Header() {
                     ✕
                   </button>
                 </div>
-                
+
                 <div className="space-y-2">
                   {/* Главная */}
                   <Link
@@ -313,9 +376,11 @@ export default function Header() {
                     className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"
                   >
                     <Image src={logo} alt="Главная" className="w-6 h-6" />
-                    <span className="text-gray-700 font-['Montserrat_Alternates']">Главная</span>
+                    <span className="text-gray-700 font-['Montserrat_Alternates']">
+                      Главная
+                    </span>
                   </Link>
-                  
+
                   {/* Каталог */}
                   <Link
                     href="/catalog"
@@ -323,9 +388,11 @@ export default function Header() {
                     className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"
                   >
                     <Image src={favorite} alt="Каталог" className="w-5 h-5" />
-                    <span className="text-gray-700 font-['Montserrat_Alternates']">Каталог</span>
+                    <span className="text-gray-700 font-['Montserrat_Alternates']">
+                      Каталог
+                    </span>
                   </Link>
-                  
+
                   {/* Корзина */}
                   <Link
                     href="/shopping-cart"
@@ -333,9 +400,11 @@ export default function Header() {
                     className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"
                   >
                     <Image src={cart} alt="Корзина" className="w-5 h-5" />
-                    <span className="text-gray-700 font-['Montserrat_Alternates']">Корзина</span>
+                    <span className="text-gray-700 font-['Montserrat_Alternates']">
+                      Корзина
+                    </span>
                   </Link>
-                  
+
                   {/* Избранное */}
                   <Link
                     href="/favorites"
@@ -343,9 +412,11 @@ export default function Header() {
                     className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"
                   >
                     <Image src={favorite} alt="Избранное" className="w-5 h-5" />
-                    <span className="text-gray-700 font-['Montserrat_Alternates']">Избранное</span>
+                    <span className="text-gray-700 font-['Montserrat_Alternates']">
+                      Избранное
+                    </span>
                   </Link>
-                  
+
                   {/* Блог */}
                   <Link
                     href="/blog"
@@ -353,9 +424,11 @@ export default function Header() {
                     className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"
                   >
                     <span className="text-xl">📝</span>
-                    <span className="text-gray-700 font-['Montserrat_Alternates']">Блог</span>
+                    <span className="text-gray-700 font-['Montserrat_Alternates']">
+                      Блог
+                    </span>
                   </Link>
-                  
+
                   {/* Мастер-классы */}
                   <Link
                     href="/master-classes"
@@ -363,18 +436,30 @@ export default function Header() {
                     className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"
                   >
                     <span className="text-xl">🎓</span>
-                    <span className="text-gray-700 font-['Montserrat_Alternates']">Мастер-классы</span>
+                    <span className="text-gray-700 font-['Montserrat_Alternates']">
+                      Мастер-классы
+                    </span>
                   </Link>
 
                   {/* Чаты (только для авторизованных) */}
-                  {(isAuthenticated && (isBuyer || isMaster)) && (
+                  {isAuthenticated && (isBuyer || isMaster) && (
                     <Link
                       href="/chats"
                       onClick={() => setIsMenuOpen(false)}
                       className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"
                     >
-                      <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      <svg
+                        className="w-6 h-6 text-gray-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                        />
                       </svg>
                       <span className="text-gray-700">Сообщения</span>
                     </Link>
@@ -410,7 +495,7 @@ export default function Header() {
 
       {/* Отступ для фиксированного хедера */}
       <div className="h-8" />
-      
+
       {/* Отступ для мобильного нижнего меню */}
       <div className="h-16 lg:hidden" />
     </>
