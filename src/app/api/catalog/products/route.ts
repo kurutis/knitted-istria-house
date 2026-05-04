@@ -34,7 +34,7 @@ export async function GET(request: Request) {
         // Получаем имена мастеров отдельно
         const masterIds = [...new Set(products?.map(p => p.master_id) || [])];
         
-        let mastersMap = new Map();
+        const mastersMap = new Map();
         if (masterIds.length > 0) {
             const { data: profiles } = await supabase
                 .from('profiles')
