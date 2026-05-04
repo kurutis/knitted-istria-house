@@ -438,13 +438,14 @@ export const authOptions: NextAuthOptions = {
 
         async jwt({ token, user, account, trigger, session: triggerSession }) {
             if (user) {
-                token.id = user.id;
+                 token.id = user.id;
                 token.role = user.role;
                 token.roleSelected = user.role_selected;
                 token.phone = user.phone;
                 token.city = user.city;
                 token.is_verified = user.is_verified;
                 token.is_partner = user.is_partner;
+                token.is_banned = user.is_banned;
                 token.image = user.image ?? undefined;
 
                 if (account?.provider !== 'credentials' && !user.role_selected) {
