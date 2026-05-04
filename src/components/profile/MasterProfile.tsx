@@ -1,3 +1,4 @@
+// src/components/profile/MasterProfile.tsx
 "use client";
 
 import { signOut } from "next-auth/react";
@@ -27,7 +28,6 @@ interface Order {
   product_title: string;
   buyer_name: string;
   total_amount: number;
-  // другие поля заказа
 }
 
 interface BlogPost {
@@ -40,7 +40,6 @@ interface BlogPost {
   views_count?: number;
   comments_count?: number;
   likes_count?: number;
-  // другие поля поста
 }
 
 interface MasterClass {
@@ -134,17 +133,17 @@ interface MasterClassesApiResponse {
 }
 
 interface BlogPostFromApi {
-    id: string;
-    title: string;
-    status: string;
-    created_at: string;
-    excerpt: string | null;
-    content: string;
-    views: number;
-    stats?: {
-        comments_count: number;
-        likes_count: number;
-    };
+  id: string;
+  title: string;
+  status: string;
+  created_at: string;
+  excerpt: string | null;
+  content: string;
+  views: number;
+  stats?: {
+    comments_count: number;
+    likes_count: number;
+  };
 }
 
 export default function MasterProfile({ session }: MasterProfileProps) {
@@ -217,7 +216,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
         ]);
 
       // Profile
-      let profileData = {
+      let profileDataObj = {
         fullname: "",
         email: "",
         phone: "",
@@ -236,7 +235,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
       if (profileRes.ok) {
         const profileJson: ProfileApiResponse = await profileRes.json();
         const p = profileJson.profile;
-        profileData = {
+        profileDataObj = {
           fullname: p.fullname || "",
           email: p.email || "",
           phone: p.phone || "",
@@ -252,31 +251,30 @@ export default function MasterProfile({ session }: MasterProfileProps) {
           followers: p.followers || 0,
         };
       }
-      setProfileData(profileData);
+      setProfileData(profileDataObj);
 
       // Products
-      let products: Product[] = [];
+      let productsList: Product[] = [];
       if (productRes.ok) {
         const productJson: ProductsApiResponse = await productRes.json();
-        products = productJson.products || [];
+        productsList = productJson.products || [];
       }
-      setProducts(products);
+      setProducts(productsList);
 
       // Orders
-      let orders: Order[] = [];
+      let ordersList: Order[] = [];
       if (ordersRes.ok) {
         const ordersJson: OrdersApiResponse = await ordersRes.json();
-        orders = ordersJson.orders || [];
+        ordersList = ordersJson.orders || [];
       }
-      setOrders(orders);
+      setOrders(ordersList);
 
       // Blog
-      let blog: BlogPost[] = [];
+      let blogList: BlogPost[] = [];
       if (blogRes.ok) {
         const blogData = await blogRes.json();
-            // API возвращает { success: true, posts: [], pagination: {} }
-            if (blogData.posts && Array.isArray(blogData.posts)) {
-        blog = blogData.posts.map((post: BlogPostFromApi) => ({
+        if (blogData.posts && Array.isArray(blogData.posts)) {
+          blogList = blogData.posts.map((post: BlogPostFromApi) => ({
             id: post.id,
             title: post.title,
             status: post.status,
@@ -286,23 +284,27 @@ export default function MasterProfile({ session }: MasterProfileProps) {
             views_count: post.views || 0,
             comments_count: post.stats?.comments_count || 0,
             likes_count: post.stats?.likes_count || 0,
-        }));
-    }
+          }));
+        } else if (Array.isArray(blogData)) {
+          blogList = blogData;
+        }
+      }
+      setBlogPosts(blogList);
 
       // Master Classes
-      let classes: MasterClass[] = [];
+      let classesList: MasterClass[] = [];
       if (classesRes.ok) {
         const classesJson: MasterClassesApiResponse = await classesRes.json();
-        classes = classesJson.classes || [];
+        classesList = classesJson.classes || [];
       }
-      setMasterClasses(classes);
+      setMasterClasses(classesList);
 
       // Stats
-      const totalViews = products.reduce(
+      const totalViews = productsList.reduce(
         (sum: number, p: Product) => sum + (p.views || 0),
         0,
       );
-      const totalRevenue = orders.reduce(
+      const totalRevenue = ordersList.reduce(
         (sum: number, o: Order) => sum + (o.total_amount || 0),
         0,
       );
@@ -310,7 +312,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const monthlyOrders = orders.filter(
+      const monthlyOrders = ordersList.filter(
         (o: Order) => new Date(o.created_at) > thirtyDaysAgo,
       );
       const monthlyRevenue = monthlyOrders.reduce(
@@ -320,9 +322,9 @@ export default function MasterProfile({ session }: MasterProfileProps) {
 
       setStats({
         total_views: totalViews,
-        total_orders: orders.length,
+        total_orders: ordersList.length,
         total_revenue: totalRevenue,
-        total_followers: profileData.followers,
+        total_followers: profileDataObj.followers,
         monthly_views: Math.round(totalViews * 0.3),
         monthly_orders: monthlyOrders.length,
         monthly_revenue: monthlyRevenue,
@@ -565,7 +567,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("ru-Ru", {
+    return new Date(dateString).toLocaleDateString("ru-RU", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -573,7 +575,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
   };
 
   const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("ru-Ru", {
+    return new Date(dateString).toLocaleDateString("ru-RU", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -740,7 +742,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   onClick={() => setActiveTab("orders")}
                   className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-3 ${activeTab === "orders" ? "bg-firm-orange text-white" : "hover:bg-[#eaeaea]"}`}
                 >
-                  {" "}
                   <span>📦</span> Заказы{" "}
                   {orders.filter((o: Order) => o.status === "new").length >
                     0 && (
@@ -753,7 +754,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   onClick={() => setActiveTab("blog")}
                   className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-3 ${activeTab === "blog" ? "bg-firm-pink text-white" : "hover:bg-[#eaeaea]"}`}
                 >
-                  {" "}
                   <span>✍️</span> Блог
                 </button>
                 <button
@@ -766,7 +766,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   onClick={() => setActiveTab("profile")}
                   className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-3 ${activeTab === "profile" ? "bg-firm-pink text-white" : "hover:bg-[#eaeaea]"}`}
                 >
-                  {" "}
                   <span>👤</span> Профиль
                 </button>
                 <button
@@ -973,151 +972,349 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   Заказы
                 </h2>
                 <div className="space-y-4">
-                  {orders.map(
-                    (order: {
-                      id: string;
-                      order_number: string;
-                      status: string;
-                      created_at: string;
-                      product_title: string;
-                      buyer_name: string;
-                      total_amount: number;
-                    }) => (
-                      <div
-                        key={order.id}
-                        className="border rounded-lg p-5 hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <div className="flex items-center gap-3 mb-2">
-                              <span className="font-['Montserrat_Alternates'] font-semibold text-lg">
-                                Заказ #{order.order_number}
-                              </span>
-                              <span
-                                className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}
-                              >
-                                {getStatusText(order.status)}
-                              </span>
-                            </div>
-                            <p className="font-medium">{order.product_title}</p>
+                  {orders.map((order) => (
+                    <div
+                      key={order.id}
+                      className="border rounded-lg p-5 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="font-['Montserrat_Alternates'] font-semibold text-lg">
+                              Заказ #{order.order_number}
+                            </span>
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}
+                            >
+                              {getStatusText(order.status)}
+                            </span>
                           </div>
-                          <span className="text-sm text-gray-500">
-                            {formatDateTime(order.created_at)}
-                          </span>
+                          <p className="font-medium">{order.product_title}</p>
                         </div>
-                        <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                          <div>
-                            <p className="text-gray-500">Покупатель</p>
-                            <p className="font-medium">{order.buyer_name}</p>
-                          </div>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <div className="flex gap-2">
-                            {order.status === "new" && (
-                              <>
-                                <button
-                                  onClick={() =>
-                                    handleOrderStatusChange(
-                                      order.id,
-                                      "confirmed",
-                                    )
-                                  }
-                                  className="px-3 py-1 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600"
-                                >
-                                  Подтвердить
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    handleOrderStatusChange(
-                                      order.id,
-                                      "cancelled",
-                                    )
-                                  }
-                                  className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600"
-                                >
-                                  Отклонить
-                                </button>
-                              </>
-                            )}
-                            {order.status === "confirmed" && (
-                              <button
-                                onClick={() =>
-                                  handleOrderStatusChange(order.id, "shipped")
-                                }
-                                className="px-3 py-1 bg-purple-500 text-white rounded-lg text-sm hover:bg-purple-600"
-                              >
-                                Отметить как отправлено
-                              </button>
-                            )}
-                            {order.status === "shipped" && (
-                              <button
-                                onClick={() =>
-                                  handleOrderStatusChange(order.id, "delivered")
-                                }
-                                className="px-3 py-1 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600"
-                              >
-                                Подтвердить доставку
-                              </button>
-                            )}
-                          </div>
-                          <span className="font-['Montserrat_Alternates'] font-bold text-firm-pink text-xl">
-                            {order.total_amount} ₽
-                          </span>
+                        <span className="text-sm text-gray-500">
+                          {formatDateTime(order.created_at)}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+                        <div>
+                          <p className="text-gray-500">Покупатель</p>
+                          <p className="font-medium">{order.buyer_name}</p>
                         </div>
                       </div>
-                    ),
-                  )}
+                      <div className="flex justify-between items-center">
+                        <div className="flex gap-2">
+                          {order.status === "new" && (
+                            <>
+                              <button
+                                onClick={() =>
+                                  handleOrderStatusChange(order.id, "confirmed")
+                                }
+                                className="px-3 py-1 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600"
+                              >
+                                Подтвердить
+                              </button>
+                              <button
+                                onClick={() =>
+                                  handleOrderStatusChange(order.id, "cancelled")
+                                }
+                                className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600"
+                              >
+                                Отклонить
+                              </button>
+                            </>
+                          )}
+                          {order.status === "confirmed" && (
+                            <button
+                              onClick={() =>
+                                handleOrderStatusChange(order.id, "shipped")
+                              }
+                              className="px-3 py-1 bg-purple-500 text-white rounded-lg text-sm hover:bg-purple-600"
+                            >
+                              Отметить как отправлено
+                            </button>
+                          )}
+                          {order.status === "shipped" && (
+                            <button
+                              onClick={() =>
+                                handleOrderStatusChange(order.id, "delivered")
+                              }
+                              className="px-3 py-1 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600"
+                            >
+                              Подтвердить доставку
+                            </button>
+                          )}
+                        </div>
+                        <span className="font-['Montserrat_Alternates'] font-bold text-firm-pink text-xl">
+                          {order.total_amount} ₽
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
 
             {/* Blog Tab */}
-            {blogPosts.map((post: BlogPost) => (
-              <div
-                key={post.id}
-                className="border rounded-lg p-5 hover:shadow-md transition-shadow"
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg">
-                      {post.title}
-                    </h3>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {formatDate(post.created_at)}
-                    </p>
-                  </div>
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(post.status)}`}
+            {activeTab === "blog" && (
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">
+                    Мой блог
+                  </h2>
+                  <Link
+                    href="/master/blog/new"
+                    className="px-4 py-2 bg-firm-pink text-white rounded-lg hover:bg-opacity-90 transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-2"
                   >
-                    {getStatusText(post.status)}
-                  </span>
+                    + Новая запись
+                  </Link>
                 </div>
-                <p className="text-gray-600 mb-3 line-clamp-2">
-                  {post.excerpt || post.content?.substring(0, 200)}...
-                </p>
-                <div className="flex justify-between items-center">
-                  <div className="flex gap-4 text-sm text-gray-500">
-                    <span>👁️ {post.views_count || 0} просмотров</span>
-                    <span>💬 {post.comments_count || 0} комментариев</span>
-                    <span>❤️ {post.likes_count || 0} лайков</span>
-                  </div>
-                  <div className="flex gap-3">
-                    <Link
-                      href={`/master/blog/${post.id}/edit`}
-                      className="text-sm text-blue-600 hover:underline"
+                <div className="space-y-4">
+                  {blogPosts.map((post) => (
+                    <div
+                      key={post.id}
+                      className="border rounded-lg p-5 hover:shadow-md transition-shadow"
                     >
-                      Редактировать
-                    </Link>
-                    <button
-                      onClick={() => handleBlogPostDelete(post.id)}
-                      className="text-sm text-red-600 hover:underline"
-                    >
-                      Удалить
-                    </button>
-                  </div>
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg">
+                            {post.title}
+                          </h3>
+                          <p className="text-sm text-gray-500 mt-1">
+                            {formatDate(post.created_at)}
+                          </p>
+                        </div>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(post.status)}`}
+                        >
+                          {getStatusText(post.status)}
+                        </span>
+                      </div>
+                      <p className="text-gray-600 mb-3 line-clamp-2">
+                        {post.excerpt || post.content?.substring(0, 200)}...
+                      </p>
+                      <div className="flex justify-between items-center">
+                        <div className="flex gap-4 text-sm text-gray-500">
+                          <span>👁️ {post.views_count || 0} просмотров</span>
+                          <span>💬 {post.comments_count || 0} комментариев</span>
+                          <span>❤️ {post.likes_count || 0} лайков</span>
+                        </div>
+                        <div className="flex gap-3">
+                          <Link
+                            href={`/master/blog/${post.id}/edit`}
+                            className="text-sm text-blue-600 hover:underline"
+                          >
+                            Редактировать
+                          </Link>
+                          <button
+                            onClick={() => handleBlogPostDelete(post.id)}
+                            className="text-sm text-red-600 hover:underline"
+                          >
+                            Удалить
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
+            )}
+
+            {/* Master Classes Tab */}
+            {activeTab === "master-classes" && (
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">
+                    Мои мастер-классы
+                  </h2>
+                  <Link
+                    href="/master/master-classes/new"
+                    className="px-4 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-2"
+                  >
+                    + Создать мастер-класс
+                  </Link>
+                </div>
+
+                <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+                  <button
+                    onClick={() => setMasterClassFilter("all")}
+                    className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition ${masterClassFilter === "all" ? "bg-firm-orange text-white" : "border border-gray-300 hover:bg-gray-50"}`}
+                  >
+                    Все ({masterClasses.length})
+                  </button>
+                  <button
+                    onClick={() => setMasterClassFilter("published")}
+                    className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition ${masterClassFilter === "published" ? "bg-firm-orange text-white" : "border border-gray-300 hover:bg-gray-50"}`}
+                  >
+                    Опубликованные (
+                    {
+                      masterClasses.filter(
+                        (mc) => mc.status === "published",
+                      ).length
+                    }
+                    )
+                  </button>
+                  <button
+                    onClick={() => setMasterClassFilter("draft")}
+                    className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition ${masterClassFilter === "draft" ? "bg-firm-orange text-white" : "border border-gray-300 hover:bg-gray-50"}`}
+                  >
+                    Черновики (
+                    {
+                      masterClasses.filter(
+                        (mc) => mc.status === "draft",
+                      ).length
+                    }
+                    )
+                  </button>
+                  <button
+                    onClick={() => setMasterClassFilter("cancelled")}
+                    className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition ${masterClassFilter === "cancelled" ? "bg-firm-orange text-white" : "border border-gray-300 hover:bg-gray-50"}`}
+                  >
+                    Отмененные (
+                    {
+                      masterClasses.filter(
+                        (mc) => mc.status === "cancelled",
+                      ).length
+                    }
+                    )
+                  </button>
+                </div>
+
+                {masterClasses.length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-lg">
+                    <p className="text-gray-500 mb-4">
+                      У вас нет созданных мастер-классов
+                    </p>
+                    <Link
+                      href="/master/master-classes/new"
+                      className="inline-block px-6 py-3 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition"
+                    >
+                      Создать первый мастер-класс →
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {masterClasses
+                      .filter(
+                        (mc) =>
+                          masterClassFilter === "all" ||
+                          mc.status === masterClassFilter,
+                      )
+                      .map((mc) => (
+                        <div
+                          key={mc.id}
+                          className="border border-gray-100 rounded-lg p-5 hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex gap-4">
+                            {mc.image_url && (
+                              <div className="w-32 h-32 shrink-0 rounded-lg overflow-hidden bg-gray-100">
+                                <Image
+                                  src={mc.image_url}
+                                  alt={mc.title}
+                                  className="w-full h-full object-cover"
+                                  width={160}
+                                  height={160}
+                                />
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg">
+                                    {mc.title}
+                                  </h3>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <span
+                                      className={`px-2 py-0.5 rounded-full text-xs ${mc.type === "online" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}
+                                    >
+                                      {mc.type === "online"
+                                        ? "🖥️ Онлайн"
+                                        : "📍 Офлайн"}
+                                    </span>
+                                    <span
+                                      className={`px-2 py-0.5 rounded-full text-xs ${getStatusColor(mc.status)}`}
+                                    >
+                                      {getStatusText(mc.status)}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-xl font-bold text-firm-orange">
+                                    {mc.price} ₽
+                                  </div>
+                                  <div className="text-sm text-gray-500">
+                                    {mc.current_participants || 0}/
+                                    {mc.max_participants} участников
+                                  </div>
+                                </div>
+                              </div>
+                              <p className="text-gray-600 mt-2 text-sm line-clamp-2">
+                                {mc.description}
+                              </p>
+                              <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
+                                <div className="flex items-center gap-1">
+                                  📅 {formatDate(mc.date_time)}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  ⏰ {formatTime(mc.date_time)}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  ⏱️ {mc.duration_minutes} мин
+                                </div>
+                                {mc.type === "offline" && mc.location && (
+                                  <div className="flex items-center gap-1">
+                                    📍 {mc.location}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="mt-3 flex justify-end gap-2">
+                                <button
+                                  onClick={() => {
+                                    setSelectedMasterClass(mc);
+                                    setShowParticipantsModal(true);
+                                  }}
+                                  className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition"
+                                >
+                                  👥 Участники (
+                                  {mc.registrations?.length || 0})
+                                </button>
+                                {mc.status === "published" &&
+                                  new Date(mc.date_time) > new Date() && (
+                                    <button
+                                      onClick={() =>
+                                        handleCancelMasterClass(mc.id)
+                                      }
+                                      className="px-3 py-1.5 border border-red-500 text-red-500 rounded-lg text-sm hover:bg-red-500 hover:text-white transition"
+                                    >
+                                      Отменить
+                                    </button>
+                                  )}
+                                {mc.status === "draft" && (
+                                  <>
+                                    <Link
+                                      href={`/master/master-classes/${mc.id}/edit`}
+                                      className="px-3 py-1.5 bg-firm-orange text-white rounded-lg text-sm hover:bg-opacity-90 transition"
+                                    >
+                                      Редактировать
+                                    </Link>
+                                    <button
+                                      onClick={() =>
+                                        handleDeleteMasterClass(mc.id)
+                                      }
+                                      className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition"
+                                    >
+                                      Удалить
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Participants Modal */}
             {showParticipantsModal && selectedMasterClass && (
@@ -1146,46 +1343,37 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                         Нет записавшихся участников
                       </p>
                     ) : (
-                      selectedMasterClass.registrations?.map(
-                        (reg: {
-                          id: string;
-                          user_name?: string;
-                          user_email: string;
-                          user_phone?: string;
-                          created_at: string;
-                          payment_status: string;
-                        }) => (
-                          <div key={reg.id} className="border rounded-lg p-3">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <p className="font-medium">
-                                  {reg.user_name || reg.user_email}
-                                </p>
+                      selectedMasterClass.registrations?.map((reg) => (
+                        <div key={reg.id} className="border rounded-lg p-3">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-medium">
+                                {reg.user_name || reg.user_email}
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                {reg.user_email}
+                              </p>
+                              {reg.user_phone && (
                                 <p className="text-sm text-gray-500">
-                                  {reg.user_email}
+                                  {reg.user_phone}
                                 </p>
-                                {reg.user_phone && (
-                                  <p className="text-sm text-gray-500">
-                                    {reg.user_phone}
-                                  </p>
-                                )}
-                              </div>
-                              <div className="text-right">
-                                <p className="text-xs text-gray-400">
-                                  Записан: {formatDate(reg.created_at)}
-                                </p>
-                                <span
-                                  className={`px-2 py-0.5 rounded-full text-xs ${reg.payment_status === "paid" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}
-                                >
-                                  {reg.payment_status === "paid"
-                                    ? "Оплачено"
-                                    : "Ожидает оплаты"}
-                                </span>
-                              </div>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-gray-400">
+                                Записан: {formatDate(reg.created_at)}
+                              </p>
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-xs ${reg.payment_status === "paid" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}
+                              >
+                                {reg.payment_status === "paid"
+                                  ? "Оплачено"
+                                  : "Ожидает оплаты"}
+                              </span>
                             </div>
                           </div>
-                        ),
-                      )
+                        </div>
+                      ))
                     )}
                   </div>
                 </div>
