@@ -4,17 +4,19 @@ import { signOut } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
-import MasterProductsList, { Product } from "@/components/master/MasterProductsList"
+import MasterProductsList, {
+  Product,
+} from "@/components/master/MasterProductsList";
 
 interface MasterProfileProps {
-    session: {
-        user?: {
-            id?: string;
-            name?: string | null;
-            email?: string;
-            role?: string;
-        };
-    } | null
+  session: {
+    user?: {
+      id?: string;
+      name?: string | null;
+      email?: string;
+      role?: string;
+    };
+  } | null;
 }
 
 interface Order {
@@ -42,26 +44,93 @@ interface BlogPost {
 }
 
 interface MasterClass {
+  id: string;
+  title: string;
+  image_url?: string;
+  type: string;
+  status: string;
+  price: number;
+  current_participants?: number;
+  max_participants: number;
+  description: string;
+  date_time: string;
+  duration_minutes: number;
+  location?: string;
+  registrations?: Array<{
     id: string;
-    title: string;
-    image_url?: string;
-    type: string;
-    status: string;
-    price: number;
-    current_participants?: number;
-    max_participants: number;
-    description: string;
-    date_time: string;
-    duration_minutes: number;
-    location?: string;
-    registrations?: Array<{
-        id: string;
-        user_name?: string;
-        user_email: string;
-        user_phone?: string;
-        created_at: string;
-        payment_status: string;
-    }>;
+    user_name?: string;
+    user_email: string;
+    user_phone?: string;
+    created_at: string;
+    payment_status: string;
+  }>;
+}
+
+interface ProfileApiResponse {
+  success: boolean;
+  profile: {
+    id: string;
+    email: string;
+    role: string;
+    registered_at: string;
+    fullname: string;
+    phone: string | null;
+    city: string | null;
+    address: string | null;
+    avatar_url: string | null;
+    newsletter_agreement: boolean;
+    description: string | null;
+    is_verified: boolean;
+    is_partner: boolean;
+    rating: number;
+    total_sales: number;
+    custom_orders_enabled: boolean;
+    moderation_status: string;
+    is_banned: boolean;
+    followers: number;
+    products_count: number;
+  };
+  meta: {
+    cached: boolean;
+    timestamp: string;
+  };
+}
+
+interface ProductsApiResponse {
+  products: Product[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasMore: boolean;
+  };
+}
+
+interface OrdersApiResponse {
+  orders: Order[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasMore: boolean;
+  };
+  stats: {
+    total_orders: number;
+    total_amount: number;
+    status_counts: Record<string, number>;
+  };
+}
+
+interface MasterClassesApiResponse {
+  classes: MasterClass[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
 
 export default function MasterProfile({ session }: MasterProfileProps) {
@@ -77,14 +146,14 @@ export default function MasterProfile({ session }: MasterProfileProps) {
     id: string;
     title: string;
     registrations?: Array<{
-        id: string;
-        user_name?: string;
-        user_email: string;
-        user_phone?: string;
-        created_at: string;
-        payment_status: string;
+      id: string;
+      user_name?: string;
+      user_email: string;
+      user_phone?: string;
+      created_at: string;
+      payment_status: string;
     }>;
-} | null>(null)
+  } | null>(null);
 
   const [profileData, setProfileData] = useState({
     fullname: "",
@@ -133,67 +202,108 @@ export default function MasterProfile({ session }: MasterProfileProps) {
           fetch("/api/master/master-classes"),
         ]);
 
-      const profile = await profileRes.json();
-      let products = await productRes.json();
-      const orders = await ordersRes.json();
-      const blog = await blogRes.json();
-      const classes = await classesRes.json();
+      // Profile
+      let profileData = {
+        fullname: "",
+        email: "",
+        phone: "",
+        city: "",
+        address: "",
+        avatarUrl: null as string | null,
+        description: "",
+        is_verified: false,
+        is_partner: false,
+        rating: 0,
+        total_sales: 0,
+        custom_orders_enabled: false,
+        followers: 0,
+      };
 
-      // ✅ Проверяем, что products - это массив
-      if (!Array.isArray(products)) {
-        console.error("Products is not an array:", products);
-        products = [];
+      if (profileRes.ok) {
+        const profileJson: ProfileApiResponse = await profileRes.json();
+        const p = profileJson.profile;
+        profileData = {
+          fullname: p.fullname || "",
+          email: p.email || "",
+          phone: p.phone || "",
+          city: p.city || "",
+          address: p.address || "",
+          avatarUrl: p.avatar_url || null,
+          description: p.description || "",
+          is_verified: p.is_verified || false,
+          is_partner: p.is_partner || false,
+          rating: p.rating || 0,
+          total_sales: p.total_sales || 0,
+          custom_orders_enabled: p.custom_orders_enabled || false,
+          followers: p.followers || 0,
+        };
       }
+      setProfileData(profileData);
 
-      setProfileData(profile);
+      // Products
+      let products: Product[] = [];
+      if (productRes.ok) {
+        const productJson: ProductsApiResponse = await productRes.json();
+        products = productJson.products || [];
+      }
       setProducts(products);
-      setOrders(Array.isArray(orders) ? orders : []);
-      setBlogPosts(Array.isArray(blog) ? blog : []);
-      setMasterClasses(Array.isArray(classes) ? classes : []);
 
-      // ✅ Безопасно вычисляем totalViews
-      const totalViews = Array.isArray(products)
-        ? products.reduce(
-            (sum: number, p: { views?: number }) => sum + (p.views || 0),
-            0,
-          )
-        : 0;
+      // Orders
+      let orders: Order[] = [];
+      if (ordersRes.ok) {
+        const ordersJson: OrdersApiResponse = await ordersRes.json();
+        orders = ordersJson.orders || [];
+      }
+      setOrders(orders);
 
-      const totalRevenue = Array.isArray(orders)
-        ? orders.reduce(
-            (sum: number, o: { total_amount?: number }) =>
-              sum + (o.total_amount || 0),
-            0,
-          )
-        : 0;
+      // Blog
+      let blog: BlogPost[] = [];
+      if (blogRes.ok) {
+        blog = await blogRes.json();
+        if (!Array.isArray(blog)) blog = [];
+      }
+      setBlogPosts(blog);
+
+      // Master Classes
+      let classes: MasterClass[] = [];
+      if (classesRes.ok) {
+        const classesJson: MasterClassesApiResponse = await classesRes.json();
+        classes = classesJson.classes || [];
+      }
+      setMasterClasses(classes);
+
+      // Stats
+      const totalViews = products.reduce(
+        (sum: number, p: Product) => sum + (p.views || 0),
+        0,
+      );
+      const totalRevenue = orders.reduce(
+        (sum: number, o: Order) => sum + (o.total_amount || 0),
+        0,
+      );
 
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const monthlyOrders = Array.isArray(orders)
-        ? orders.filter(
-            (o: { created_at: string }) =>
-              new Date(o.created_at) > thirtyDaysAgo,
-          )
-        : [];
+      const monthlyOrders = orders.filter(
+        (o: Order) => new Date(o.created_at) > thirtyDaysAgo,
+      );
       const monthlyRevenue = monthlyOrders.reduce(
-        (sum: number, o: { total_amount?: number }) =>
-          sum + (o.total_amount || 0),
+        (sum: number, o: Order) => sum + (o.total_amount || 0),
         0,
       );
 
       setStats({
         total_views: totalViews,
-        total_orders: Array.isArray(orders) ? orders.length : 0,
+        total_orders: orders.length,
         total_revenue: totalRevenue,
-        total_followers: profile.followers || 0,
+        total_followers: profileData.followers,
         monthly_views: Math.round(totalViews * 0.3),
         monthly_orders: monthlyOrders.length,
         monthly_revenue: monthlyRevenue,
       });
     } catch (error) {
       console.error("Error fetching master data:", error);
-      // Устанавливаем пустые значения при ошибке
       setProducts([]);
       setOrders([]);
       setBlogPosts([]);
@@ -335,13 +445,11 @@ export default function MasterProfile({ session }: MasterProfileProps) {
 
       if (response.ok) {
         setOrders((prev) =>
-            prev.map((order) =>
-                order.id === orderId 
-                    ? { ...order, status: newStatus } 
-                    : order
-            )
+          prev.map((order) =>
+            order.id === orderId ? { ...order, status: newStatus } : order,
+          ),
         );
-    }
+      }
     } catch (error) {
       console.error("Error updating order:", error);
     }
@@ -609,11 +717,12 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                 >
                   {" "}
                   <span>📦</span> Заказы{" "}
-                  {orders.filter((o: Order) => o.status === "new").length > 0 && (
-                        <span className="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                            {orders.filter((o: Order) => o.status === "new").length}
-                        </span>
-                    )}
+                  {orders.filter((o: Order) => o.status === "new").length >
+                    0 && (
+                    <span className="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                      {orders.filter((o: Order) => o.status === "new").length}
+                    </span>
+                  )}
                 </button>
                 <button
                   onClick={() => setActiveTab("blog")}
@@ -784,10 +893,10 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   </div>
                   <div className="space-y-3">
                     {products
-                    .filter((p: Product) => p.status === "active")
-                    .sort((a: Product, b: Product) => b.views - a.views)
-                    .slice(0, 3)
-                    .map((product: Product) => (
+                      .filter((p: Product) => p.status === "active")
+                      .sort((a: Product, b: Product) => b.views - a.views)
+                      .slice(0, 3)
+                      .map((product: Product) => (
                         <div
                           key={product.id}
                           className="flex justify-between items-center p-4 border rounded-lg hover:shadow-md transition-shadow"
@@ -1105,7 +1214,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                             user_phone?: string;
                             created_at: string;
                             payment_status: string;
-                        }>
+                          }>;
                         }) => (
                           <div
                             key={mc.id}
