@@ -81,7 +81,8 @@ export default function HomePage() {
         try {
             const response = await fetch('/api/blog/posts?limit=4')
             const data = await response.json()
-            const postsData = Array.isArray(data) ? data : []
+            // API возвращает { posts: [...], pagination: {...}, ... }
+            const postsData = Array.isArray(data.posts) ? data.posts : []
             setRecentPosts(postsData)
         } catch (error) {
             console.error('Error fetching recent posts:', error)
