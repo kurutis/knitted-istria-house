@@ -12,7 +12,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (
         <div className="min-h-screen flex flex-col">
             {!isAdminPage && <Header />}
-            <main className={`flex-1 ${!isAdminPage && !isAuthPage ? "container mx-auto mt-20" : ""}`}>
+            <main className={`flex-1 ${!isAdminPage && !isAuthPage ? "container mx-auto mt-10" : ""}`}>
                 {children}
             </main>
             <Footer />
