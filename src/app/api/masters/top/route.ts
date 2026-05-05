@@ -2,28 +2,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
-type ProfileData = {
-    full_name: string | null;
-    avatar_url: string | null;
-    city: string | null;
-    address: string | null;
-};
-
-type MasterData = {
-    total_sales: number | null;
-    rating: number | null;
-    is_verified: boolean;
-    is_partner: boolean;
-    custom_orders_enabled: boolean;
-};
-
-type UserData = {
-    id: string;
-    email: string;
-    profiles: ProfileData[];
-    masters: MasterData[];
-};
-
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -71,11 +49,10 @@ export async function GET(request: Request) {
             return NextResponse.json([]);
         }
 
-        // Приводим к типу и берем первый элемент из массивов
-        const typedUsers = users as unknown as UserData[];
-        
-        const formatted = typedUsers.map(user => ({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const formatted = (users as any[]).map((user: any) => ({
             id: user.id,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             name: user.profiles?.[0]?.full_name || user.email?.split('@')[0] || 'Мастер',
             avatar_url: user.profiles?.[0]?.avatar_url || null,
             city: user.profiles?.[0]?.city || '',
