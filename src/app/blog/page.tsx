@@ -65,6 +65,8 @@ interface BlogPost {
 
 type DisplayPost = BlogPost | (SearchPost & { comments?: Comment[]; views_count?: number });
 
+
+
 export default function BlogPage() {
   const { data: session } = useSession();
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -1056,7 +1058,11 @@ function MastersSidebar({
   currentMasterId: string | undefined;
   handleFollow: (masterId: string, isFollowing: boolean) => Promise<void>;
 }) {
-  // Проверяем, является ли мастер текущим пользователем (владельцем аккаунта)
+  // Защита от не-массивов
+  const safeFollowingMasters = Array.isArray(followingMasters) ? followingMasters : [];
+  const safeRecommendedMasters = Array.isArray(recommendedMasters) ? recommendedMasters : [];
+  const safeSearchMasters = searchResults?.masters && Array.isArray(searchResults.masters) ? searchResults.masters : [];
+  
   const isCurrentMaster = (masterId: string) => {
     return currentMasterId === masterId;
   };
@@ -1095,17 +1101,17 @@ function MastersSidebar({
       </div>
 
       {/* Результаты поиска мастеров */}
-      {showSearchResults && searchResults?.masters && searchResults.masters.length > 0 && (
+      {showSearchResults && safeSearchMasters.length > 0 && (
         <motion.div
           className="bg-white rounded-2xl shadow-xl p-4 mb-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
           <h2 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-3 bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
-            Мастера ({searchResults.masters.length})
+            Мастера ({safeSearchMasters.length})
           </h2>
           <div className="space-y-3">
-            {searchResults.masters.map((master: Master, idx: number) => {
+            {safeSearchMasters.map((master: Master, idx: number) => {
               const isCurrent = isCurrentMaster(master.id);
               return (
                 <motion.div
@@ -1180,7 +1186,7 @@ function MastersSidebar({
       )}
 
       {/* Отслеживаемые мастера */}
-      {!showSearchResults && followingMasters.length > 0 && (
+      {!showSearchResults && safeFollowingMasters.length > 0 && (
         <motion.div
           className="bg-white rounded-2xl shadow-xl p-4 mb-6"
           initial={{ opacity: 0, y: 20 }}
@@ -1191,7 +1197,7 @@ function MastersSidebar({
             Отслеживаемые
           </h2>
           <div className="space-y-3">
-            {followingMasters.map((master: Master) => {
+            {safeFollowingMasters.map((master: Master) => {
               const isCurrent = isCurrentMaster(master.id);
               return (
                 <div
@@ -1241,7 +1247,7 @@ function MastersSidebar({
       )}
 
       {/* Рекомендуемые мастера */}
-      {!showSearchResults && recommendedMasters.length > 0 && (
+      {!showSearchResults && safeRecommendedMasters.length > 0 && (
         <motion.div
           className="bg-white rounded-2xl shadow-xl p-4"
           initial={{ opacity: 0, y: 20 }}
@@ -1252,7 +1258,7 @@ function MastersSidebar({
             Рекомендуемые
           </h2>
           <div className="space-y-3">
-            {recommendedMasters.map((master: Master, idx: number) => {
+            {safeRecommendedMasters.map((master: Master, idx: number) => {
               const isCurrent = isCurrentMaster(master.id);
               return (
                 <motion.div
