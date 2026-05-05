@@ -163,16 +163,15 @@ export async function GET(
                 throw new Error('NOT_FOUND');
             }
 
-            // Получаем данные автора поста (только мастера)
-            const { data: authorData } = await supabase
-                .from('users')
+            // Получаем данные автора поста из таблицы profiles
+            const { data: authorProfile, error: profileError } = await supabase
+                .from('profiles')
                 .select('full_name, avatar_url, city')
-                .eq('id', post.master_id)
-                .eq('role', 'master')
+                .eq('user_id', post.master_id)
                 .single();
 
-            if (!authorData) {
-                throw new Error('NOT_FOUND');
+            if (profileError) {
+                logError('Error fetching author profile', profileError, 'warning');
             }
 
             // Получаем изображения
@@ -197,19 +196,19 @@ export async function GET(
                 .eq('status', 'approved')
                 .order('created_at', { ascending: false });
 
-            // Получаем данные авторов комментариев
+            // Получаем данные авторов комментариев из таблицы profiles
             let comments: FormattedComment[] = [];
             if (commentsData && commentsData.length > 0) {
                 const authorIds = [...new Set(commentsData.map(c => c.author_id))];
                 
                 const { data: commentAuthors } = await supabase
-                    .from('users')
-                    .select('id, full_name, avatar_url')
-                    .in('id', authorIds);
+                    .from('profiles')
+                    .select('user_id, full_name, avatar_url')
+                    .in('user_id', authorIds);
 
                 const authorMap = new Map<string, { full_name: string | null; avatar_url: string | null }>();
                 commentAuthors?.forEach(author => {
-                    authorMap.set(author.id, {
+                    authorMap.set(author.user_id, {
                         full_name: author.full_name,
                         avatar_url: author.avatar_url
                     });
@@ -254,9 +253,9 @@ export async function GET(
                 updated_at: post.updated_at,
                 published_at: post.published_at,
                 master_id: post.master_id,
-                master_name: sanitize.text(authorData.full_name || 'Мастер'),
-                master_avatar: authorData.avatar_url,
-                master_city: sanitize.text(authorData.city || ''),
+                master_name: sanitize.text(authorProfile?.full_name || 'Мастер'),
+                master_avatar: authorProfile?.avatar_url,
+                master_city: sanitize.text(authorProfile?.city || ''),
                 images: images || [],
                 comments: comments,
                 comments_count: comments.length,

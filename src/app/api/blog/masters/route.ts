@@ -18,7 +18,6 @@ const limiter = rateLimit({ limit: 100, windowMs: 60 * 1000 });
 
 export async function GET(request: Request) {
     try {
-        const ip = request.headers.get('x-forwarded-for') || 'unknown';
         const rateLimitResult = limiter(request);
         if (!rateLimitResult.success) {
             return NextResponse.json({ 
@@ -30,7 +29,7 @@ export async function GET(request: Request) {
         
         let following: Master[] = [];
         
-        // Получаем мастеров, на которых подписан пользователь (только мастера)
+        // Получаем мастеров, на которых подписан пользователь
         if (session?.user) {
             const { data: followingIds, error: followError } = await supabase
                 .from('master_followers')
@@ -41,25 +40,18 @@ export async function GET(request: Request) {
             if (!followError && followingIds && followingIds.length > 0) {
                 const masterIds = followingIds.map(f => f.master_id);
                 
-                // Получаем данные только мастеров
-                const { data: mastersData, error: mastersError } = await supabase
-                    .from('users')
-                    .select(`
-                        id,
-                        email,
-                        full_name,
-                        avatar_url,
-                        city
-                    `)
-                    .in('id', masterIds)
-                    .eq('role', 'master');
+                // Получаем данные мастеров из profiles
+                const { data: profilesData, error: profilesError } = await supabase
+                    .from('profiles')
+                    .select('user_id, full_name, avatar_url, city')
+                    .in('user_id', masterIds);
 
-                if (!mastersError && mastersData) {
-                    following = mastersData.map(user => ({
-                        id: user.id,
-                        name: user.full_name || user.email?.split('@')[0] || 'Мастер',
-                        avatar_url: user.avatar_url,
-                        city: user.city || '',
+                if (!profilesError && profilesData) {
+                    following = profilesData.map(profile => ({
+                        id: profile.user_id,
+                        name: profile.full_name || 'Мастер',
+                        avatar_url: profile.avatar_url,
+                        city: profile.city || '',
                         products_count: 0,
                         posts_count: 0,
                         is_following: true
@@ -68,17 +60,10 @@ export async function GET(request: Request) {
             }
         }
 
-        // Получаем рекомендуемых мастеров (только мастера)
+        // Получаем рекомендуемых мастеров из profiles
         const { data: recommendedData, error: recommendedError } = await supabase
-            .from('users')
-            .select(`
-                id,
-                email,
-                full_name,
-                avatar_url,
-                city
-            `)
-            .eq('role', 'master')
+            .from('profiles')
+            .select('user_id, full_name, avatar_url, city')
             .limit(10);
 
         if (recommendedError) {
@@ -99,14 +84,14 @@ export async function GET(request: Request) {
             }
         }
 
-        const recommended: Master[] = recommendedData?.map(user => ({
-            id: user.id,
-            name: user.full_name || user.email?.split('@')[0] || 'Мастер',
-            avatar_url: user.avatar_url,
-            city: user.city || '',
+        const recommended: Master[] = recommendedData?.map(profile => ({
+            id: profile.user_id,
+            name: profile.full_name || 'Мастер',
+            avatar_url: profile.avatar_url,
+            city: profile.city || '',
             products_count: 0,
             posts_count: 0,
-            is_following: followingSet.has(user.id)
+            is_following: followingSet.has(profile.user_id)
         })) || [];
 
         return NextResponse.json({ 

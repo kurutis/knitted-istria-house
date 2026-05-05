@@ -11,12 +11,6 @@ const DEFAULT_LIMIT = 12;
 const MAX_LIMIT = 50;
 const limiter = rateLimit({ limit: 100, windowMs: 60 * 1000 });
 
-interface PostUser {
-    full_name: string | null;
-    avatar_url: string | null;
-    city: string | null;
-}
-
 interface PostFromDB {
     id: string;
     title: string;
@@ -31,28 +25,12 @@ interface PostFromDB {
     updated_at: string;
     published_at: string | null;
     master_id: string;
-    users: PostUser[];
 }
 
-interface FormattedPost {
-    id: string;
-    title: string;
-    content: string;
-    excerpt: string;
-    category: string;
-    tags: string[];
-    main_image_url: string;
-    views_count: number;
-    likes_count: number;
-    created_at: string;
-    updated_at: string;
-    published_at: string | null;
-    master_id: string;
-    master_name: string;
-    master_avatar: string | null;
-    master_city: string;
-    comments_count: number;
-    is_liked: boolean;
+interface ProfileData {
+    full_name: string | null;
+    avatar_url: string | null;
+    city: string | null;
 }
 
 export async function GET(request: Request) {
@@ -83,7 +61,7 @@ export async function GET(request: Request) {
         const cacheKey = `blog_posts_list_${limit}_${page}_${category || 'all'}_${search || 'none'}_${sortBy}`;
         
         const result = await cachedQuery(cacheKey, async () => {
-            // Запрос с JOIN на users для получения данных мастера
+            // Получаем посты
             let query = supabase
                 .from('blog_posts')
                 .select(`
@@ -99,15 +77,9 @@ export async function GET(request: Request) {
                     created_at,
                     updated_at,
                     published_at,
-                    master_id,
-                    users:master_id (
-                        full_name,
-                        avatar_url,
-                        city
-                    )
+                    master_id
                 `, { count: 'exact' })
-                .eq('status', 'published')
-                .eq('users.role', 'master'); // Только посты от мастеров
+                .eq('status', 'published');
 
             if (category && category !== 'all' && category !== 'null') {
                 query = query.eq('category', category);
@@ -152,8 +124,24 @@ export async function GET(request: Request) {
                 };
             }
 
-            // Получаем количество комментариев для каждого поста
-            const postIds = posts.map((p: PostFromDB) => p.id);
+            // Получаем профили мастеров
+            const masterIds = [...new Set(posts.map(p => p.master_id))];
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('user_id, full_name, avatar_url, city')
+                .in('user_id', masterIds);
+
+            const profileMap = new Map<string, ProfileData>();
+            profiles?.forEach(profile => {
+                profileMap.set(profile.user_id, {
+                    full_name: profile.full_name,
+                    avatar_url: profile.avatar_url,
+                    city: profile.city
+                });
+            });
+
+            // Получаем количество комментариев
+            const postIds = posts.map(p => p.id);
             const { data: commentsCounts } = await supabase
                 .from('blog_comments')
                 .select('post_id')
@@ -178,9 +166,8 @@ export async function GET(request: Request) {
                 }
             }
 
-            const formattedPosts: FormattedPost[] = posts.map((post: PostFromDB) => {
-                // users - это массив, берем первый элемент
-                const author = post.users && post.users.length > 0 ? post.users[0] : null;
+            const formattedPosts = posts.map((post: PostFromDB) => {
+                const profile = profileMap.get(post.master_id);
                 
                 return {
                     id: post.id,
@@ -196,15 +183,15 @@ export async function GET(request: Request) {
                     updated_at: post.updated_at,
                     published_at: post.published_at,
                     master_id: post.master_id,
-                    master_name: sanitize.text(author?.full_name || 'Мастер'),
-                    master_avatar: author?.avatar_url || null,
-                    master_city: sanitize.text(author?.city || ''),
+                    master_name: sanitize.text(profile?.full_name || 'Мастер'),
+                    master_avatar: profile?.avatar_url || null,
+                    master_city: sanitize.text(profile?.city || ''),
                     comments_count: commentsMap.get(post.id) || 0,
                     is_liked: session?.user?.id ? userLikes.has(post.id) : false
                 };
             });
 
-            // Получаем список категорий (только от мастеров)
+            // Получаем список категорий
             const { data: categoriesData } = await supabase
                 .from('blog_posts')
                 .select('category')
@@ -232,9 +219,7 @@ export async function GET(request: Request) {
         return NextResponse.json(result, {
             status: 200,
             headers: {
-                'Cache-Control': 'public, max-age=60',
-                'X-RateLimit-Limit': rateLimitResult.limit?.toString() || '100',
-                'X-RateLimit-Remaining': rateLimitResult.remaining?.toString() || '100'
+                'Cache-Control': 'public, max-age=60'
             }
         });
         
