@@ -45,22 +45,42 @@ interface Comment {
 }
 
 interface BlogPost {
-  id: string;
-  title: string;
-  content: string;
-  category: string;
-  tags: string[];
-  main_image_url: string;
-  views_count: number;
-  likes_count: number;
-  comments_count: number;
-  created_at: string;
-  master_id: string;
-  master_name: string;
-  master_avatar: string;
-  is_liked: boolean;
-  comments?: Comment[];
-  images?: Array<{ id: string; url: string; sort_order: number }>;
+    id: string;
+    title: string;
+    content: string;
+    excerpt?: string;
+    category: string;
+    tags: string[];
+    main_image_url: string;
+    views_count: number;
+    likes_count: number;
+    comments_count: number;
+    created_at: string;
+    master_id: string;
+    master_name: string;
+    master_avatar: string;
+    author_name?: string;
+    author_avatar?: string;
+    is_liked: boolean;
+    comments?: Comment[];
+    images?: Array<{ id: string; url: string; sort_order: number }>;
+}
+
+interface BlogPostsResponse {
+  posts: BlogPost[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+  };
+  categories?: string[];
+  stats?: {
+    total: number;
+    total_views: number;
+    total_likes: number;
+  };
 }
 
 type DisplayPost =
@@ -161,12 +181,30 @@ export default function BlogPage() {
       setLoading(true);
 
       const postsRes = await fetch("/api/blog/posts");
-      const postsData = await postsRes.json();
+      const postsData: BlogPostsResponse = await postsRes.json();
 
-      // API возвращает { posts: [], pagination: {}, ... } или массив
+      // API возвращает { posts: [], pagination: {} }
       let postsArray: BlogPost[] = [];
       if (postsData.posts && Array.isArray(postsData.posts)) {
-        postsArray = postsData.posts;
+        postsArray = postsData.posts.map((post) => ({
+          id: post.id,
+          title: post.title,
+          content: post.content,
+          excerpt: post.excerpt || post.content?.substring(0, 200),
+          category: post.category || "",
+          tags: post.tags || [],
+          main_image_url: post.main_image_url || "",
+          views_count: post.views_count || 0,
+          likes_count: post.likes_count || 0,
+          comments_count: post.comments_count || 0,
+          created_at: post.created_at,
+          master_id: post.master_id,
+          master_name: post.master_name || post.author_name || "Мастер",
+          master_avatar: post.master_avatar || post.author_avatar || null,
+          is_liked: post.is_liked || false,
+          comments: post.comments || [],
+          images: post.images || [],
+        }));
       } else if (Array.isArray(postsData)) {
         postsArray = postsData;
       }
@@ -175,12 +213,22 @@ export default function BlogPage() {
       const mastersRes = await fetch("/api/blog/masters");
       const mastersData = await mastersRes.json();
 
-      setFollowingMasters(
-        Array.isArray(mastersData.following) ? mastersData.following : [],
-      );
-      setRecommendedMasters(
-        Array.isArray(mastersData.recommended) ? mastersData.recommended : [],
-      );
+      let following: Master[] = [];
+      let recommended: Master[] = [];
+
+      if (mastersData.following && Array.isArray(mastersData.following)) {
+        following = mastersData.following;
+        recommended = Array.isArray(mastersData.recommended)
+          ? mastersData.recommended
+          : [];
+      } else if (mastersData.masters && Array.isArray(mastersData.masters)) {
+        following = mastersData.masters;
+      } else if (Array.isArray(mastersData)) {
+        following = mastersData;
+      }
+
+      setFollowingMasters(following);
+      setRecommendedMasters(recommended);
     } catch (error) {
       console.error("Error fetching blog data:", error);
       setPosts([]);
@@ -240,7 +288,23 @@ export default function BlogPage() {
       });
 
       if (response.ok) {
-        const newComment = await response.json();
+        const newCommentData = await response.json();
+        const newComment: Comment = {
+          id: newCommentData.id,
+          content: newCommentData.content,
+          created_at: newCommentData.created_at,
+          author_id: newCommentData.user_id || newCommentData.author_id,
+          author_name:
+            newCommentData.user_name ||
+            newCommentData.author_name ||
+            session.user?.name ||
+            "Пользователь",
+          author_avatar:
+            newCommentData.user_avatar ||
+            newCommentData.author_avatar ||
+            session.user?.image ||
+            null,
+        };
         setPosts((prev) =>
           prev.map((p) =>
             p.id === postId
