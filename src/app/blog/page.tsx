@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import { useSession } from "next-auth/react";
 import { useEffect, useState, useCallback } from "react";
@@ -63,9 +63,9 @@ interface BlogPost {
   images?: Array<{ id: string; url: string; sort_order: number }>;
 }
 
-type DisplayPost = BlogPost | (SearchPost & { comments?: Comment[]; views_count?: number });
-
-
+type DisplayPost =
+  | BlogPost
+  | (SearchPost & { comments?: Comment[]; views_count?: number });
 
 export default function BlogPage() {
   const { data: session } = useSession();
@@ -162,15 +162,30 @@ export default function BlogPage() {
 
       const postsRes = await fetch("/api/blog/posts");
       const postsData = await postsRes.json();
-      setPosts(postsData || []);
-  
+
+      // API возвращает { posts: [], pagination: {}, ... } или массив
+      let postsArray: BlogPost[] = [];
+      if (postsData.posts && Array.isArray(postsData.posts)) {
+        postsArray = postsData.posts;
+      } else if (Array.isArray(postsData)) {
+        postsArray = postsData;
+      }
+      setPosts(postsArray);
+
       const mastersRes = await fetch("/api/blog/masters");
       const mastersData = await mastersRes.json();
 
-      setFollowingMasters(mastersData.following || []);
-      setRecommendedMasters(mastersData.recommended || []);
+      setFollowingMasters(
+        Array.isArray(mastersData.following) ? mastersData.following : [],
+      );
+      setRecommendedMasters(
+        Array.isArray(mastersData.recommended) ? mastersData.recommended : [],
+      );
     } catch (error) {
       console.error("Error fetching blog data:", error);
+      setPosts([]);
+      setFollowingMasters([]);
+      setRecommendedMasters([]);
     } finally {
       setLoading(false);
     }
@@ -267,7 +282,9 @@ export default function BlogPage() {
         if (data.is_following) {
           const masterToAdd =
             recommendedMasters.find((m) => m.id === masterId) ||
-            searchResults?.masters.find((m) => m.id === masterId);
+            (searchResults?.masters && Array.isArray(searchResults.masters)
+              ? searchResults.masters.find((m) => m.id === masterId)
+              : undefined);
           if (masterToAdd && !followingMasters.find((m) => m.id === masterId)) {
             setFollowingMasters((prev) => [
               { ...masterToAdd, is_following: true },
@@ -284,7 +301,11 @@ export default function BlogPage() {
           ),
         );
 
-        if (searchResults) {
+        if (
+          searchResults &&
+          searchResults.masters &&
+          Array.isArray(searchResults.masters)
+        ) {
           setSearchResults({
             ...searchResults,
             masters: searchResults.masters.map((m) =>
@@ -545,14 +566,16 @@ export default function BlogPage() {
 
           {displayPosts.length === 0 ? (
             <div className="bg-white rounded-2xl shadow-xl p-8 sm:p-12 text-center text-gray-500">
-              <p className="text-lg">{searchQuery ? "Посты не найдены" : "Пока нет постов"}</p>
+              <p className="text-lg">
+                {searchQuery ? "Посты не найдены" : "Пока нет постов"}
+              </p>
             </div>
           ) : (
             <AnimatePresence>
               {displayPosts.map((post: DisplayPost, index: number) => {
                 const comments = post.comments || [];
                 const hasComments = comments.length > 0;
-                
+
                 return (
                   <motion.div
                     key={post.id}
@@ -594,7 +617,9 @@ export default function BlogPage() {
 
                     <div className="p-3 sm:p-4">
                       <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg sm:text-xl mb-2 break-words">
-                        {showSearchResults && 'highlighted_title' in post && post.highlighted_title ? (
+                        {showSearchResults &&
+                        "highlighted_title" in post &&
+                        post.highlighted_title ? (
                           <div
                             dangerouslySetInnerHTML={{
                               __html: post.highlighted_title,
@@ -607,18 +632,20 @@ export default function BlogPage() {
                       </h3>
 
                       {(post.images?.length || 0) > 0 || post.main_image_url ? (
-                            <div className="mb-8">
-                                <MediaGallery
-                                    images={post.images || []}
-                                    mainImageUrl={post.main_image_url}
-                                    video={null}
-                                    title={post.title}
-                                />
-                            </div>
-                        ) : null}
+                        <div className="mb-8">
+                          <MediaGallery
+                            images={post.images || []}
+                            mainImageUrl={post.main_image_url}
+                            video={null}
+                            title={post.title}
+                          />
+                        </div>
+                      ) : null}
 
                       <div className="text-gray-700 mt-3 sm:mt-4 break-words">
-                        {showSearchResults && 'highlighted_content' in post && post.highlighted_content ? (
+                        {showSearchResults &&
+                        "highlighted_content" in post &&
+                        post.highlighted_content ? (
                           <div
                             dangerouslySetInnerHTML={{
                               __html: post.highlighted_content + "...",
@@ -719,7 +746,7 @@ export default function BlogPage() {
                             d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
                           />
                         </svg>
-                        {'views_count' in post ? post.views_count : 0}
+                        {"views_count" in post ? post.views_count : 0}
                       </span>
                     </div>
 
@@ -741,14 +768,18 @@ export default function BlogPage() {
                               <div className="flex-1 min-w-0">
                                 <textarea
                                   value={commentText}
-                                  onChange={(e) => setCommentText(e.target.value)}
+                                  onChange={(e) =>
+                                    setCommentText(e.target.value)
+                                  }
                                   placeholder="Написать комментарий..."
                                   rows={2}
                                   className="w-full p-2 rounded-xl bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-firm-orange text-sm resize-none transition-all"
                                 />
                                 <motion.button
                                   onClick={() => handleComment(post.id)}
-                                  disabled={commentLoading || !commentText.trim()}
+                                  disabled={
+                                    commentLoading || !commentText.trim()
+                                  }
                                   className="mt-2 px-3 sm:px-4 py-1 sm:py-1.5 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-lg text-xs sm:text-sm hover:shadow-lg transition disabled:opacity-50"
                                   whileHover={{ scale: 1.02 }}
                                   whileTap={{ scale: 0.98 }}
@@ -780,7 +811,10 @@ export default function BlogPage() {
                             ) : (
                               <>
                                 {comments.slice(-3).map((comment: Comment) => (
-                                  <div key={comment.id} className="flex gap-2 sm:gap-3">
+                                  <div
+                                    key={comment.id}
+                                    className="flex gap-2 sm:gap-3"
+                                  >
                                     <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex items-center justify-center text-white text-xs sm:text-sm font-bold flex-shrink-0 overflow-hidden">
                                       {comment.author_avatar ? (
                                         <img
@@ -789,7 +823,9 @@ export default function BlogPage() {
                                           className="w-full h-full object-cover"
                                         />
                                       ) : (
-                                        comment.author_name?.charAt(0).toUpperCase()
+                                        comment.author_name
+                                          ?.charAt(0)
+                                          .toUpperCase()
                                       )}
                                     </div>
                                     <div className="flex-1 min-w-0">
@@ -807,14 +843,15 @@ export default function BlogPage() {
                                     </div>
                                   </div>
                                 ))}
-                                
+
                                 {comments.length > 3 && (
                                   <div className="text-center pt-2">
                                     <Link
                                       href={`/blog/${post.id}`}
                                       className="text-firm-orange hover:underline text-sm font-medium"
                                     >
-                                      Показать все {comments.length} комментариев →
+                                      Показать все {comments.length}{" "}
+                                      комментариев →
                                     </Link>
                                   </div>
                                 )}
@@ -861,7 +898,10 @@ export default function BlogPage() {
                   ✕
                 </button>
               </div>
-              <form onSubmit={handleSubmitPost} className="p-4 sm:p-6 space-y-5 sm:space-y-6">
+              <form
+                onSubmit={handleSubmitPost}
+                className="p-4 sm:p-6 space-y-5 sm:space-y-6"
+              >
                 <div>
                   <label className="block text-gray-700 mb-2 font-['Montserrat_Alternates'] font-medium text-sm sm:text-base">
                     📷 Фото
@@ -1059,10 +1099,17 @@ function MastersSidebar({
   handleFollow: (masterId: string, isFollowing: boolean) => Promise<void>;
 }) {
   // Защита от не-массивов
-  const safeFollowingMasters = Array.isArray(followingMasters) ? followingMasters : [];
-  const safeRecommendedMasters = Array.isArray(recommendedMasters) ? recommendedMasters : [];
-  const safeSearchMasters = searchResults?.masters && Array.isArray(searchResults.masters) ? searchResults.masters : [];
-  
+  const safeFollowingMasters = Array.isArray(followingMasters)
+    ? followingMasters
+    : [];
+  const safeRecommendedMasters = Array.isArray(recommendedMasters)
+    ? recommendedMasters
+    : [];
+  const safeSearchMasters =
+    searchResults?.masters && Array.isArray(searchResults.masters)
+      ? searchResults.masters
+      : [];
+
   const isCurrentMaster = (masterId: string) => {
     return currentMasterId === masterId;
   };
