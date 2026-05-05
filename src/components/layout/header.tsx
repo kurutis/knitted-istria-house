@@ -31,39 +31,37 @@ export default function Header() {
 
   // Загружаем аватар из API профиля
   useEffect(() => {
-    const loadAvatar = async () => {
-      if (!isAuthenticated) return;
-
-      try {
-        // Определяем какой API использовать в зависимости от роли
-        const apiUrl = isMaster ? "/api/master/profile" : "/api/user/profile";
-        const response = await fetch(apiUrl);
-
-        if (response.ok) {
-          const data = await response.json();
-          // API мастера возвращает { success: true, profile: { avatar_url } }
-          // API пользователя возвращает { avatarUrl }
-          let avatar: string | null = null;
-
-          if (isMaster && data.profile?.avatar_url) {
-            avatar = data.profile.avatar_url;
-          } else if (data.avatarUrl) {
-            avatar = data.avatarUrl;
-          } else if (data.avatar_url) {
-            avatar = data.avatar_url;
-          }
-
-          if (avatar) {
-            setAvatarUrl(avatar);
-          }
+  const loadAvatar = async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      // Для мастера используем API мастеров
+      const apiUrl = isMaster ? '/api/master/profile' : '/api/user/profile';
+      const response = await fetch(apiUrl);
+      
+      if (response.ok) {
+        const data = await response.json();
+        // API мастера возвращает { profile: { avatar_url } }
+        if (isMaster && data.profile?.avatar_url) {
+          setAvatarUrl(data.profile.avatar_url);
+        } 
+        // API пользователя возвращает { avatarUrl }
+        else if (data.avatarUrl) {
+          setAvatarUrl(data.avatarUrl);
         }
-      } catch (error) {
-        console.error("Error loading avatar:", error);
+        else if (data.avatar_url) {
+          setAvatarUrl(data.avatar_url);
+        }
       }
-    };
-
+    } catch (error) {
+      console.error('Error loading avatar:', error);
+    }
+  };
+  
+  if (isAuthenticated) {
     loadAvatar();
-  }, [isAuthenticated, isMaster]);
+  }
+}, [isAuthenticated, isMaster]);
 
   const getInitials = () => {
     if (!session?.user) return "U";
