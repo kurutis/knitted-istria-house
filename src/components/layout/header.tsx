@@ -31,37 +31,53 @@ export default function Header() {
 
   // Загружаем аватар из API профиля
   useEffect(() => {
-  const loadAvatar = async () => {
-    if (!isAuthenticated) return;
-    
-    try {
-      // Для мастера используем API мастеров
-      const apiUrl = isMaster ? '/api/master/profile' : '/api/user/profile';
-      const response = await fetch(apiUrl);
-      
-      if (response.ok) {
-        const data = await response.json();
-        // API мастера возвращает { profile: { avatar_url } }
-        if (isMaster && data.profile?.avatar_url) {
-          setAvatarUrl(data.profile.avatar_url);
-        } 
-        // API пользователя возвращает { avatarUrl }
-        else if (data.avatarUrl) {
-          setAvatarUrl(data.avatarUrl);
-        }
-        else if (data.avatar_url) {
-          setAvatarUrl(data.avatar_url);
-        }
+    const loadAvatar = async () => {
+      if (!isAuthenticated) {
+        console.log("Not authenticated, skipping avatar load");
+        return;
       }
-    } catch (error) {
-      console.error('Error loading avatar:', error);
-    }
-  };
-  
-  if (isAuthenticated) {
+
+      console.log("Loading avatar for role:", isMaster ? "master" : "user");
+
+      try {
+        const apiUrl = isMaster ? "/api/master/profile" : "/api/user/profile";
+        console.log("Fetching from:", apiUrl);
+
+        const response = await fetch(apiUrl);
+        console.log("Response status:", response.status);
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log("API response:", data);
+
+          let avatar = null;
+          if (isMaster && data.profile?.avatar_url) {
+            avatar = data.profile.avatar_url;
+            console.log("Master avatar URL:", avatar);
+          } else if (data.avatarUrl) {
+            avatar = data.avatarUrl;
+            console.log("User avatar URL:", avatar);
+          } else if (data.avatar_url) {
+            avatar = data.avatar_url;
+            console.log("Avatar URL:", avatar);
+          }
+
+          if (avatar) {
+            setAvatarUrl(avatar);
+            console.log("Avatar set successfully");
+          } else {
+            console.log("No avatar found in response");
+          }
+        } else {
+          console.error("Failed to load profile:", await response.text());
+        }
+      } catch (error) {
+        console.error("Error loading avatar:", error);
+      }
+    };
+
     loadAvatar();
-  }
-}, [isAuthenticated, isMaster]);
+  }, [isAuthenticated, isMaster]);
 
   const getInitials = () => {
     if (!session?.user) return "U";
