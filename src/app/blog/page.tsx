@@ -66,7 +66,7 @@ interface BlogPost {
   images?: Array<{ id: string; url: string; sort_order: number }>;
 }
 
-interface ApiBlogPost {
+interface ApiPost {
   id: string;
   title: string;
   content: string;
@@ -81,11 +81,9 @@ interface ApiBlogPost {
   master_id: string;
   master_name?: string;
   master_avatar?: string;
-  author_name?: string;
-  author_avatar?: string;
+  master_city?: string;
   is_liked?: boolean;
-  comments?: Comment[];
-  images?: Array<{ id: string; url: string; sort_order: number }>;
+  images?: Array<{ id: string; image_url: string; sort_order: number }>;
 }
 
 type DisplayPost =
@@ -185,13 +183,14 @@ export default function BlogPage() {
     try {
       setLoading(true);
 
+      // Загрузка постов
       const postsRes = await fetch("/api/blog/posts");
       const postsData = await postsRes.json();
 
       let postsArray: BlogPost[] = [];
 
       if (postsData.posts && Array.isArray(postsData.posts)) {
-        postsArray = postsData.posts.map((post: ApiBlogPost) => ({
+        postsArray = postsData.posts.map((post: ApiPost) => ({
           id: post.id,
           title: post.title,
           content: post.content,
@@ -204,41 +203,25 @@ export default function BlogPage() {
           comments_count: post.comments_count || 0,
           created_at: post.created_at,
           master_id: post.master_id,
-          master_name: post.master_name || post.author_name || "Мастер",
-          master_avatar: post.master_avatar || post.author_avatar || "",
+          master_name: post.master_name || "Мастер",
+          master_avatar: post.master_avatar || "",
+          master_city: post.master_city || "",
           is_liked: post.is_liked || false,
-          comments: post.comments || [],
+          comments: [],
           images: post.images || [],
         }));
-      } else if (Array.isArray(postsData)) {
-        postsArray = postsData;
       }
+
       setPosts(postsArray);
 
+      // Загрузка мастеров
       const mastersRes = await fetch("/api/blog/masters");
       const mastersData = await mastersRes.json();
 
-      let following: Master[] = [];
-      let recommended: Master[] = [];
-
-      if (mastersData.following && Array.isArray(mastersData.following)) {
-        following = mastersData.following;
-        recommended = Array.isArray(mastersData.recommended)
-          ? mastersData.recommended
-          : [];
-      } else if (mastersData.masters && Array.isArray(mastersData.masters)) {
-        following = mastersData.masters;
-      } else if (Array.isArray(mastersData)) {
-        following = mastersData;
-      }
-
-      setFollowingMasters(following);
-      setRecommendedMasters(recommended);
+      setFollowingMasters(mastersData.following || []);
+      setRecommendedMasters(mastersData.recommended || []);
     } catch (error) {
       console.error("Error fetching blog data:", error);
-      setPosts([]);
-      setFollowingMasters([]);
-      setRecommendedMasters([]);
     } finally {
       setLoading(false);
     }

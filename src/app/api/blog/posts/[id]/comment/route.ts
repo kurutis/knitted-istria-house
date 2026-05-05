@@ -1,4 +1,3 @@
-// app/api/blog/posts/[id]/comments/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -94,7 +93,7 @@ export async function POST(
                 content: sanitizedContent,
                 created_at: now,
                 updated_at: now,
-                status: 'approved' // или 'pending' если нужна модерация
+                status: 'approved'
             })
             .select()
             .single();
@@ -115,19 +114,16 @@ export async function POST(
         invalidateCache(`blog_posts_${id}`);
         invalidateCache(/^blog_posts_list/);
 
-        // Получаем данные автора
-        const { data: author } = await supabase
-            .from('users')
-            .select(`
-                id,
-                email,
-                profiles!left (
-                    full_name,
-                    avatar_url
-                )
-            `)
-            .eq('id', session.user.id)
+        // Получаем данные автора комментария
+        const { data: authorProfile, error: authorError } = await supabase
+            .from('profiles')
+            .select('full_name, avatar_url')
+            .eq('user_id', session.user.id)
             .single();
+
+        if (authorError) {
+            logError('Error fetching author profile', authorError, 'warning');
+        }
 
         // Уведомляем автора поста о новом комментарии (если комментатор не автор)
         if (post.master_id !== session.user.id) {
@@ -136,7 +132,7 @@ export async function POST(
                 .insert({
                     user_id: post.master_id,
                     title: '💬 Новый комментарий',
-                    message: `${author?.profiles?.[0]?.full_name || session.user.email} оставил комментарий к вашему посту "${post.title?.substring(0, 50)}"`,
+                    message: `${authorProfile?.full_name || session.user.email} оставил комментарий к вашему посту "${post.title?.substring(0, 50)}"`,
                     type: 'blog_comment',
                     metadata: { 
                         post_id: id, 
@@ -164,8 +160,8 @@ export async function POST(
                 content: newComment.content,
                 created_at: newComment.created_at,
                 author_id: session.user.id,
-                author_name: sanitize.text(author?.profiles?.[0]?.full_name || author?.email),
-                author_avatar: author?.profiles?.[0]?.avatar_url
+                author_name: sanitize.text(authorProfile?.full_name || session.user.email?.split('@')[0] || 'Пользователь'),
+                author_avatar: authorProfile?.avatar_url
             }
         }, { status: 201 });
         
@@ -175,6 +171,86 @@ export async function POST(
         }
         logError('Error adding comment', error);
         return NextResponse.json({ error: 'Ошибка при добавлении комментария' }, { status: 500 });
+    }
+}
+
+export async function GET(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    const startTime = Date.now();
+    
+    try {
+        const session = await getServerSession(authOptions);
+        const { id } = await params;
+        
+        if (!id || !isValidUUID(id)) {
+            return NextResponse.json({ error: 'Неверный формат ID поста' }, { status: 400 });
+        }
+
+        // Получаем комментарии к посту
+        const { data: comments, error } = await supabase
+            .from('blog_comments')
+            .select(`
+                id,
+                content,
+                created_at,
+                updated_at,
+                is_edited,
+                author_id
+            `)
+            .eq('post_id', id)
+            .eq('status', 'approved')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            logError('Error fetching comments', error);
+            return NextResponse.json({ error: 'Ошибка загрузки комментариев' }, { status: 500 });
+        }
+
+        // Получаем данные авторов комментариев
+        if (comments && comments.length > 0) {
+            const authorIds = [...new Set(comments.map(c => c.author_id))];
+            
+            const { data: authors } = await supabase
+                .from('profiles')
+                .select('user_id, full_name, avatar_url')
+                .in('user_id', authorIds);
+
+            const authorMap = new Map();
+            authors?.forEach(author => {
+                authorMap.set(author.user_id, author);
+            });
+
+            const formattedComments = comments.map(comment => ({
+                id: comment.id,
+                content: sanitize.text(comment.content),
+                created_at: comment.created_at,
+                updated_at: comment.updated_at,
+                is_edited: comment.is_edited,
+                author_id: comment.author_id,
+                author_name: sanitize.text(authorMap.get(comment.author_id)?.full_name || 'Пользователь'),
+                author_avatar: authorMap.get(comment.author_id)?.avatar_url
+            }));
+
+            logApiRequest('GET', `/api/blog/posts/${id}/comments`, 200, Date.now() - startTime, session?.user?.id);
+
+            return NextResponse.json({
+                success: true,
+                comments: formattedComments,
+                total: formattedComments.length
+            }, { status: 200 });
+        }
+
+        return NextResponse.json({
+            success: true,
+            comments: [],
+            total: 0
+        }, { status: 200 });
+        
+    } catch (error) {
+        logError('Error fetching comments', error);
+        return NextResponse.json({ error: 'Ошибка загрузки комментариев' }, { status: 500 });
     }
 }
 
