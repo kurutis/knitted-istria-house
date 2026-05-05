@@ -379,7 +379,7 @@ export default function MasterClassesPage() {
                 ].map((tab) => (
                     <motion.button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
+                        onClick={() => setActiveTab(tab.id as 'all' | 'my' | 'created')}
                         className={`pb-2 px-3 sm:px-4 font-medium transition-all duration-300 relative flex items-center gap-1 sm:gap-2 text-sm sm:text-base ${
                             activeTab === tab.id 
                                 ? 'text-firm-orange' 
