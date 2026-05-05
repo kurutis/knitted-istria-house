@@ -8,7 +8,6 @@ export async function GET(request: Request) {
         const limit = Math.min(parseInt(searchParams.get('limit') || '6'), 20);
         const sortBy = searchParams.get('sortBy') || 'rating';
 
-        // Базовый запрос - убрал reviews_count
         let query = supabase
             .from('users')
             .select(`
@@ -32,7 +31,6 @@ export async function GET(request: Request) {
             .eq('role', 'master')
             .eq('is_banned', false);
 
-        // Сортировка
         if (sortBy === 'rating') {
             query = query.order('rating', { ascending: false, referencedTable: 'masters' });
         } else if (sortBy === 'sales') {
@@ -52,7 +50,7 @@ export async function GET(request: Request) {
             return NextResponse.json([]);
         }
 
-        // Форматируем ответ - убрал reviews_count
+        // Форматируем ответ - правильно обращаемся к profiles[0]
         const formatted = users.map(user => ({
             id: user.id,
             name: user.profiles?.[0]?.full_name || user.email?.split('@')[0] || 'Мастер',
