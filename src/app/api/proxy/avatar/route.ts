@@ -6,11 +6,13 @@ import { logError, logInfo } from "@/lib/error-logger";
 // Rate limiting - более строгий для прокси
 const limiter = rateLimit({ limit: 30, windowMs: 60 * 1000 }); // 30 запросов в минуту
 
-// Разрешенные домены (белый список)
 const ALLOWED_DOMAINS = [
     // Supabase Storage
     'supabase.co',
     'supabase.in',
+    // Твой S3 storage
+    'selstorage.ru',  // ДОБАВЛЕНО
+    '30bd5b8c-136d-48e3-b7c1-71a168d4fef4.selstorage.ru',  // ДОБАВЛЕНО
     // Социальные сети
     'googleusercontent.com',
     'fbcdn.net',
