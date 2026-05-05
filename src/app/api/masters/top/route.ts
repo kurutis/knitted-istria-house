@@ -1,5 +1,28 @@
+// app/api/masters/top/route.ts
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+
+type ProfileData = {
+    full_name: string | null;
+    avatar_url: string | null;
+    city: string | null;
+    address: string | null;
+};
+
+type MasterData = {
+    total_sales: number | null;
+    rating: number | null;
+    is_verified: boolean;
+    is_partner: boolean;
+    custom_orders_enabled: boolean;
+};
+
+type UserData = {
+    id: string;
+    email: string;
+    profiles: ProfileData[];
+    masters: MasterData[];
+};
 
 export async function GET(request: Request) {
     try {
@@ -12,14 +35,13 @@ export async function GET(request: Request) {
             .select(`
                 id,
                 email,
-                created_at,
-                profiles!inner (
+                profiles (
                     full_name,
                     avatar_url,
                     city,
                     address
                 ),
-                masters!inner (
+                masters (
                     total_sales,
                     rating,
                     is_verified,
@@ -31,9 +53,9 @@ export async function GET(request: Request) {
             .eq('is_banned', false);
 
         if (sortBy === 'rating') {
-            query = query.order('rating', { ascending: false, referencedTable: 'masters' });
+            query = query.order('rating', { ascending: false, foreignTable: 'masters' });
         } else if (sortBy === 'sales') {
-            query = query.order('total_sales', { ascending: false, referencedTable: 'masters' });
+            query = query.order('total_sales', { ascending: false, foreignTable: 'masters' });
         } else if (sortBy === 'newest') {
             query = query.order('created_at', { ascending: false });
         }
@@ -49,8 +71,10 @@ export async function GET(request: Request) {
             return NextResponse.json([]);
         }
 
-        // Берем первый элемент из массивов profiles и masters
-        const formatted = users.map(user => ({
+        // Приводим к типу и берем первый элемент из массивов
+        const typedUsers = users as unknown as UserData[];
+        
+        const formatted = typedUsers.map(user => ({
             id: user.id,
             name: user.profiles?.[0]?.full_name || user.email?.split('@')[0] || 'Мастер',
             avatar_url: user.profiles?.[0]?.avatar_url || null,
