@@ -1,3 +1,4 @@
+// src/app/page.tsx
 'use client'
 
 import Link from "next/link";
@@ -7,7 +8,9 @@ import { motion } from "framer-motion";
 import MasterDashboard from "@/components/master/MasterDashboard";
 import MediaGallery from "@/components/blog/MediaGallery";
 import { AnimatedButton } from "@/components/ui/AnimatedButton";
-import dynamic from 'next/dynamic';
+import TopMasters from "@/components/TopMasters";
+import PopularProducts from "@/components/PopularProducts";
+import HeroSlider from "@/components/HeroSlider";
 
 interface BlogPost {
     id: string
@@ -32,20 +35,6 @@ interface BlogPost {
         author_avatar?: string;
     }>
 }
-
-const TopMasters = dynamic(() => import('@/components/TopMasters'), {
-    loading: () => <div className="h-64 animate-pulse bg-gray-100 rounded-xl" />,
-    ssr: true,
-});
-
-const PopularProducts = dynamic(() => import('@/components/PopularProducts'), {
-    loading: () => <div className="h-96 animate-pulse bg-gray-100 rounded-xl" />,
-    ssr: true,
-});
-
-const HeroSlider = dynamic(() => import('@/components/HeroSlider'), {
-    ssr: false,
-});
 
 export default function HomePage() {
     const { data: session, status } = useSession()
@@ -81,7 +70,6 @@ export default function HomePage() {
         try {
             const response = await fetch('/api/blog/posts?limit=4')
             const data = await response.json()
-            // API возвращает { posts: [...], pagination: {...}, ... }
             const postsData = Array.isArray(data.posts) ? data.posts : []
             setRecentPosts(postsData)
         } catch (error) {
@@ -186,7 +174,6 @@ export default function HomePage() {
             </div>
             <TopMasters />
             
-            {/* Кнопки */}
             <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-20 justify-center mt-5 mb-16 px-4">
                 <motion.div
                     whileHover={{ scale: 1.05 }}
@@ -214,7 +201,6 @@ export default function HomePage() {
             
             <PopularProducts />
             
-            {/* Лента новостей */}
             <motion.div 
                 className="py-12 md:py-16"
                 initial={{ opacity: 0 }}
@@ -271,7 +257,6 @@ export default function HomePage() {
                                 transition={{ delay: index * 0.1, duration: 0.5 }}
                                 whileHover={{ y: -5, boxShadow: "0 20px 40px rgba(0,0,0,0.1)" }}
                             >
-                                {/* Шапка поста */}
                                 <div className="p-3 md:p-4 flex items-center justify-between border-b border-gray-200">
                                     <Link href={`/masters/${post.master_id}`} className="flex items-center gap-2 md:gap-3 group">
                                         <motion.div 
@@ -292,7 +277,6 @@ export default function HomePage() {
                                     </Link>
                                 </div>
 
-                                {/* Контент поста */}
                                 <div className="p-3 md:p-4">
                                     <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg md:text-xl mb-2">
                                         {post.title}
@@ -329,7 +313,6 @@ export default function HomePage() {
                                     </Link>
                                 </div>
 
-                                {/* Кнопки взаимодействия */}
                                 <div className="px-3 md:px-4 py-2 md:py-3 border-t border-gray-200 flex items-center gap-3 md:gap-6">
                                     <AnimatedButton
                                         icon={
@@ -385,7 +368,6 @@ export default function HomePage() {
                                     </span>
                                 </div>
 
-                                {/* Комментарии */}
                                 {showComments === post.id && (
                                     <motion.div 
                                         className="px-3 md:px-4 py-3 border-t bg-gray-50"
