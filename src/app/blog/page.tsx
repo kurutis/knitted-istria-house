@@ -45,42 +45,47 @@ interface Comment {
 }
 
 interface BlogPost {
-    id: string;
-    title: string;
-    content: string;
-    excerpt?: string;
-    category: string;
-    tags: string[];
-    main_image_url: string;
-    views_count: number;
-    likes_count: number;
-    comments_count: number;
-    created_at: string;
-    master_id: string;
-    master_name: string;
-    master_avatar: string | null;
-    author_name?: string;
-    author_avatar?: string | null;
-    is_liked: boolean;
-    comments?: Comment[];
-    images?: Array<{ id: string; url: string; sort_order: number }>;
+  id: string;
+  title: string;
+  content: string;
+  excerpt?: string;
+  category: string;
+  tags: string[];
+  main_image_url: string;
+  views_count: number;
+  likes_count: number;
+  comments_count: number;
+  created_at: string;
+  master_id: string;
+  master_name: string;
+  master_avatar: string;
+  author_name?: string;
+  author_avatar?: string;
+  is_liked: boolean;
+  comments?: Comment[];
+  images?: Array<{ id: string; url: string; sort_order: number }>;
 }
 
-interface BlogPostsResponse {
-  posts: BlogPost[];
-  pagination?: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasMore: boolean;
-  };
-  categories?: string[];
-  stats?: {
-    total: number;
-    total_views: number;
-    total_likes: number;
-  };
+interface ApiBlogPost {
+  id: string;
+  title: string;
+  content: string;
+  excerpt?: string;
+  category?: string;
+  tags?: string[];
+  main_image_url?: string;
+  views_count?: number;
+  likes_count?: number;
+  comments_count?: number;
+  created_at: string;
+  master_id: string;
+  master_name?: string;
+  master_avatar?: string;
+  author_name?: string;
+  author_avatar?: string;
+  is_liked?: boolean;
+  comments?: Comment[];
+  images?: Array<{ id: string; url: string; sort_order: number }>;
 }
 
 type DisplayPost =
@@ -181,12 +186,12 @@ export default function BlogPage() {
       setLoading(true);
 
       const postsRes = await fetch("/api/blog/posts");
-      const postsData: BlogPostsResponse = await postsRes.json();
+      const postsData = await postsRes.json();
 
-      // API возвращает { posts: [], pagination: {} }
       let postsArray: BlogPost[] = [];
+
       if (postsData.posts && Array.isArray(postsData.posts)) {
-        postsArray = postsData.posts.map((post) => ({
+        postsArray = postsData.posts.map((post: ApiBlogPost) => ({
           id: post.id,
           title: post.title,
           content: post.content,
@@ -200,7 +205,7 @@ export default function BlogPage() {
           created_at: post.created_at,
           master_id: post.master_id,
           master_name: post.master_name || post.author_name || "Мастер",
-          master_avatar: post.master_avatar || post.author_avatar || null,
+          master_avatar: post.master_avatar || post.author_avatar || "",
           is_liked: post.is_liked || false,
           comments: post.comments || [],
           images: post.images || [],
@@ -303,7 +308,7 @@ export default function BlogPage() {
             newCommentData.user_avatar ||
             newCommentData.author_avatar ||
             session.user?.image ||
-            null,
+            "",
         };
         setPosts((prev) =>
           prev.map((p) =>
@@ -646,7 +651,6 @@ export default function BlogPage() {
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1, duration: 0.4 }}
-                    whileHover={{ y: -4 }}
                     className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-300"
                   >
                     <div className="p-3 sm:p-4 flex items-center justify-between border-b border-gray-100">
@@ -933,7 +937,7 @@ export default function BlogPage() {
         </div>
       </div>
 
-      {/* Модальное окно добавления поста (оставляем без изменений) */}
+      {/* Модальное окно добавления поста */}
       <AnimatePresence>
         {showAddPostModal && isMaster && (
           <motion.div
@@ -962,6 +966,7 @@ export default function BlogPage() {
                   ✕
                 </button>
               </div>
+
               <form
                 onSubmit={handleSubmitPost}
                 className="p-4 sm:p-6 space-y-5 sm:space-y-6"
@@ -1032,6 +1037,7 @@ export default function BlogPage() {
                     </div>
                   )}
                 </div>
+
                 <div>
                   <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium text-sm sm:text-base">
                     Заголовок <span className="text-red-500">*</span>
@@ -1046,6 +1052,7 @@ export default function BlogPage() {
                     placeholder="Например: Как выбрать пряжу для зимнего свитера"
                   />
                 </div>
+
                 <div>
                   <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium text-sm sm:text-base">
                     Категория
@@ -1064,6 +1071,7 @@ export default function BlogPage() {
                     ))}
                   </select>
                 </div>
+
                 <div>
                   <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium text-sm sm:text-base">
                     Теги
@@ -1077,6 +1085,7 @@ export default function BlogPage() {
                     placeholder="Мастер-класс, Обзор, Советы (через запятую)"
                   />
                 </div>
+
                 <div>
                   <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium text-sm sm:text-base">
                     Краткое описание
@@ -1090,6 +1099,7 @@ export default function BlogPage() {
                     placeholder="Краткое описание поста, которое будет отображаться в ленте..."
                   />
                 </div>
+
                 <div>
                   <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium text-sm sm:text-base">
                     Содержание <span className="text-red-500">*</span>
@@ -1104,6 +1114,7 @@ export default function BlogPage() {
                     placeholder="Напишите ваш пост..."
                   />
                 </div>
+
                 <div className="flex gap-3 pt-4 border-t">
                   <motion.button
                     type="submit"
@@ -1162,7 +1173,6 @@ function MastersSidebar({
   currentMasterId: string | undefined;
   handleFollow: (masterId: string, isFollowing: boolean) => Promise<void>;
 }) {
-  // Защита от не-массивов
   const safeFollowingMasters = Array.isArray(followingMasters)
     ? followingMasters
     : [];
@@ -1174,13 +1184,10 @@ function MastersSidebar({
       ? searchResults.masters
       : [];
 
-  const isCurrentMaster = (masterId: string) => {
-    return currentMasterId === masterId;
-  };
+  const isCurrentMaster = (masterId: string) => currentMasterId === masterId;
 
   return (
     <>
-      {/* Поиск */}
       <div className="mb-6">
         <div className="relative">
           <input
@@ -1205,13 +1212,12 @@ function MastersSidebar({
           </svg>
           {isSearching && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <div className="w-4 h-4 border-2 border-firm-orange border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-4 h-4 border-2 border-firm-orange border-t-transparent rounded-full animate-spin" />
             </div>
           )}
         </div>
       </div>
 
-      {/* Результаты поиска мастеров */}
       {showSearchResults && safeSearchMasters.length > 0 && (
         <motion.div
           className="bg-white rounded-2xl shadow-xl p-4 mb-6"
@@ -1222,7 +1228,7 @@ function MastersSidebar({
             Мастера ({safeSearchMasters.length})
           </h2>
           <div className="space-y-3">
-            {safeSearchMasters.map((master: Master, idx: number) => {
+            {safeSearchMasters.map((master, idx) => {
               const isCurrent = isCurrentMaster(master.id);
               return (
                 <motion.div
@@ -1270,11 +1276,7 @@ function MastersSidebar({
                       onClick={() =>
                         handleFollow(master.id, master.is_following || false)
                       }
-                      className={`text-xs px-3 py-1 rounded-full transition ${
-                        master.is_following
-                          ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                          : "bg-gradient-to-r from-firm-orange to-firm-pink text-white hover:shadow-md"
-                      }`}
+                      className={`text-xs px-3 py-1 rounded-full transition ${master.is_following ? "bg-gray-200 text-gray-700 hover:bg-gray-300" : "bg-gradient-to-r from-firm-orange to-firm-pink text-white hover:shadow-md"}`}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
@@ -1296,7 +1298,6 @@ function MastersSidebar({
         </motion.div>
       )}
 
-      {/* Отслеживаемые мастера */}
       {!showSearchResults && safeFollowingMasters.length > 0 && (
         <motion.div
           className="bg-white rounded-2xl shadow-xl p-4 mb-6"
@@ -1308,7 +1309,7 @@ function MastersSidebar({
             Отслеживаемые
           </h2>
           <div className="space-y-3">
-            {safeFollowingMasters.map((master: Master) => {
+            {safeFollowingMasters.map((master) => {
               const isCurrent = isCurrentMaster(master.id);
               return (
                 <div
@@ -1357,7 +1358,6 @@ function MastersSidebar({
         </motion.div>
       )}
 
-      {/* Рекомендуемые мастера */}
       {!showSearchResults && safeRecommendedMasters.length > 0 && (
         <motion.div
           className="bg-white rounded-2xl shadow-xl p-4"
@@ -1369,7 +1369,7 @@ function MastersSidebar({
             Рекомендуемые
           </h2>
           <div className="space-y-3">
-            {safeRecommendedMasters.map((master: Master, idx: number) => {
+            {safeRecommendedMasters.map((master, idx) => {
               const isCurrent = isCurrentMaster(master.id);
               return (
                 <motion.div
@@ -1413,11 +1413,7 @@ function MastersSidebar({
                       onClick={() =>
                         handleFollow(master.id, master.is_following || false)
                       }
-                      className={`text-xs px-3 py-1 rounded-full transition ${
-                        master.is_following
-                          ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                          : "bg-gradient-to-r from-firm-orange to-firm-pink text-white hover:shadow-md"
-                      }`}
+                      className={`text-xs px-3 py-1 rounded-full transition ${master.is_following ? "bg-gray-200 text-gray-700 hover:bg-gray-300" : "bg-gradient-to-r from-firm-orange to-firm-pink text-white hover:shadow-md"}`}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
