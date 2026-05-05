@@ -1,4 +1,3 @@
-// app/api/masters/top/route.ts
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
@@ -14,13 +13,13 @@ export async function GET(request: Request) {
                 id,
                 email,
                 created_at,
-                profiles!user_id (
+                profiles!inner (
                     full_name,
                     avatar_url,
                     city,
                     address
                 ),
-                masters!user_id (
+                masters!inner (
                     total_sales,
                     rating,
                     is_verified,
@@ -50,7 +49,7 @@ export async function GET(request: Request) {
             return NextResponse.json([]);
         }
 
-        // Форматируем ответ - правильно обращаемся к profiles[0]
+        // Берем первый элемент из массивов profiles и masters
         const formatted = users.map(user => ({
             id: user.id,
             name: user.profiles?.[0]?.full_name || user.email?.split('@')[0] || 'Мастер',
