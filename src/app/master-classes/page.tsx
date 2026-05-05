@@ -80,36 +80,48 @@ export default function MasterClassesPage() {
     }, [session])
 
     const fetchMasterClasses = async () => {
-        try {
-            const response = await fetch('/api/master-classes')
-            const data = await response.json()
-            setMasterClasses(data || [])
-        } catch (error) {
-            console.error('Error fetching master classes:', error)
-        } finally {
-            setLoading(false)
-        }
+    try {
+        const response = await fetch('/api/master-classes')
+        const data = await response.json()
+        setMasterClasses(Array.isArray(data) ? data : [])
+    } catch (error) {
+        console.error('Error fetching master classes:', error)
+        setMasterClasses([])
+    } finally {
+        setLoading(false)
     }
+}
 
-    const fetchMyRegisteredClasses = async () => {
-        try {
-            const response = await fetch('/api/master-classes/my')
-            const data = await response.json()
-            setMyRegisteredClasses(data || [])
-        } catch (error) {
-            console.error('Error fetching my registered classes:', error)
-        }
+const fetchMyRegisteredClasses = async () => {
+    try {
+        const response = await fetch('/api/master-classes/my')
+        const data = await response.json()
+        setMyRegisteredClasses(Array.isArray(data) ? data : [])
+    } catch (error) {
+        console.error('Error fetching my registered classes:', error)
+        setMyRegisteredClasses([])
     }
+}
 
-    const fetchMyCreatedClasses = async () => {
-        try {
-            const response = await fetch('/api/master/master-classes')
-            const data = await response.json()
-            setMyCreatedClasses(data || [])
-        } catch (error) {
-            console.error('Error fetching my created classes:', error)
+const fetchMyCreatedClasses = async () => {
+    try {
+        const response = await fetch('/api/master/master-classes')
+        const data = await response.json()
+        // API может возвращать { classes: [] } или массив
+        if (data.classes && Array.isArray(data.classes)) {
+            setMyCreatedClasses(data.classes)
+        } else if (Array.isArray(data)) {
+            setMyCreatedClasses(data)
+        } else {
+            setMyCreatedClasses([])
         }
+    } catch (error) {
+        console.error('Error fetching my created classes:', error)
+        setMyCreatedClasses([])
     }
+}
+
+    
 
     const handleRegister = async (classId: string) => {
         if (!session) {
@@ -247,11 +259,12 @@ export default function MasterClassesPage() {
     }
 
     const getClassesForDate = (date: Date) => {
-        return masterClasses.filter(mc => {
-            const mcDate = new Date(mc.date_time)
-            return mcDate.toDateString() === date.toDateString()
-        })
-    }
+    if (!Array.isArray(masterClasses)) return []
+    return masterClasses.filter(mc => {
+        const mcDate = new Date(mc.date_time)
+        return mcDate.toDateString() === date.toDateString()
+    })
+}
 
     const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь']
     const weekDays = ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС']
