@@ -78,7 +78,7 @@ export default function MasterDashboard({
   const [recentPosts, setRecentPosts] = useState<BlogPost[]>([]);
   const [myPosts, setMyPosts] = useState<BlogPost[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [masterName, setMasterName] = useState('');
+  const [masterName, setMasterName] = useState("");
   const [stats, setStats] = useState<MasterStats>({
     total_orders: 0,
     new_orders: 0,
@@ -415,13 +415,6 @@ export default function MasterDashboard({
     try {
       setLoading(true);
 
-      const profileRes = await fetch('/api/master/profile');
-        if (profileRes.ok) {
-            const profileData = await profileRes.json();
-            if (profileData.profile?.fullname) {
-                setMasterName(profileData.profile.fullname);
-            }
-        }
       const [ordersRes, recentPostsRes, myPostsRes, notifRes, statsRes] =
         await Promise.all([
           fetch("/api/master/orders"),
@@ -440,15 +433,19 @@ export default function MasterDashboard({
       setOrders(Array.isArray(ordersData) ? ordersData : []);
       setRecentPosts(Array.isArray(recentPostsData) ? recentPostsData : []);
 
-      // Обработка моих постов (API возвращает { posts: [] } или массив)
+      // Обработка моих постов - API возвращает объект с полем posts
       let myPostsArray = [];
-      if (myPostsData.posts && Array.isArray(myPostsData.posts)) {
+      if (
+        myPostsData &&
+        myPostsData.posts &&
+        Array.isArray(myPostsData.posts)
+      ) {
         myPostsArray = myPostsData.posts;
       } else if (Array.isArray(myPostsData)) {
         myPostsArray = myPostsData;
       }
-      setMyPosts(myPostsArray);
 
+      setMyPosts(myPostsArray);
       setNotifications(Array.isArray(notifData) ? notifData : []);
       setStats(
         statsData || {
@@ -857,8 +854,8 @@ export default function MasterDashboard({
           <div className="flex justify-between items-center flex-wrap gap-4">
             <div>
               <h1 className="font-['Montserrat_Alternates'] text-white font-bold text-3xl mb-2">
-                    Добро пожаловать, {masterName || session?.user?.name}!
-                </h1>
+                Добро пожаловать, {masterName || session?.user?.name}!
+              </h1>
               <p className="text-white/80">
                 Вот что происходит с вашим магазином сегодня
               </p>
