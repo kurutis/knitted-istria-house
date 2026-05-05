@@ -8,7 +8,7 @@ export async function GET(request: Request) {
         const limit = Math.min(parseInt(searchParams.get('limit') || '6'), 20);
         const sortBy = searchParams.get('sortBy') || 'rating';
 
-        // Базовый запрос
+        // Базовый запрос - убрал reviews_count
         let query = supabase
             .from('users')
             .select(`
@@ -24,7 +24,6 @@ export async function GET(request: Request) {
                 masters!user_id (
                     total_sales,
                     rating,
-                    reviews_count,
                     is_verified,
                     is_partner,
                     custom_orders_enabled
@@ -53,7 +52,7 @@ export async function GET(request: Request) {
             return NextResponse.json([]);
         }
 
-        // Форматируем ответ
+        // Форматируем ответ - убрал reviews_count
         const formatted = users.map(user => ({
             id: user.id,
             name: user.profiles?.[0]?.full_name || user.email?.split('@')[0] || 'Мастер',
@@ -62,7 +61,6 @@ export async function GET(request: Request) {
             address: user.profiles?.[0]?.address || null,
             sales: user.masters?.[0]?.total_sales || 0,
             rating: user.masters?.[0]?.rating || 0,
-            reviews_count: user.masters?.[0]?.reviews_count || 0,
             is_verified: user.masters?.[0]?.is_verified || false,
             is_partner: user.masters?.[0]?.is_partner || false,
             custom_orders_enabled: user.masters?.[0]?.custom_orders_enabled || false,
