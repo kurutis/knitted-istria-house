@@ -11,6 +11,50 @@ const DEFAULT_LIMIT = 12;
 const MAX_LIMIT = 50;
 const limiter = rateLimit({ limit: 100, windowMs: 60 * 1000 });
 
+interface PostUser {
+    full_name: string | null;
+    avatar_url: string | null;
+    city: string | null;
+}
+
+interface PostFromDB {
+    id: string;
+    title: string;
+    content: string;
+    excerpt: string | null;
+    category: string | null;
+    tags: string[] | null;
+    main_image_url: string | null;
+    views_count: number;
+    likes_count: number;
+    created_at: string;
+    updated_at: string;
+    published_at: string | null;
+    master_id: string;
+    users: PostUser[];
+}
+
+interface FormattedPost {
+    id: string;
+    title: string;
+    content: string;
+    excerpt: string;
+    category: string;
+    tags: string[];
+    main_image_url: string;
+    views_count: number;
+    likes_count: number;
+    created_at: string;
+    updated_at: string;
+    published_at: string | null;
+    master_id: string;
+    master_name: string;
+    master_avatar: string | null;
+    master_city: string;
+    comments_count: number;
+    is_liked: boolean;
+}
+
 export async function GET(request: Request) {
     const startTime = Date.now();
     
@@ -39,6 +83,7 @@ export async function GET(request: Request) {
         const cacheKey = `blog_posts_list_${limit}_${page}_${category || 'all'}_${search || 'none'}_${sortBy}`;
         
         const result = await cachedQuery(cacheKey, async () => {
+            // Запрос с JOIN на users для получения данных мастера
             let query = supabase
                 .from('blog_posts')
                 .select(`
@@ -54,9 +99,15 @@ export async function GET(request: Request) {
                     created_at,
                     updated_at,
                     published_at,
-                    master_id
+                    master_id,
+                    users:master_id (
+                        full_name,
+                        avatar_url,
+                        city
+                    )
                 `, { count: 'exact' })
-                .eq('status', 'published');
+                .eq('status', 'published')
+                .eq('users.role', 'master'); // Только посты от мастеров
 
             if (category && category !== 'all' && category !== 'null') {
                 query = query.eq('category', category);
@@ -101,24 +152,17 @@ export async function GET(request: Request) {
                 };
             }
 
-            // Получаем данные авторов постов
-            const masterIds = [...new Set(posts.map(p => p.master_id))];
-            const { data: profiles } = await supabase
-                .from('profiles')
-                .select('user_id, full_name, avatar_url, city')
-                .in('user_id', masterIds);
-
-            const profileMap = new Map();
-            profiles?.forEach(profile => {
-                profileMap.set(profile.user_id, profile);
-            });
-
             // Получаем количество комментариев для каждого поста
-            const postIds = posts.map(p => p.id);
+            const postIds = posts.map((p: PostFromDB) => p.id);
             const { data: commentsCounts } = await supabase
                 .from('blog_comments')
-                .select('post_id', { count: 'exact', head: true })
+                .select('post_id')
                 .in('post_id', postIds);
+
+            const commentsMap = new Map<string, number>();
+            commentsCounts?.forEach((comment: { post_id: string }) => {
+                commentsMap.set(comment.post_id, (commentsMap.get(comment.post_id) || 0) + 1);
+            });
 
             // Получаем лайки пользователя
             let userLikes: Set<string> = new Set();
@@ -130,42 +174,44 @@ export async function GET(request: Request) {
                     .eq('user_id', session.user.id);
                 
                 if (likes) {
-                    userLikes = new Set(likes.map(like => like.post_id));
+                    userLikes = new Set(likes.map((like: { post_id: string }) => like.post_id));
                 }
             }
 
-            const formattedPosts = posts.map(post => {
-                const profile = profileMap.get(post.master_id);
+            const formattedPosts: FormattedPost[] = posts.map((post: PostFromDB) => {
+                // users - это массив, берем первый элемент
+                const author = post.users && post.users.length > 0 ? post.users[0] : null;
+                
                 return {
                     id: post.id,
                     title: sanitize.text(post.title),
                     content: post.content,
-                    excerpt: sanitize.text(post.excerpt || post.content?.substring(0, 200)),
-                    category: post.category,
+                    excerpt: sanitize.text(post.excerpt || post.content?.substring(0, 200) || ''),
+                    category: post.category || "",
                     tags: post.tags || [],
-                    main_image_url: post.main_image_url,
+                    main_image_url: post.main_image_url || "",
                     views_count: post.views_count || 0,
                     likes_count: post.likes_count || 0,
                     created_at: post.created_at,
                     updated_at: post.updated_at,
                     published_at: post.published_at,
                     master_id: post.master_id,
-                    master_name: sanitize.text(profile?.full_name || 'Мастер'),
-                    master_avatar: profile?.avatar_url,
-                    master_city: sanitize.text(profile?.city || ''),
-                    comments_count: 0,
+                    master_name: sanitize.text(author?.full_name || 'Мастер'),
+                    master_avatar: author?.avatar_url || null,
+                    master_city: sanitize.text(author?.city || ''),
+                    comments_count: commentsMap.get(post.id) || 0,
                     is_liked: session?.user?.id ? userLikes.has(post.id) : false
                 };
             });
 
-            // Получаем список категорий
+            // Получаем список категорий (только от мастеров)
             const { data: categoriesData } = await supabase
                 .from('blog_posts')
                 .select('category')
                 .eq('status', 'published')
                 .not('category', 'is', null);
             
-            const uniqueCategories = [...new Set(categoriesData?.map(c => c.category).filter(Boolean))];
+            const uniqueCategories = [...new Set(categoriesData?.map((c: { category: string }) => c.category).filter(Boolean))];
 
             return {
                 posts: formattedPosts,

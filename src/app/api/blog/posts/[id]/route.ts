@@ -130,7 +130,7 @@ export async function GET(
             );
 
             // Получаем пост
-            const { data: post, error: postError } = await supabase
+            const { data: post, error } = await supabase
                 .from('blog_posts')
                 .select(`
                     id,
@@ -149,13 +149,13 @@ export async function GET(
                     master_id
                 `)
                 .eq('id', id)
-                .single() as SupabaseResponse<PostData>;
+                .single();
 
-            if (postError) {
-                if (postError.code === 'PGRST116') {
+            if (error) {
+                if (error.code === 'PGRST116') {
                     throw new Error('NOT_FOUND');
                 }
-                logError('Error fetching blog post', postError);
+                logError('Error fetching blog post', error);
                 throw new Error('DATABASE_ERROR');
             }
 
@@ -163,30 +163,27 @@ export async function GET(
                 throw new Error('NOT_FOUND');
             }
 
-            // Получаем данные автора поста
-            const { data: authorData, error: authorError } = await supabase
-                .from('profiles')
+            // Получаем данные автора поста (только мастера)
+            const { data: authorData } = await supabase
+                .from('users')
                 .select('full_name, avatar_url, city')
-                .eq('user_id', post.master_id)
-                .single() as SupabaseResponse<AuthorData>;
+                .eq('id', post.master_id)
+                .eq('role', 'master')
+                .single();
 
-            if (authorError) {
-                logError('Error fetching author data', authorError, 'warning');
+            if (!authorData) {
+                throw new Error('NOT_FOUND');
             }
 
             // Получаем изображения
-            const { data: images, error: imagesError } = await supabase
+            const { data: images } = await supabase
                 .from('blog_images')
                 .select('id, image_url, sort_order')
                 .eq('post_id', id)
-                .order('sort_order', { ascending: true }) as SupabaseResponse<ImageData[]>;
-
-            if (imagesError) {
-                logError('Error fetching images', imagesError, 'warning');
-            }
+                .order('sort_order', { ascending: true });
 
             // Получаем комментарии
-            const { data: commentsData, error: commentsError } = await supabase
+            const { data: commentsData } = await supabase
                 .from('blog_comments')
                 .select(`
                     id,
@@ -198,29 +195,24 @@ export async function GET(
                 `)
                 .eq('post_id', id)
                 .eq('status', 'approved')
-                .order('created_at', { ascending: false }) as SupabaseResponse<CommentData[]>;
-
-            if (commentsError) {
-                logError('Error fetching comments', commentsError, 'warning');
-            }
+                .order('created_at', { ascending: false });
 
             // Получаем данные авторов комментариев
             let comments: FormattedComment[] = [];
             if (commentsData && commentsData.length > 0) {
                 const authorIds = [...new Set(commentsData.map(c => c.author_id))];
                 
-                const { data: commentAuthors, error: commentAuthorsError } = await supabase
-                    .from('profiles')
-                    .select('user_id, full_name, avatar_url')
-                    .in('user_id', authorIds) as SupabaseResponse<CommentAuthor[]>;
+                const { data: commentAuthors } = await supabase
+                    .from('users')
+                    .select('id, full_name, avatar_url')
+                    .in('id', authorIds);
 
-                if (commentAuthorsError) {
-                    logError('Error fetching comment authors', commentAuthorsError, 'warning');
-                }
-
-                const authorMap = new Map<string, CommentAuthor>();
+                const authorMap = new Map<string, { full_name: string | null; avatar_url: string | null }>();
                 commentAuthors?.forEach(author => {
-                    authorMap.set(author.user_id, author);
+                    authorMap.set(author.id, {
+                        full_name: author.full_name,
+                        avatar_url: author.avatar_url
+                    });
                 });
 
                 comments = commentsData.map(comment => ({
@@ -262,9 +254,9 @@ export async function GET(
                 updated_at: post.updated_at,
                 published_at: post.published_at,
                 master_id: post.master_id,
-                master_name: sanitize.text(authorData?.full_name || 'Мастер'),
-                master_avatar: authorData?.avatar_url,
-                master_city: sanitize.text(authorData?.city || ''),
+                master_name: sanitize.text(authorData.full_name || 'Мастер'),
+                master_avatar: authorData.avatar_url,
+                master_city: sanitize.text(authorData.city || ''),
                 images: images || [],
                 comments: comments,
                 comments_count: comments.length,
@@ -277,9 +269,7 @@ export async function GET(
         return NextResponse.json(formattedPost, {
             status: 200,
             headers: {
-                'Cache-Control': 'private, max-age=300',
-                'X-RateLimit-Limit': rateLimitResult.limit?.toString() || '120',
-                'X-RateLimit-Remaining': rateLimitResult.remaining?.toString() || '120'
+                'Cache-Control': 'private, max-age=300'
             }
         });
         
