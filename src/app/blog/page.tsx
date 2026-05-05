@@ -180,52 +180,65 @@ export default function BlogPage() {
   }, []);
 
   const fetchData = async () => {
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
+    console.log('=== DEBUG: Начало загрузки ===');
 
-      // Загрузка постов
-      const postsRes = await fetch("/api/blog/posts");
-      const postsData = await postsRes.json();
+    // Загрузка постов
+    const postsRes = await fetch("/api/blog/posts");
+    console.log('Posts response status:', postsRes.status);
+    
+    const postsData = await postsRes.json();
+    console.log('Posts data:', JSON.stringify(postsData, null, 2));
 
-      let postsArray: BlogPost[] = [];
+    let postsArray: BlogPost[] = [];
 
-      if (postsData.posts && Array.isArray(postsData.posts)) {
-        postsArray = postsData.posts.map((post: ApiPost) => ({
-          id: post.id,
-          title: post.title,
-          content: post.content,
-          excerpt: post.excerpt || post.content?.substring(0, 200),
-          category: post.category || "",
-          tags: post.tags || [],
-          main_image_url: post.main_image_url || "",
-          views_count: post.views_count || 0,
-          likes_count: post.likes_count || 0,
-          comments_count: post.comments_count || 0,
-          created_at: post.created_at,
-          master_id: post.master_id,
-          master_name: post.master_name || "Мастер",
-          master_avatar: post.master_avatar || "",
-          master_city: post.master_city || "",
-          is_liked: post.is_liked || false,
-          comments: [],
-          images: post.images || [],
-        }));
-      }
-
-      setPosts(postsArray);
-
-      // Загрузка мастеров
-      const mastersRes = await fetch("/api/blog/masters");
-      const mastersData = await mastersRes.json();
-
-      setFollowingMasters(mastersData.following || []);
-      setRecommendedMasters(mastersData.recommended || []);
-    } catch (error) {
-      console.error("Error fetching blog data:", error);
-    } finally {
-      setLoading(false);
+    if (postsData.posts && Array.isArray(postsData.posts)) {
+      console.log('Найдено постов:', postsData.posts.length);
+      postsArray = postsData.posts.map((post: ApiPost) => ({
+        id: post.id,
+        title: post.title,
+        content: post.content,
+        excerpt: post.excerpt || post.content?.substring(0, 200),
+        category: post.category || "",
+        tags: post.tags || [],
+        main_image_url: post.main_image_url || "",
+        views_count: post.views_count || 0,
+        likes_count: post.likes_count || 0,
+        comments_count: post.comments_count || 0,
+        created_at: post.created_at,
+        master_id: post.master_id,
+        master_name: post.master_name || "Мастер",
+        master_avatar: post.master_avatar || "",
+        master_city: post.master_city || "",
+        is_liked: post.is_liked || false,
+        comments: [],
+        images: post.images || [],
+      }));
+    } else {
+      console.warn('Нет поля posts или это не массив:', postsData);
     }
-  };
+
+    setPosts(postsArray);
+    console.log('Постов в состоянии:', postsArray.length);
+
+    // Загрузка мастеров
+    const mastersRes = await fetch("/api/blog/masters");
+    console.log('Masters response status:', mastersRes.status);
+    
+    const mastersData = await mastersRes.json();
+    console.log('Masters data:', JSON.stringify(mastersData, null, 2));
+
+    setFollowingMasters(mastersData.following || []);
+    setRecommendedMasters(mastersData.recommended || []);
+    
+    console.log('=== DEBUG: Конец загрузки ===');
+  } catch (error) {
+    console.error("Error fetching blog data:", error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleLike = async (postId: string) => {
     if (!session) {
