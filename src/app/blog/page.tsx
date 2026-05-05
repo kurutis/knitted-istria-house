@@ -58,9 +58,9 @@ interface BlogPost {
     created_at: string;
     master_id: string;
     master_name: string;
-    master_avatar: string;
+    master_avatar: string | null;
     author_name?: string;
-    author_avatar?: string;
+    author_avatar?: string | null;
     is_liked: boolean;
     comments?: Comment[];
     images?: Array<{ id: string; url: string; sort_order: number }>;
