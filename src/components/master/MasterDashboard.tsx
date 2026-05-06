@@ -23,7 +23,12 @@ interface BlogPost {
   title: string;
   content: string;
   excerpt: string;
-  images?: Array<{ id: string; url?: string; image_url?: string; sort_order: number }>;
+  images?: Array<{
+    id: string;
+    url?: string;
+    image_url?: string;
+    sort_order: number;
+  }>;
   main_image_url?: string;
   created_at: string;
   views_count: number;
@@ -65,6 +70,13 @@ type CategoryItem = {
   name: string;
   subcategories?: CategoryItem[];
 };
+
+interface ProfileData {
+  user_id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  city: string | null;
+}
 
 export default function MasterDashboard({
   session,
@@ -190,43 +202,64 @@ export default function MasterDashboard({
     try {
       setLoading(true);
 
-      const [ordersRes, recentPostsRes, myPostsRes, notifRes, statsRes, profileRes] =
-        await Promise.all([
-          fetch("/api/master/orders"),
-          fetch("/api/blog/posts?limit=4"),
-          fetch("/api/master/blog"),
-          fetch("/api/master/notifications"),
-          fetch("/api/master/stats"),
-          fetch("/api/master/profile"),
-        ]);
+      const [
+        ordersRes,
+        recentPostsRes,
+        myPostsRes,
+        notifRes,
+        statsRes,
+        profileRes,
+      ] = await Promise.all([
+        fetch("/api/master/orders"),
+        fetch("/api/blog/posts?limit=4"),
+        fetch("/api/master/blog"),
+        fetch("/api/master/notifications"),
+        fetch("/api/master/stats"),
+        fetch("/api/master/profile"),
+      ]);
 
       const ordersData = await ordersRes.json();
       const recentPostsData = await recentPostsRes.json();
       const myPostsData = await myPostsRes.json();
       const notifData = await notifRes.json();
       const statsData = await statsRes.json();
-      const profileData = await profileRes.json();
+      const profileResponse = await profileRes.json();
 
       setOrders(Array.isArray(ordersData) ? ordersData : []);
-      
+
       // Обработка свежих постов
       let recentPostsArray: BlogPost[] = [];
-      if (recentPostsData && recentPostsData.posts && Array.isArray(recentPostsData.posts)) {
+      if (
+        recentPostsData &&
+        recentPostsData.posts &&
+        Array.isArray(recentPostsData.posts)
+      ) {
         recentPostsArray = recentPostsData.posts;
       } else if (Array.isArray(recentPostsData)) {
         recentPostsArray = recentPostsData;
       }
-      setRecentPosts(recentPostsArray);
+
+      // Обогащаем посты данными автора
+      const enrichedRecentPosts =
+        await enrichPostsWithAuthorData(recentPostsArray);
+      setRecentPosts(enrichedRecentPosts);
 
       // Обработка моих постов
       let myPostsArray: BlogPost[] = [];
-      if (myPostsData && myPostsData.posts && Array.isArray(myPostsData.posts)) {
+      if (
+        myPostsData &&
+        myPostsData.posts &&
+        Array.isArray(myPostsData.posts)
+      ) {
         myPostsArray = myPostsData.posts;
       } else if (Array.isArray(myPostsData)) {
         myPostsArray = myPostsData;
       }
-      setMyPosts(myPostsArray);
-      
+
+      // Обогащаем мои посты данными автора
+      const enrichedMyPosts = await enrichPostsWithAuthorData(myPostsArray);
+      setMyPosts(enrichedMyPosts);
+
       setNotifications(Array.isArray(notifData) ? notifData : []);
       setStats(
         statsData || {
@@ -237,7 +270,25 @@ export default function MasterDashboard({
           total_followers: 0,
         },
       );
-      setMasterName(profileData?.full_name || session?.user?.name || "");
+
+      // Исправление: profileResponse может быть { success: true, profile: {...} } или напрямую профиль
+      let profileData: { fullname?: string; full_name?: string } | null = null;
+      if (profileResponse.success && profileResponse.profile) {
+        profileData = profileResponse.profile;
+      } else {
+        profileData = profileResponse;
+      }
+
+      // Устанавливаем имя мастера из профиля
+      if (profileData?.fullname) {
+        setMasterName(profileData.fullname);
+      } else if (profileData?.full_name) {
+        setMasterName(profileData.full_name);
+      } else if (session?.user?.name) {
+        setMasterName(session.user.name);
+      } else if (session?.user?.email) {
+        setMasterName(session.user.email.split("@")[0]);
+      }
     } catch (error) {
       console.error("Error fetching master data:", error);
       setOrders([]);
@@ -255,6 +306,45 @@ export default function MasterDashboard({
       setLoading(false);
     }
   };
+
+  // Функция для обогащения постов данными авторов
+  const enrichPostsWithAuthorData = async (
+    posts: BlogPost[],
+  ): Promise<BlogPost[]> => {
+    if (!posts.length) return [];
+
+    // Получаем все ID мастеров
+    const masterIds = [...new Set(posts.map((p) => p.master_id))];
+
+     try {
+    const response = await fetch("/api/profiles/batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userIds: masterIds }),
+    });
+    const result = await response.json();
+    const profiles = result.data || [];
+
+    const profileMap = new Map<string, ProfileData>();
+    profiles.forEach((profile: ProfileData) => {
+      profileMap.set(profile.user_id, profile);
+    });
+
+    // Обогащаем посты
+    return posts.map((post) => ({
+      ...post,
+      author_name:
+        profileMap.get(post.master_id)?.full_name ||
+        post.author_name ||
+        "Мастер",
+      author_avatar:
+        profileMap.get(post.master_id)?.avatar_url || post.author_avatar,
+    }));
+  } catch (error) {
+    console.error("Error enriching posts:", error);
+    return posts;
+  }
+};
 
   const loadCategories = async () => {
     try {
@@ -342,15 +432,16 @@ export default function MasterDashboard({
       if (response.ok) {
         const data = await response.json();
         const newComment = data.comment || data;
-        
+
         const formattedComment = {
           id: newComment.id,
           content: newComment.content,
           created_at: newComment.created_at,
-          author_name: newComment.author_name || session.user?.name || "Пользователь",
+          author_name:
+            newComment.author_name || session.user?.name || "Пользователь",
           author_avatar: newComment.author_avatar || "",
         };
-        
+
         if (isFromMyPosts) {
           setMyPosts((prev) =>
             prev.map((p) =>
@@ -1256,9 +1347,11 @@ export default function MasterDashboard({
                             <Link href={`/blog/${post.id}`}>{post.title}</Link>
                           </h3>
 
-                          {(post.images && post.images.length > 0) && (
+                          {post.images && post.images.length > 0 && (
                             <MediaGallery
-                              images={post.images.map(img => img.url || img.image_url || '')}
+                              images={post.images.map(
+                                (img) => img.url || img.image_url || "",
+                              )}
                               video={null}
                               title={post.title}
                             />
@@ -1404,7 +1497,8 @@ export default function MasterDashboard({
                               )}
 
                               <div className="space-y-3 max-h-96 overflow-y-auto">
-                                {!post.comments || post.comments.length === 0 ? (
+                                {!post.comments ||
+                                post.comments.length === 0 ? (
                                   <p className="text-gray-400 text-sm text-center py-4">
                                     Будьте первым, кто оставит комментарий
                                   </p>
@@ -1510,9 +1604,11 @@ export default function MasterDashboard({
                             <Link href={`/blog/${post.id}`}>{post.title}</Link>
                           </h3>
 
-                          {(post.images && post.images.length > 0) && (
+                          {post.images && post.images.length > 0 && (
                             <MediaGallery
-                              images={post.images.map(img => img.url || img.image_url || '')}
+                              images={post.images.map(
+                                (img) => img.url || img.image_url || "",
+                              )}
                               video={null}
                               title={post.title}
                             />
@@ -1658,7 +1754,8 @@ export default function MasterDashboard({
                               )}
 
                               <div className="space-y-3 max-h-96 overflow-y-auto">
-                                {!post.comments || post.comments.length === 0 ? (
+                                {!post.comments ||
+                                post.comments.length === 0 ? (
                                   <p className="text-gray-400 text-sm text-center py-4">
                                     Будьте первым, кто оставит комментарий
                                   </p>
@@ -1927,7 +2024,7 @@ export default function MasterDashboard({
                         onChange={handleProductInputChange}
                         className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300"
                       />
-                                       </div>
+                    </div>
                     <div>
                       <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">
                         Уход
