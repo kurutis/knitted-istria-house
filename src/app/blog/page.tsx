@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { debounce } from "lodash";
 import { motion, AnimatePresence } from "framer-motion";
 import MediaGallery from "@/components/blog/MediaGallery";
@@ -180,65 +181,54 @@ export default function BlogPage() {
   }, []);
 
   const fetchData = async () => {
-  try {
-    setLoading(true);
-    console.log('=== DEBUG: Начало загрузки ===');
+    try {
+      setLoading(true);
 
-    // Загрузка постов
-    const postsRes = await fetch("/api/blog/posts");
-    console.log('Posts response status:', postsRes.status);
-    
-    const postsData = await postsRes.json();
-    console.log('Posts data:', JSON.stringify(postsData, null, 2));
+      const postsRes = await fetch("/api/blog/posts");
+      const postsData = await postsRes.json();
 
-    let postsArray: BlogPost[] = [];
+      let postsArray: BlogPost[] = [];
 
-    if (postsData.posts && Array.isArray(postsData.posts)) {
-      console.log('Найдено постов:', postsData.posts.length);
-      postsArray = postsData.posts.map((post: ApiPost) => ({
-        id: post.id,
-        title: post.title,
-        content: post.content,
-        excerpt: post.excerpt || post.content?.substring(0, 200),
-        category: post.category || "",
-        tags: post.tags || [],
-        main_image_url: post.main_image_url || "",
-        views_count: post.views_count || 0,
-        likes_count: post.likes_count || 0,
-        comments_count: post.comments_count || 0,
-        created_at: post.created_at,
-        master_id: post.master_id,
-        master_name: post.master_name || "Мастер",
-        master_avatar: post.master_avatar || "",
-        master_city: post.master_city || "",
-        is_liked: post.is_liked || false,
-        comments: [],
-        images: post.images || [],
-      }));
-    } else {
-      console.warn('Нет поля posts или это не массив:', postsData);
+      if (postsData.posts && Array.isArray(postsData.posts)) {
+        postsArray = postsData.posts.map((post: ApiPost) => ({
+          id: post.id,
+          title: post.title,
+          content: post.content,
+          excerpt: post.excerpt || post.content?.substring(0, 200),
+          category: post.category || "",
+          tags: post.tags || [],
+          main_image_url: post.main_image_url || "",
+          views_count: post.views_count || 0,
+          likes_count: post.likes_count || 0,
+          comments_count: post.comments_count || 0,
+          created_at: post.created_at,
+          master_id: post.master_id,
+          master_name: post.master_name || "Мастер",
+          master_avatar: post.master_avatar || "",
+          master_city: post.master_city || "",
+          is_liked: post.is_liked || false,
+          comments: [],
+          images: post.images?.map(img => ({
+            id: img.id,
+            url: img.image_url,
+            sort_order: img.sort_order
+          })) || [],
+        }));
+      }
+
+      setPosts(postsArray);
+
+      const mastersRes = await fetch("/api/blog/masters");
+      const mastersData = await mastersRes.json();
+
+      setFollowingMasters(mastersData.following || []);
+      setRecommendedMasters(mastersData.recommended || []);
+    } catch (error) {
+      console.error("Error fetching blog data:", error);
+    } finally {
+      setLoading(false);
     }
-
-    setPosts(postsArray);
-    console.log('Постов в состоянии:', postsArray.length);
-
-    // Загрузка мастеров
-    const mastersRes = await fetch("/api/blog/masters");
-    console.log('Masters response status:', mastersRes.status);
-    
-    const mastersData = await mastersRes.json();
-    console.log('Masters data:', JSON.stringify(mastersData, null, 2));
-
-    setFollowingMasters(mastersData.following || []);
-    setRecommendedMasters(mastersData.recommended || []);
-    
-    console.log('=== DEBUG: Конец загрузки ===');
-  } catch (error) {
-    console.error("Error fetching blog data:", error);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handleLike = async (postId: string) => {
     if (!session) {
@@ -300,11 +290,7 @@ export default function BlogPage() {
             newCommentData.author_name ||
             session.user?.name ||
             "Пользователь",
-          author_avatar:
-            newCommentData.user_avatar ||
-            newCommentData.author_avatar ||
-            session.user?.image ||
-            "",
+          author_avatar: newCommentData.user_avatar || newCommentData.author_avatar || "",
         };
         setPosts((prev) =>
           prev.map((p) =>
@@ -659,9 +645,11 @@ export default function BlogPage() {
                           whileHover={{ scale: 1.1 }}
                         >
                           {post.master_avatar ? (
-                            <img
+                            <Image
                               src={post.master_avatar}
                               alt={post.master_name}
+                              width={40}
+                              height={40}
                               className="w-full h-full object-cover"
                             />
                           ) : (
@@ -698,7 +686,12 @@ export default function BlogPage() {
                       {(post.images?.length || 0) > 0 || post.main_image_url ? (
                         <div className="mb-8">
                           <MediaGallery
-                            images={post.images || []}
+                            images={post.images?.map(img => ({
+                              id: img.id,
+                              url: img.url,
+                              image_url: img.url,
+                              sort_order: img.sort_order
+                            })) || []}
                             mainImageUrl={post.main_image_url}
                             video={null}
                             title={post.title}
@@ -881,9 +874,11 @@ export default function BlogPage() {
                                   >
                                     <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex items-center justify-center text-white text-xs sm:text-sm font-bold flex-shrink-0 overflow-hidden">
                                       {comment.author_avatar ? (
-                                        <img
+                                        <Image
                                           src={comment.author_avatar}
                                           alt={comment.author_name}
+                                          width={32}
+                                          height={32}
                                           className="w-full h-full object-cover"
                                         />
                                       ) : (
@@ -1240,9 +1235,11 @@ function MastersSidebar({
                   >
                     <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden shadow-md">
                       {master.avatar_url ? (
-                        <img
+                        <Image
                           src={master.avatar_url}
                           alt={master.name}
+                          width={40}
+                          height={40}
                           className="w-full h-full object-cover"
                         />
                       ) : (
@@ -1318,9 +1315,11 @@ function MastersSidebar({
                   >
                     <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden shadow-md">
                       {master.avatar_url ? (
-                        <img
+                        <Image
                           src={master.avatar_url}
                           alt={master.name}
+                          width={40}
+                          height={40}
                           className="w-full h-full object-cover"
                         />
                       ) : (
@@ -1381,9 +1380,11 @@ function MastersSidebar({
                   >
                     <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden shadow-md">
                       {master.avatar_url ? (
-                        <img
+                        <Image
                           src={master.avatar_url}
                           alt={master.name}
+                          width={40}
+                          height={40}
                           className="w-full h-full object-cover"
                         />
                       ) : (

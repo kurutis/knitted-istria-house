@@ -6,6 +6,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { cachedQuery, invalidateCache } from "@/lib/db-optimized";
 import { logError, logInfo } from "@/lib/error-logger";
 import { uploadToS3, deleteFromS3 } from "@/lib/s3-storage";
+import { createClient } from "@supabase/supabase-js";
 
 interface BlogImage {
     id: string;
@@ -13,44 +14,18 @@ interface BlogImage {
     sort_order: number;
 }
 
-interface BlogComment {
-    id: string;
-    status: string;
-}
-
-interface BlogLike {
-    id: string;
-}
-
-interface BlogPostWithRelations {
-    id: string;
-    title: string;
-    slug: string;
-    content: string;
-    excerpt: string | null;
-    category: string | null;
-    tags: string[] | null;
-    status: string;
-    main_image_url: string | null;
-    views: number;
-    created_at: string;
-    updated_at: string;
-    published_at: string | null;
-    users?: {
-        profiles?: Array<{
-            full_name: string | null;
-            avatar_url: string | null;
-        }>;
-        email?: string;
-    };
-    blog_images?: BlogImage[];
-    blog_comments?: BlogComment[];
-    blog_likes?: BlogLike[];
-}
-
 // Rate limiting
-const getLimiter = rateLimit({ limit: 60, windowMs: 60 * 1000 }); // 60 запросов в минуту
-const postLimiter = rateLimit({ limit: 10, windowMs: 60 * 1000 }); // 10 постов в минуту
+const getLimiter = rateLimit({ limit: 60, windowMs: 60 * 1000 });
+const postLimiter = rateLimit({ limit: 10, windowMs: 60 * 1000 });
+
+// Создаем админ-клиент с сервисным ключом
+const supabaseAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
+  : supabase;
 
 // Валидация данных
 function validateTitle(title: string): { valid: boolean; error?: string } {
@@ -102,6 +77,16 @@ function validateTags(tags: string | null): string[] | null {
     }
 }
 
+function generateSlug(title: string): string {
+    return title
+        .toLowerCase()
+        .replace(/[^a-zа-яё0-9\s]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .substring(0, 100);
+}
+
 // GET - получить посты мастера
 export async function GET(request: Request) {
     const startTime = Date.now();
@@ -126,113 +111,133 @@ export async function GET(request: Request) {
             }, { status: 429 });
         }
 
-        // Параметры пагинации и фильтрации
+        // Параметры пагинации
         const { searchParams } = new URL(request.url);
         const status = searchParams.get('status');
         const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
         const page = parseInt(searchParams.get('page') || '1');
         const offset = (page - 1) * limit;
 
-        // Кэширование для GET запросов
-        const cacheKey = `master_blog_${session.user.id}_${status || 'all'}_${page}_${limit}`;
+        // Получаем посты используя admin клиент
+        let query = supabaseAdmin
+            .from('blog_posts')
+            .select('*', { count: 'exact' })
+            .eq('master_id', session.user.id);
+
+        if (status && ['draft', 'published', 'hidden', 'archived'].includes(status)) {
+            query = query.eq('status', status);
+        }
+
+        const { data: posts, error, count } = await query
+            .order('created_at', { ascending: false })
+            .range(offset, offset + limit - 1);
+
+        if (error) {
+            logError('Error fetching master posts', error);
+            return NextResponse.json({ 
+                success: true,
+                posts: [],
+                pagination: { total: 0, page: 1, limit, totalPages: 0 }
+            });
+        }
+
+        if (!posts || posts.length === 0) {
+            return NextResponse.json({
+                success: true,
+                posts: [],
+                pagination: { total: 0, page, limit, totalPages: 0 }
+            });
+        }
+
+        // Получаем ID постов для дополнительных запросов
+        const postIds = posts.map(p => p.id);
         
-        const result = await cachedQuery(cacheKey, async () => {
-            let query = supabase
-                .from('blog_posts')
-                .select(`
-                    *,
-                    users!inner (
-                        id,
-                        email,
-                        profiles!left (
-                            full_name,
-                            avatar_url
-                        )
-                    ),
-                    blog_images (
-                        id,
-                        image_url,
-                        sort_order
-                    ),
-                    blog_comments (
-                        id,
-                        status
-                    ),
-                    blog_likes (
-                        id
-                    )
-                `, { count: 'exact' })
-                .eq('master_id', session.user.id);
+        // Получаем изображения для всех постов
+        const { data: images } = await supabaseAdmin
+            .from('blog_images')
+            .select('post_id, id, image_url, sort_order')
+            .in('post_id', postIds)
+            .order('sort_order', { ascending: true });
 
-            // Фильтр по статусу
-            if (status && ['draft', 'published', 'hidden', 'archived'].includes(status)) {
-                query = query.eq('status', status);
+        // Получаем количество лайков для каждого поста
+        const { data: likes } = await supabaseAdmin
+            .from('blog_likes')
+            .select('post_id')
+            .in('post_id', postIds);
+
+        // Получаем количество комментариев для каждого поста
+        const { data: comments } = await supabaseAdmin
+            .from('blog_comments')
+            .select('post_id, status')
+            .in('post_id', postIds)
+            .eq('status', 'approved');
+
+        // Группируем данные по post_id
+        const imagesMap = new Map();
+        images?.forEach(img => {
+            if (!imagesMap.has(img.post_id)) {
+                imagesMap.set(img.post_id, []);
             }
-
-            // Пагинация
-            const { data: posts, error, count } = await query
-                .order('created_at', { ascending: false })
-                .range(offset, offset + limit - 1);
-
-            if (error) {
-                logError('Error fetching master posts', error);
-                throw new Error('DATABASE_ERROR');
-            }
-
-            if (!posts) {
-                return { posts: [], pagination: { total: 0, page, limit, totalPages: 0 } };
-            }
-
-            // Форматируем посты с дополнительной статистикой
-            const formattedPosts = posts.map(post => ({
-                id: post.id,
-                title: post.title,
-                slug: post.slug,
-                content: post.content,
-                excerpt: post.excerpt,
-                category: post.category,
-                tags: post.tags,
-                status: post.status,
-                main_image_url: post.main_image_url,
-                views: post.views || 0,
-                created_at: post.created_at,
-                updated_at: post.updated_at,
-                published_at: post.published_at,
-                author_name: post.users?.profiles?.full_name || post.users?.email,
-                author_avatar: post.users?.profiles?.avatar_url,
-                images: post.blog_images?.sort((a: BlogImage, b: BlogImage) => a.sort_order - b.sort_order) || [],
-                stats: {
-                    comments_count: post.blog_comments?.filter((c: BlogComment) => c.status === 'approved').length || 0,
-                    likes_count: post.blog_likes?.length || 0
-                }
-            }));
-
-            return {
-                posts: formattedPosts,
-                pagination: {
-                    total: count || 0,
-                    page,
-                    limit,
-                    totalPages: Math.ceil((count || 0) / limit)
-                }
-            };
+            imagesMap.get(img.post_id).push({
+                id: img.id,
+                image_url: img.image_url,
+                sort_order: img.sort_order
+            });
         });
+
+        const likesMap = new Map();
+        likes?.forEach(like => {
+            likesMap.set(like.post_id, (likesMap.get(like.post_id) || 0) + 1);
+        });
+
+        const commentsMap = new Map();
+        comments?.forEach(comment => {
+            commentsMap.set(comment.post_id, (commentsMap.get(comment.post_id) || 0) + 1);
+        });
+
+        // Форматируем посты
+        const formattedPosts = posts.map(post => ({
+            id: post.id,
+            title: post.title,
+            slug: post.slug,
+            content: post.content,
+            excerpt: post.excerpt,
+            category: post.category,
+            tags: post.tags,
+            status: post.status,
+            main_image_url: post.main_image_url,
+            views: post.views || 0,
+            created_at: post.created_at,
+            updated_at: post.updated_at,
+            published_at: post.published_at,
+            images: imagesMap.get(post.id) || [],
+            stats: {
+                comments_count: commentsMap.get(post.id) || 0,
+                likes_count: likesMap.get(post.id) || 0
+            }
+        }));
 
         return NextResponse.json({
             success: true,
-            ...result,
+            posts: formattedPosts,
+            pagination: {
+                total: count || 0,
+                page,
+                limit,
+                totalPages: Math.ceil((count || 0) / limit)
+            },
             meta: {
                 cached: Date.now() - startTime < 100
             }
-        }, { status: 200 });
+        });
         
     } catch (error) {
         logError('Error in master blog GET', error);
         return NextResponse.json({ 
-            error: 'Ошибка загрузки постов',
+            success: true,
             posts: [],
             pagination: { total: 0, page: 1, limit: 20, totalPages: 0 }
-        }, { status: 500 });
+        });
     }
 }
 
@@ -251,7 +256,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Доступ запрещен. Только для мастеров.' }, { status: 403 });
         }
 
-        // Rate limiting
         const rateLimitResult = postLimiter(request);
         if (!rateLimitResult.success) {
             return NextResponse.json({ 
@@ -260,7 +264,7 @@ export async function POST(request: Request) {
         }
 
         // Проверяем, не забанен ли мастер
-        const { data: master, error: masterError } = await supabase
+        const { data: master, error: masterError } = await supabaseAdmin
             .from('masters')
             .select('is_banned, can_post')
             .eq('user_id', session.user.id)
@@ -285,7 +289,7 @@ export async function POST(request: Request) {
         const excerpt = formData.get('excerpt') as string;
         const category = formData.get('category') as string;
         const tags = formData.get('tags') as string;
-        const status_publish = formData.get('status') as string; // 'draft' or 'published'
+        const status_publish = formData.get('status') as string;
         const images = formData.getAll('images') as File[];
 
         // Валидация
@@ -304,14 +308,12 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: excerptValidation.error }, { status: 400 });
         }
 
-        // Ограничение на количество изображений
         if (images.length > 20) {
             return NextResponse.json({ error: 'Максимум 20 изображений на пост' }, { status: 400 });
         }
 
-        // Проверка размера изображений
         for (const image of images) {
-            if (image.size > 10 * 1024 * 1024) { // 10MB
+            if (image.size > 10 * 1024 * 1024) {
                 return NextResponse.json({ error: `Изображение ${image.name} превышает 10MB` }, { status: 400 });
             }
             if (!image.type.startsWith('image/')) {
@@ -322,11 +324,10 @@ export async function POST(request: Request) {
         const now = new Date().toISOString();
         const finalStatus = status_publish === 'published' ? 'published' : 'draft';
         
-        // Генерируем slug из заголовка
+        // Генерируем slug
         const slug = generateSlug(title);
 
-        // Проверяем уникальность slug
-        const { data: existingPost } = await supabase
+        const { data: existingPost } = await supabaseAdmin
             .from('blog_posts')
             .select('id')
             .eq('slug', slug)
@@ -335,7 +336,7 @@ export async function POST(request: Request) {
         const finalSlug = existingPost ? `${slug}-${Date.now()}` : slug;
 
         // Создаем пост
-        const { data: newPost, error: insertError } = await supabase
+        const { data: newPost, error: insertError } = await supabaseAdmin
             .from('blog_posts')
             .insert({
                 master_id: session.user.id,
@@ -348,7 +349,8 @@ export async function POST(request: Request) {
                 status: finalStatus,
                 created_at: now,
                 updated_at: now,
-                published_at: finalStatus === 'published' ? now : null
+                published_at: finalStatus === 'published' ? now : null,
+                views: 0
             })
             .select()
             .single();
@@ -366,7 +368,7 @@ export async function POST(request: Request) {
             try {
                 const imageUrl = await uploadToS3(images[i], 'blog', `${postId}/${Date.now()}-${i}`);
                 if (imageUrl) {
-                    const { data: imageData } = await supabase
+                    const { data: imageData } = await supabaseAdmin
                         .from('blog_images')
                         .insert({ 
                             post_id: postId, 
@@ -378,9 +380,8 @@ export async function POST(request: Request) {
                     
                     uploadedImages.push(imageData);
                     
-                    // Первое изображение становится основным
                     if (i === 0) {
-                        await supabase
+                        await supabaseAdmin
                             .from('blog_posts')
                             .update({ main_image_url: imageUrl })
                             .eq('id', postId);
@@ -391,7 +392,6 @@ export async function POST(request: Request) {
             }
         }
 
-        // Инвалидируем кэши
         invalidateCache(new RegExp(`master_blog_${session.user.id}`));
         invalidateCache('blog_posts_list');
         invalidateCache('blog_posts_feed');
@@ -417,15 +417,4 @@ export async function POST(request: Request) {
         logError('Error creating blog post', error);
         return NextResponse.json({ error: 'Ошибка создания поста' }, { status: 500 });
     }
-}
-
-// Вспомогательная функция для генерации slug
-function generateSlug(title: string): string {
-    return title
-        .toLowerCase()
-        .replace(/[^a-zа-яё0-9\s]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .substring(0, 100);
 }
