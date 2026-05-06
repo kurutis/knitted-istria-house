@@ -162,165 +162,181 @@ export default function MasterDashboard({
   }, [showAddProductModal]);
 
   const fetchMasterData = async () => {
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      const [
-        ordersRes,
-        recentPostsRes,
-        myPostsRes,
-        notifRes,
-        statsRes,
-        profileRes,
-      ] = await Promise.all([
-        fetch("/api/master/orders"),
-        fetch("/api/blog/posts?limit=4"),
-        fetch("/api/master/blog"),
-        fetch("/api/master/notifications"),
-        fetch("/api/master/stats"),
-        fetch("/api/master/profile"),
-      ]);
+    const [
+      ordersRes,
+      recentPostsRes,
+      myPostsRes,
+      notifRes,
+      statsRes,
+      profileRes,
+    ] = await Promise.all([
+      fetch("/api/master/orders"),
+      fetch("/api/blog/posts?limit=4"),
+      fetch("/api/master/blog"),
+      fetch("/api/master/notifications"),
+      fetch("/api/master/stats"),
+      fetch("/api/master/profile"),
+    ]);
 
-      const ordersData = await ordersRes.json();
-      const recentPostsData = await recentPostsRes.json();
-      const myPostsData = await myPostsRes.json();
-      const notifData = await notifRes.json();
-      const statsData = await statsRes.json();
-      const profileResponse = await profileRes.json();
+    const ordersData = await ordersRes.json();
+    const recentPostsData = await recentPostsRes.json();
+    const myPostsData = await myPostsRes.json();
+    const notifData = await notifRes.json();
+    const statsData = await statsRes.json();
+    const profileResponse = await profileRes.json();
 
-      setOrders(Array.isArray(ordersData) ? ordersData : []);
+    setOrders(Array.isArray(ordersData) ? ordersData : []);
 
-      // ========== ОБРАБОТКА СВЕЖИХ ПОСТОВ ==========
-      let recentPostsArray: BlogPost[] = [];
-      if (recentPostsData && recentPostsData.posts && Array.isArray(recentPostsData.posts)) {
-        recentPostsArray = recentPostsData.posts.map((post: ApiPostData) => ({
-          id: post.id,
-          title: post.title || "Без названия",
-          content: post.content || "",
-          excerpt: post.excerpt || post.content?.substring(0, 200) || "",
-          created_at: post.created_at || new Date().toISOString(),
-          views_count: post.views_count || post.views || 0,
-          likes_count: post.likes_count || 0,
-          comments_count: post.comments_count || 0,
-          master_id: post.master_id || "",
-          author_name: post.author_name || post.master_name || "Мастер",
-          author_avatar: post.author_avatar || post.master_avatar,
-          images: post.images || [],
-          main_image_url: post.main_image_url || "",
-          is_liked: post.is_liked || false,
-          comments: post.comments || [],
-        }));
-      } else if (Array.isArray(recentPostsData)) {
-        recentPostsArray = recentPostsData.map((post: ApiPostData) => ({
-          id: post.id,
-          title: post.title || "Без названия",
-          content: post.content || "",
-          excerpt: post.excerpt || post.content?.substring(0, 200) || "",
-          created_at: post.created_at || new Date().toISOString(),
-          views_count: post.views_count || post.views || 0,
-          likes_count: post.likes_count || 0,
-          comments_count: post.comments_count || 0,
-          master_id: post.master_id || "",
-          author_name: post.author_name || post.master_name || "Мастер",
-          author_avatar: post.author_avatar || post.master_avatar,
-          images: post.images || [],
-          main_image_url: post.main_image_url || "",
-          is_liked: post.is_liked || false,
-          comments: post.comments || [],
-        }));
-      }
-      setRecentPosts(recentPostsArray);
+    // ========== ОТЛАДКА ==========
+    console.log("=== МОИ ПОСТЫ API ===");
+    console.log("myPostsData:", myPostsData);
+    console.log("myPostsData.posts:", myPostsData?.posts);
+    if (myPostsData?.posts && myPostsData.posts[0]) {
+      console.log("Первый пост из API:", myPostsData.posts[0]);
+      console.log("images:", myPostsData.posts[0].images);
+      console.log("main_image_url:", myPostsData.posts[0].main_image_url);
+    }
+    // ========== КОНЕЦ ОТЛАДКИ ==========
 
-      // ========== ОБРАБОТКА МОИХ ПОСТОВ ==========
-      let myPostsArray: BlogPost[] = [];
-      
-      if (myPostsData && myPostsData.posts && Array.isArray(myPostsData.posts)) {
-        myPostsArray = myPostsData.posts.map((post: ApiPostData) => ({
-          id: post.id,
-          title: post.title || "Без названия",
-          content: post.content || "",
-          excerpt: post.excerpt || post.content?.substring(0, 200) || "",
-          created_at: post.created_at || new Date().toISOString(),
-          views_count: post.views || post.views_count || 0,
-          likes_count: post.stats?.likes_count || post.likes_count || 0,
-          comments_count: post.stats?.comments_count || post.comments_count || 0,
-          master_id: post.master_id || session?.user?.id || "",
-          author_name: session?.user?.name || "Мастер",
-          author_avatar: "",
-          images: post.images || [],
-          main_image_url: post.main_image_url || "",
-          is_liked: false,
-          comments: [],
-        }));
-      } else if (Array.isArray(myPostsData)) {
-        myPostsArray = myPostsData.map((post: ApiPostData) => ({
-          id: post.id,
-          title: post.title || "Без названия",
-          content: post.content || "",
-          excerpt: post.excerpt || post.content?.substring(0, 200) || "",
-          created_at: post.created_at || new Date().toISOString(),
-          views_count: post.views || post.views_count || 0,
-          likes_count: post.likes_count || 0,
-          comments_count: post.comments_count || 0,
-          master_id: post.master_id || session?.user?.id || "",
-          author_name: session?.user?.name || "Мастер",
-          author_avatar: "",
-          images: post.images || [],
-          main_image_url: post.main_image_url || "",
-          is_liked: false,
-          comments: [],
-        }));
-      }
-      
-      setMyPosts(myPostsArray);
+    // ========== ОБРАБОТКА СВЕЖИХ ПОСТОВ ==========
+    let recentPostsArray: BlogPost[] = [];
+    if (recentPostsData && recentPostsData.posts && Array.isArray(recentPostsData.posts)) {
+      recentPostsArray = recentPostsData.posts.map((post: ApiPostData) => ({
+        id: post.id,
+        title: post.title || "Без названия",
+        content: post.content || "",
+        excerpt: post.excerpt || post.content?.substring(0, 200) || "",
+        created_at: post.created_at || new Date().toISOString(),
+        views_count: post.views_count || post.views || 0,
+        likes_count: post.likes_count || 0,
+        comments_count: post.comments_count || 0,
+        master_id: post.master_id || "",
+        author_name: post.author_name || post.master_name || "Мастер",
+        author_avatar: post.author_avatar || post.master_avatar,
+        images: post.images || [],
+        main_image_url: post.main_image_url || "",
+        is_liked: post.is_liked || false,
+        comments: post.comments || [],
+      }));
+    } else if (Array.isArray(recentPostsData)) {
+      recentPostsArray = recentPostsData.map((post: ApiPostData) => ({
+        id: post.id,
+        title: post.title || "Без названия",
+        content: post.content || "",
+        excerpt: post.excerpt || post.content?.substring(0, 200) || "",
+        created_at: post.created_at || new Date().toISOString(),
+        views_count: post.views_count || post.views || 0,
+        likes_count: post.likes_count || 0,
+        comments_count: post.comments_count || 0,
+        master_id: post.master_id || "",
+        author_name: post.author_name || post.master_name || "Мастер",
+        author_avatar: post.author_avatar || post.master_avatar,
+        images: post.images || [],
+        main_image_url: post.main_image_url || "",
+        is_liked: post.is_liked || false,
+        comments: post.comments || [],
+      }));
+    }
+    setRecentPosts(recentPostsArray);
 
-      setNotifications(Array.isArray(notifData) ? notifData : []);
-      setStats(
-        statsData || {
-          total_orders: 0,
-          new_orders: 0,
-          total_products: 0,
-          total_views: 0,
-          total_followers: 0,
-        },
-      );
+    // ========== ОБРАБОТКА МОИХ ПОСТОВ ==========
+    let myPostsArray: BlogPost[] = [];
+    
+    if (myPostsData && myPostsData.posts && Array.isArray(myPostsData.posts)) {
+      myPostsArray = myPostsData.posts.map((post: ApiPostData) => ({
+        id: post.id,
+        title: post.title || "Без названия",
+        content: post.content || "",
+        excerpt: post.excerpt || post.content?.substring(0, 200) || "",
+        created_at: post.created_at || new Date().toISOString(),
+        views_count: post.views || post.views_count || 0,
+        likes_count: post.stats?.likes_count || post.likes_count || 0,
+        comments_count: post.stats?.comments_count || post.comments_count || 0,
+        master_id: post.master_id || session?.user?.id || "",
+        author_name: post.author_name || session?.user?.name || "Мастер",
+        author_avatar: post.author_avatar || "",
+        images: post.images || [],
+        main_image_url: post.main_image_url || "",
+        is_liked: false,
+        comments: [],
+      }));
+    } else if (Array.isArray(myPostsData)) {
+      myPostsArray = myPostsData.map((post: ApiPostData) => ({
+        id: post.id,
+        title: post.title || "Без названия",
+        content: post.content || "",
+        excerpt: post.excerpt || post.content?.substring(0, 200) || "",
+        created_at: post.created_at || new Date().toISOString(),
+        views_count: post.views || post.views_count || 0,
+        likes_count: post.likes_count || 0,
+        comments_count: post.comments_count || 0,
+        master_id: post.master_id || session?.user?.id || "",
+        author_name: session?.user?.name || "Мастер",
+        author_avatar: "",
+        images: post.images || [],
+        main_image_url: post.main_image_url || "",
+        is_liked: false,
+        comments: [],
+      }));
+    }
+    
+    console.log("myPostsArray итоговое количество:", myPostsArray.length);
+    if (myPostsArray.length > 0) {
+      console.log("Первый пост myPostsArray:", myPostsArray[0]);
+    }
+    
+    setMyPosts(myPostsArray);
 
-      // Получаем имя мастера из профиля
-      let profileData: { fullname?: string; full_name?: string } | null = null;
-      if (profileResponse.success && profileResponse.profile) {
-        profileData = profileResponse.profile;
-      } else {
-        profileData = profileResponse;
-      }
-
-      if (profileData?.fullname) {
-        setMasterName(profileData.fullname);
-      } else if (profileData?.full_name) {
-        setMasterName(profileData.full_name);
-      } else if (session?.user?.name) {
-        setMasterName(session.user.name);
-      } else if (session?.user?.email) {
-        setMasterName(session.user.email.split("@")[0]);
-      } else {
-        setMasterName("Мастер");
-      }
-    } catch (error) {
-      console.error("Error fetching master data:", error);
-      setOrders([]);
-      setRecentPosts([]);
-      setMyPosts([]);
-      setNotifications([]);
-      setStats({
+    setNotifications(Array.isArray(notifData) ? notifData : []);
+    setStats(
+      statsData || {
         total_orders: 0,
         new_orders: 0,
         total_products: 0,
         total_views: 0,
         total_followers: 0,
-      });
-    } finally {
-      setLoading(false);
+      },
+    );
+
+    // Получаем имя мастера из профиля
+    let profileData: { fullname?: string; full_name?: string } | null = null;
+    if (profileResponse.success && profileResponse.profile) {
+      profileData = profileResponse.profile;
+    } else {
+      profileData = profileResponse;
     }
-  };
+
+    if (profileData?.fullname) {
+      setMasterName(profileData.fullname);
+    } else if (profileData?.full_name) {
+      setMasterName(profileData.full_name);
+    } else if (session?.user?.name) {
+      setMasterName(session.user.name);
+    } else if (session?.user?.email) {
+      setMasterName(session.user.email.split("@")[0]);
+    } else {
+      setMasterName("Мастер");
+    }
+  } catch (error) {
+    console.error("Error fetching master data:", error);
+    setOrders([]);
+    setRecentPosts([]);
+    setMyPosts([]);
+    setNotifications([]);
+    setStats({
+      total_orders: 0,
+      new_orders: 0,
+      total_products: 0,
+      total_views: 0,
+      total_followers: 0,
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   const loadCategories = async () => {
     try {
