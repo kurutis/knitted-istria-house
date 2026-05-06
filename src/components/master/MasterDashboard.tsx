@@ -23,12 +23,7 @@ interface BlogPost {
   title: string;
   content: string;
   excerpt: string;
-  images?: Array<{
-    id: string;
-    url?: string;
-    image_url?: string;
-    sort_order: number;
-  }>;
+  images?: Array<{ id: string; url?: string; image_url?: string; sort_order: number }> | string[];
   main_image_url?: string;
   created_at: string;
   views_count: number;
@@ -37,6 +32,8 @@ interface BlogPost {
   author_name: string;
   author_avatar?: string;
   master_id: string;
+  master_name?: string;
+  master_avatar?: string; 
   is_liked?: boolean;
   comments?: Array<{
     id: string;
@@ -309,14 +306,16 @@ export default function MasterDashboard({
 
   // Функция для обогащения постов данными авторов
   const enrichPostsWithAuthorData = async (
-    posts: BlogPost[],
-  ): Promise<BlogPost[]> => {
-    if (!posts.length) return [];
+  posts: BlogPost[],
+): Promise<BlogPost[]> => {
+  if (!posts.length) return [];
 
-    // Получаем все ID мастеров
-    const masterIds = [...new Set(posts.map((p) => p.master_id))];
+  // Получаем все ID мастеров
+  const masterIds = [...new Set(posts.map((p) => p.master_id))];
+  
+  console.log('Master IDs to fetch:', masterIds);
 
-     try {
+  try {
     const response = await fetch("/api/profiles/batch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -324,22 +323,28 @@ export default function MasterDashboard({
     });
     const result = await response.json();
     const profiles = result.data || [];
+    
+    console.log('Fetched profiles:', profiles);
 
-    const profileMap = new Map<string, ProfileData>();
-    profiles.forEach((profile: ProfileData) => {
-      profileMap.set(profile.user_id, profile);
+    const profileMap = new Map<string, { full_name: string | null; avatar_url: string | null }>();
+    profiles.forEach((profile: { user_id: string; full_name: string | null; avatar_url: string | null }) => {
+      profileMap.set(profile.user_id, {
+        full_name: profile.full_name,
+        avatar_url: profile.avatar_url
+      });
     });
 
     // Обогащаем посты
-    return posts.map((post) => ({
-      ...post,
-      author_name:
-        profileMap.get(post.master_id)?.full_name ||
-        post.author_name ||
-        "Мастер",
-      author_avatar:
-        profileMap.get(post.master_id)?.avatar_url || post.author_avatar,
-    }));
+    return posts.map((post) => {
+      const profile = profileMap.get(post.master_id);
+      console.log(`Post ${post.id} - master ${post.master_id} - profile:`, profile);
+      
+      return {
+        ...post,
+        author_name: profile?.full_name || post.master_name || post.author_name || "Мастер",
+        author_avatar: profile?.avatar_url || post.master_avatar || post.author_avatar,
+      };
+    });
   } catch (error) {
     console.error("Error enriching posts:", error);
     return posts;
