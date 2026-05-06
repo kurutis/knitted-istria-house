@@ -162,171 +162,171 @@ export default function MasterDashboard({
   }, [showAddProductModal]);
 
   const fetchMasterData = async () => {
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      // Проверяем сессию
-      if (!session?.user) {
-        console.error("Нет сессии, перенаправление на login");
-        window.location.href = "/auth/signin?callbackUrl=/master/dashboard";
-        return;
-      }
-
-      // Запросы с credentials
-      const [profileRes, recentPostsRes] = await Promise.all([
-        fetch("/api/master/profile", { credentials: "include" }),
-        fetch("/api/blog/posts?limit=4", { credentials: "include" }),
-      ]);
-
-      const profileResponse = await profileRes.json();
-      const recentPostsData = await recentPostsRes.json();
-
-      // ========== ОБРАБОТКА СВЕЖИХ ПОСТОВ ==========
-      let recentPostsArray: BlogPost[] = [];
-      if (recentPostsData && recentPostsData.posts && Array.isArray(recentPostsData.posts)) {
-        recentPostsArray = recentPostsData.posts.map((post: ApiPostData) => ({
-          id: post.id,
-          title: post.title || "Без названия",
-          content: post.content || "",
-          excerpt: post.excerpt || post.content?.substring(0, 200) || "",
-          created_at: post.created_at || new Date().toISOString(),
-          views_count: post.views_count || post.views || 0,
-          likes_count: post.likes_count || 0,
-          comments_count: post.comments_count || 0,
-          master_id: post.master_id || "",
-          author_name: post.author_name || post.master_name || "Мастер",
-          author_avatar: post.author_avatar || post.master_avatar,
-          images: post.images || [],
-          main_image_url: post.main_image_url || "",
-          is_liked: post.is_liked || false,
-          comments: post.comments || [],
-        }));
-      } else if (Array.isArray(recentPostsData)) {
-        recentPostsArray = recentPostsData.map((post: ApiPostData) => ({
-          id: post.id,
-          title: post.title || "Без названия",
-          content: post.content || "",
-          excerpt: post.excerpt || post.content?.substring(0, 200) || "",
-          created_at: post.created_at || new Date().toISOString(),
-          views_count: post.views_count || post.views || 0,
-          likes_count: post.likes_count || 0,
-          comments_count: post.comments_count || 0,
-          master_id: post.master_id || "",
-          author_name: post.author_name || post.master_name || "Мастер",
-          author_avatar: post.author_avatar || post.master_avatar,
-          images: post.images || [],
-          main_image_url: post.main_image_url || "",
-          is_liked: post.is_liked || false,
-          comments: post.comments || [],
-        }));
-      }
-      setRecentPosts(recentPostsArray);
-
-      // ========== ТЕСТОВЫЕ ДАННЫЕ ДЛЯ МОИХ ПОСТОВ ==========
-      const testMyPosts: BlogPost[] = [
-        {
-          id: "test-post-1",
-          title: "Мой первый пост в блоге",
-          content: "Это содержание моего первого поста. Здесь я рассказываю о своем творчестве и вдохновении.",
-          excerpt: "Краткое описание моего первого поста",
-          created_at: new Date().toISOString(),
-          views_count: 42,
-          likes_count: 7,
-          comments_count: 3,
-          master_id: session.user.id,
-          author_name: session.user.name || "Мастер",
-          author_avatar: "",
-          images: [],
-          main_image_url: "",
-          is_liked: false,
-          comments: [],
-        },
-        {
-          id: "test-post-2",
-          title: "Как я создаю свои изделия",
-          content: "Подробный рассказ о процессе создания моих вязаных изделий. От идеи до готового продукта.",
-          excerpt: "Процесс создания вязаных изделий",
-          created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          views_count: 128,
-          likes_count: 15,
-          comments_count: 8,
-          master_id: session.user.id,
-          author_name: session.user.name || "Мастер",
-          author_avatar: "",
-          images: ["https://picsum.photos/id/20/400/300"],
-          main_image_url: "https://picsum.photos/id/20/400/300",
-          is_liked: false,
-          comments: [],
-        },
-        {
-          id: "test-post-3",
-          title: "Новая коллекция весна-лето 2024",
-          content: "Представляю вам свою новую коллекцию. Вдохновение, материалы, техники вязания и много фотографий.",
-          excerpt: "Анонс новой коллекции весна-лето 2024",
-          created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-          views_count: 256,
-          likes_count: 32,
-          comments_count: 12,
-          master_id: session.user.id,
-          author_name: session.user.name || "Мастер",
-          author_avatar: "",
-          images: ["https://picsum.photos/id/30/400/300", "https://picsum.photos/id/31/400/300"],
-          main_image_url: "https://picsum.photos/id/30/400/300",
-          is_liked: false,
-          comments: [],
-        },
-      ];
-      setMyPosts(testMyPosts);
-
-      // ========== ПОЛУЧАЕМ ИМЯ МАСТЕРА ИЗ ПРОФИЛЯ ==========
-      let profileData: { fullname?: string; full_name?: string } | null = null;
-      if (profileResponse.success && profileResponse.profile) {
-        profileData = profileResponse.profile;
-      } else {
-        profileData = profileResponse;
-      }
-
-      if (profileData?.fullname) {
-        setMasterName(profileData.fullname);
-      } else if (profileData?.full_name) {
-        setMasterName(profileData.full_name);
-      } else if (session?.user?.name) {
-        setMasterName(session.user.name);
-      } else if (session?.user?.email) {
-        setMasterName(session.user.email.split("@")[0]);
-      } else {
-        setMasterName("Мастер");
-      }
-
-      // Временные данные для статистики
-      setStats({
-        total_orders: 0,
-        new_orders: 0,
-        total_products: 0,
-        total_views: 0,
-        total_followers: 0,
-      });
-
-      setOrders([]);
-      setNotifications([]);
-      
-    } catch (error) {
-      console.error("Error fetching master data:", error);
-      setOrders([]);
-      setRecentPosts([]);
-      setMyPosts([]);
-      setNotifications([]);
-      setStats({
-        total_orders: 0,
-        new_orders: 0,
-        total_products: 0,
-        total_views: 0,
-        total_followers: 0,
-      });
-    } finally {
-      setLoading(false);
+    // Проверяем сессию
+    if (!session?.user) {
+      console.error("Нет сессии, перенаправление на login");
+      window.location.href = "/auth/signin?callbackUrl=/master/dashboard";
+      return;
     }
-  };
+
+    // Запросы с credentials
+    const [profileRes, recentPostsRes] = await Promise.all([
+      fetch("/api/master/profile", { credentials: "include" }),
+      fetch("/api/blog/posts?limit=4", { credentials: "include" }),
+    ]);
+
+    const profileResponse = await profileRes.json();
+    const recentPostsData = await recentPostsRes.json();
+
+    // ========== ПОЛУЧАЕМ ДАННЫЕ МАСТЕРА ИЗ ПРОФИЛЯ ==========
+    let profileData: { 
+      fullname?: string; 
+      full_name?: string; 
+      avatar_url?: string;
+      city?: string;
+    } | null = null;
+    
+    if (profileResponse.success && profileResponse.profile) {
+      profileData = profileResponse.profile;
+    } else {
+      profileData = profileResponse;
+    }
+
+    // Получаем правильное имя мастера
+    const masterFullName = profileData?.fullname || profileData?.full_name || session.user.name || session.user.email?.split("@")[0] || "Мастер";
+    const masterAvatar = profileData?.avatar_url || "";
+    
+    setMasterName(masterFullName);
+
+    // ========== ОБРАБОТКА СВЕЖИХ ПОСТОВ ==========
+    let recentPostsArray: BlogPost[] = [];
+    if (recentPostsData && recentPostsData.posts && Array.isArray(recentPostsData.posts)) {
+      recentPostsArray = recentPostsData.posts.map((post: ApiPostData) => ({
+        id: post.id,
+        title: post.title || "Без названия",
+        content: post.content || "",
+        excerpt: post.excerpt || post.content?.substring(0, 200) || "",
+        created_at: post.created_at || new Date().toISOString(),
+        views_count: post.views_count || post.views || 0,
+        likes_count: post.likes_count || 0,
+        comments_count: post.comments_count || 0,
+        master_id: post.master_id || "",
+        author_name: post.author_name || post.master_name || "Мастер",
+        author_avatar: post.author_avatar || post.master_avatar,
+        images: post.images || [],
+        main_image_url: post.main_image_url || "",
+        is_liked: post.is_liked || false,
+        comments: post.comments || [],
+      }));
+    } else if (Array.isArray(recentPostsData)) {
+      recentPostsArray = recentPostsData.map((post: ApiPostData) => ({
+        id: post.id,
+        title: post.title || "Без названия",
+        content: post.content || "",
+        excerpt: post.excerpt || post.content?.substring(0, 200) || "",
+        created_at: post.created_at || new Date().toISOString(),
+        views_count: post.views_count || post.views || 0,
+        likes_count: post.likes_count || 0,
+        comments_count: post.comments_count || 0,
+        master_id: post.master_id || "",
+        author_name: post.author_name || post.master_name || "Мастер",
+        author_avatar: post.author_avatar || post.master_avatar,
+        images: post.images || [],
+        main_image_url: post.main_image_url || "",
+        is_liked: post.is_liked || false,
+        comments: post.comments || [],
+      }));
+    }
+    setRecentPosts(recentPostsArray);
+
+    // ========== ТЕСТОВЫЕ ДАННЫЕ ДЛЯ МОИХ ПОСТОВ С ПРАВИЛЬНЫМ ИМЕНЕМ ==========
+    const testMyPosts: BlogPost[] = [
+      {
+        id: "test-post-1",
+        title: "Мой первый пост в блоге",
+        content: "Это содержание моего первого поста. Здесь я рассказываю о своем творчестве и вдохновении.",
+        excerpt: "Краткое описание моего первого поста",
+        created_at: new Date().toISOString(),
+        views_count: 42,
+        likes_count: 7,
+        comments_count: 3,
+        master_id: session.user.id,
+        author_name: masterFullName,
+        author_avatar: masterAvatar,
+        images: [],
+        main_image_url: "",
+        is_liked: false,
+        comments: [],
+      },
+      {
+        id: "test-post-2",
+        title: "Как я создаю свои изделия",
+        content: "Подробный рассказ о процессе создания моих вязаных изделий. От идеи до готового продукта.",
+        excerpt: "Процесс создания вязаных изделий",
+        created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        views_count: 128,
+        likes_count: 15,
+        comments_count: 8,
+        master_id: session.user.id,
+        author_name: masterFullName,
+        author_avatar: masterAvatar,
+        images: ["https://picsum.photos/id/20/400/300"],
+        main_image_url: "https://picsum.photos/id/20/400/300",
+        is_liked: false,
+        comments: [],
+      },
+      {
+        id: "test-post-3",
+        title: "Новая коллекция весна-лето 2024",
+        content: "Представляю вам свою новую коллекцию. Вдохновение, материалы, техники вязания и много фотографий.",
+        excerpt: "Анонс новой коллекции весна-лето 2024",
+        created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+        views_count: 256,
+        likes_count: 32,
+        comments_count: 12,
+        master_id: session.user.id,
+        author_name: masterFullName,
+        author_avatar: masterAvatar,
+        images: ["https://picsum.photos/id/30/400/300", "https://picsum.photos/id/31/400/300"],
+        main_image_url: "https://picsum.photos/id/30/400/300",
+        is_liked: false,
+        comments: [],
+      },
+    ];
+    setMyPosts(testMyPosts);
+
+    // Временные данные для статистики
+    setStats({
+      total_orders: 0,
+      new_orders: 0,
+      total_products: 0,
+      total_views: 0,
+      total_followers: 0,
+    });
+
+    setOrders([]);
+    setNotifications([]);
+    
+  } catch (error) {
+    console.error("Error fetching master data:", error);
+    setOrders([]);
+    setRecentPosts([]);
+    setMyPosts([]);
+    setNotifications([]);
+    setStats({
+      total_orders: 0,
+      new_orders: 0,
+      total_products: 0,
+      total_views: 0,
+      total_followers: 0,
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   const loadCategories = async () => {
     try {
