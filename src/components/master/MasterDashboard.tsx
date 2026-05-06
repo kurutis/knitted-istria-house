@@ -30,7 +30,14 @@ interface ApiPostData {
   master_avatar?: string;
   author_name?: string;
   author_avatar?: string;
-  images?: Array<{ id: string; url?: string; image_url?: string; sort_order: number }> | string[];
+  images?:
+    | Array<{
+        id: string;
+        url?: string;
+        image_url?: string;
+        sort_order: number;
+      }>
+    | string[];
   is_liked?: boolean;
   comments?: Array<{
     id: string;
@@ -57,7 +64,14 @@ interface BlogPost {
   title: string;
   content: string;
   excerpt: string;
-  images?: Array<{ id: string; url?: string; image_url?: string; sort_order: number }> | string[];
+  images?:
+    | Array<{
+        id: string;
+        url?: string;
+        image_url?: string;
+        sort_order: number;
+      }>
+    | string[];
   main_image_url?: string;
   created_at: string;
   views_count: number;
@@ -103,11 +117,15 @@ type CategoryItem = {
 };
 
 // Вспомогательная функция для получения URL изображения
-const getImageUrl = (img: string | { id: string; url?: string; image_url?: string; sort_order: number }): string => {
-  if (typeof img === 'string') {
+const getImageUrl = (
+  img:
+    | string
+    | { id: string; url?: string; image_url?: string; sort_order: number },
+): string => {
+  if (typeof img === "string") {
     return img;
   }
-  return img.url || img.image_url || '';
+  return img.url || img.image_url || "";
 };
 
 export default function MasterDashboard({
@@ -136,15 +154,17 @@ export default function MasterDashboard({
   const [commentText, setCommentText] = useState("");
   const [commentLoading, setCommentLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"recent" | "my">("recent");
-  
+
   // Состояния для модальных окон
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [showAddPostModal, setShowAddPostModal] = useState(false);
   const [showAddClassModal, setShowAddClassModal] = useState(false);
-  
+
   // Данные для модальных окон
   const [categories, setCategories] = useState<CategoryItem[]>([]);
-  const [yarns, setYarns] = useState<{ id: string; name: string; brand: string }[]>([]);
+  const [yarns, setYarns] = useState<
+    { id: string; name: string; brand: string }[]
+  >([]);
 
   useEffect(() => {
     fetchMasterData();
@@ -188,103 +208,86 @@ export default function MasterDashboard({
 
       // ========== ОБРАБОТКА СВЕЖИХ ПОСТОВ ==========
       let recentPostsArray: BlogPost[] = [];
-      if (recentPostsData && recentPostsData.posts && Array.isArray(recentPostsData.posts)) {
-        recentPostsArray = recentPostsData.posts.map((post: ApiPostData) => ({
-          id: post.id,
-          title: post.title || "Без названия",
-          content: post.content || "",
-          excerpt: post.excerpt || post.content?.substring(0, 200) || "",
-          created_at: post.created_at || new Date().toISOString(),
-          views_count: post.views_count || post.views || 0,
-          likes_count: post.likes_count || 0,
-          comments_count: post.comments_count || 0,
-          master_id: post.master_id || "",
-          author_name: post.author_name || post.master_name || "Мастер",
-          author_avatar: post.author_avatar || post.master_avatar,
-          images: post.images || [],
-          is_liked: post.is_liked || false,
-          comments: post.comments || [],
-        }));
+      if (
+        recentPostsData &&
+        recentPostsData.posts &&
+        Array.isArray(recentPostsData.posts)
+      ) {
+        recentPostsArray = recentPostsData.posts;
       } else if (Array.isArray(recentPostsData)) {
-        recentPostsArray = recentPostsData.map((post: ApiPostData) => ({
-          id: post.id,
-          title: post.title || "Без названия",
-          content: post.content || "",
-          excerpt: post.excerpt || post.content?.substring(0, 200) || "",
-          created_at: post.created_at || new Date().toISOString(),
-          views_count: post.views_count || post.views || 0,
-          likes_count: post.likes_count || 0,
-          comments_count: post.comments_count || 0,
-          master_id: post.master_id || "",
-          author_name: post.author_name || post.master_name || "Мастер",
-          author_avatar: post.author_avatar || post.master_avatar,
-          images: post.images || [],
-          is_liked: post.is_liked || false,
-          comments: post.comments || [],
-        }));
+        recentPostsArray = recentPostsData;
       }
 
-      const enrichedRecentPosts = await enrichPostsWithAuthorData(recentPostsArray);
-      setRecentPosts(enrichedRecentPosts);
+      // Нормализуем данные свежих постов
+      recentPostsArray = recentPostsData.posts.map((post: ApiPostData) => ({
+        id: post.id,
+        title: post.title || "Без названия",
+        content: post.content || "",
+        excerpt: post.excerpt || post.content?.substring(0, 200) || "",
+        created_at: post.created_at || new Date().toISOString(),
+        views_count: post.views_count || post.views || 0,
+        likes_count: post.likes_count || 0,
+        comments_count: post.comments_count || 0,
+        master_id: post.master_id || "",
+        author_name: post.author_name || post.master_name || "Мастер",
+        author_avatar: post.author_avatar || post.master_avatar,
+        images: post.images || [],
+        is_liked: post.is_liked || false,
+        comments: post.comments || [],
+      }));
+
+      setRecentPosts(recentPostsArray);
 
       // ========== ОБРАБОТКА МОИХ ПОСТОВ ==========
+      // API /api/master/blog возвращает { success: true, posts: [...], pagination: {...} }
       let myPostsArray: BlogPost[] = [];
 
-      if (myPostsData && myPostsData.posts && Array.isArray(myPostsData.posts)) {
-        myPostsArray = myPostsData.posts.map((post: ApiPostData) => ({
-          id: post.id,
-          title: post.title || "Без названия",
-          content: post.content || "",
-          excerpt: post.excerpt || post.content?.substring(0, 200) || "",
-          created_at: post.created_at || new Date().toISOString(),
-          views_count: post.views_count || post.views || 0,
-          likes_count: post.likes_count || 0,
-          comments_count: post.comments_count || 0,
-          master_id: post.master_id || session?.user?.id || "",
-          author_name: post.author_name || post.master_name || session?.user?.name || "Мастер",
-          author_avatar: post.author_avatar || post.master_avatar,
-          images: post.images || [],
-          is_liked: post.is_liked || false,
-          comments: post.comments || [],
-        }));
-      } else if (myPostsData && myPostsData.data && Array.isArray(myPostsData.data)) {
-        myPostsArray = myPostsData.data.map((post: ApiPostData) => ({
-          id: post.id,
-          title: post.title || "Без названия",
-          content: post.content || "",
-          excerpt: post.excerpt || post.content?.substring(0, 200) || "",
-          created_at: post.created_at || new Date().toISOString(),
-          views_count: post.views_count || post.views || 0,
-          likes_count: post.likes_count || 0,
-          comments_count: post.comments_count || 0,
-          master_id: post.master_id || session?.user?.id || "",
-          author_name: post.author_name || post.master_name || session?.user?.name || "Мастер",
-          author_avatar: post.author_avatar || post.master_avatar,
-          images: post.images || [],
-          is_liked: post.is_liked || false,
-          comments: post.comments || [],
-        }));
+      if (
+        myPostsData &&
+        myPostsData.posts &&
+        Array.isArray(myPostsData.posts)
+      ) {
+        // Правильная структура: { posts: [...] }
+        myPostsArray = myPostsData.posts;
+        console.log("Найдены посты в myPostsData.posts:", myPostsArray.length);
       } else if (Array.isArray(myPostsData)) {
-        myPostsArray = myPostsData.map((post: ApiPostData) => ({
-          id: post.id,
-          title: post.title || "Без названия",
-          content: post.content || "",
-          excerpt: post.excerpt || post.content?.substring(0, 200) || "",
-          created_at: post.created_at || new Date().toISOString(),
-          views_count: post.views_count || post.views || 0,
-          likes_count: post.likes_count || 0,
-          comments_count: post.comments_count || 0,
-          master_id: post.master_id || session?.user?.id || "",
-          author_name: post.author_name || post.master_name || session?.user?.name || "Мастер",
-          author_avatar: post.author_avatar || post.master_avatar,
-          images: post.images || [],
-          is_liked: post.is_liked || false,
-          comments: post.comments || [],
-        }));
+        // Запасной вариант: прямой массив
+        myPostsArray = myPostsData;
+        console.log("myPostsData - прямой массив:", myPostsArray.length);
+      } else if (
+        myPostsData &&
+        myPostsData.data &&
+        Array.isArray(myPostsData.data)
+      ) {
+        // Запасной вариант: объект с data
+        myPostsArray = myPostsData.data;
+        console.log("Найдены посты в myPostsData.data:", myPostsArray.length);
       }
 
-      const enrichedMyPosts = await enrichPostsWithAuthorData(myPostsArray);
-      setMyPosts(enrichedMyPosts);
+      // Нормализуем данные моих постов
+      myPostsArray = myPostsArray.map((post: ApiPostData) => ({
+        id: post.id,
+        title: post.title || "Без названия",
+        content: post.content || "",
+        excerpt: post.excerpt || post.content?.substring(0, 200) || "",
+        created_at: post.created_at || new Date().toISOString(),
+        views_count: post.views_count || post.views || 0,
+        likes_count: post.likes_count || 0,
+        comments_count: post.comments_count || 0,
+        master_id: post.master_id || session?.user?.id || "",
+        author_name:
+          post.author_name ||
+          post.master_name ||
+          session?.user?.name ||
+          "Мастер",
+        author_avatar: post.author_avatar || post.master_avatar,
+        images: post.images || [],
+        is_liked: post.is_liked || false,
+        comments: post.comments || [],
+      }));
+
+      console.log("Итоговое количество моих постов:", myPostsArray.length);
+      setMyPosts(myPostsArray);
 
       setNotifications(Array.isArray(notifData) ? notifData : []);
       setStats(
@@ -339,8 +342,10 @@ export default function MasterDashboard({
   ): Promise<BlogPost[]> => {
     if (!posts.length) return [];
 
-    const masterIds = [...new Set(posts.map((p) => p.master_id).filter(Boolean))];
-    
+    const masterIds = [
+      ...new Set(posts.map((p) => p.master_id).filter(Boolean)),
+    ];
+
     if (masterIds.length === 0) return posts;
 
     try {
@@ -352,13 +357,22 @@ export default function MasterDashboard({
       const result = await response.json();
       const profiles = result.data || [];
 
-      const profileMap = new Map<string, { full_name: string | null; avatar_url: string | null }>();
-      profiles.forEach((profile: { user_id: string; full_name: string | null; avatar_url: string | null }) => {
-        profileMap.set(profile.user_id, {
-          full_name: profile.full_name,
-          avatar_url: profile.avatar_url,
-        });
-      });
+      const profileMap = new Map<
+        string,
+        { full_name: string | null; avatar_url: string | null }
+      >();
+      profiles.forEach(
+        (profile: {
+          user_id: string;
+          full_name: string | null;
+          avatar_url: string | null;
+        }) => {
+          profileMap.set(profile.user_id, {
+            full_name: profile.full_name,
+            avatar_url: profile.avatar_url,
+          });
+        },
+      );
 
       return posts.map((post) => {
         const profile = profileMap.get(post.master_id);
@@ -580,18 +594,20 @@ export default function MasterDashboard({
   // Функция для рендеринга изображений поста с использованием MediaGallery
   const renderPostImages = (post: BlogPost) => {
     if (!post.images || post.images.length === 0) return null;
-    
-    const imageUrls = post.images.map(img => getImageUrl(img)).filter(Boolean);
+
+    const imageUrls = post.images
+      .map((img) => getImageUrl(img))
+      .filter(Boolean);
     if (imageUrls.length === 0) return null;
-    
+
     // Преобразуем в формат для MediaGallery
     const galleryImages = imageUrls.map((url, index) => ({
       id: `img-${index}`,
       url: url,
       image_url: url,
-      sort_order: index
+      sort_order: index,
     }));
-    
+
     return (
       <div className="mb-6">
         <MediaGallery
@@ -640,18 +656,32 @@ export default function MasterDashboard({
           <div className="flex justify-between items-center flex-wrap gap-4">
             <div>
               <h1 className="font-['Montserrat_Alternates'] text-white font-bold text-3xl mb-2">
-                Добро пожаловать, {masterName || session?.user?.name || "Мастер"}!
+                Добро пожаловать,{" "}
+                {masterName || session?.user?.name || "Мастер"}!
               </h1>
               <p className="text-white/80">
                 Вот что происходит с вашим магазином сегодня
               </p>
             </div>
             <div className="flex items-center gap-4">
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
                 <Link href="/master/chats" className="relative block">
                   <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    <svg
+                      className="w-6 h-6 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                      />
                     </svg>
                   </div>
                   {stats.total_followers > 0 && (
@@ -662,13 +692,27 @@ export default function MasterDashboard({
                 </Link>
               </motion.div>
 
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="relative">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="relative"
+              >
                 <button
                   onClick={() => setShowNotifications(!showNotifications)}
                   className="relative w-12 h-12 bg-white/20 backdrop-blur rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
                 >
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  <svg
+                    className="w-6 h-6 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                    />
                   </svg>
                   {unreadCount > 0 && (
                     <span className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-400 text-white text-xs rounded-full flex items-center justify-center animate-bounce">
@@ -686,11 +730,15 @@ export default function MasterDashboard({
                       className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl z-50 border border-gray-100 overflow-hidden"
                     >
                       <div className="p-4 bg-gradient-to-r from-firm-orange to-firm-pink">
-                        <h3 className="font-semibold text-white">Уведомления</h3>
+                        <h3 className="font-semibold text-white">
+                          Уведомления
+                        </h3>
                       </div>
                       <div className="max-h-96 overflow-y-auto">
                         {notifications.length === 0 ? (
-                          <div className="p-6 text-center text-gray-500">Нет уведомлений</div>
+                          <div className="p-6 text-center text-gray-500">
+                            Нет уведомлений
+                          </div>
                         ) : (
                           notifications.map((notif, idx) => (
                             <motion.div
@@ -706,20 +754,37 @@ export default function MasterDashboard({
                               }}
                             >
                               <div className="flex items-start gap-3">
-                                <span className="text-2xl">{getNotificationIcon(notif.type)}</span>
+                                <span className="text-2xl">
+                                  {getNotificationIcon(notif.type)}
+                                </span>
                                 <div className="flex-1">
-                                  <p className="font-medium text-sm">{notif.title}</p>
-                                  <p className="text-xs text-gray-500 mt-1">{notif.message}</p>
-                                  <p className="text-xs text-gray-400 mt-2">{new Date(notif.created_at).toLocaleDateString("ru-RU")}</p>
+                                  <p className="font-medium text-sm">
+                                    {notif.title}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {notif.message}
+                                  </p>
+                                  <p className="text-xs text-gray-400 mt-2">
+                                    {new Date(
+                                      notif.created_at,
+                                    ).toLocaleDateString("ru-RU")}
+                                  </p>
                                 </div>
-                                {!notif.is_read && <div className="w-2 h-2 bg-firm-orange rounded-full animate-pulse mt-2"></div>}
+                                {!notif.is_read && (
+                                  <div className="w-2 h-2 bg-firm-orange rounded-full animate-pulse mt-2"></div>
+                                )}
                               </div>
                             </motion.div>
                           ))
                         )}
                       </div>
                       <div className="p-3 bg-gray-50 text-center">
-                        <Link href="/master/notifications" className="text-sm text-firm-orange hover:underline">Все уведомления</Link>
+                        <Link
+                          href="/master/notifications"
+                          className="text-sm text-firm-orange hover:underline"
+                        >
+                          Все уведомления
+                        </Link>
                       </div>
                     </motion.div>
                   )}
@@ -732,10 +797,30 @@ export default function MasterDashboard({
         {/* Статистика */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {[
-            { label: "Новые заказы", value: stats.new_orders, icon: "🆕", color: "from-blue-500 to-blue-600" },
-            { label: "Всего заказов", value: stats.total_orders, icon: "📦", color: "from-green-500 to-green-600" },
-            { label: "Товаров", value: stats.total_products, icon: "🧶", color: "from-orange-500 to-orange-600" },
-            { label: "Просмотров", value: stats.total_views, icon: "👁️", color: "from-purple-500 to-purple-600" },
+            {
+              label: "Новые заказы",
+              value: stats.new_orders,
+              icon: "🆕",
+              color: "from-blue-500 to-blue-600",
+            },
+            {
+              label: "Всего заказов",
+              value: stats.total_orders,
+              icon: "📦",
+              color: "from-green-500 to-green-600",
+            },
+            {
+              label: "Товаров",
+              value: stats.total_products,
+              icon: "🧶",
+              color: "from-orange-500 to-orange-600",
+            },
+            {
+              label: "Просмотров",
+              value: stats.total_views,
+              icon: "👁️",
+              color: "from-purple-500 to-purple-600",
+            },
           ].map((stat, idx) => (
             <motion.div
               key={stat.label}
@@ -747,8 +832,12 @@ export default function MasterDashboard({
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-500 text-sm font-['Montserrat_Alternates']">{stat.label}</p>
-                  <p className={`text-3xl font-bold mt-1 bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
+                  <p className="text-gray-500 text-sm font-['Montserrat_Alternates']">
+                    {stat.label}
+                  </p>
+                  <p
+                    className={`text-3xl font-bold mt-1 bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}
+                  >
                     {stat.value.toLocaleString()}
                   </p>
                 </div>
@@ -810,7 +899,9 @@ export default function MasterDashboard({
           </div>
           <div className="divide-y divide-gray-100">
             {orders.length === 0 ? (
-              <div className="p-12 text-center text-gray-500">У вас пока нет заказов</div>
+              <div className="p-12 text-center text-gray-500">
+                У вас пока нет заказов
+              </div>
             ) : (
               orders.slice(0, 5).map((order, idx) => (
                 <motion.div
@@ -824,20 +915,35 @@ export default function MasterDashboard({
                   <div className="flex justify-between items-start flex-wrap gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2 flex-wrap">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}
+                        >
                           {getStatusText(order.status)}
                         </span>
-                        <span className="text-sm text-gray-500">№{order.order_number}</span>
+                        <span className="text-sm text-gray-500">
+                          №{order.order_number}
+                        </span>
                       </div>
-                      <p className="font-medium text-lg">{order.product_title}</p>
+                      <p className="font-medium text-lg">
+                        {order.product_title}
+                      </p>
                       <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-500">
                         <span>👤 {order.buyer_name}</span>
                         <span>💰 {order.total_amount.toLocaleString()} ₽</span>
-                        <span>📅 {new Date(order.created_at).toLocaleDateString("ru-RU")}</span>
+                        <span>
+                          📅{" "}
+                          {new Date(order.created_at).toLocaleDateString(
+                            "ru-RU",
+                          )}
+                        </span>
                       </div>
                     </div>
                     <Link href={`/master/orders/${order.id}`}>
-                      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-4 py-2 text-sm border-2 border-firm-orange text-firm-orange rounded-xl hover:bg-firm-orange hover:text-white transition-all duration-300">
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="px-4 py-2 text-sm border-2 border-firm-orange text-firm-orange rounded-xl hover:bg-firm-orange hover:text-white transition-all duration-300"
+                      >
                         Подробнее
                       </motion.button>
                     </Link>
@@ -848,7 +954,12 @@ export default function MasterDashboard({
           </div>
           {orders.length > 5 && (
             <div className="p-4 text-center border-t bg-gray-50">
-              <Link href="/master/orders" className="text-sm text-firm-orange hover:underline">Все заказы →</Link>
+              <Link
+                href="/master/orders"
+                className="text-sm text-firm-orange hover:underline"
+              >
+                Все заказы →
+              </Link>
             </div>
           )}
         </motion.div>
@@ -867,14 +978,24 @@ export default function MasterDashboard({
                 className={`pb-2 font-['Montserrat_Alternates'] font-medium transition-all duration-300 relative ${activeTab === "recent" ? "text-firm-orange" : "text-gray-500 hover:text-gray-700"}`}
               >
                 Свежие посты
-                {activeTab === "recent" && <motion.div layoutId="underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-firm-orange to-firm-pink" />}
+                {activeTab === "recent" && (
+                  <motion.div
+                    layoutId="underline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-firm-orange to-firm-pink"
+                  />
+                )}
               </button>
               <button
                 onClick={() => setActiveTab("my")}
                 className={`pb-2 font-['Montserrat_Alternates'] font-medium transition-all duration-300 relative ${activeTab === "my" ? "text-firm-pink" : "text-gray-500 hover:text-gray-700"}`}
               >
                 Мои посты
-                {activeTab === "my" && <motion.div layoutId="underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-firm-pink to-firm-orange" />}
+                {activeTab === "my" && (
+                  <motion.div
+                    layoutId="underline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-firm-pink to-firm-orange"
+                  />
+                )}
               </button>
             </div>
           </div>
@@ -890,7 +1011,9 @@ export default function MasterDashboard({
                 className="divide-y divide-gray-100"
               >
                 {recentPosts.length === 0 ? (
-                  <div className="p-12 text-center text-gray-500"><p>Пока нет постов</p></div>
+                  <div className="p-12 text-center text-gray-500">
+                    <p>Пока нет постов</p>
+                  </div>
                 ) : (
                   recentPosts.map((post, idx) => (
                     <motion.div
@@ -902,17 +1025,36 @@ export default function MasterDashboard({
                       className="p-6 transition-all duration-300"
                     >
                       <div className="max-w-3xl mx-auto">
-                        <Link href={`/masters/${post.master_id}`} className="flex items-center gap-3 group mb-4">
-                          <motion.div whileHover={{ scale: 1.1 }} className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden">
+                        <Link
+                          href={`/masters/${post.master_id}`}
+                          className="flex items-center gap-3 group mb-4"
+                        >
+                          <motion.div
+                            whileHover={{ scale: 1.1 }}
+                            className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden"
+                          >
                             {post.author_avatar ? (
-                              <Image src={post.author_avatar} alt={post.author_name} width={48} height={48} className="w-full h-full object-cover" />
+                              <Image
+                                src={post.author_avatar}
+                                alt={post.author_name}
+                                width={48}
+                                height={48}
+                                className="w-full h-full object-cover"
+                              />
                             ) : (
-                              <span className="text-lg">{post.author_name?.charAt(0).toUpperCase() || "М"}</span>
+                              <span className="text-lg">
+                                {post.author_name?.charAt(0).toUpperCase() ||
+                                  "М"}
+                              </span>
                             )}
                           </motion.div>
                           <div>
-                            <p className="font-semibold group-hover:text-firm-orange transition-colors">{post.author_name}</p>
-                            <p className="text-xs text-gray-400">{formatDate(post.created_at)}</p>
+                            <p className="font-semibold group-hover:text-firm-orange transition-colors">
+                              {post.author_name}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {formatDate(post.created_at)}
+                            </p>
                           </div>
                         </Link>
 
@@ -923,32 +1065,97 @@ export default function MasterDashboard({
 
                           {renderPostImages(post)}
 
-                          <p className="text-gray-600 mt-4 line-clamp-3">{post.excerpt || post.content?.substring(0, 300)}...</p>
+                          <p className="text-gray-600 mt-4 line-clamp-3">
+                            {post.excerpt || post.content?.substring(0, 300)}...
+                          </p>
 
-                          <Link href={`/blog/${post.id}`} className="text-firm-orange hover:underline text-sm mt-3 inline-flex items-center gap-1 group">
+                          <Link
+                            href={`/blog/${post.id}`}
+                            className="text-firm-orange hover:underline text-sm mt-3 inline-flex items-center gap-1 group"
+                          >
                             Читать полностью
-                            <motion.span initial={{ x: 0 }} whileHover={{ x: 5 }} className="inline-block">→</motion.span>
+                            <motion.span
+                              initial={{ x: 0 }}
+                              whileHover={{ x: 5 }}
+                              className="inline-block"
+                            >
+                              →
+                            </motion.span>
                           </Link>
                         </div>
 
                         <div className="flex items-center gap-6 pt-4 mt-4 border-t border-gray-100">
                           <AnimatedButton
-                            icon={<svg className="w-6 h-6" viewBox="0 0 24 24" fill={post.is_liked ? "#D97C8E" : "none"} stroke={post.is_liked ? "#D97C8E" : "#F4A67F"} strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>}
+                            icon={
+                              <svg
+                                className="w-6 h-6"
+                                viewBox="0 0 24 24"
+                                fill={post.is_liked ? "#D97C8E" : "none"}
+                                stroke={post.is_liked ? "#D97C8E" : "#F4A67F"}
+                                strokeWidth="1.5"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                />
+                              </svg>
+                            }
                             count={post.likes_count}
                             isActive={post.is_liked || false}
                             onClick={() => handleLike(post.id, false)}
                             activeColor="text-firm-pink"
                           />
                           <AnimatedButton
-                            icon={<svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke={showComments === post.id ? "#F97316" : "#9CA3AF"} strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>}
+                            icon={
+                              <svg
+                                className="w-6 h-6"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke={
+                                  showComments === post.id
+                                    ? "#F97316"
+                                    : "#9CA3AF"
+                                }
+                                strokeWidth="1.5"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                                />
+                              </svg>
+                            }
                             count={post.comments_count}
                             isActive={showComments === post.id}
-                            onClick={() => setShowComments(showComments === post.id ? null : post.id)}
+                            onClick={() =>
+                              setShowComments(
+                                showComments === post.id ? null : post.id,
+                              )
+                            }
                             activeColor="text-firm-orange"
                           />
                           <div className="flex-1"></div>
                           <span className="text-sm text-gray-400 flex items-center gap-1">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                              />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                              />
+                            </svg>
                             {post.views_count}
                           </span>
                         </div>
@@ -969,7 +1176,9 @@ export default function MasterDashboard({
                                   <div className="flex-1">
                                     <textarea
                                       value={commentText}
-                                      onChange={(e) => setCommentText(e.target.value)}
+                                      onChange={(e) =>
+                                        setCommentText(e.target.value)
+                                      }
                                       placeholder="Написать комментарий..."
                                       rows={2}
                                       className="w-full p-3 rounded-xl bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300"
@@ -977,35 +1186,61 @@ export default function MasterDashboard({
                                     <motion.button
                                       whileHover={{ scale: 1.02 }}
                                       whileTap={{ scale: 0.98 }}
-                                      onClick={() => handleComment(post.id, false)}
-                                      disabled={commentLoading || !commentText.trim()}
+                                      onClick={() =>
+                                        handleComment(post.id, false)
+                                      }
+                                      disabled={
+                                        commentLoading || !commentText.trim()
+                                      }
                                       className="mt-2 px-5 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl text-sm hover:shadow-lg transition-all duration-300 disabled:opacity-50"
                                     >
-                                      {commentLoading ? "Отправка..." : "Отправить"}
+                                      {commentLoading
+                                        ? "Отправка..."
+                                        : "Отправить"}
                                     </motion.button>
                                   </div>
                                 </div>
                               )}
 
                               <div className="space-y-3 max-h-96 overflow-y-auto">
-                                {!post.comments || post.comments.length === 0 ? (
-                                  <p className="text-gray-400 text-sm text-center py-4">Будьте первым, кто оставит комментарий</p>
+                                {!post.comments ||
+                                post.comments.length === 0 ? (
+                                  <p className="text-gray-400 text-sm text-center py-4">
+                                    Будьте первым, кто оставит комментарий
+                                  </p>
                                 ) : (
                                   post.comments.map((comment) => (
-                                    <div key={comment.id} className="flex gap-3">
+                                    <div
+                                      key={comment.id}
+                                      className="flex gap-3"
+                                    >
                                       <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 overflow-hidden">
                                         {comment.author_avatar ? (
-                                          <Image src={comment.author_avatar} alt={comment.author_name} width={32} height={32} className="w-full h-full object-cover" />
+                                          <Image
+                                            src={comment.author_avatar}
+                                            alt={comment.author_name}
+                                            width={32}
+                                            height={32}
+                                            className="w-full h-full object-cover"
+                                          />
                                         ) : (
-                                          comment.author_name?.charAt(0).toUpperCase()
+                                          comment.author_name
+                                            ?.charAt(0)
+                                            .toUpperCase()
                                         )}
                                       </div>
                                       <div className="flex-1">
                                         <div className="bg-white rounded-xl p-3 shadow-sm">
-                                          <p className="font-semibold text-sm">{comment.author_name}</p>
-                                          <p className="text-gray-700 text-sm mt-1">{comment.content}</p>
+                                          <p className="font-semibold text-sm">
+                                            {comment.author_name}
+                                          </p>
+                                          <p className="text-gray-700 text-sm mt-1">
+                                            {comment.content}
+                                          </p>
                                         </div>
-                                        <p className="text-xs text-gray-400 mt-1">{formatDate(comment.created_at)}</p>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                          {formatDate(comment.created_at)}
+                                        </p>
                                       </div>
                                     </div>
                                   ))
@@ -1033,7 +1268,11 @@ export default function MasterDashboard({
                 {myPosts.length === 0 ? (
                   <div className="p-12 text-center text-gray-500">
                     <p>У вас пока нет постов</p>
-                    <motion.button whileHover={{ scale: 1.05 }} onClick={() => setShowAddPostModal(true)} className="text-firm-orange hover:underline mt-2 inline-block">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      onClick={() => setShowAddPostModal(true)}
+                      className="text-firm-orange hover:underline mt-2 inline-block"
+                    >
                       Написать первый пост →
                     </motion.button>
                   </div>
@@ -1051,14 +1290,25 @@ export default function MasterDashboard({
                         <div className="flex items-center gap-3 mb-4">
                           <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden">
                             {post.author_avatar ? (
-                              <Image src={post.author_avatar} alt={post.author_name} width={48} height={48} className="w-full h-full object-cover" />
+                              <Image
+                                src={post.author_avatar}
+                                alt={post.author_name}
+                                width={48}
+                                height={48}
+                                className="w-full h-full object-cover"
+                              />
                             ) : (
-                              <span className="text-lg">{post.author_name?.charAt(0).toUpperCase() || "М"}</span>
+                              <span className="text-lg">
+                                {post.author_name?.charAt(0).toUpperCase() ||
+                                  "М"}
+                              </span>
                             )}
                           </div>
                           <div>
                             <p className="font-semibold">{post.author_name}</p>
-                            <p className="text-xs text-gray-400">{formatDate(post.created_at)}</p>
+                            <p className="text-xs text-gray-400">
+                              {formatDate(post.created_at)}
+                            </p>
                           </div>
                         </div>
 
@@ -1069,32 +1319,97 @@ export default function MasterDashboard({
 
                           {renderPostImages(post)}
 
-                          <p className="text-gray-600 mt-4 line-clamp-3">{post.excerpt || post.content?.substring(0, 300)}...</p>
+                          <p className="text-gray-600 mt-4 line-clamp-3">
+                            {post.excerpt || post.content?.substring(0, 300)}...
+                          </p>
 
-                          <Link href={`/blog/${post.id}`} className="text-firm-orange hover:underline text-sm mt-3 inline-flex items-center gap-1 group">
+                          <Link
+                            href={`/blog/${post.id}`}
+                            className="text-firm-orange hover:underline text-sm mt-3 inline-flex items-center gap-1 group"
+                          >
                             Читать полностью
-                            <motion.span initial={{ x: 0 }} whileHover={{ x: 5 }} className="inline-block">→</motion.span>
+                            <motion.span
+                              initial={{ x: 0 }}
+                              whileHover={{ x: 5 }}
+                              className="inline-block"
+                            >
+                              →
+                            </motion.span>
                           </Link>
                         </div>
 
                         <div className="flex items-center gap-6 pt-4 mt-4 border-t border-gray-100">
                           <AnimatedButton
-                            icon={<svg className="w-6 h-6" viewBox="0 0 24 24" fill={post.is_liked ? "#D97C8E" : "none"} stroke={post.is_liked ? "#D97C8E" : "#9CA3AF"} strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>}
+                            icon={
+                              <svg
+                                className="w-6 h-6"
+                                viewBox="0 0 24 24"
+                                fill={post.is_liked ? "#D97C8E" : "none"}
+                                stroke={post.is_liked ? "#D97C8E" : "#9CA3AF"}
+                                strokeWidth="1.5"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                                />
+                              </svg>
+                            }
                             count={post.likes_count}
                             isActive={post.is_liked || false}
                             onClick={() => handleLike(post.id, true)}
                             activeColor="text-firm-pink"
                           />
                           <AnimatedButton
-                            icon={<svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke={showComments === post.id ? "#F4A67F" : "#9CA3AF"} strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>}
+                            icon={
+                              <svg
+                                className="w-6 h-6"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke={
+                                  showComments === post.id
+                                    ? "#F4A67F"
+                                    : "#9CA3AF"
+                                }
+                                strokeWidth="1.5"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                                />
+                              </svg>
+                            }
                             count={post.comments_count}
                             isActive={showComments === post.id}
-                            onClick={() => setShowComments(showComments === post.id ? null : post.id)}
+                            onClick={() =>
+                              setShowComments(
+                                showComments === post.id ? null : post.id,
+                              )
+                            }
                             activeColor="text-firm-orange"
                           />
                           <div className="flex-1"></div>
                           <span className="text-sm text-gray-400 flex items-center gap-1">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                              />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                              />
+                            </svg>
                             {post.views_count}
                           </span>
                         </div>
@@ -1115,7 +1430,9 @@ export default function MasterDashboard({
                                   <div className="flex-1">
                                     <textarea
                                       value={commentText}
-                                      onChange={(e) => setCommentText(e.target.value)}
+                                      onChange={(e) =>
+                                        setCommentText(e.target.value)
+                                      }
                                       placeholder="Написать комментарий..."
                                       rows={2}
                                       className="w-full p-3 rounded-xl bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300"
@@ -1123,35 +1440,61 @@ export default function MasterDashboard({
                                     <motion.button
                                       whileHover={{ scale: 1.02 }}
                                       whileTap={{ scale: 0.98 }}
-                                      onClick={() => handleComment(post.id, true)}
-                                      disabled={commentLoading || !commentText.trim()}
+                                      onClick={() =>
+                                        handleComment(post.id, true)
+                                      }
+                                      disabled={
+                                        commentLoading || !commentText.trim()
+                                      }
                                       className="mt-2 px-5 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl text-sm hover:shadow-lg transition-all duration-300 disabled:opacity-50"
                                     >
-                                      {commentLoading ? "Отправка..." : "Отправить"}
+                                      {commentLoading
+                                        ? "Отправка..."
+                                        : "Отправить"}
                                     </motion.button>
                                   </div>
                                 </div>
                               )}
 
                               <div className="space-y-3 max-h-96 overflow-y-auto">
-                                {!post.comments || post.comments.length === 0 ? (
-                                  <p className="text-gray-400 text-sm text-center py-4">Будьте первым, кто оставит комментарий</p>
+                                {!post.comments ||
+                                post.comments.length === 0 ? (
+                                  <p className="text-gray-400 text-sm text-center py-4">
+                                    Будьте первым, кто оставит комментарий
+                                  </p>
                                 ) : (
                                   post.comments.map((comment) => (
-                                    <div key={comment.id} className="flex gap-3">
+                                    <div
+                                      key={comment.id}
+                                      className="flex gap-3"
+                                    >
                                       <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 overflow-hidden">
                                         {comment.author_avatar ? (
-                                          <Image src={comment.author_avatar} alt={comment.author_name} width={32} height={32} className="w-full h-full object-cover" />
+                                          <Image
+                                            src={comment.author_avatar}
+                                            alt={comment.author_name}
+                                            width={32}
+                                            height={32}
+                                            className="w-full h-full object-cover"
+                                          />
                                         ) : (
-                                          comment.author_name?.charAt(0).toUpperCase()
+                                          comment.author_name
+                                            ?.charAt(0)
+                                            .toUpperCase()
                                         )}
                                       </div>
                                       <div className="flex-1">
                                         <div className="bg-white rounded-xl p-3 shadow-sm">
-                                          <p className="font-semibold text-sm">{comment.author_name}</p>
-                                          <p className="text-gray-700 text-sm mt-1">{comment.content}</p>
+                                          <p className="font-semibold text-sm">
+                                            {comment.author_name}
+                                          </p>
+                                          <p className="text-gray-700 text-sm mt-1">
+                                            {comment.content}
+                                          </p>
                                         </div>
-                                        <p className="text-xs text-gray-400 mt-1">{formatDate(comment.created_at)}</p>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                          {formatDate(comment.created_at)}
+                                        </p>
                                       </div>
                                     </div>
                                   ))
