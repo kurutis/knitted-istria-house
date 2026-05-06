@@ -23,14 +23,14 @@ interface BlogPost {
   title: string;
   content: string;
   excerpt: string;
-  images?: Array<{ id: string; url: string; sort_order: number }>;
-  main_image_url: string;
+  images?: Array<{ id: string; url?: string; image_url?: string; sort_order: number }>;
+  main_image_url?: string;
   created_at: string;
   views_count: number;
   likes_count: number;
   comments_count: number;
   author_name: string;
-  author_avatar: string;
+  author_avatar?: string;
   master_id: string;
   is_liked?: boolean;
   comments?: Array<{
@@ -186,6 +186,491 @@ export default function MasterDashboard({
     }
   }, [showAddProductModal]);
 
+  const fetchMasterData = async () => {
+    try {
+      setLoading(true);
+
+      const [ordersRes, recentPostsRes, myPostsRes, notifRes, statsRes, profileRes] =
+        await Promise.all([
+          fetch("/api/master/orders"),
+          fetch("/api/blog/posts?limit=4"),
+          fetch("/api/master/blog"),
+          fetch("/api/master/notifications"),
+          fetch("/api/master/stats"),
+          fetch("/api/master/profile"),
+        ]);
+
+      const ordersData = await ordersRes.json();
+      const recentPostsData = await recentPostsRes.json();
+      const myPostsData = await myPostsRes.json();
+      const notifData = await notifRes.json();
+      const statsData = await statsRes.json();
+      const profileData = await profileRes.json();
+
+      setOrders(Array.isArray(ordersData) ? ordersData : []);
+      
+      // Обработка свежих постов
+      let recentPostsArray: BlogPost[] = [];
+      if (recentPostsData && recentPostsData.posts && Array.isArray(recentPostsData.posts)) {
+        recentPostsArray = recentPostsData.posts;
+      } else if (Array.isArray(recentPostsData)) {
+        recentPostsArray = recentPostsData;
+      }
+      setRecentPosts(recentPostsArray);
+
+      // Обработка моих постов
+      let myPostsArray: BlogPost[] = [];
+      if (myPostsData && myPostsData.posts && Array.isArray(myPostsData.posts)) {
+        myPostsArray = myPostsData.posts;
+      } else if (Array.isArray(myPostsData)) {
+        myPostsArray = myPostsData;
+      }
+      setMyPosts(myPostsArray);
+      
+      setNotifications(Array.isArray(notifData) ? notifData : []);
+      setStats(
+        statsData || {
+          total_orders: 0,
+          new_orders: 0,
+          total_products: 0,
+          total_views: 0,
+          total_followers: 0,
+        },
+      );
+      setMasterName(profileData?.full_name || session?.user?.name || "");
+    } catch (error) {
+      console.error("Error fetching master data:", error);
+      setOrders([]);
+      setRecentPosts([]);
+      setMyPosts([]);
+      setNotifications([]);
+      setStats({
+        total_orders: 0,
+        new_orders: 0,
+        total_products: 0,
+        total_views: 0,
+        total_followers: 0,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadCategories = async () => {
+    try {
+      const response = await fetch("/api/catalog/categories");
+      const data = await response.json();
+      setCategories(data.categories || []);
+    } catch (error) {
+      console.error("Ошибка загрузки категорий:", error);
+    }
+  };
+
+  const loadYarns = async () => {
+    try {
+      const response = await fetch("/api/catalog/yarn");
+      const data = await response.json();
+      setYarns(data || []);
+    } catch (error) {
+      console.error("Ошибка загрузки пряжи:", error);
+    }
+  };
+
+  const handleLike = async (postId: string, isFromMyPosts = false) => {
+    if (!session) {
+      window.location.href = "/auth/signin?callbackUrl=/master/dashboard";
+      return;
+    }
+
+    try {
+      const post = isFromMyPosts
+        ? myPosts.find((p) => p.id === postId)
+        : recentPosts.find((p) => p.id === postId);
+      const response = await fetch(`/api/blog/posts/${postId}/like`, {
+        method: post?.is_liked ? "DELETE" : "POST",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (isFromMyPosts) {
+          setMyPosts((prev) =>
+            prev.map((p) =>
+              p.id === postId
+                ? {
+                    ...p,
+                    is_liked: !p.is_liked,
+                    likes_count: data.likes_count,
+                  }
+                : p,
+            ),
+          );
+        } else {
+          setRecentPosts((prev) =>
+            prev.map((p) =>
+              p.id === postId
+                ? {
+                    ...p,
+                    is_liked: !p.is_liked,
+                    likes_count: data.likes_count,
+                  }
+                : p,
+            ),
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error toggling like:", error);
+    }
+  };
+
+  const handleComment = async (postId: string, isFromMyPosts = false) => {
+    if (!session) {
+      window.location.href = "/auth/signin?callbackUrl=/master/dashboard";
+      return;
+    }
+
+    if (!commentText.trim()) return;
+
+    setCommentLoading(true);
+    try {
+      const response = await fetch(`/api/blog/posts/${postId}/comment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: commentText }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const newComment = data.comment || data;
+        
+        const formattedComment = {
+          id: newComment.id,
+          content: newComment.content,
+          created_at: newComment.created_at,
+          author_name: newComment.author_name || session.user?.name || "Пользователь",
+          author_avatar: newComment.author_avatar || "",
+        };
+        
+        if (isFromMyPosts) {
+          setMyPosts((prev) =>
+            prev.map((p) =>
+              p.id === postId
+                ? {
+                    ...p,
+                    comments: [formattedComment, ...(p.comments || [])],
+                    comments_count: (p.comments_count || 0) + 1,
+                  }
+                : p,
+            ),
+          );
+        } else {
+          setRecentPosts((prev) =>
+            prev.map((p) =>
+              p.id === postId
+                ? {
+                    ...p,
+                    comments: [formattedComment, ...(p.comments || [])],
+                    comments_count: (p.comments_count || 0) + 1,
+                  }
+                : p,
+            ),
+          );
+        }
+        setCommentText("");
+        setShowComments(postId);
+      }
+    } catch (error) {
+      console.error("Error adding comment:", error);
+    } finally {
+      setCommentLoading(false);
+    }
+  };
+
+  const markNotificationAsRead = async (notificationId: string) => {
+    try {
+      await fetch(`/api/master/notifications/${notificationId}`, {
+        method: "PATCH",
+      });
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.id === notificationId ? { ...n, is_read: true } : n,
+        ),
+      );
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "new":
+        return "bg-blue-100 text-blue-700";
+      case "confirmed":
+        return "bg-green-100 text-green-700";
+      case "shipped":
+        return "bg-purple-100 text-purple-700";
+      case "delivered":
+        return "bg-gray-100 text-gray-700";
+      case "cancelled":
+        return "bg-red-100 text-red-700";
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "new":
+        return "🆕 Новый";
+      case "confirmed":
+        return "✅ Подтвержден";
+      case "shipped":
+        return "📦 Отправлен";
+      case "delivered":
+        return "🏠 Доставлен";
+      case "cancelled":
+        return "❌ Отменен";
+      default:
+        return status;
+    }
+  };
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case "order":
+        return "📦";
+      case "comment":
+        return "💬";
+      case "review":
+        return "⭐";
+      default:
+        return "🔔";
+    }
+  };
+
+  const handlePostInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
+    const { name, value } = e.target;
+    setPostForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handlePostImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+
+    if (postImages.length + files.length > 10) {
+      alert("Можно загрузить не более 10 фотографий");
+      return;
+    }
+
+    const validFiles = files.filter((file) => {
+      if (file.size > 10 * 1024 * 1024) {
+        alert(`Файл ${file.name} превышает 10MB`);
+        return false;
+      }
+      if (!file.type.startsWith("image/")) {
+        alert(`Файл ${file.name} не является изображением`);
+        return false;
+      }
+      return true;
+    });
+
+    setPostImages((prev) => [...prev, ...validFiles]);
+
+    validFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPostImagePreviews((prev) => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removePostImage = (index: number) => {
+    setPostImages((prev) => prev.filter((_, i) => i !== index));
+    setPostImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmitPost = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!postForm.title) {
+      alert("Введите заголовок поста");
+      return;
+    }
+
+    if (!postForm.content) {
+      alert("Введите содержание поста");
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("title", postForm.title);
+      formData.append("content", postForm.content);
+      formData.append("excerpt", postForm.excerpt);
+      formData.append("category", postForm.category);
+      formData.append("tags", postForm.tags);
+
+      postImages.forEach((image) => {
+        formData.append("images", image);
+      });
+
+      const response = await fetch("/api/master/blog", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create post");
+      }
+
+      setShowAddPostModal(false);
+      resetPostForm();
+      fetchMasterData();
+      alert("Пост успешно создан!");
+    } catch (error) {
+      console.error("Ошибка при создании поста:", error);
+      alert("Ошибка при создании поста");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const resetPostForm = () => {
+    setPostForm({
+      title: "",
+      content: "",
+      excerpt: "",
+      category: "",
+      tags: "",
+    });
+    setPostImages([]);
+    setPostImagePreviews([]);
+  };
+
+  const handleProductInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
+    const { name, value } = e.target;
+    setProductForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+
+    if (images.length + files.length > 10) {
+      alert("Можно загрузить не более 10 фотографий");
+      return;
+    }
+
+    const validFiles = files.filter((file) => {
+      if (file.size > 10 * 1024 * 1024) {
+        alert(`Файл ${file.name} превышает 10MB`);
+        return false;
+      }
+      if (!file.type.startsWith("image/")) {
+        alert(`Файл ${file.name} не является изображением`);
+        return false;
+      }
+      return true;
+    });
+
+    setImages((prev) => [...prev, ...validFiles]);
+
+    validFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews((prev) => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmitProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (images.length === 0) {
+      alert("Добавьте хотя бы одну фотографию товара");
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("title", productForm.title);
+      formData.append("description", productForm.description);
+      formData.append("price", productForm.price);
+      formData.append("category", productForm.category);
+      formData.append("technique", productForm.technique);
+      formData.append("size", productForm.size);
+      formData.append("care_instructions", productForm.care_instructions);
+      formData.append("color", productForm.color);
+
+      if (productForm.yarn_id === "custom") {
+        formData.append("custom_yarn", productForm.custom_yarn);
+      } else if (productForm.yarn_id) {
+        formData.append("yarn_id", productForm.yarn_id);
+      }
+
+      images.forEach((image) => {
+        formData.append("images", image);
+      });
+
+      const response = await fetch("/api/master/products", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create product");
+      }
+
+      setShowAddProductModal(false);
+      resetProductForm();
+      fetchMasterData();
+      alert("Товар успешно создан и отправлен на модерацию");
+    } catch (error) {
+      console.error("Ошибка при создании товара:", error);
+      alert("Ошибка при создании товара");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const resetProductForm = () => {
+    setProductForm({
+      title: "",
+      description: "",
+      price: "",
+      category: "",
+      technique: "",
+      size: "",
+      care_instructions: "",
+      yarn_id: "",
+      custom_yarn: "",
+      color: "",
+    });
+    setImages([]);
+    setImagePreviews([]);
+  };
+
   const handleClassInputChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
@@ -308,192 +793,6 @@ export default function MasterDashboard({
     setClassImagePreviews([]);
   };
 
-  const handleLike = async (postId: string, isFromMyPosts = false) => {
-    if (!session) {
-      window.location.href = "/auth/signin?callbackUrl=/master/dashboard";
-      return;
-    }
-
-    try {
-      const post = isFromMyPosts
-        ? myPosts.find((p) => p.id === postId)
-        : recentPosts.find((p) => p.id === postId);
-      const response = await fetch(`/api/blog/posts/${postId}/like`, {
-        method: post?.is_liked ? "DELETE" : "POST",
-      });
-
-      if (response.ok) {
-        if (isFromMyPosts) {
-          setMyPosts((prev) =>
-            prev.map((p) =>
-              p.id === postId
-                ? {
-                    ...p,
-                    is_liked: !p.is_liked,
-                    likes_count: p.is_liked
-                      ? p.likes_count - 1
-                      : p.likes_count + 1,
-                  }
-                : p,
-            ),
-          );
-        } else {
-          setRecentPosts((prev) =>
-            prev.map((p) =>
-              p.id === postId
-                ? {
-                    ...p,
-                    is_liked: !p.is_liked,
-                    likes_count: p.is_liked
-                      ? p.likes_count - 1
-                      : p.likes_count + 1,
-                  }
-                : p,
-            ),
-          );
-        }
-      }
-    } catch (error) {
-      console.error("Error toggling like:", error);
-    }
-  };
-
-  const handleComment = async (postId: string, isFromMyPosts = false) => {
-    if (!session) {
-      window.location.href = "/auth/signin?callbackUrl=/master/dashboard";
-      return;
-    }
-
-    if (!commentText.trim()) return;
-
-    setCommentLoading(true);
-    try {
-      const response = await fetch(`/api/blog/posts/${postId}/comment`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: commentText }),
-      });
-
-      if (response.ok) {
-        const newComment = await response.json();
-        if (isFromMyPosts) {
-          setMyPosts((prev) =>
-            prev.map((p) =>
-              p.id === postId
-                ? {
-                    ...p,
-                    comments: [newComment, ...(p.comments || [])],
-                    comments_count: p.comments_count + 1,
-                  }
-                : p,
-            ),
-          );
-        } else {
-          setRecentPosts((prev) =>
-            prev.map((p) =>
-              p.id === postId
-                ? {
-                    ...p,
-                    comments: [newComment, ...(p.comments || [])],
-                    comments_count: p.comments_count + 1,
-                  }
-                : p,
-            ),
-          );
-        }
-        setCommentText("");
-        setShowComments(postId);
-      }
-    } catch (error) {
-      console.error("Error adding comment:", error);
-    } finally {
-      setCommentLoading(false);
-    }
-  };
-
-  const fetchMasterData = async () => {
-    try {
-      setLoading(true);
-
-      const [ordersRes, recentPostsRes, myPostsRes, notifRes, statsRes] =
-        await Promise.all([
-          fetch("/api/master/orders"),
-          fetch("/api/blog/posts?limit=4"),
-          fetch("/api/master/blog"),
-          fetch("/api/master/notifications"),
-          fetch("/api/master/stats"),
-        ]);
-
-      const ordersData = await ordersRes.json();
-      const recentPostsData = await recentPostsRes.json();
-      const myPostsData = await myPostsRes.json();
-      const notifData = await notifRes.json();
-      const statsData = await statsRes.json();
-
-      setOrders(Array.isArray(ordersData) ? ordersData : []);
-      setRecentPosts(Array.isArray(recentPostsData) ? recentPostsData : []);
-
-      // Обработка моих постов - API возвращает объект с полем posts
-      let myPostsArray = [];
-      if (
-        myPostsData &&
-        myPostsData.posts &&
-        Array.isArray(myPostsData.posts)
-      ) {
-        myPostsArray = myPostsData.posts;
-      } else if (Array.isArray(myPostsData)) {
-        myPostsArray = myPostsData;
-      }
-
-      setMyPosts(myPostsArray);
-      setNotifications(Array.isArray(notifData) ? notifData : []);
-      setStats(
-        statsData || {
-          total_orders: 0,
-          new_orders: 0,
-          total_products: 0,
-          total_views: 0,
-          total_followers: 0,
-        },
-      );
-    } catch (error) {
-      console.error("Error fetching master data:", error);
-      setOrders([]);
-      setRecentPosts([]);
-      setMyPosts([]);
-      setNotifications([]);
-      setStats({
-        total_orders: 0,
-        new_orders: 0,
-        total_products: 0,
-        total_views: 0,
-        total_followers: 0,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadCategories = async () => {
-    try {
-      const response = await fetch("/api/catalog/categories");
-      const data = await response.json();
-      setCategories(data.categories || []);
-    } catch (error) {
-      console.error("Ошибка загрузки категорий:", error);
-    }
-  };
-
-  const loadYarns = async () => {
-    try {
-      const response = await fetch("/api/catalog/yarn");
-      const data = await response.json();
-      setYarns(data || []);
-    } catch (error) {
-      console.error("Ошибка загрузки пряжи:", error);
-    }
-  };
-
   const renderCategoryOptions = (categories: CategoryItem[], level = 0) => {
     const options: JSX.Element[] = [];
     categories.forEach((cat) => {
@@ -508,304 +807,6 @@ export default function MasterDashboard({
       }
     });
     return options;
-  };
-
-  const handleProductInputChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
-  ) => {
-    const { name, value } = e.target;
-    setProductForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handlePostInputChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >,
-  ) => {
-    const { name, value } = e.target;
-    setPostForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-
-    if (images.length + files.length > 10) {
-      alert("Можно загрузить не более 10 фотографий");
-      return;
-    }
-
-    const validFiles = files.filter((file) => {
-      if (file.size > 10 * 1024 * 1024) {
-        alert(`Файл ${file.name} превышает 10MB`);
-        return false;
-      }
-      if (!file.type.startsWith("image/")) {
-        alert(`Файл ${file.name} не является изображением`);
-        return false;
-      }
-      return true;
-    });
-
-    setImages((prev) => [...prev, ...validFiles]);
-
-    validFiles.forEach((file) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreviews((prev) => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const removeImage = (index: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const moveImage = (fromIndex: number, toIndex: number) => {
-    const newImages = [...images];
-    const newPreviews = [...imagePreviews];
-
-    const [movedImage] = newImages.splice(fromIndex, 1);
-    const [movedPreview] = newPreviews.splice(fromIndex, 1);
-
-    newImages.splice(toIndex, 0, movedImage);
-    newPreviews.splice(toIndex, 0, movedPreview);
-
-    setImages(newImages);
-    setImagePreviews(newPreviews);
-  };
-
-  const markNotificationAsRead = async (notificationId: string) => {
-    try {
-      await fetch(`/api/master/notifications/${notificationId}`, {
-        method: "PATCH",
-      });
-      setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === notificationId ? { ...n, is_read: true } : n,
-        ),
-      );
-    } catch (error) {
-      console.error("Error marking notification as read:", error);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "new":
-        return "bg-blue-100 text-blue-700";
-      case "confirmed":
-        return "bg-green-100 text-green-700";
-      case "shipped":
-        return "bg-purple-100 text-purple-700";
-      case "delivered":
-        return "bg-gray-100 text-gray-700";
-      case "cancelled":
-        return "bg-red-100 text-red-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "new":
-        return "🆕 Новый";
-      case "confirmed":
-        return "✅ Подтвержден";
-      case "shipped":
-        return "📦 Отправлен";
-      case "delivered":
-        return "🏠 Доставлен";
-      case "cancelled":
-        return "❌ Отменен";
-      default:
-        return status;
-    }
-  };
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case "order":
-        return "📦";
-      case "comment":
-        return "💬";
-      case "review":
-        return "⭐";
-      default:
-        return "🔔";
-    }
-  };
-
-  const handlePostImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-
-    if (postImages.length + files.length > 10) {
-      alert("Можно загрузить не более 10 фотографий");
-      return;
-    }
-
-    const validFiles = files.filter((file) => {
-      if (file.size > 10 * 1024 * 1024) {
-        alert(`Файл ${file.name} превышает 10MB`);
-        return false;
-      }
-      if (!file.type.startsWith("image/")) {
-        alert(`Файл ${file.name} не является изображением`);
-        return false;
-      }
-      return true;
-    });
-
-    setPostImages((prev) => [...prev, ...validFiles]);
-
-    validFiles.forEach((file) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPostImagePreviews((prev) => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const removePostImage = (index: number) => {
-    setPostImages((prev) => prev.filter((_, i) => i !== index));
-    setPostImagePreviews((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleSubmitPost = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!postForm.title) {
-      alert("Введите заголовок поста");
-      return;
-    }
-
-    if (!postForm.content) {
-      alert("Введите содержание поста");
-      return;
-    }
-
-    setSaving(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("title", postForm.title);
-      formData.append("content", postForm.content);
-      formData.append("excerpt", postForm.excerpt);
-      formData.append("category", postForm.category);
-      formData.append("tags", postForm.tags);
-
-      postImages.forEach((image) => {
-        formData.append("images", image);
-      });
-
-      const response = await fetch("/api/master/blog", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to create post");
-      }
-
-      setShowAddPostModal(false);
-      resetPostForm();
-      fetchMasterData();
-      alert("Пост успешно создан!");
-    } catch (error) {
-      console.error("Ошибка при создании поста:", error);
-      alert("Ошибка при создании поста");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const resetPostForm = () => {
-    setPostForm({
-      title: "",
-      content: "",
-      excerpt: "",
-      category: "",
-      tags: "",
-    });
-    setPostImages([]);
-    setPostImagePreviews([]);
-  };
-
-  const handleSubmitProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (images.length === 0) {
-      alert("Добавьте хотя бы одну фотографию товара");
-      return;
-    }
-
-    setSaving(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("title", productForm.title);
-      formData.append("description", productForm.description);
-      formData.append("price", productForm.price);
-      formData.append("category", productForm.category);
-      formData.append("technique", productForm.technique);
-      formData.append("size", productForm.size);
-      formData.append("care_instructions", productForm.care_instructions);
-      formData.append("color", productForm.color);
-
-      if (productForm.yarn_id === "custom") {
-        formData.append("custom_yarn", productForm.custom_yarn);
-      } else if (productForm.yarn_id) {
-        formData.append("yarn_id", productForm.yarn_id);
-      }
-
-      images.forEach((image) => {
-        formData.append("images", image);
-      });
-
-      const response = await fetch("/api/master/products", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to create product");
-      }
-
-      setShowAddProductModal(false);
-      resetProductForm();
-      fetchMasterData();
-      alert("Товар успешно создан и отправлен на модерацию");
-    } catch (error) {
-      alert("Ошибка при создании товара");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const resetProductForm = () => {
-    setProductForm({
-      title: "",
-      description: "",
-      price: "",
-      category: "",
-      technique: "",
-      size: "",
-      care_instructions: "",
-      yarn_id: "",
-      custom_yarn: "",
-      color: "",
-    });
-    setImages([]);
-    setImagePreviews([]);
   };
 
   const formatDate = (dateString: string) => {
@@ -991,7 +992,7 @@ export default function MasterDashboard({
           </div>
         </motion.div>
 
-        {/* Статистика с анимацией */}
+        {/* Статистика */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {[
             {
@@ -1255,10 +1256,9 @@ export default function MasterDashboard({
                             <Link href={`/blog/${post.id}`}>{post.title}</Link>
                           </h3>
 
-                          {((post.images && post.images.length > 0) ||
-                            post.main_image_url) && (
+                          {(post.images && post.images.length > 0) && (
                             <MediaGallery
-                              images={post.images || [post.main_image_url]}
+                              images={post.images.map(img => img.url || img.image_url || '')}
                               video={null}
                               title={post.title}
                             />
@@ -1404,52 +1404,44 @@ export default function MasterDashboard({
                               )}
 
                               <div className="space-y-3 max-h-96 overflow-y-auto">
-                                {post.comments?.length === 0 ? (
+                                {!post.comments || post.comments.length === 0 ? (
                                   <p className="text-gray-400 text-sm text-center py-4">
                                     Будьте первым, кто оставит комментарий
                                   </p>
                                 ) : (
-                                  post.comments?.map(
-                                    (comment: {
-                                      id: string;
-                                      content: string;
-                                      created_at: string;
-                                      author_name: string;
-                                      author_avatar?: string;
-                                    }) => (
-                                      <div
-                                        key={comment.id}
-                                        className="flex gap-3"
-                                      >
-                                        <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 overflow-hidden">
-                                          {comment.author_avatar ? (
-                                            <img
-                                              src={comment.author_avatar}
-                                              alt={comment.author_name}
-                                              className="w-full h-full object-cover"
-                                            />
-                                          ) : (
-                                            comment.author_name
-                                              ?.charAt(0)
-                                              .toUpperCase()
-                                          )}
-                                        </div>
-                                        <div className="flex-1">
-                                          <div className="bg-white rounded-xl p-3 shadow-sm">
-                                            <p className="font-semibold text-sm">
-                                              {comment.author_name}
-                                            </p>
-                                            <p className="text-gray-700 text-sm mt-1">
-                                              {comment.content}
-                                            </p>
-                                          </div>
-                                          <p className="text-xs text-gray-400 mt-1">
-                                            {formatDate(comment.created_at)}
+                                  post.comments.map((comment) => (
+                                    <div
+                                      key={comment.id}
+                                      className="flex gap-3"
+                                    >
+                                      <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 overflow-hidden">
+                                        {comment.author_avatar ? (
+                                          <img
+                                            src={comment.author_avatar}
+                                            alt={comment.author_name}
+                                            className="w-full h-full object-cover"
+                                          />
+                                        ) : (
+                                          comment.author_name
+                                            ?.charAt(0)
+                                            .toUpperCase()
+                                        )}
+                                      </div>
+                                      <div className="flex-1">
+                                        <div className="bg-white rounded-xl p-3 shadow-sm">
+                                          <p className="font-semibold text-sm">
+                                            {comment.author_name}
+                                          </p>
+                                          <p className="text-gray-700 text-sm mt-1">
+                                            {comment.content}
                                           </p>
                                         </div>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                          {formatDate(comment.created_at)}
+                                        </p>
                                       </div>
-                                    ),
-                                  )
+                                    </div>
+                                  ))
                                 )}
                               </div>
                             </motion.div>
@@ -1518,10 +1510,9 @@ export default function MasterDashboard({
                             <Link href={`/blog/${post.id}`}>{post.title}</Link>
                           </h3>
 
-                          {((post.images && post.images.length > 0) ||
-                            post.main_image_url) && (
+                          {(post.images && post.images.length > 0) && (
                             <MediaGallery
-                              images={post.images || [post.main_image_url]}
+                              images={post.images.map(img => img.url || img.image_url || '')}
                               video={null}
                               title={post.title}
                             />
@@ -1667,52 +1658,44 @@ export default function MasterDashboard({
                               )}
 
                               <div className="space-y-3 max-h-96 overflow-y-auto">
-                                {post.comments?.length === 0 ? (
+                                {!post.comments || post.comments.length === 0 ? (
                                   <p className="text-gray-400 text-sm text-center py-4">
                                     Будьте первым, кто оставит комментарий
                                   </p>
                                 ) : (
-                                  post.comments?.map(
-                                    (comment: {
-                                      id: string;
-                                      content: string;
-                                      created_at: string;
-                                      author_name: string;
-                                      author_avatar?: string;
-                                    }) => (
-                                      <div
-                                        key={comment.id}
-                                        className="flex gap-3"
-                                      >
-                                        <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 overflow-hidden">
-                                          {comment.author_avatar ? (
-                                            <img
-                                              src={comment.author_avatar}
-                                              alt={comment.author_name}
-                                              className="w-full h-full object-cover"
-                                            />
-                                          ) : (
-                                            comment.author_name
-                                              ?.charAt(0)
-                                              .toUpperCase()
-                                          )}
-                                        </div>
-                                        <div className="flex-1">
-                                          <div className="bg-white rounded-xl p-3 shadow-sm">
-                                            <p className="font-semibold text-sm">
-                                              {comment.author_name}
-                                            </p>
-                                            <p className="text-gray-700 text-sm mt-1">
-                                              {comment.content}
-                                            </p>
-                                          </div>
-                                          <p className="text-xs text-gray-400 mt-1">
-                                            {formatDate(comment.created_at)}
+                                  post.comments.map((comment) => (
+                                    <div
+                                      key={comment.id}
+                                      className="flex gap-3"
+                                    >
+                                      <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 overflow-hidden">
+                                        {comment.author_avatar ? (
+                                          <img
+                                            src={comment.author_avatar}
+                                            alt={comment.author_name}
+                                            className="w-full h-full object-cover"
+                                          />
+                                        ) : (
+                                          comment.author_name
+                                            ?.charAt(0)
+                                            .toUpperCase()
+                                        )}
+                                      </div>
+                                      <div className="flex-1">
+                                        <div className="bg-white rounded-xl p-3 shadow-sm">
+                                          <p className="font-semibold text-sm">
+                                            {comment.author_name}
+                                          </p>
+                                          <p className="text-gray-700 text-sm mt-1">
+                                            {comment.content}
                                           </p>
                                         </div>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                          {formatDate(comment.created_at)}
+                                        </p>
                                       </div>
-                                    ),
-                                  )
+                                    </div>
+                                  ))
                                 )}
                               </div>
                             </motion.div>
@@ -1727,7 +1710,7 @@ export default function MasterDashboard({
           </AnimatePresence>
         </motion.div>
 
-        {/* Модальные окна с полупрозрачным фоном как в админке */}
+        {/* Модальное окно добавления товара */}
         <AnimatePresence>
           {showAddProductModal && (
             <motion.div
@@ -1758,7 +1741,6 @@ export default function MasterDashboard({
                 </div>
 
                 <form onSubmit={handleSubmitProduct} className="p-6 space-y-6">
-                  {/* Форма товара - остаётся без изменений */}
                   <div>
                     <label className="block text-gray-700 mb-2 font-['Montserrat_Alternates'] font-medium">
                       Добавьте фото (до 10 шт.){" "}
@@ -1945,7 +1927,7 @@ export default function MasterDashboard({
                         onChange={handleProductInputChange}
                         className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300"
                       />
-                    </div>
+                                       </div>
                     <div>
                       <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium">
                         Уход
