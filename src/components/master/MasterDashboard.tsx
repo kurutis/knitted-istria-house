@@ -33,7 +33,7 @@ interface BlogPost {
   author_avatar?: string;
   master_id: string;
   master_name?: string;
-  master_avatar?: string; 
+  master_avatar?: string;
   is_liked?: boolean;
   comments?: Array<{
     id: string;
@@ -68,12 +68,13 @@ type CategoryItem = {
   subcategories?: CategoryItem[];
 };
 
-interface ProfileData {
-  user_id: string;
-  full_name: string | null;
-  avatar_url: string | null;
-  city: string | null;
-}
+// Вспомогательная функция для получения URL изображения
+const getImageUrl = (img: string | { id: string; url?: string; image_url?: string; sort_order: number }): string => {
+  if (typeof img === 'string') {
+    return img;
+  }
+  return img.url || img.image_url || '';
+};
 
 export default function MasterDashboard({
   session,
@@ -237,8 +238,7 @@ export default function MasterDashboard({
       }
 
       // Обогащаем посты данными автора
-      const enrichedRecentPosts =
-        await enrichPostsWithAuthorData(recentPostsArray);
+      const enrichedRecentPosts = await enrichPostsWithAuthorData(recentPostsArray);
       setRecentPosts(enrichedRecentPosts);
 
       // Обработка моих постов
@@ -268,7 +268,7 @@ export default function MasterDashboard({
         },
       );
 
-      // Исправление: profileResponse может быть { success: true, profile: {...} } или напрямую профиль
+      // Получаем имя мастера из профиля
       let profileData: { fullname?: string; full_name?: string } | null = null;
       if (profileResponse.success && profileResponse.profile) {
         profileData = profileResponse.profile;
@@ -276,7 +276,6 @@ export default function MasterDashboard({
         profileData = profileResponse;
       }
 
-      // Устанавливаем имя мастера из профиля
       if (profileData?.fullname) {
         setMasterName(profileData.fullname);
       } else if (profileData?.full_name) {
@@ -285,6 +284,8 @@ export default function MasterDashboard({
         setMasterName(session.user.name);
       } else if (session?.user?.email) {
         setMasterName(session.user.email.split("@")[0]);
+      } else {
+        setMasterName("Мастер");
       }
     } catch (error) {
       console.error("Error fetching master data:", error);
@@ -306,50 +307,42 @@ export default function MasterDashboard({
 
   // Функция для обогащения постов данными авторов
   const enrichPostsWithAuthorData = async (
-  posts: BlogPost[],
-): Promise<BlogPost[]> => {
-  if (!posts.length) return [];
+    posts: BlogPost[],
+  ): Promise<BlogPost[]> => {
+    if (!posts.length) return [];
 
-  // Получаем все ID мастеров
-  const masterIds = [...new Set(posts.map((p) => p.master_id))];
-  
-  console.log('Master IDs to fetch:', masterIds);
+    const masterIds = [...new Set(posts.map((p) => p.master_id))];
 
-  try {
-    const response = await fetch("/api/profiles/batch", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userIds: masterIds }),
-    });
-    const result = await response.json();
-    const profiles = result.data || [];
-    
-    console.log('Fetched profiles:', profiles);
-
-    const profileMap = new Map<string, { full_name: string | null; avatar_url: string | null }>();
-    profiles.forEach((profile: { user_id: string; full_name: string | null; avatar_url: string | null }) => {
-      profileMap.set(profile.user_id, {
-        full_name: profile.full_name,
-        avatar_url: profile.avatar_url
+    try {
+      const response = await fetch("/api/profiles/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userIds: masterIds }),
       });
-    });
+      const result = await response.json();
+      const profiles = result.data || [];
 
-    // Обогащаем посты
-    return posts.map((post) => {
-      const profile = profileMap.get(post.master_id);
-      console.log(`Post ${post.id} - master ${post.master_id} - profile:`, profile);
-      
-      return {
-        ...post,
-        author_name: profile?.full_name || post.master_name || post.author_name || "Мастер",
-        author_avatar: profile?.avatar_url || post.master_avatar || post.author_avatar,
-      };
-    });
-  } catch (error) {
-    console.error("Error enriching posts:", error);
-    return posts;
-  }
-};
+      const profileMap = new Map<string, { full_name: string | null; avatar_url: string | null }>();
+      profiles.forEach((profile: { user_id: string; full_name: string | null; avatar_url: string | null }) => {
+        profileMap.set(profile.user_id, {
+          full_name: profile.full_name,
+          avatar_url: profile.avatar_url,
+        });
+      });
+
+      return posts.map((post) => {
+        const profile = profileMap.get(post.master_id);
+        return {
+          ...post,
+          author_name: profile?.full_name || post.master_name || post.author_name || "Мастер",
+          author_avatar: profile?.avatar_url || post.master_avatar || post.author_avatar,
+        };
+      });
+    } catch (error) {
+      console.error("Error enriching posts:", error);
+      return posts;
+    }
+  };
 
   const loadCategories = async () => {
     try {
@@ -951,7 +944,7 @@ export default function MasterDashboard({
           <div className="flex justify-between items-center flex-wrap gap-4">
             <div>
               <h1 className="font-['Montserrat_Alternates'] text-white font-bold text-3xl mb-2">
-                Добро пожаловать, {masterName || session?.user?.name}!
+                Добро пожаловать, {masterName || session?.user?.name || "Мастер"}!
               </h1>
               <p className="text-white/80">
                 Вот что происходит с вашим магазином сегодня
@@ -1328,13 +1321,17 @@ export default function MasterDashboard({
                             className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden"
                           >
                             {post.author_avatar ? (
-                              <img
+                              <Image
                                 src={post.author_avatar}
                                 alt={post.author_name}
+                                width={48}
+                                height={48}
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              post.author_name?.charAt(0).toUpperCase()
+                              <span className="text-lg">
+                                {post.author_name?.charAt(0).toUpperCase() || "М"}
+                              </span>
                             )}
                           </motion.div>
                           <div>
@@ -1353,13 +1350,26 @@ export default function MasterDashboard({
                           </h3>
 
                           {post.images && post.images.length > 0 && (
-                            <MediaGallery
-                              images={post.images.map(
-                                (img) => img.url || img.image_url || "",
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                              {post.images.slice(0, 3).map((img, imgIdx) => {
+                                const imageUrl = getImageUrl(img);
+                                return imageUrl ? (
+                                  <div key={imgIdx} className="relative aspect-video rounded-lg overflow-hidden bg-gray-100">
+                                    <Image
+                                      src={imageUrl}
+                                      alt={`${post.title} - фото ${imgIdx + 1}`}
+                                      fill
+                                      className="object-cover hover:scale-105 transition-transform duration-300"
+                                    />
+                                  </div>
+                                ) : null;
+                              })}
+                              {post.images.length > 3 && (
+                                <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                                  <span className="text-gray-500">+{post.images.length - 3} фото</span>
+                                </div>
                               )}
-                              video={null}
-                              title={post.title}
-                            />
+                            </div>
                           )}
 
                           <p className="text-gray-600 mt-4 line-clamp-3">
@@ -1515,9 +1525,11 @@ export default function MasterDashboard({
                                     >
                                       <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 overflow-hidden">
                                         {comment.author_avatar ? (
-                                          <img
+                                          <Image
                                             src={comment.author_avatar}
                                             alt={comment.author_name}
+                                            width={32}
+                                            height={32}
                                             className="w-full h-full object-cover"
                                           />
                                         ) : (
@@ -1587,13 +1599,17 @@ export default function MasterDashboard({
                         <div className="flex items-center gap-3 mb-4">
                           <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden">
                             {post.author_avatar ? (
-                              <img
+                              <Image
                                 src={post.author_avatar}
                                 alt={post.author_name}
+                                width={48}
+                                height={48}
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              post.author_name?.charAt(0).toUpperCase()
+                              <span className="text-lg">
+                                {post.author_name?.charAt(0).toUpperCase() || "М"}
+                              </span>
                             )}
                           </div>
                           <div>
@@ -1610,13 +1626,26 @@ export default function MasterDashboard({
                           </h3>
 
                           {post.images && post.images.length > 0 && (
-                            <MediaGallery
-                              images={post.images.map(
-                                (img) => img.url || img.image_url || "",
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                              {post.images.slice(0, 3).map((img, imgIdx) => {
+                                const imageUrl = getImageUrl(img);
+                                return imageUrl ? (
+                                  <div key={imgIdx} className="relative aspect-video rounded-lg overflow-hidden bg-gray-100">
+                                    <Image
+                                      src={imageUrl}
+                                      alt={`${post.title} - фото ${imgIdx + 1}`}
+                                      fill
+                                      className="object-cover hover:scale-105 transition-transform duration-300"
+                                    />
+                                  </div>
+                                ) : null;
+                              })}
+                              {post.images.length > 3 && (
+                                <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                                  <span className="text-gray-500">+{post.images.length - 3} фото</span>
+                                </div>
                               )}
-                              video={null}
-                              title={post.title}
-                            />
+                            </div>
                           )}
 
                           <p className="text-gray-600 mt-4 line-clamp-3">
@@ -1772,9 +1801,11 @@ export default function MasterDashboard({
                                     >
                                       <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 overflow-hidden">
                                         {comment.author_avatar ? (
-                                          <img
+                                          <Image
                                             src={comment.author_avatar}
                                             alt={comment.author_name}
+                                            width={32}
+                                            height={32}
                                             className="w-full h-full object-cover"
                                           />
                                         ) : (
@@ -1843,6 +1874,7 @@ export default function MasterDashboard({
                 </div>
 
                 <form onSubmit={handleSubmitProduct} className="p-6 space-y-6">
+                  {/* Форма товара */}
                   <div>
                     <label className="block text-gray-700 mb-2 font-['Montserrat_Alternates'] font-medium">
                       Добавьте фото (до 10 шт.){" "}
@@ -1903,7 +1935,7 @@ export default function MasterDashboard({
                               <button
                                 type="button"
                                 onClick={() => removeImage(idx)}
-                                className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                                                                className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
                               >
                                 ✕
                               </button>
