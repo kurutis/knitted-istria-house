@@ -1,3 +1,4 @@
+// app/api/blog/posts/[id]/comments/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -41,16 +42,23 @@ export async function POST(
             return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
         }
 
-        // Получаем данные пользователя
-        const { data: user, error: userError } = await supabase
-            .from('users')
-            .select('id, email, full_name, avatar_url')
-            .eq('id', session.user.id)
-            .single();
+        // Получаем данные пользователя из таблицы profiles
+        let userFullName = session.user.name || session.user.email?.split('@')[0] || 'Пользователь';
+        let userAvatar = null;
+        
+        try {
+            const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('full_name, avatar_url')
+                .eq('user_id', session.user.id)
+                .single();
 
-        if (userError) {
-            logError('Error fetching user data', userError);
-            return NextResponse.json({ error: 'Ошибка получения данных пользователя' }, { status: 500 });
+            if (!profileError && profile) {
+                userFullName = profile.full_name || userFullName;
+                userAvatar = profile.avatar_url;
+            }
+        } catch (profileError) {
+            logError('Error fetching user profile', profileError, 'warning');
         }
 
         const { id } = await params;
@@ -117,13 +125,12 @@ export async function POST(
 
         // Уведомляем автора поста
         if (post.master_id !== session.user.id) {
-            const authorName = user.full_name || user.email?.split('@')[0] || 'Пользователь';
             await supabase
                 .from('notifications')
                 .insert({
                     user_id: post.master_id,
                     title: '💬 Новый комментарий',
-                    message: `${authorName} оставил комментарий к вашему посту "${post.title?.substring(0, 50)}"`,
+                    message: `${userFullName} оставил комментарий к вашему посту "${post.title?.substring(0, 50)}"`,
                     type: 'blog_comment',
                     metadata: { 
                         post_id: id, 
@@ -145,8 +152,8 @@ export async function POST(
                 content: newComment.content,
                 created_at: newComment.created_at,
                 author_id: session.user.id,
-                author_name: sanitize.text(user.full_name || user.email?.split('@')[0] || 'Пользователь'),
-                author_avatar: user.avatar_url
+                author_name: sanitize.text(userFullName),
+                author_avatar: userAvatar
             }
         }, { status: 201 });
         
@@ -171,7 +178,7 @@ export async function GET(
             return NextResponse.json({ error: 'Неверный формат ID поста' }, { status: 400 });
         }
 
-        // Получаем комментарии от всех пользователей
+        // Получаем комментарии
         const { data: comments, error } = await supabase
             .from('blog_comments')
             .select(`
@@ -180,13 +187,7 @@ export async function GET(
                 created_at,
                 updated_at,
                 is_edited,
-                author_id,
-                users:author_id (
-                    id,
-                    email,
-                    full_name,
-                    avatar_url
-                )
+                author_id
             `)
             .eq('post_id', id)
             .eq('status', 'approved')
@@ -197,11 +198,35 @@ export async function GET(
             return NextResponse.json({ error: 'Ошибка загрузки комментариев' }, { status: 500 });
         }
 
-        // Правильно обрабатываем данные - users это массив
-        const formattedComments = comments?.map(comment => {
-            // users может быть массивом или объектом, обрабатываем оба случая
-            const userData = Array.isArray(comment.users) ? comment.users[0] : comment.users;
-            
+        if (!comments || comments.length === 0) {
+            return NextResponse.json({
+                success: true,
+                comments: [],
+                total: 0
+            });
+        }
+
+        // Получаем данные авторов комментариев из profiles
+        const authorIds = [...new Set(comments.map(c => c.author_id))];
+        const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('user_id, full_name, avatar_url')
+            .in('user_id', authorIds);
+
+        if (profilesError) {
+            logError('Error fetching profiles', profilesError);
+        }
+
+        const profileMap = new Map();
+        profiles?.forEach(profile => {
+            profileMap.set(profile.user_id, {
+                full_name: profile.full_name,
+                avatar_url: profile.avatar_url
+            });
+        });
+
+        const formattedComments = comments.map(comment => {
+            const profile = profileMap.get(comment.author_id);
             return {
                 id: comment.id,
                 content: sanitize.text(comment.content),
@@ -209,10 +234,10 @@ export async function GET(
                 updated_at: comment.updated_at,
                 is_edited: comment.is_edited,
                 author_id: comment.author_id,
-                author_name: sanitize.text(userData?.full_name || userData?.email?.split('@')[0] || 'Пользователь'),
-                author_avatar: userData?.avatar_url
+                author_name: sanitize.text(profile?.full_name || 'Пользователь'),
+                author_avatar: profile?.avatar_url || null
             };
-        }) || [];
+        });
 
         return NextResponse.json({
             success: true,
