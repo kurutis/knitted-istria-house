@@ -1,3 +1,4 @@
+// components/ui/AnimatedButton.tsx
 'use client'
 
 import { useState } from 'react'
@@ -29,7 +30,7 @@ export function AnimatedButton({ icon, count, isActive, onClick, activeColor = '
             <div className={`transition-transform duration-300 ${isAnimating ? 'scale-125' : 'scale-100'}`}>
                 {icon}
             </div>
-            <span className={`text-gray-400 transition-all duration-300 ${isAnimating ? 'font-semibold' : ''}`}>
+            <span className={`text-gray-600 text-sm transition-all duration-300 ${isAnimating ? 'font-semibold' : ''}`}>
                 {count}
             </span>
         </button>

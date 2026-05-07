@@ -1,3 +1,4 @@
+// components/blog/BlogPostCard.tsx
 "use client";
 
 import Link from "next/link";
@@ -111,27 +112,16 @@ export default function BlogPostCard({
   };
 
   const handleCommentSubmit = async () => {
-    console.log("handleCommentSubmit called", { onComment: !!onComment, session: !!session, commentText });
-    
-    if (!onComment) {
-      console.log("onComment is undefined");
-      return;
-    }
+    if (!onComment) return;
     if (!session) {
-      console.log("No session, redirecting");
       window.location.href = "/auth/signin?callbackUrl=/blog";
       return;
     }
-    if (!commentText.trim()) {
-      console.log("Comment text is empty");
-      return;
-    }
+    if (!commentText.trim()) return;
 
     setCommentLoading(true);
     try {
-      console.log("Calling onComment with:", post.id, commentText);
       const success = await onComment(post.id, commentText);
-      console.log("onComment result:", success);
       
       if (success) {
         const userName = session.user?.name || session.user?.email?.split('@')[0] || "Пользователь";
@@ -149,9 +139,6 @@ export default function BlogPostCard({
         setCommentsCount(commentsCount + 1);
         setCommentText("");
         setShowComments(true);
-        console.log("Comment added locally");
-      } else {
-        console.log("onComment returned false");
       }
     } catch (error) {
       console.error("Error in comment:", error);
@@ -210,6 +197,8 @@ export default function BlogPostCard({
   };
 
   const renderComments = () => {
+    if (!showCommentsState) return null;
+    
     return (
       <motion.div
         initial={{ opacity: 0, height: 0 }}
@@ -314,7 +303,9 @@ export default function BlogPostCard({
           }
           count={commentsCount}
           isActive={showCommentsState}
-          onClick={() => setShowComments(!showCommentsState)}
+          onClick={() => {
+            setShowComments(!showCommentsState);
+          }}
           activeColor="text-firm-orange"
         />
 
@@ -396,7 +387,7 @@ export default function BlogPostCard({
         {/* Действия */}
         {renderActions()}
 
-        {/* Комментарии - показываем всегда, если showCommentsState true */}
+        {/* Комментарии */}
         <AnimatePresence>
           {showCommentsState && renderComments()}
         </AnimatePresence>

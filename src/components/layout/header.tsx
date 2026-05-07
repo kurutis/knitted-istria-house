@@ -131,15 +131,15 @@ export default function Header() {
                   src={logo}
                   alt="logo"
                 />
-                <div className="font-['Montserrat_Alternates'] font-bold leading-tight">
-                  <span className="text-firm-pink font-semibold font-['Montserrat_Alternates'] text-xs sm:text-sm md:text-base">
+                <div className="font-Montserrat_Alternates font-bold leading-tight">
+                  <span className="text-firm-pink font-semibold font-Montserrat_Alternates text-xs sm:text-sm md:text-base">
                     Дом{" "}
                   </span>
-                  <span className="text-firm-orange font-semibold font-['Montserrat_Alternates'] text-xs sm:text-sm md:text-base">
+                  <span className="text-firm-orange font-semibold font-Montserrat_Alternates text-xs sm:text-sm md:text-base">
                     вязанных
                   </span>
                   <br />
-                  <span className="text-firm-pink font-semibold font-['Montserrat_Alternates'] text-xs sm:text-sm md:text-base">
+                  <span className="text-firm-pink font-semibold font-Montserrat_Alternates text-xs sm:text-sm md:text-base">
                     историй
                   </span>
                 </div>
@@ -156,7 +156,7 @@ export default function Header() {
                   transition={{ delay: index * 0.1 }}
                 >
                   <Link
-                    className="font-['Montserrat_Alternates'] font-semibold hover:font-bold transition-all duration-300 relative group"
+                    className="font-Montserrat_Alternates font-semibold hover:font-bold transition-all duration-300 relative group"
                     href={link.href}
                   >
                     {link.name}
