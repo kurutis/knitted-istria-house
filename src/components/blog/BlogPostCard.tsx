@@ -336,9 +336,7 @@ export default function BlogPostCard({
             count={commentsCount}
             isActive={showCommentsState}
             onClick={() => {
-                console.log("🔘 Колбэк onClick ВЫЗВАН в BlogPostCard!");
-                console.log("  - текущий showCommentsState:", showCommentsState);
-                console.log("  - новое значение:", !showCommentsState);
+                console.log("🔘 КНОПКА КОММЕНТАРИЕВ НАЖАТА!");
                 setShowComments(!showCommentsState);
             }}
             activeColor="text-firm-orange"
