@@ -77,10 +77,22 @@ export default function BlogPostCard({
   const showCommentsState = externalShowComments !== undefined ? externalShowComments : internalShowComments;
   
   const setShowComments = (value: boolean) => {
+    console.log("📢 setShowComments ВЫЗВАН!");
+    console.log("  - value:", value);
+    console.log("  - externalShowComments:", externalShowComments);
+    console.log("  - internalShowComments:", internalShowComments);
+    
     if (externalShowComments === undefined) {
-      setInternalShowComments(value);
+        console.log("  - Устанавливаем internalShowComments в:", value);
+        setInternalShowComments(value);
+    } else {
+        console.log("  - externalShowComments определен, пропускаем");
     }
-  };
+    };
+
+    useEffect(() => {
+        console.log("🔄 showCommentsState ИЗМЕНИЛСЯ:", showCommentsState);
+    }, [showCommentsState]);
 
   // Функция для лайка поста
   const handleLike = async () => {
@@ -290,6 +302,7 @@ export default function BlogPostCard({
   };
 
   const renderActions = () => {
+    console.log("🎯 renderActions вызван, showCommentsState:", showCommentsState, "commentsCount:", commentsCount);
     if (variant === "compact") {
       return (
         <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
@@ -315,16 +328,21 @@ export default function BlogPostCard({
         />
 
         <AnimatedButton
-          icon={
-            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke={showCommentsState ? "#F97316" : "#9CA3AF"} strokeWidth="1.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-            </svg>
-          }
-          count={commentsCount}
-          isActive={showCommentsState}
-          onClick={() => setShowComments(!showCommentsState)}
-          activeColor="text-firm-orange"
-        />
+            icon={
+                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke={showCommentsState ? "#F97316" : "#9CA3AF"} strokeWidth="1.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                </svg>
+            }
+            count={commentsCount}
+            isActive={showCommentsState}
+            onClick={() => {
+                console.log("🔘 Колбэк onClick ВЫЗВАН в BlogPostCard!");
+                console.log("  - текущий showCommentsState:", showCommentsState);
+                console.log("  - новое значение:", !showCommentsState);
+                setShowComments(!showCommentsState);
+            }}
+            activeColor="text-firm-orange"
+            />
 
         {isOwner && (
           <div className="flex gap-2 ml-auto">
