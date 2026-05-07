@@ -944,13 +944,15 @@ export default function MasterDashboard({
                     <BlogPostCard
                       key={post.id}
                       post={post}
-                      onLike={(postId) => handleLike(postId, false)}
-                      onComment={async (postId, text) => {
-                        setCommentText(text);
-                        await handleComment(postId, false);
-                        return true;
-                      }}
+                      isOwner={true}
                       showComments={showComments === post.id}
+                      onEdit={(postId) => router.push(`/master/blog/${postId}/edit`)}
+                      onDelete={(postId) => {
+                        if (confirm("Удалить пост?")) {
+                          fetch(`/api/master/blog/${postId}`, { method: "DELETE" })
+                            .then(() => fetchMasterData());
+                        }
+                      }}
                     />
                   ))
                 )}
@@ -983,21 +985,12 @@ export default function MasterDashboard({
                       key={post.id}
                       post={post}
                       isOwner={true}
-                      onLike={(postId) => handleLike(postId, true)}
-                      onComment={async (postId, text) => {
-                        setCommentText(text);
-                        await handleComment(postId, true);
-                        return true;
-                      }}
                       showComments={showComments === post.id}
-                      onEdit={(postId) => {
-                        router.push(`/master/blog/${postId}/edit`);
-                      }}
+                      onEdit={(postId) => router.push(`/master/blog/${postId}/edit`)}
                       onDelete={(postId) => {
                         if (confirm("Удалить пост?")) {
-                          fetch(`/api/master/blog/${postId}`, {
-                            method: "DELETE",
-                          }).then(() => fetchMasterData());
+                          fetch(`/api/master/blog/${postId}`, { method: "DELETE" })
+                            .then(() => fetchMasterData());
                         }
                       }}
                     />

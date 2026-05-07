@@ -259,8 +259,6 @@ export default function HomePage() {
                                 <BlogPostCard
                                     key={post.id}
                                     post={normalizedPost}
-                                    onLike={handleLike}
-                                    onComment={handleComment}
                                     showComments={showComments === post.id}
                                     variant="default"
                                 />

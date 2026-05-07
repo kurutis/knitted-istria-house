@@ -649,8 +649,6 @@ export default function BlogPage() {
                   <BlogPostCard
                     key={post.id}
                     post={normalizedPost}
-                    onLike={handleLike}
-                    onComment={handleComment}
                     showComments={showComments === post.id}
                   />
                 );

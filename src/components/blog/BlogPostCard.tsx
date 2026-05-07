@@ -1,4 +1,3 @@
-// components/blog/BlogPostCard.tsx
 "use client";
 
 import Link from "next/link";
@@ -35,8 +34,6 @@ export interface BlogPostCardProps {
       author_avatar?: string;
     }>;
   };
-  onLike?: (postId: string) => void;
-  onComment?: (postId: string, commentText: string) => Promise<boolean>;
   showComments?: boolean;
   isOwner?: boolean;
   onEdit?: (postId: string) => void;
@@ -60,8 +57,6 @@ const formatDate = (dateString: string) => {
 
 export default function BlogPostCard({ 
   post, 
-  onLike, 
-  onComment,
   showComments: externalShowComments,
   isOwner = false,
   onEdit,
@@ -79,14 +74,6 @@ export default function BlogPostCard({
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
   const [comments, setComments] = useState(post.comments || []);
 
-  // Синхронизация с props при изменении
-  useEffect(() => {
-    setIsLiked(post.is_liked || false);
-    setLikesCount(post.likes_count || 0);
-    setCommentsCount(post.comments_count || 0);
-    setComments(post.comments || []);
-  }, [post.is_liked, post.likes_count, post.comments_count, post.comments]);
-
   const showCommentsState = externalShowComments !== undefined ? externalShowComments : internalShowComments;
   
   const setShowComments = (value: boolean) => {
@@ -95,24 +82,44 @@ export default function BlogPostCard({
     }
   };
 
+  // Функция для лайка поста
   const handleLike = async () => {
-    if (!onLike) return;
     if (!session) {
       window.location.href = "/auth/signin?callbackUrl=/blog";
       return;
     }
     
+    // Оптимистичное обновление
     const newIsLiked = !isLiked;
     const newLikesCount = newIsLiked ? likesCount + 1 : likesCount - 1;
     
     setIsLiked(newIsLiked);
     setLikesCount(newLikesCount);
     
-    await onLike(post.id);
+    try {
+      const response = await fetch(`/api/blog/posts/${post.id}/like`, {
+        method: post.is_liked ? "DELETE" : "POST",
+      });
+      
+      if (!response.ok) {
+        // Откат при ошибке
+        setIsLiked(isLiked);
+        setLikesCount(likesCount);
+      } else {
+        const data = await response.json();
+        setIsLiked(data.is_liked);
+        setLikesCount(data.likes_count);
+      }
+    } catch (error) {
+      console.error("Error toggling like:", error);
+      // Откат при ошибке
+      setIsLiked(isLiked);
+      setLikesCount(likesCount);
+    }
   };
 
+  // Функция для добавления комментария
   const handleCommentSubmit = async () => {
-    if (!onComment) return;
     if (!session) {
       window.location.href = "/auth/signin?callbackUrl=/blog";
       return;
@@ -121,27 +128,39 @@ export default function BlogPostCard({
 
     setCommentLoading(true);
     try {
-      const success = await onComment(post.id, commentText);
-      
-      if (success) {
+      const response = await fetch(`/api/blog/posts/${post.id}/comment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: commentText }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const newComment = data.comment || data;
+        
         const userName = session.user?.name || session.user?.email?.split('@')[0] || "Пользователь";
         const userAvatar = session.user?.image || undefined;
         
-        const newComment = {
-          id: Date.now().toString(),
-          content: commentText,
-          created_at: new Date().toISOString(),
-          author_name: userName,
-          author_avatar: userAvatar,
+        const formattedComment = {
+          id: newComment.id || Date.now().toString(),
+          content: newComment.content || commentText,
+          created_at: newComment.created_at || new Date().toISOString(),
+          author_name: newComment.author_name || userName,
+          author_avatar: newComment.author_avatar || userAvatar,
         };
         
-        setComments([newComment, ...comments]);
+        setComments([formattedComment, ...comments]);
         setCommentsCount(commentsCount + 1);
         setCommentText("");
         setShowComments(true);
+      } else {
+        const error = await response.json();
+        console.error("Error adding comment:", error);
+        alert(error.error || "Ошибка при добавлении комментария");
       }
     } catch (error) {
       console.error("Error in comment:", error);
+      alert("Ошибка при добавлении комментария");
     } finally {
       setCommentLoading(false);
     }
@@ -207,7 +226,7 @@ export default function BlogPostCard({
         className="mt-4 pt-4 border-t bg-gray-50 rounded-xl p-4 overflow-hidden"
       >
         {/* Форма добавления комментария */}
-        {session && onComment && (
+        {session && (
           <div className="flex gap-3 mb-4">
             <div className="w-8 h-8 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
               {session.user?.name?.charAt(0).toUpperCase() || "U"}
@@ -303,9 +322,7 @@ export default function BlogPostCard({
           }
           count={commentsCount}
           isActive={showCommentsState}
-          onClick={() => {
-            setShowComments(!showCommentsState);
-          }}
+          onClick={() => setShowComments(!showCommentsState)}
           activeColor="text-firm-orange"
         />
 
@@ -389,7 +406,7 @@ export default function BlogPostCard({
 
         {/* Комментарии */}
         <AnimatePresence>
-          {showCommentsState && renderComments()}
+          {renderComments()}
         </AnimatePresence>
       </div>
     </motion.div>
