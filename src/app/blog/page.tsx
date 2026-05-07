@@ -6,8 +6,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { debounce } from "lodash";
 import { motion, AnimatePresence } from "framer-motion";
-import MediaGallery from "@/components/blog/MediaGallery";
-import { AnimatedButton } from "@/components/ui/AnimatedButton";
+import BlogPostCard from "@/components/blog/BlogPostCard";
+import AddPostModal from "@/components/modals/AddPostModal";
 
 interface Master {
   id: string;
@@ -87,9 +87,6 @@ interface ApiPost {
   images?: Array<{ id: string; image_url: string; sort_order: number }>;
 }
 
-type DisplayPost =
-  | BlogPost
-  | (SearchPost & { comments?: Comment[]; views_count?: number });
 
 export default function BlogPage() {
   const { data: session } = useSession();
@@ -98,7 +95,6 @@ export default function BlogPage() {
   const [recommendedMasters, setRecommendedMasters] = useState<Master[]>([]);
   const [loading, setLoading] = useState(true);
   const [showComments, setShowComments] = useState<string | null>(null);
-  const [commentText, setCommentText] = useState("");
   const [commentLoading, setCommentLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<{
@@ -262,20 +258,20 @@ export default function BlogPage() {
     }
   };
 
-  const handleComment = async (postId: string) => {
+  const handleComment = async (postId: string, text: string) => {
     if (!session) {
       window.location.href = "/auth/signin?callbackUrl=/blog";
-      return;
+      return false;
     }
 
-    if (!commentText.trim()) return;
+    if (!text.trim()) return false;
 
     setCommentLoading(true);
     try {
       const response = await fetch(`/api/blog/posts/${postId}/comment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: commentText }),
+        body: JSON.stringify({ content: text }),
       });
 
       if (response.ok) {
@@ -303,11 +299,13 @@ export default function BlogPage() {
               : p,
           ),
         );
-        setCommentText("");
         setShowComments(postId);
+        return true;
       }
+      return false;
     } catch (error) {
       console.error("Error adding comment:", error);
+      return false;
     } finally {
       setCommentLoading(false);
     }
@@ -605,7 +603,7 @@ export default function BlogPage() {
           )}
         </AnimatePresence>
 
-        {/* Правая колонка - посты */}
+        {/* Правая колонка - посты с использованием BlogPostCard */}
         <div className="flex-1 min-w-0 space-y-5 sm:space-y-6 overflow-hidden">
           {showSearchResults && (
             <div className="bg-gradient-to-r from-firm-orange/10 to-firm-pink/10 rounded-xl p-3 text-xs sm:text-sm text-gray-600 break-words">
@@ -616,519 +614,60 @@ export default function BlogPage() {
           )}
 
           {displayPosts.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-xl p-8 sm:p-12 text-center text-gray-500">
-              <p className="text-lg">
-                {searchQuery ? "Посты не найдены" : "Пока нет постов"}
-              </p>
-            </div>
-          ) : (
-            <AnimatePresence>
-              {displayPosts.map((post: DisplayPost, index: number) => {
-                const comments = post.comments || [];
-                const hasComments = comments.length > 0;
-
-                return (
-                  <motion.div
-                    key={post.id}
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1, duration: 0.4 }}
-                    className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-300"
-                  >
-                    <div className="p-3 sm:p-4 flex items-center justify-between border-b border-gray-100">
-                      <Link
-                        href={`/masters/${post.master_id}`}
-                        className="flex items-center gap-2 sm:gap-3 group flex-shrink-0"
-                      >
-                        <motion.div
-                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden text-sm sm:text-base shadow-md"
-                          whileHover={{ scale: 1.1 }}
-                        >
-                          {post.master_avatar ? (
-                            <Image
-                              src={post.master_avatar}
-                              alt={post.master_name}
-                              width={40}
-                              height={40}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            post.master_name?.charAt(0).toUpperCase()
-                          )}
-                        </motion.div>
-                        <div className="min-w-0">
-                          <p className="font-semibold text-sm sm:text-base group-hover:text-firm-orange transition truncate">
-                            {post.master_name}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {formatDate(post.created_at)}
-                          </p>
-                        </div>
-                      </Link>
-                    </div>
-
-                    <div className="p-3 sm:p-4">
-                      <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg sm:text-xl mb-2 break-words">
-                        {showSearchResults &&
-                        "highlighted_title" in post &&
-                        post.highlighted_title ? (
-                          <div
-                            dangerouslySetInnerHTML={{
-                              __html: post.highlighted_title,
-                            }}
-                            className="break-words"
-                          />
-                        ) : (
-                          post.title
-                        )}
-                      </h3>
-
-                      {(post.images?.length || 0) > 0 || post.main_image_url ? (
-                        <div className="mb-8">
-                          <MediaGallery
-                            images={post.images?.map(img => ({
-                              id: img.id,
-                              url: img.url,
-                              image_url: img.url,
-                              sort_order: img.sort_order
-                            })) || []}
-                            mainImageUrl={post.main_image_url}
-                            video={null}
-                            title={post.title}
-                          />
-                        </div>
-                      ) : null}
-
-                      <div className="text-gray-700 mt-3 sm:mt-4 break-words">
-                        {showSearchResults &&
-                        "highlighted_content" in post &&
-                        post.highlighted_content ? (
-                          <div
-                            dangerouslySetInnerHTML={{
-                              __html: post.highlighted_content + "...",
-                            }}
-                            className="line-clamp-3 text-sm sm:text-base break-words"
-                          />
-                        ) : (
-                          <p className="line-clamp-3 text-sm sm:text-base break-words">
-                            {post.content?.substring(0, 300)}...
-                          </p>
-                        )}
-                      </div>
-
-                      <Link
-                        href={`/blog/${post.id}`}
-                        className="text-firm-orange hover:underline text-xs sm:text-sm mt-2 inline-block group"
-                      >
-                        Читать полностью{" "}
-                        <motion.span
-                          className="inline-block ml-1"
-                          animate={{ x: [0, 5, 0] }}
-                          transition={{ duration: 1.5, repeat: Infinity }}
-                        >
-                          →
-                        </motion.span>
-                      </Link>
-                    </div>
-
-                    <div className="px-3 sm:px-4 py-2 sm:py-3 border-t border-gray-100 flex items-center gap-4 sm:gap-6 flex-wrap">
-                      <AnimatedButton
-                        icon={
-                          <svg
-                            className="w-5 h-5 sm:w-6 sm:h-6"
-                            viewBox="0 0 24 24"
-                            fill={post.is_liked ? "#D97C8E" : "none"}
-                            stroke={post.is_liked ? "#D97C8E" : "#9CA3AF"}
-                            strokeWidth="1.5"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                            />
-                          </svg>
-                        }
-                        count={post.likes_count}
-                        isActive={post.is_liked}
-                        onClick={() => handleLike(post.id)}
-                        activeColor="text-firm-pink"
-                      />
-
-                      <AnimatedButton
-                        icon={
-                          <svg
-                            className="w-5 h-5 sm:w-6 sm:h-6"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke={
-                              showComments === post.id ? "#F4A67F" : "#9CA3AF"
-                            }
-                            strokeWidth="1.5"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                            />
-                          </svg>
-                        }
-                        count={post.comments_count || 0}
-                        isActive={showComments === post.id}
-                        onClick={() =>
-                          setShowComments(
-                            showComments === post.id ? null : post.id,
-                          )
-                        }
-                        activeColor="text-firm-orange"
-                      />
-
-                      <div className="flex-1"></div>
-                      <span className="text-xs sm:text-sm text-gray-400 flex items-center gap-1 flex-shrink-0">
-                        <svg
-                          className="w-4 h-4 sm:w-5 sm:h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                          />
-                        </svg>
-                        {"views_count" in post ? post.views_count : 0}
-                      </span>
-                    </div>
-
-                    {/* Комментарии */}
-                    <AnimatePresence>
-                      {showComments === post.id && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.3 }}
-                          className="px-3 sm:px-4 py-3 border-t bg-gradient-to-b from-gray-50 to-white"
-                        >
-                          {session ? (
-                            <div className="flex gap-2 sm:gap-3 mb-4">
-                              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-xs sm:text-sm font-bold flex-shrink-0 shadow-md">
-                                {session.user.name?.charAt(0).toUpperCase()}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <textarea
-                                  value={commentText}
-                                  onChange={(e) =>
-                                    setCommentText(e.target.value)
-                                  }
-                                  placeholder="Написать комментарий..."
-                                  rows={2}
-                                  className="w-full p-2 rounded-xl bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-firm-orange text-sm resize-none transition-all"
-                                />
-                                <motion.button
-                                  onClick={() => handleComment(post.id)}
-                                  disabled={
-                                    commentLoading || !commentText.trim()
-                                  }
-                                  className="mt-2 px-3 sm:px-4 py-1 sm:py-1.5 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-lg text-xs sm:text-sm hover:shadow-lg transition disabled:opacity-50"
-                                  whileHover={{ scale: 1.02 }}
-                                  whileTap={{ scale: 0.98 }}
-                                >
-                                  {commentLoading ? "Отправка..." : "Отправить"}
-                                </motion.button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="bg-gradient-to-r from-gray-50 to-white rounded-xl p-4 text-center mb-4 border border-gray-100">
-                              <p className="text-gray-500 text-sm mb-2 break-words">
-                                🔒 Чтобы оставить комментарий, необходимо
-                                авторизоваться
-                              </p>
-                              <Link
-                                href={`/auth/signin?callbackUrl=/blog`}
-                                className="inline-block px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-lg text-sm hover:shadow-lg transition"
-                              >
-                                Войти
-                              </Link>
-                            </div>
-                          )}
-
-                          <div className="space-y-3 max-h-96 overflow-y-auto">
-                            {!hasComments ? (
-                              <p className="text-gray-400 text-sm text-center py-4">
-                                Будьте первым, кто оставит комментарий
-                              </p>
-                            ) : (
-                              <>
-                                {comments.slice(-3).map((comment: Comment) => (
-                                  <div
-                                    key={comment.id}
-                                    className="flex gap-2 sm:gap-3"
-                                  >
-                                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-200 flex items-center justify-center text-white text-xs sm:text-sm font-bold flex-shrink-0 overflow-hidden">
-                                      {comment.author_avatar ? (
-                                        <Image
-                                          src={comment.author_avatar}
-                                          alt={comment.author_name}
-                                          width={32}
-                                          height={32}
-                                          className="w-full h-full object-cover"
-                                        />
-                                      ) : (
-                                        comment.author_name
-                                          ?.charAt(0)
-                                          .toUpperCase()
-                                      )}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="bg-white rounded-xl p-2 sm:p-3 shadow-sm border border-gray-100">
-                                        <p className="font-semibold text-xs sm:text-sm break-words">
-                                          {comment.author_name}
-                                        </p>
-                                        <p className="text-gray-700 text-xs sm:text-sm mt-1 break-words">
-                                          {comment.content}
-                                        </p>
-                                      </div>
-                                      <p className="text-xs text-gray-400 mt-1">
-                                        {formatDate(comment.created_at)}
-                                      </p>
-                                    </div>
-                                  </div>
-                                ))}
-
-                                {comments.length > 3 && (
-                                  <div className="text-center pt-2">
-                                    <Link
-                                      href={`/blog/${post.id}`}
-                                      className="text-firm-orange hover:underline text-sm font-medium"
-                                    >
-                                      Показать все {comments.length}{" "}
-                                      комментариев →
-                                    </Link>
-                                  </div>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          )}
+  <div className="bg-white rounded-2xl shadow-xl p-8 sm:p-12 text-center text-gray-500">
+    <p className="text-lg">
+      {searchQuery ? "Посты не найдены" : "Пока нет постов"}
+    </p>
+  </div>
+) : (
+  <div className="space-y-5">
+    {displayPosts.map((post) => {
+      // Преобразуем SearchPost в формат, совместимый с BlogPostCard
+      const normalizedPost = {
+        id: post.id,
+        title: post.title,
+        content: post.content,
+        excerpt: 'excerpt' in post ? post.excerpt : post.content?.substring(0, 200),
+        images: post.images || [],
+        main_image_url: post.main_image_url || '',
+        created_at: post.created_at,
+        views_count: ('views_count' in post ? post.views_count : 0) as number,
+        likes_count: post.likes_count || 0,
+        comments_count: post.comments_count || 0,
+        author_name: post.master_name,
+        author_avatar: post.master_avatar || '',
+        master_id: post.master_id,
+        master_name: post.master_name,
+        master_avatar: post.master_avatar,
+        is_liked: post.is_liked || false,
+        comments: ('comments' in post ? post.comments : []) || [],
+      };
+      
+      return (
+        <BlogPostCard
+          key={post.id}
+          post={normalizedPost}
+          onLike={handleLike}
+          onComment={handleComment}
+          showComments={showComments === post.id}
+        />
+      );
+    })}
+  </div>
+)}
         </div>
       </div>
 
       {/* Модальное окно добавления поста */}
-      <AnimatePresence>
-        {showAddPostModal && isMaster && (
-          <motion.div
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setShowAddPostModal(false)}
-          >
-            <motion.div
-              className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
-                <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl sm:text-2xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
-                  Новая запись
-                </h2>
-                <button
-                  onClick={() => setShowAddPostModal(false)}
-                  className="text-gray-400 hover:text-gray-600 text-2xl transition-colors"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <form
-                onSubmit={handleSubmitPost}
-                className="p-4 sm:p-6 space-y-5 sm:space-y-6"
-              >
-                <div>
-                  <label className="block text-gray-700 mb-2 font-['Montserrat_Alternates'] font-medium text-sm sm:text-base">
-                    📷 Фото
-                  </label>
-                  <div
-                    className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-firm-pink transition cursor-pointer bg-gray-50"
-                    onClick={() =>
-                      document.getElementById("post-image-input")?.click()
-                    }
-                  >
-                    <input
-                      id="post-image-input"
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handlePostImageSelect}
-                      className="hidden"
-                    />
-                    <div className="flex flex-col items-center gap-2">
-                      <svg
-                        className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                      <span className="text-gray-500 text-sm">
-                        Нажмите для выбора файлов
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        PNG, JPG, WEBP до 10MB
-                      </span>
-                    </div>
-                  </div>
-                  {postImagePreviews.length > 0 && (
-                    <div className="mt-4">
-                      <div className="grid grid-cols-4 gap-2 sm:gap-3">
-                        {postImagePreviews.map((preview, idx) => (
-                          <div
-                            key={idx}
-                            className="relative group aspect-square rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-100"
-                          >
-                            <img
-                              src={preview}
-                              alt="preview"
-                              className="w-full h-full object-cover"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removePostImage(idx)}
-                              className="absolute top-1 right-1 w-5 h-5 sm:w-6 sm:h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium text-sm sm:text-base">
-                    Заголовок <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="title"
-                    value={postForm.title}
-                    onChange={handlePostInputChange}
-                    required
-                    className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition text-sm sm:text-base"
-                    placeholder="Например: Как выбрать пряжу для зимнего свитера"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium text-sm sm:text-base">
-                    Категория
-                  </label>
-                  <select
-                    name="category"
-                    value={postForm.category}
-                    onChange={handlePostInputChange}
-                    className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition text-sm sm:text-base"
-                  >
-                    <option value="">Выберите категорию</option>
-                    {blogTags.map((tag) => (
-                      <option key={tag} value={tag}>
-                        {tag}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium text-sm sm:text-base">
-                    Теги
-                  </label>
-                  <input
-                    type="text"
-                    name="tags"
-                    value={postForm.tags}
-                    onChange={handlePostInputChange}
-                    className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition text-sm sm:text-base"
-                    placeholder="Мастер-класс, Обзор, Советы (через запятую)"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium text-sm sm:text-base">
-                    Краткое описание
-                  </label>
-                  <textarea
-                    name="excerpt"
-                    value={postForm.excerpt}
-                    onChange={handlePostInputChange}
-                    rows={2}
-                    className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition text-sm sm:text-base"
-                    placeholder="Краткое описание поста, которое будет отображаться в ленте..."
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates'] font-medium text-sm sm:text-base">
-                    Содержание <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    name="content"
-                    value={postForm.content}
-                    onChange={handlePostInputChange}
-                    rows={10}
-                    required
-                    className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition text-sm sm:text-base"
-                    placeholder="Напишите ваш пост..."
-                  />
-                </div>
-
-                <div className="flex gap-3 pt-4 border-t">
-                  <motion.button
-                    type="submit"
-                    disabled={saving}
-                    className="flex-1 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition disabled:opacity-50 font-['Montserrat_Alternates'] font-medium"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    {saving ? "⏳ Публикация..." : "📝 Опубликовать"}
-                  </motion.button>
-                  <button
-                    type="button"
-                    onClick={() => setShowAddPostModal(false)}
-                    className="px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition"
-                  >
-                    Отмена
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <AddPostModal
+        isOpen={showAddPostModal}
+        onClose={() => setShowAddPostModal(false)}
+        onSuccess={() => {
+          resetPostForm();
+          fetchData();
+        }}
+        session={session}
+      />
     </motion.div>
   );
 }

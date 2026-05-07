@@ -9,7 +9,14 @@ interface AddPostModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  session: { user: { id: string; name: string; email: string; role: string } } | null;
+  session: {
+    user?: {
+      id?: string;
+      name?: string | null;
+      email?: string | null;
+      role?: string;
+    };
+  } | null;
 }
 
 const blogTags = [
