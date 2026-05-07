@@ -42,25 +42,6 @@ export async function POST(
             return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
         }
 
-        // Получаем данные пользователя из таблицы profiles
-        let userFullName = session.user.name || session.user.email?.split('@')[0] || 'Пользователь';
-        let userAvatar = null;
-        
-        try {
-            const { data: profile, error: profileError } = await supabase
-                .from('profiles')
-                .select('full_name, avatar_url')
-                .eq('user_id', session.user.id)
-                .single();
-
-            if (!profileError && profile) {
-                userFullName = profile.full_name || userFullName;
-                userAvatar = profile.avatar_url;
-            }
-        } catch (profileError) {
-            logError('Error fetching user profile', profileError, 'warning');
-        }
-
         const { id } = await params;
         
         if (!id || !isValidUUID(id)) {
@@ -75,6 +56,7 @@ export async function POST(
         const { content } = validatedData;
         const sanitizedContent = sanitize.text(content.trim());
 
+        // Проверяем существование поста
         const { data: post, error: postError } = await supabase
             .from('blog_posts')
             .select('id, comments_count, status, master_id, title')
@@ -96,6 +78,7 @@ export async function POST(
 
         const now = new Date().toISOString();
 
+        // Вставляем комментарий - указываем только существующие поля
         const { data: newComment, error: insertError } = await supabase
             .from('blog_comments')
             .insert({
@@ -111,9 +94,12 @@ export async function POST(
 
         if (insertError) {
             logError('Error adding comment', insertError);
-            return NextResponse.json({ error: 'Ошибка при добавлении комментария' }, { status: 500 });
+            return NextResponse.json({ 
+                error: 'Ошибка при добавлении комментария: ' + insertError.message 
+            }, { status: 500 });
         }
 
+        // Обновляем счетчик комментариев
         const newCommentsCount = (post.comments_count || 0) + 1;
         await supabase
             .from('blog_posts')
@@ -123,6 +109,25 @@ export async function POST(
         invalidateCache(`blog_posts_${id}`);
         invalidateCache(/^blog_posts_list/);
 
+        // Получаем имя пользователя для ответа
+        let userName = session.user.name || session.user.email?.split('@')[0] || 'Пользователь';
+        let userAvatar = null;
+        
+        try {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('full_name, avatar_url')
+                .eq('user_id', session.user.id)
+                .maybeSingle();
+            
+            if (profile) {
+                userName = profile.full_name || userName;
+                userAvatar = profile.avatar_url;
+            }
+        } catch (err) {
+            // Игнорируем ошибку получения профиля
+        }
+
         // Уведомляем автора поста
         if (post.master_id !== session.user.id) {
             await supabase
@@ -130,7 +135,7 @@ export async function POST(
                 .insert({
                     user_id: post.master_id,
                     title: '💬 Новый комментарий',
-                    message: `${userFullName} оставил комментарий к вашему посту "${post.title?.substring(0, 50)}"`,
+                    message: `${userName} оставил комментарий к вашему посту "${post.title?.substring(0, 50)}"`,
                     type: 'blog_comment',
                     metadata: { 
                         post_id: id, 
@@ -142,19 +147,15 @@ export async function POST(
                 });
         }
 
-        logApiRequest('POST', `/api/blog/posts/${id}/comments`, 201, Date.now() - startTime, session.user.id);
+        logApiRequest('POST', `/api/blog/posts/${id}/comment`, 201, Date.now() - startTime, session.user.id);
 
         return NextResponse.json({
-            success: true,
-            message: 'Комментарий добавлен',
-            comment: {
-                id: newComment.id,
-                content: newComment.content,
-                created_at: newComment.created_at,
-                author_id: session.user.id,
-                author_name: sanitize.text(userFullName),
-                author_avatar: userAvatar
-            }
+            id: newComment.id,
+            content: newComment.content,
+            created_at: newComment.created_at,
+            author_id: session.user.id,
+            author_name: userName,
+            author_avatar: userAvatar
         }, { status: 201 });
         
     } catch (error) {
@@ -171,7 +172,6 @@ export async function GET(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const session = await getServerSession(authOptions);
         const { id } = await params;
         
         if (!id || !isValidUUID(id)) {
