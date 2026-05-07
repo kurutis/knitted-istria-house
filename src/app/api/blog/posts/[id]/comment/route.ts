@@ -86,7 +86,6 @@ export async function POST(
                 content: sanitizedContent,
                 created_at: now,
                 status: 'approved'
-                // updated_at не вставляем - пусть будет NULL
             })
             .select()
             .single();

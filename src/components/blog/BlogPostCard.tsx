@@ -1,4 +1,3 @@
-// components/blog/BlogPostCard.tsx
 "use client";
 
 import Link from "next/link";
@@ -73,6 +72,10 @@ export default function BlogPostCard({
   const [commentText, setCommentText] = useState("");
   const [commentLoading, setCommentLoading] = useState(false);
   const [localPost, setLocalPost] = useState(post);
+  const [isLiked, setIsLiked] = useState(post.is_liked || false);
+  const [likesCount, setLikesCount] = useState(post.likes_count || 0);
+  const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
+  const [comments, setComments] = useState(post.comments || []);
 
   const showCommentsState = externalShowComments !== undefined ? externalShowComments : internalShowComments;
   const setShowComments = (value: boolean) => {
@@ -81,23 +84,27 @@ export default function BlogPostCard({
     }
   };
 
-  const handleLike = () => {
-    if (onLike) {
-      onLike(post.id);
-      setLocalPost(prev => ({
-        ...prev,
-        is_liked: !prev.is_liked,
-        likes_count: prev.is_liked ? prev.likes_count - 1 : prev.likes_count + 1
-      }));
-    }
-  };
-
-  const handleComment = async () => {
+  const handleLike = async () => {
+    if (!onLike) return;
     if (!session) {
       window.location.href = "/auth/signin?callbackUrl=/blog";
       return;
     }
-    if (!commentText.trim() || !onComment) return;
+    
+    // Оптимистичное обновление
+    setIsLiked(!isLiked);
+    setLikesCount(isLiked ? likesCount - 1 : likesCount + 1);
+    
+    await onLike(post.id);
+  };
+
+  const handleComment = async () => {
+    if (!onComment) return;
+    if (!session) {
+      window.location.href = "/auth/signin?callbackUrl=/blog";
+      return;
+    }
+    if (!commentText.trim()) return;
 
     setCommentLoading(true);
     try {
@@ -105,11 +112,21 @@ export default function BlogPostCard({
       if (success) {
         setCommentText("");
         setShowComments(true);
-        setLocalPost(prev => ({
-          ...prev,
-          comments_count: prev.comments_count + 1
-        }));
+        setCommentsCount(commentsCount + 1);
+        // Добавляем новый комментарий в локальное состояние
+        setComments([
+          {
+            id: Date.now().toString(),
+            content: commentText,
+            created_at: new Date().toISOString(),
+            author_name: session.user?.name || "Пользователь",
+            author_avatar: session.user?.image ? session.user.image : undefined,
+          },
+          ...comments
+        ]);
       }
+    } catch (error) {
+      console.error("Error in comment:", error);
     } finally {
       setCommentLoading(false);
     }
@@ -146,7 +163,6 @@ export default function BlogPostCard({
       );
     }
 
-    // Используем MediaGallery для дефолтного и полного вариантов
     const mediaGalleryImages = galleryImages.map((url, index) => ({
       id: `img-${index}`,
       url: url,
@@ -169,8 +185,6 @@ export default function BlogPostCard({
   const renderComments = () => {
     if (!showCommentsState) return null;
     
-    const comments = localPost.comments || [];
-    
     return (
       <motion.div
         initial={{ opacity: 0, height: 0 }}
@@ -181,7 +195,7 @@ export default function BlogPostCard({
         {session && onComment && (
           <div className="flex gap-3 mb-4">
             <div className="w-8 h-8 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-              {session.user.name?.charAt(0).toUpperCase()}
+              {session.user.name?.charAt(0).toUpperCase() || "U"}
             </div>
             <div className="flex-1">
               <textarea
@@ -220,7 +234,7 @@ export default function BlogPostCard({
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    comment.author_name?.charAt(0).toUpperCase()
+                    comment.author_name?.charAt(0).toUpperCase() || "U"
                   )}
                 </div>
                 <div className="flex-1">
@@ -244,8 +258,8 @@ export default function BlogPostCard({
     if (variant === "compact") {
       return (
         <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
-          <span>❤️ {localPost.likes_count}</span>
-          <span>💬 {localPost.comments_count}</span>
+          <span>❤️ {likesCount}</span>
+          <span>💬 {commentsCount}</span>
           <span>👁️ {localPost.views_count}</span>
         </div>
       );
@@ -256,12 +270,12 @@ export default function BlogPostCard({
         {onLike && (
           <AnimatedButton
             icon={
-              <svg className="w-6 h-6" viewBox="0 0 24 24" fill={localPost.is_liked ? "#D97C8E" : "none"} stroke={localPost.is_liked ? "#D97C8E" : "#9CA3AF"} strokeWidth="1.5">
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill={isLiked ? "#D97C8E" : "none"} stroke={isLiked ? "#D97C8E" : "#9CA3AF"} strokeWidth="1.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
               </svg>
             }
-            count={localPost.likes_count}
-            isActive={localPost.is_liked || false}
+            count={likesCount}
+            isActive={isLiked}
             onClick={handleLike}
             activeColor="text-firm-pink"
           />
@@ -274,7 +288,7 @@ export default function BlogPostCard({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
               </svg>
             }
-            count={localPost.comments_count}
+            count={commentsCount}
             isActive={showCommentsState}
             onClick={() => setShowComments(!showCommentsState)}
             activeColor="text-firm-orange"
