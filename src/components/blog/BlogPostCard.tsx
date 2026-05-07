@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MediaGallery from "@/components/blog/MediaGallery";
 import { AnimatedButton } from "@/components/ui/AnimatedButton";
 import { useSession } from "next-auth/react";
@@ -78,6 +78,14 @@ export default function BlogPostCard({
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
   const [comments, setComments] = useState(post.comments || []);
 
+  // Синхронизация с props при изменении
+  useEffect(() => {
+    setIsLiked(post.is_liked || false);
+    setLikesCount(post.likes_count || 0);
+    setCommentsCount(post.comments_count || 0);
+    setComments(post.comments || []);
+  }, [post.is_liked, post.likes_count, post.comments_count, post.comments]);
+
   const showCommentsState = externalShowComments !== undefined ? externalShowComments : internalShowComments;
   
   const setShowComments = (value: boolean) => {
@@ -93,7 +101,6 @@ export default function BlogPostCard({
       return;
     }
     
-    // Оптимистичное обновление
     const newIsLiked = !isLiked;
     const newLikesCount = newIsLiked ? likesCount + 1 : likesCount - 1;
     
@@ -104,22 +111,32 @@ export default function BlogPostCard({
   };
 
   const handleCommentSubmit = async () => {
-    if (!onComment) return;
+    console.log("handleCommentSubmit called", { onComment: !!onComment, session: !!session, commentText });
+    
+    if (!onComment) {
+      console.log("onComment is undefined");
+      return;
+    }
     if (!session) {
+      console.log("No session, redirecting");
       window.location.href = "/auth/signin?callbackUrl=/blog";
       return;
     }
-    if (!commentText.trim()) return;
+    if (!commentText.trim()) {
+      console.log("Comment text is empty");
+      return;
+    }
 
     setCommentLoading(true);
     try {
+      console.log("Calling onComment with:", post.id, commentText);
       const success = await onComment(post.id, commentText);
+      console.log("onComment result:", success);
+      
       if (success) {
-        // Получаем имя пользователя
         const userName = session.user?.name || session.user?.email?.split('@')[0] || "Пользователь";
         const userAvatar = session.user?.image || undefined;
         
-        // Добавляем комментарий в локальное состояние
         const newComment = {
           id: Date.now().toString(),
           content: commentText,
@@ -132,6 +149,9 @@ export default function BlogPostCard({
         setCommentsCount(commentsCount + 1);
         setCommentText("");
         setShowComments(true);
+        console.log("Comment added locally");
+      } else {
+        console.log("onComment returned false");
       }
     } catch (error) {
       console.error("Error in comment:", error);
@@ -190,8 +210,6 @@ export default function BlogPostCard({
   };
 
   const renderComments = () => {
-    if (!showCommentsState) return null;
-    
     return (
       <motion.div
         initial={{ opacity: 0, height: 0 }}
@@ -378,9 +396,9 @@ export default function BlogPostCard({
         {/* Действия */}
         {renderActions()}
 
-        {/* Комментарии */}
+        {/* Комментарии - показываем всегда, если showCommentsState true */}
         <AnimatePresence>
-          {renderComments()}
+          {showCommentsState && renderComments()}
         </AnimatePresence>
       </div>
     </motion.div>
