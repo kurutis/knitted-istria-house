@@ -87,7 +87,6 @@ interface ApiPost {
   images?: Array<{ id: string; image_url: string; sort_order: number }>;
 }
 
-
 export default function BlogPage() {
   const { data: session } = useSession();
   const [posts, setPosts] = useState<BlogPost[]>([]);
@@ -204,11 +203,12 @@ export default function BlogPage() {
           master_city: post.master_city || "",
           is_liked: post.is_liked || false,
           comments: [],
-          images: post.images?.map(img => ({
-            id: img.id,
-            url: img.image_url,
-            sort_order: img.sort_order
-          })) || [],
+          images:
+            post.images?.map((img) => ({
+              id: img.id,
+              url: img.image_url,
+              sort_order: img.sort_order,
+            })) || [],
         }));
       }
 
@@ -266,7 +266,6 @@ export default function BlogPage() {
 
     if (!text.trim()) return false;
 
-    setCommentLoading(true);
     try {
       const response = await fetch(`/api/blog/posts/${postId}/comment`, {
         method: "POST",
@@ -275,25 +274,25 @@ export default function BlogPage() {
       });
 
       if (response.ok) {
-        const newCommentData = await response.json();
-        const newComment: Comment = {
-          id: newCommentData.id,
-          content: newCommentData.content,
-          created_at: newCommentData.created_at,
-          author_id: newCommentData.user_id || newCommentData.author_id,
+        const data = await response.json();
+        const newComment = data.comment || data;
+
+        const formattedComment: Comment = {
+          id: newComment.id,
+          content: newComment.content,
+          created_at: newComment.created_at,
+          author_id: newComment.author_id || session.user?.id || "",
           author_name:
-            newCommentData.user_name ||
-            newCommentData.author_name ||
-            session.user?.name ||
-            "Пользователь",
-          author_avatar: newCommentData.user_avatar || newCommentData.author_avatar || "",
+            newComment.author_name || session.user?.name || "Пользователь",
+          author_avatar: newComment.author_avatar || "",
         };
+
         setPosts((prev) =>
           prev.map((p) =>
             p.id === postId
               ? {
                   ...p,
-                  comments: [newComment, ...(p.comments || [])],
+                  comments: [formattedComment, ...(p.comments || [])],
                   comments_count: (p.comments_count || 0) + 1,
                 }
               : p,
@@ -306,8 +305,6 @@ export default function BlogPage() {
     } catch (error) {
       console.error("Error adding comment:", error);
       return false;
-    } finally {
-      setCommentLoading(false);
     }
   };
 
@@ -614,47 +611,52 @@ export default function BlogPage() {
           )}
 
           {displayPosts.length === 0 ? (
-  <div className="bg-white rounded-2xl shadow-xl p-8 sm:p-12 text-center text-gray-500">
-    <p className="text-lg">
-      {searchQuery ? "Посты не найдены" : "Пока нет постов"}
-    </p>
-  </div>
-) : (
-  <div className="space-y-5">
-    {displayPosts.map((post) => {
-      // Преобразуем SearchPost в формат, совместимый с BlogPostCard
-      const normalizedPost = {
-        id: post.id,
-        title: post.title,
-        content: post.content,
-        excerpt: 'excerpt' in post ? post.excerpt : post.content?.substring(0, 200),
-        images: post.images || [],
-        main_image_url: post.main_image_url || '',
-        created_at: post.created_at,
-        views_count: ('views_count' in post ? post.views_count : 0) as number,
-        likes_count: post.likes_count || 0,
-        comments_count: post.comments_count || 0,
-        author_name: post.master_name,
-        author_avatar: post.master_avatar || '',
-        master_id: post.master_id,
-        master_name: post.master_name,
-        master_avatar: post.master_avatar,
-        is_liked: post.is_liked || false,
-        comments: ('comments' in post ? post.comments : []) || [],
-      };
-      
-      return (
-        <BlogPostCard
-          key={post.id}
-          post={normalizedPost}
-          onLike={handleLike}
-          onComment={handleComment}
-          showComments={showComments === post.id}
-        />
-      );
-    })}
-  </div>
-)}
+            <div className="bg-white rounded-2xl shadow-xl p-8 sm:p-12 text-center text-gray-500">
+              <p className="text-lg">
+                {searchQuery ? "Посты не найдены" : "Пока нет постов"}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {displayPosts.map((post) => {
+                // Преобразуем SearchPost в формат, совместимый с BlogPostCard
+                const normalizedPost = {
+                  id: post.id,
+                  title: post.title,
+                  content: post.content,
+                  excerpt:
+                    "excerpt" in post
+                      ? post.excerpt
+                      : post.content?.substring(0, 200),
+                  images: post.images || [],
+                  main_image_url: post.main_image_url || "",
+                  created_at: post.created_at,
+                  views_count: ("views_count" in post
+                    ? post.views_count
+                    : 0) as number,
+                  likes_count: post.likes_count || 0,
+                  comments_count: post.comments_count || 0,
+                  author_name: post.master_name,
+                  author_avatar: post.master_avatar || "",
+                  master_id: post.master_id,
+                  master_name: post.master_name,
+                  master_avatar: post.master_avatar,
+                  is_liked: post.is_liked || false,
+                  comments: ("comments" in post ? post.comments : []) || [],
+                };
+
+                return (
+                  <BlogPostCard
+                    key={post.id}
+                    post={normalizedPost}
+                    onLike={handleLike}
+                    onComment={handleComment}
+                    showComments={showComments === post.id}
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 

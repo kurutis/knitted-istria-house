@@ -395,67 +395,69 @@ export default function MasterDashboard({
 
   const handleComment = async (postId: string, isFromMyPosts = false) => {
     if (!session) {
-      window.location.href = "/auth/signin?callbackUrl=/master/dashboard";
-      return;
+        window.location.href = "/auth/signin?callbackUrl=/master/dashboard";
+        return false;
     }
 
-    if (!commentText.trim()) return;
+    if (!commentText.trim()) return false;
 
     setCommentLoading(true);
     try {
-      const response = await fetch(`/api/blog/posts/${postId}/comment`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: commentText }),
-      });
+        const response = await fetch(`/api/blog/posts/${postId}/comment`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content: commentText }),
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        const newComment = data.comment || data;
+        if (response.ok) {
+            const data = await response.json();
+            const newComment = data.comment || data;
 
-        const formattedComment = {
-          id: newComment.id,
-          content: newComment.content,
-          created_at: newComment.created_at,
-          author_name:
-            newComment.author_name || session.user?.name || "Пользователь",
-          author_avatar: newComment.author_avatar || "",
-        };
+            const formattedComment = {
+                id: newComment.id,
+                content: newComment.content,
+                created_at: newComment.created_at,
+                author_name: newComment.author_name || session.user?.name || "Пользователь",
+                author_avatar: newComment.author_avatar || "",
+            };
 
-        if (isFromMyPosts) {
-          setMyPosts((prev) =>
-            prev.map((p) =>
-              p.id === postId
-                ? {
-                    ...p,
-                    comments: [formattedComment, ...(p.comments || [])],
-                    comments_count: (p.comments_count || 0) + 1,
-                  }
-                : p,
-            ),
-          );
-        } else {
-          setRecentPosts((prev) =>
-            prev.map((p) =>
-              p.id === postId
-                ? {
-                    ...p,
-                    comments: [formattedComment, ...(p.comments || [])],
-                    comments_count: (p.comments_count || 0) + 1,
-                  }
-                : p,
-            ),
-          );
+            if (isFromMyPosts) {
+                setMyPosts((prev) =>
+                    prev.map((p) =>
+                        p.id === postId
+                            ? {
+                                  ...p,
+                                  comments: [formattedComment, ...(p.comments || [])],
+                                  comments_count: (p.comments_count || 0) + 1,
+                              }
+                            : p,
+                    ),
+                );
+            } else {
+                setRecentPosts((prev) =>
+                    prev.map((p) =>
+                        p.id === postId
+                            ? {
+                                  ...p,
+                                  comments: [formattedComment, ...(p.comments || [])],
+                                  comments_count: (p.comments_count || 0) + 1,
+                              }
+                            : p,
+                    ),
+                );
+            }
+            setCommentText("");
+            setShowComments(postId);
+            return true;
         }
-        setCommentText("");
-        setShowComments(postId);
-      }
+        return false;
     } catch (error) {
-      console.error("Error adding comment:", error);
+        console.error("Error adding comment:", error);
+        return false;
     } finally {
-      setCommentLoading(false);
+        setCommentLoading(false);
     }
-  };
+};
 
   const markNotificationAsRead = async (notificationId: string) => {
     try {

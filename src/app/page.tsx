@@ -1,4 +1,3 @@
-// src/app/page.tsx
 'use client'
 
 import Link from "next/link";
@@ -22,8 +21,6 @@ interface BlogPost {
     master_id: string;
     master_name: string;
     master_avatar: string;
-    author_name: string;
-    author_avatar?: string;
     likes_count: number;
     comments_count: number;
     is_liked: boolean;
@@ -43,8 +40,6 @@ export default function HomePage() {
     const [recentPosts, setRecentPosts] = useState<BlogPost[]>([])
     const [loadingPosts, setLoadingPosts] = useState(true)
     const [showComments, setShowComments] = useState<string | null>(null)
-    const [commentLoading, setCommentLoading] = useState(false)
-    const [isMobile, setIsMobile] = useState(false)
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768)
@@ -116,7 +111,6 @@ export default function HomePage() {
 
         if (!text.trim()) return false
 
-        setCommentLoading(true)
         try {
             const response = await fetch(`/api/blog/posts/${postId}/comment`, {
                 method: 'POST',
@@ -125,13 +119,15 @@ export default function HomePage() {
             })
 
             if (response.ok) {
-                const newComment = await response.json()
+                const data = await response.json()
+                const newComment = data.comment || data
+                
                 setRecentPosts(prev => prev.map(p =>
                     p.id === postId
                         ? {
                             ...p,
                             comments: [newComment, ...(p.comments || [])],
-                            comments_count: p.comments_count + 1
+                            comments_count: (p.comments_count || 0) + 1
                         }
                         : p
                 ))
@@ -142,9 +138,17 @@ export default function HomePage() {
         } catch (error) {
             console.error('Error adding comment:', error)
             return false
-        } finally {
-            setCommentLoading(false)
         }
+    }
+
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString)
+        const now = new Date()
+        const diff = Math.floor((now.getTime() - date.getTime()) / 1000 / 60 / 60)
+        
+        if (diff < 1) return 'только что'
+        if (diff < 24) return `${diff} ч назад`
+        return date.toLocaleDateString('ru-RU')
     }
 
     if (isMaster) {
@@ -240,16 +244,37 @@ export default function HomePage() {
                     </div>
                 ) : (
                     <div className="space-y-6 flex flex-col items-center px-4">
-                        {Array.isArray(recentPosts) && recentPosts.map((post) => (
-                            <BlogPostCard
-                                key={post.id}
-                                post={post}
-                                onLike={handleLike}
-                                onComment={handleComment}
-                                showComments={showComments === post.id}
-                                variant="default"
-                            />
-                        ))}
+                        {recentPosts.map((post) => {
+                            const normalizedPost = {
+                                id: post.id,
+                                title: post.title,
+                                content: post.content,
+                                excerpt: post.excerpt,
+                                images: post.images,
+                                main_image_url: post.main_image_url,
+                                created_at: post.created_at,
+                                views_count: post.views_count,
+                                likes_count: post.likes_count,
+                                comments_count: post.comments_count,
+                                author_name: post.master_name,
+                                author_avatar: post.master_avatar,
+                                master_id: post.master_id,
+                                master_name: post.master_name,
+                                master_avatar: post.master_avatar,
+                                is_liked: post.is_liked,
+                                comments: post.comments || [],
+                            };
+                            return (
+                                <BlogPostCard
+                                    key={post.id}
+                                    post={normalizedPost}
+                                    onLike={handleLike}
+                                    onComment={handleComment}
+                                    showComments={showComments === post.id}
+                                    variant="default"
+                                />
+                            );
+                        })}
                     </div>
                 )}
 
