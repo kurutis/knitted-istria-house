@@ -1,4 +1,3 @@
-// app/api/blog/posts/[id]/comments/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -78,7 +77,7 @@ export async function POST(
 
         const now = new Date().toISOString();
 
-        // Вставляем комментарий - указываем только существующие поля
+        // Вставляем комментарий - только поля, которые есть в таблице
         const { data: newComment, error: insertError } = await supabase
             .from('blog_comments')
             .insert({
@@ -86,8 +85,8 @@ export async function POST(
                 author_id: session.user.id,
                 content: sanitizedContent,
                 created_at: now,
-                updated_at: now,
                 status: 'approved'
+                // updated_at не вставляем - пусть будет NULL
             })
             .select()
             .single();
@@ -109,23 +108,19 @@ export async function POST(
         invalidateCache(`blog_posts_${id}`);
         invalidateCache(/^blog_posts_list/);
 
-        // Получаем имя пользователя для ответа
+        // Получаем имя пользователя из профиля
         let userName = session.user.name || session.user.email?.split('@')[0] || 'Пользователь';
         let userAvatar = null;
         
-        try {
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('full_name, avatar_url')
-                .eq('user_id', session.user.id)
-                .maybeSingle();
-            
-            if (profile) {
-                userName = profile.full_name || userName;
-                userAvatar = profile.avatar_url;
-            }
-        } catch (err) {
-            // Игнорируем ошибку получения профиля
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, avatar_url')
+            .eq('user_id', session.user.id)
+            .maybeSingle();
+        
+        if (profile) {
+            userName = profile.full_name || userName;
+            userAvatar = profile.avatar_url;
         }
 
         // Уведомляем автора поста
@@ -208,14 +203,10 @@ export async function GET(
 
         // Получаем данные авторов комментариев из profiles
         const authorIds = [...new Set(comments.map(c => c.author_id))];
-        const { data: profiles, error: profilesError } = await supabase
+        const { data: profiles } = await supabase
             .from('profiles')
             .select('user_id, full_name, avatar_url')
             .in('user_id', authorIds);
-
-        if (profilesError) {
-            logError('Error fetching profiles', profilesError);
-        }
 
         const profileMap = new Map();
         profiles?.forEach(profile => {
