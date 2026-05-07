@@ -40,6 +40,7 @@ export default function HomePage() {
     const [recentPosts, setRecentPosts] = useState<BlogPost[]>([])
     const [loadingPosts, setLoadingPosts] = useState(true)
     const [showComments, setShowComments] = useState<string | null>(null)
+    const [isMobile, setIsMobile] = useState(false)  // Добавьте эту строку
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768)
@@ -139,16 +140,6 @@ export default function HomePage() {
             console.error('Error adding comment:', error)
             return false
         }
-    }
-
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString)
-        const now = new Date()
-        const diff = Math.floor((now.getTime() - date.getTime()) / 1000 / 60 / 60)
-        
-        if (diff < 1) return 'только что'
-        if (diff < 24) return `${diff} ч назад`
-        return date.toLocaleDateString('ru-RU')
     }
 
     if (isMaster) {
