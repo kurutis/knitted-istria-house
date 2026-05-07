@@ -71,13 +71,15 @@ export default function BlogPostCard({
   const [internalShowComments, setInternalShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [commentLoading, setCommentLoading] = useState(false);
-  const [localPost, setLocalPost] = useState(post);
+  
+  // Локальные состояния для UI
   const [isLiked, setIsLiked] = useState(post.is_liked || false);
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
   const [comments, setComments] = useState(post.comments || []);
 
   const showCommentsState = externalShowComments !== undefined ? externalShowComments : internalShowComments;
+  
   const setShowComments = (value: boolean) => {
     if (externalShowComments === undefined) {
       setInternalShowComments(value);
@@ -92,13 +94,16 @@ export default function BlogPostCard({
     }
     
     // Оптимистичное обновление
-    setIsLiked(!isLiked);
-    setLikesCount(isLiked ? likesCount - 1 : likesCount + 1);
+    const newIsLiked = !isLiked;
+    const newLikesCount = newIsLiked ? likesCount + 1 : likesCount - 1;
+    
+    setIsLiked(newIsLiked);
+    setLikesCount(newLikesCount);
     
     await onLike(post.id);
   };
 
-  const handleComment = async () => {
+  const handleCommentSubmit = async () => {
     if (!onComment) return;
     if (!session) {
       window.location.href = "/auth/signin?callbackUrl=/blog";
@@ -110,20 +115,23 @@ export default function BlogPostCard({
     try {
       const success = await onComment(post.id, commentText);
       if (success) {
+        // Получаем имя пользователя
+        const userName = session.user?.name || session.user?.email?.split('@')[0] || "Пользователь";
+        const userAvatar = session.user?.image || undefined;
+        
+        // Добавляем комментарий в локальное состояние
+        const newComment = {
+          id: Date.now().toString(),
+          content: commentText,
+          created_at: new Date().toISOString(),
+          author_name: userName,
+          author_avatar: userAvatar,
+        };
+        
+        setComments([newComment, ...comments]);
+        setCommentsCount(commentsCount + 1);
         setCommentText("");
         setShowComments(true);
-        setCommentsCount(commentsCount + 1);
-        // Добавляем новый комментарий в локальное состояние
-        setComments([
-          {
-            id: Date.now().toString(),
-            content: commentText,
-            created_at: new Date().toISOString(),
-            author_name: session.user?.name || "Пользователь",
-            author_avatar: session.user?.image ? session.user.image : undefined,
-          },
-          ...comments
-        ]);
       }
     } catch (error) {
       console.error("Error in comment:", error);
@@ -132,14 +140,13 @@ export default function BlogPostCard({
     }
   };
 
-  // Получение массива URL изображений для MediaGallery
   const getGalleryImages = () => {
-    const imageUrls = (localPost.images || [])
+    const imageUrls = (post.images || [])
       .map(img => getImageUrl(img))
       .filter(Boolean);
     
-    if (localPost.main_image_url && !imageUrls.includes(localPost.main_image_url)) {
-      return [localPost.main_image_url, ...imageUrls];
+    if (post.main_image_url && !imageUrls.includes(post.main_image_url)) {
+      return [post.main_image_url, ...imageUrls];
     }
     
     return imageUrls;
@@ -155,7 +162,7 @@ export default function BlogPostCard({
         <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-100 mb-4">
           <Image
             src={galleryImages[0]}
-            alt={localPost.title}
+            alt={post.title}
             fill
             className="object-cover hover:scale-105 transition-transform duration-300"
           />
@@ -176,7 +183,7 @@ export default function BlogPostCard({
           images={mediaGalleryImages}
           mainImageUrl={galleryImages[0]}
           video={null}
-          title={localPost.title}
+          title={post.title}
         />
       </div>
     );
@@ -192,10 +199,11 @@ export default function BlogPostCard({
         exit={{ opacity: 0, height: 0 }}
         className="mt-4 pt-4 border-t bg-gray-50 rounded-xl p-4 overflow-hidden"
       >
+        {/* Форма добавления комментария */}
         {session && onComment && (
           <div className="flex gap-3 mb-4">
             <div className="w-8 h-8 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-              {session.user.name?.charAt(0).toUpperCase() || "U"}
+              {session.user?.name?.charAt(0).toUpperCase() || "U"}
             </div>
             <div className="flex-1">
               <textarea
@@ -206,7 +214,7 @@ export default function BlogPostCard({
                 className="w-full p-3 rounded-xl bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300"
               />
               <button
-                onClick={handleComment}
+                onClick={handleCommentSubmit}
                 disabled={commentLoading || !commentText.trim()}
                 className="mt-2 px-5 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl text-sm hover:shadow-lg transition-all duration-300 disabled:opacity-50"
               >
@@ -216,6 +224,7 @@ export default function BlogPostCard({
           </div>
         )}
 
+        {/* Список комментариев */}
         <div className="space-y-3 max-h-96 overflow-y-auto">
           {comments.length === 0 ? (
             <p className="text-gray-400 text-sm text-center py-4">
@@ -260,46 +269,42 @@ export default function BlogPostCard({
         <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
           <span>❤️ {likesCount}</span>
           <span>💬 {commentsCount}</span>
-          <span>👁️ {localPost.views_count}</span>
+          <span>👁️ {post.views_count}</span>
         </div>
       );
     }
 
     return (
       <div className="flex items-center gap-6 pt-4 mt-4 border-t border-gray-100">
-        {onLike && (
-          <AnimatedButton
-            icon={
-              <svg className="w-6 h-6" viewBox="0 0 24 24" fill={isLiked ? "#D97C8E" : "none"} stroke={isLiked ? "#D97C8E" : "#9CA3AF"} strokeWidth="1.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-              </svg>
-            }
-            count={likesCount}
-            isActive={isLiked}
-            onClick={handleLike}
-            activeColor="text-firm-pink"
-          />
-        )}
+        <AnimatedButton
+          icon={
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill={isLiked ? "#D97C8E" : "none"} stroke={isLiked ? "#D97C8E" : "#9CA3AF"} strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+            </svg>
+          }
+          count={likesCount}
+          isActive={isLiked}
+          onClick={handleLike}
+          activeColor="text-firm-pink"
+        />
 
-        {onComment && (
-          <AnimatedButton
-            icon={
-              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke={showCommentsState ? "#F97316" : "#9CA3AF"} strokeWidth="1.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-              </svg>
-            }
-            count={commentsCount}
-            isActive={showCommentsState}
-            onClick={() => setShowComments(!showCommentsState)}
-            activeColor="text-firm-orange"
-          />
-        )}
+        <AnimatedButton
+          icon={
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke={showCommentsState ? "#F97316" : "#9CA3AF"} strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            </svg>
+          }
+          count={commentsCount}
+          isActive={showCommentsState}
+          onClick={() => setShowComments(!showCommentsState)}
+          activeColor="text-firm-orange"
+        />
 
         {isOwner && (
           <div className="flex gap-2 ml-auto">
             {onEdit && (
               <button
-                onClick={() => onEdit(localPost.id)}
+                onClick={() => onEdit(post.id)}
                 className="text-gray-500 hover:text-firm-orange transition"
               >
                 ✏️ Редактировать
@@ -307,7 +312,7 @@ export default function BlogPostCard({
             )}
             {onDelete && (
               <button
-                onClick={() => onDelete(localPost.id)}
+                onClick={() => onDelete(post.id)}
                 className="text-gray-500 hover:text-red-500 transition"
               >
                 🗑️ Удалить
@@ -322,7 +327,7 @@ export default function BlogPostCard({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
           </svg>
-          {localPost.views_count}
+          {post.views_count}
         </span>
       </div>
     );
@@ -337,35 +342,35 @@ export default function BlogPostCard({
     >
       <div className="max-w-3xl mx-auto">
         {/* Автор */}
-        <Link href={`/masters/${localPost.master_id}`} className="flex items-center gap-3 group mb-4">
+        <Link href={`/masters/${post.master_id}`} className="flex items-center gap-3 group mb-4">
           <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden">
-            {localPost.author_avatar ? (
-              <Image src={localPost.author_avatar} alt={localPost.author_name} width={48} height={48} className="w-full h-full object-cover" />
+            {post.author_avatar ? (
+              <Image src={post.author_avatar} alt={post.author_name} width={48} height={48} className="w-full h-full object-cover" />
             ) : (
-              <span className="text-lg">{localPost.author_name?.charAt(0).toUpperCase() || "М"}</span>
+              <span className="text-lg">{post.author_name?.charAt(0).toUpperCase() || "М"}</span>
             )}
           </div>
           <div>
-            <p className="font-semibold group-hover:text-firm-orange transition-colors">{localPost.author_name}</p>
-            <p className="text-xs text-gray-400">{formatDate(localPost.created_at)}</p>
+            <p className="font-semibold group-hover:text-firm-orange transition-colors">{post.author_name}</p>
+            <p className="text-xs text-gray-400">{formatDate(post.created_at)}</p>
           </div>
         </Link>
 
         {/* Заголовок */}
         <h3 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-3 hover:text-firm-orange transition-colors">
-          <Link href={`/blog/${localPost.id}`}>{localPost.title}</Link>
+          <Link href={`/blog/${post.id}`}>{post.title}</Link>
         </h3>
 
-        {/* Изображения с MediaGallery */}
+        {/* Изображения */}
         {renderPostImages()}
 
         {/* Контент */}
         <p className="text-gray-600 mt-4 line-clamp-3">
-          {localPost.excerpt || localPost.content?.substring(0, 300)}...
+          {post.excerpt || post.content?.substring(0, 300)}...
         </p>
 
         {/* Кнопка "Читать полностью" */}
-        <Link href={`/blog/${localPost.id}`} className="text-firm-orange hover:underline text-sm mt-3 inline-flex items-center gap-1 group">
+        <Link href={`/blog/${post.id}`} className="text-firm-orange hover:underline text-sm mt-3 inline-flex items-center gap-1 group">
           Читать полностью
           <span className="inline-block">→</span>
         </Link>
