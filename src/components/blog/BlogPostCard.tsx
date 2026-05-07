@@ -301,79 +301,78 @@ export default function BlogPostCard({
     );
   };
 
-  const renderActions = () => {
-    console.log("🎯 renderActions вызван, showCommentsState:", showCommentsState, "commentsCount:", commentsCount);
-    if (variant === "compact") {
-      return (
-        <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
-          <span>❤️ {likesCount}</span>
-          <span>💬 {commentsCount}</span>
-          <span>👁️ {post.views_count}</span>
-        </div>
-      );
-    }
-
+ const renderActions = () => {
+  if (variant === "compact") {
     return (
-      <div className="flex items-center gap-6 pt-4 mt-4 border-t border-gray-100">
-        <AnimatedButton
-          icon={
-            <svg className="w-6 h-6" viewBox="0 0 24 24" fill={isLiked ? "#D97C8E" : "none"} stroke={isLiked ? "#D97C8E" : "#9CA3AF"} strokeWidth="1.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-            </svg>
-          }
-          count={likesCount}
-          isActive={isLiked}
-          onClick={handleLike}
-          activeColor="text-firm-pink"
-        />
-
-        <AnimatedButton
-            icon={
-                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke={showCommentsState ? "#F97316" : "#9CA3AF"} strokeWidth="1.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-                </svg>
-            }
-            count={commentsCount}
-            isActive={showCommentsState}
-            onClick={() => {
-                console.log("🔘 КНОПКА КОММЕНТАРИЕВ НАЖАТА!");
-                setShowComments(!showCommentsState);
-            }}
-            activeColor="text-firm-orange"
-            />
-
-        {isOwner && (
-          <div className="flex gap-2 ml-auto">
-            {onEdit && (
-              <button
-                onClick={() => onEdit(post.id)}
-                className="text-gray-500 hover:text-firm-orange transition"
-              >
-                ✏️ Редактировать
-              </button>
-            )}
-            {onDelete && (
-              <button
-                onClick={() => onDelete(post.id)}
-                className="text-gray-500 hover:text-red-500 transition"
-              >
-                🗑️ Удалить
-              </button>
-            )}
-          </div>
-        )}
-
-        <div className="flex-1"></div>
-        <span className="text-sm text-gray-400 flex items-center gap-1">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-          </svg>
-          {post.views_count}
-        </span>
+      <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
+        <span>❤️ {likesCount}</span>
+        <span>💬 {commentsCount}</span>
+        <span>👁️ {post.views_count}</span>
       </div>
     );
-  };
+  }
+
+  return (
+    <div className="flex items-center gap-6 pt-4 mt-4 border-t border-gray-100">
+      {/* Кнопка лайка */}
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          handleLike();
+        }}
+        className={`flex items-center gap-2 transition-all duration-300 ${
+          isLiked ? 'text-firm-pink' : 'text-gray-500'
+        } hover:text-firm-pink`}
+      >
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill={isLiked ? "#D97C8E" : "none"} stroke={isLiked ? "#D97C8E" : "currentColor"} strokeWidth="1.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+        </svg>
+        <span className="text-gray-600 text-sm">{likesCount}</span>
+      </button>
+
+      {/* Кнопка комментариев */}
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          console.log("Comment button clicked!");
+          setShowComments(!showCommentsState);
+        }}
+        className={`flex items-center gap-2 transition-all duration-300 ${
+          showCommentsState ? 'text-firm-orange' : 'text-gray-500'
+        } hover:text-firm-orange`}
+      >
+        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+        </svg>
+        <span className="text-gray-600 text-sm">{commentsCount}</span>
+      </button>
+
+      {isOwner && (
+        <div className="flex gap-2 ml-auto">
+          {onEdit && (
+            <button onClick={() => onEdit(post.id)} className="text-gray-500 hover:text-firm-orange transition">
+              ✏️ Редактировать
+            </button>
+          )}
+          {onDelete && (
+            <button onClick={() => onDelete(post.id)} className="text-gray-500 hover:text-red-500 transition">
+              🗑️ Удалить
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className="flex-1"></div>
+      <span className="text-sm text-gray-400 flex items-center gap-1">
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+        </svg>
+        {post.views_count}
+      </span>
+    </div>
+  );
+};
 
   return (
     <motion.div
