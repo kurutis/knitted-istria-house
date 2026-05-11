@@ -642,7 +642,30 @@ export default function BlogPage() {
                   master_name: post.master_name,
                   master_avatar: post.master_avatar,
                   is_liked: post.is_liked || false,
-                  comments: ("comments" in post ? post.comments : []) || [],
+                  comments: ("comments" in post && post.comments
+                    ? post.comments
+                    : []
+                  ).map(
+                    (comment: {
+                      id: string;
+                      content: string;
+                      created_at: string;
+                      updated_at?: string;
+                      is_edited?: boolean;
+                      author_id?: string;
+                      author_name: string;
+                      author_avatar?: string;
+                    }) => ({
+                      id: comment.id,
+                      content: comment.content,
+                      created_at: comment.created_at,
+                      updated_at: comment.updated_at || comment.created_at,
+                      is_edited: comment.is_edited || false,
+                      author_id: comment.author_id || "",
+                      author_name: comment.author_name,
+                      author_avatar: comment.author_avatar,
+                    }),
+                  ),
                 };
 
                 return (
