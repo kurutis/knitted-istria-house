@@ -30,6 +30,9 @@ export interface BlogPostCardProps {
       id: string;
       content: string;
       created_at: string;
+      updated_at?: string;
+      is_edited?: boolean;
+      author_id: string;
       author_name: string;
       author_avatar?: string;
     }>;
@@ -72,6 +75,11 @@ export default function BlogPostCard({
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
   const [comments, setComments] = useState(post.comments || []);
+  
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentText, setEditingCommentText] = useState("");
+  const [updatingComment, setUpdatingComment] = useState(false);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
 
   useEffect(() => {
     if (externalShowComments !== undefined) {
@@ -80,23 +88,38 @@ export default function BlogPostCard({
   }, [externalShowComments]);
 
   useEffect(() => {
-  if (showCommentsState) {
-    const fetchComments = async () => {
-      try {
-        const response = await fetch(`/api/blog/posts/${post.id}/comments`);
-        if (response.ok) {
-          const data = await response.json();
-          const freshComments = data.comments || data;
-          setComments(freshComments);
-          setCommentsCount(freshComments.length);
+    if (showCommentsState) {
+      fetchComments();
+    }
+  }, [showCommentsState, post.id]);
+
+  const fetchComments = async () => {
+    try {
+      const response = await fetch(`/api/blog/posts/${post.id}/comments`);
+      if (response.ok) {
+        const data = await response.json();
+        let freshComments: {
+          id: string;
+          content: string;
+          created_at: string;
+          updated_at?: string;
+          is_edited?: boolean;
+          author_id: string;
+          author_name: string;
+          author_avatar?: string;
+        }[] = [];
+        if (data.comments && Array.isArray(data.comments)) {
+          freshComments = data.comments;
+        } else if (Array.isArray(data)) {
+          freshComments = data;
         }
-      } catch (error) {
-        console.error("Error fetching comments:", error);
+        setComments(freshComments);
+        setCommentsCount(freshComments.length);
       }
-    };
-    fetchComments();
-  }
-}, [showCommentsState, post.id]);
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+    }
+  };
 
   const handleLike = async () => {
     if (!session) {
@@ -131,62 +154,85 @@ export default function BlogPostCard({
   };
 
   const handleCommentSubmit = async () => {
-  if (!session) {
-    window.location.href = "/auth/signin?callbackUrl=/blog";
-    return;
-  }
-  if (!commentText.trim()) return;
-
-  setCommentLoading(true);
-  try {
-    const response = await fetch(`/api/blog/posts/${post.id}/comment`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: commentText }),
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const newComment = data.comment || data;
-      
-      // Получаем обновленный список комментариев с сервера
-      const commentsResponse = await fetch(`/api/blog/posts/${post.id}/comments`);
-      if (commentsResponse.ok) {
-        const commentsData = await commentsResponse.json();
-        const freshComments = commentsData.comments || commentsData;
-        setComments(freshComments);
-        setCommentsCount(freshComments.length);
-      } else {
-        // Fallback: добавляем комментарий локально
-        const userName = session.user?.name || session.user?.email?.split('@')[0] || "Пользователь";
-        const userAvatar = session.user?.image || undefined;
-        
-        const formattedComment = {
-          id: newComment.id || Date.now().toString(),
-          content: newComment.content || commentText,
-          created_at: newComment.created_at || new Date().toISOString(),
-          author_name: newComment.author_name || userName,
-          author_avatar: newComment.author_avatar || userAvatar,
-        };
-        
-        setComments([formattedComment, ...comments]);
-        setCommentsCount(commentsCount + 1);
-      }
-      
-      setCommentText("");
-      setShowCommentsState(true);
-    } else {
-      const error = await response.json();
-      console.error("Error adding comment:", error);
-      alert(error.error || "Ошибка при добавлении комментария");
+    if (!session) {
+      window.location.href = "/auth/signin?callbackUrl=/blog";
+      return;
     }
-  } catch (error) {
-    console.error("Error in comment:", error);
-    alert("Ошибка при добавлении комментария");
-  } finally {
-    setCommentLoading(false);
-  }
-};
+    if (!commentText.trim()) return;
+
+    setCommentLoading(true);
+    try {
+      const response = await fetch(`/api/blog/posts/${post.id}/comment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: commentText }),
+      });
+
+      if (response.ok) {
+        await fetchComments();
+        setCommentText("");
+        setShowCommentsState(true);
+      } else {
+        const error = await response.json();
+        console.error("Error adding comment:", error);
+        alert(error.error || "Ошибка при добавлении комментария");
+      }
+    } catch (error) {
+      console.error("Error in comment:", error);
+      alert("Ошибка при добавлении комментария");
+    } finally {
+      setCommentLoading(false);
+    }
+  };
+
+  const handleUpdateComment = async (commentId: string) => {
+    if (!editingCommentText.trim()) return;
+
+    setUpdatingComment(true);
+    try {
+      const response = await fetch(`/api/blog/comments/${commentId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: editingCommentText }),
+      });
+
+      if (response.ok) {
+        await fetchComments();
+        setEditingCommentId(null);
+        setEditingCommentText("");
+      } else {
+        const error = await response.json();
+        alert(error.error || "Ошибка при обновлении комментария");
+      }
+    } catch (error) {
+      console.error("Error updating comment:", error);
+      alert("Ошибка при обновлении комментария");
+    } finally {
+      setUpdatingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm("Удалить комментарий?")) return;
+
+    setDeletingCommentId(commentId);
+    try {
+      const response = await fetch(`/api/blog/comments/${commentId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        await fetchComments();
+      } else {
+        alert("Ошибка при удалении комментария");
+      }
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      alert("Ошибка при удалении комментария");
+    } finally {
+      setDeletingCommentId(null);
+    }
+  };
 
   const getGalleryImages = () => {
     const imageUrls = (post.images || [])
@@ -278,7 +324,7 @@ export default function BlogPostCard({
             </p>
           ) : (
             comments.map((comment) => (
-              <div key={comment.id} className="flex gap-3">
+              <div key={comment.id} className="flex gap-3 group">
                 <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 overflow-hidden">
                   {comment.author_avatar ? (
                     <Image
@@ -294,12 +340,74 @@ export default function BlogPostCard({
                 </div>
                 <div className="flex-1">
                   <div className="bg-white rounded-xl p-3 shadow-sm">
-                    <p className="font-semibold text-sm">{comment.author_name}</p>
-                    <p className="text-gray-700 text-sm mt-1">{comment.content}</p>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-semibold text-sm">{comment.author_name}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {formatDate(comment.created_at)}
+                          {comment.is_edited && (
+                            <span className="ml-2 text-gray-400 text-xs">(ред.)</span>
+                          )}
+                        </p>
+                      </div>
+                      
+                      {session?.user?.id === comment.author_id && (
+                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition">
+                          {editingCommentId === comment.id ? (
+                            <>
+                              <button
+                                onClick={() => handleUpdateComment(comment.id)}
+                                disabled={updatingComment}
+                                className="text-xs text-green-600 hover:text-green-700"
+                              >
+                                {updatingComment ? "..." : "💾"}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditingCommentId(null);
+                                  setEditingCommentText("");
+                                }}
+                                className="text-xs text-gray-500 hover:text-gray-700"
+                              >
+                                ✕
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setEditingCommentId(comment.id);
+                                  setEditingCommentText(comment.content);
+                                }}
+                                className="text-xs text-blue-500 hover:text-blue-700"
+                              >
+                                ✏️
+                              </button>
+                              <button
+                                onClick={() => handleDeleteComment(comment.id)}
+                                disabled={deletingCommentId === comment.id}
+                                className="text-xs text-red-500 hover:text-red-700"
+                              >
+                                🗑️
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {editingCommentId === comment.id ? (
+                      <textarea
+                        value={editingCommentText}
+                        onChange={(e) => setEditingCommentText(e.target.value)}
+                        className="w-full p-2 mt-2 rounded-lg bg-white border border-gray-200 outline-firm-orange text-sm"
+                        rows={3}
+                        autoFocus
+                      />
+                    ) : (
+                      <p className="text-gray-700 text-sm mt-2">{comment.content}</p>
+                    )}
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {formatDate(comment.created_at)}
-                  </p>
                 </div>
               </div>
             ))
@@ -342,10 +450,7 @@ export default function BlogPostCard({
           }
           count={commentsCount}
           isActive={showCommentsState}
-          onClick={() => {
-            console.log("Comments button clicked");
-            setShowCommentsState(!showCommentsState);
-          }}
+          onClick={() => setShowCommentsState(!showCommentsState)}
           activeColor="text-firm-orange"
         />
 
