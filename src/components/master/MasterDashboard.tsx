@@ -15,6 +15,17 @@ import AddClassModal from "@/components/modals/AddClassModal";
 // Импорт остальных компонентов
 import { AnimatedButton } from "@/components/ui/AnimatedButton";
 
+interface ApiCommentData {
+  id: string;
+  content: string;
+  created_at: string;
+  updated_at?: string;
+  is_edited?: boolean;
+  author_id?: string;
+  author_name: string;
+  author_avatar?: string;
+}
+
 interface ApiPostData {
   id: string;
   title?: string;
@@ -40,13 +51,7 @@ interface ApiPostData {
     | string[];
   main_image_url?: string;
   is_liked?: boolean;
-  comments?: Array<{
-    id: string;
-    content: string;
-    created_at: string;
-    author_name: string;
-    author_avatar?: string;
-  }>;
+  comments?: ApiCommentData[];
   status?: string;
   stats?: {
     comments_count: number;
@@ -88,13 +93,7 @@ interface BlogPost {
   master_name?: string;
   master_avatar?: string;
   is_liked?: boolean;
-  comments?: Array<{
-    id: string;
-    content: string;
-    created_at: string;
-    author_name: string;
-    author_avatar?: string;
-  }>;
+  comments?: ApiCommentData[];
 }
 
 interface Notification {
@@ -133,6 +132,38 @@ const getImageUrl = (
   return img.url || img.image_url || "";
 };
 
+// Функция нормализации поста для BlogPostCard
+const normalizePostForCard = (post: BlogPost) => {
+  return {
+    id: post.id,
+    title: post.title,
+    content: post.content,
+    excerpt: post.excerpt || post.content?.substring(0, 200) || "",
+    images: post.images || [],
+    main_image_url: post.main_image_url,
+    created_at: post.created_at,
+    views_count: post.views_count,
+    likes_count: post.likes_count,
+    comments_count: post.comments_count,
+    author_name: post.author_name,
+    author_avatar: post.author_avatar,
+    master_id: post.master_id,
+    master_name: post.master_name,
+    master_avatar: post.master_avatar,
+    is_liked: post.is_liked || false,
+    comments: (post.comments || []).map((comment) => ({
+      id: comment.id,
+      content: comment.content,
+      created_at: comment.created_at,
+      updated_at: comment.updated_at || comment.created_at,
+      is_edited: comment.is_edited || false,
+      author_id: comment.author_id || "",
+      author_name: comment.author_name,
+      author_avatar: comment.author_avatar,
+    })),
+  };
+};
+
 export default function MasterDashboard({
   session,
 }: {
@@ -157,8 +188,6 @@ export default function MasterDashboard({
   const [loading, setLoading] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showComments, setShowComments] = useState<string | null>(null);
-  const [commentText, setCommentText] = useState("");
-  const [commentLoading, setCommentLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"recent" | "my">("recent");
 
   // Состояния для модальных окон
@@ -193,37 +222,26 @@ export default function MasterDashboard({
         return;
       }
 
-      // Запрос профиля (работает)
+      // Запрос профиля
       const profileRes = await fetch("/api/master/profile", {
         credentials: "include",
       });
       const profileResponse = await profileRes.json();
 
-      // Запрос свежих постов (работает)
+      // Запрос свежих постов
       const recentPostsRes = await fetch("/api/blog/posts?limit=4", {
         credentials: "include",
       });
       const recentPostsData = await recentPostsRes.json();
 
-      // Запрос моих постов с обработкой ошибки
+      // Запрос моих постов
       let myPostsArray: BlogPost[] = [];
       try {
         const myPostsRes = await fetch("/api/master/blog", {
           credentials: "include",
         });
 
-        if (myPostsRes.status === 401) {
-          console.error(
-            "Ошибка 401: Не авторизован для доступа к /api/master/blog",
-          );
-          // Показываем заглушку
-          myPostsArray = [];
-        } else if (myPostsRes.status === 500) {
-          console.error(
-            "Ошибка 500: Внутренняя ошибка сервера при запросе /api/master/blog",
-          );
-          myPostsArray = [];
-        } else if (myPostsRes.ok) {
+        if (myPostsRes.ok) {
           const myPostsData = await myPostsRes.json();
           if (
             myPostsData &&
@@ -289,7 +307,7 @@ export default function MasterDashboard({
       setRecentPosts(recentPostsArray);
 
       // Обработка моих постов
-      const formattedMyPosts = myPostsArray.map((post: ApiPostData) => ({
+      const formattedMyPosts: BlogPost[] = myPostsArray.map((post: ApiPostData) => ({
         id: post.id,
         title: post.title || "Без названия",
         content: post.content || "",
@@ -304,10 +322,9 @@ export default function MasterDashboard({
         images: post.images || [],
         main_image_url: post.main_image_url || "",
         is_liked: false,
-        comments: [],
+        comments: post.comments || [],
       }));
 
-      console.log("Загружено моих постов:", formattedMyPosts.length);
       setMyPosts(formattedMyPosts);
 
       setStats({
@@ -336,37 +353,6 @@ export default function MasterDashboard({
     }
   };
 
-  const normalizePostForCard = (post: BlogPost) => {
-  return {
-    id: post.id,
-    title: post.title,
-    content: post.content,
-    excerpt: post.excerpt,
-    images: post.images,
-    main_image_url: post.main_image_url,
-    created_at: post.created_at,
-    views_count: post.views_count,
-    likes_count: post.likes_count,
-    comments_count: post.comments_count,
-    author_name: post.author_name,
-    author_avatar: post.author_avatar,
-    master_id: post.master_id,
-    master_name: post.master_name,
-    master_avatar: post.master_avatar,
-    is_liked: post.is_liked,
-    comments: (post.comments || []).map(comment => ({
-      id: comment.id,
-      content: comment.content,
-      created_at: comment.created_at,
-      updated_at: comment.updated_at || comment.created_at,
-      is_edited: comment.is_edited || false,
-      author_id: comment.author_id || '',
-      author_name: comment.author_name,
-      author_avatar: comment.author_avatar,
-    })),
-  };
-};
-
   const loadYarns = async () => {
     try {
       const response = await fetch("/api/catalog/yarn");
@@ -376,119 +362,6 @@ export default function MasterDashboard({
       console.error("Ошибка загрузки пряжи:", error);
     }
   };
-
-  const handleLike = async (postId: string, isFromMyPosts = false) => {
-    if (!session) {
-      window.location.href = "/auth/signin?callbackUrl=/master/dashboard";
-      return;
-    }
-
-    try {
-      const post = isFromMyPosts
-        ? myPosts.find((p) => p.id === postId)
-        : recentPosts.find((p) => p.id === postId);
-      const response = await fetch(`/api/blog/posts/${postId}/like`, {
-        method: post?.is_liked ? "DELETE" : "POST",
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (isFromMyPosts) {
-          setMyPosts((prev) =>
-            prev.map((p) =>
-              p.id === postId
-                ? {
-                    ...p,
-                    is_liked: !p.is_liked,
-                    likes_count: data.likes_count,
-                  }
-                : p,
-            ),
-          );
-        } else {
-          setRecentPosts((prev) =>
-            prev.map((p) =>
-              p.id === postId
-                ? {
-                    ...p,
-                    is_liked: !p.is_liked,
-                    likes_count: data.likes_count,
-                  }
-                : p,
-            ),
-          );
-        }
-      }
-    } catch (error) {
-      console.error("Error toggling like:", error);
-    }
-  };
-
-  const handleComment = async (postId: string, isFromMyPosts = false) => {
-    if (!session) {
-        window.location.href = "/auth/signin?callbackUrl=/master/dashboard";
-        return false;
-    }
-
-    if (!commentText.trim()) return false;
-
-    setCommentLoading(true);
-    try {
-        const response = await fetch(`/api/blog/posts/${postId}/comment`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ content: commentText }),
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            const newComment = data.comment || data;
-
-            const formattedComment = {
-                id: newComment.id,
-                content: newComment.content,
-                created_at: newComment.created_at,
-                author_name: newComment.author_name || session.user?.name || "Пользователь",
-                author_avatar: newComment.author_avatar || "",
-            };
-
-            if (isFromMyPosts) {
-                setMyPosts((prev) =>
-                    prev.map((p) =>
-                        p.id === postId
-                            ? {
-                                  ...p,
-                                  comments: [formattedComment, ...(p.comments || [])],
-                                  comments_count: (p.comments_count || 0) + 1,
-                              }
-                            : p,
-                    ),
-                );
-            } else {
-                setRecentPosts((prev) =>
-                    prev.map((p) =>
-                        p.id === postId
-                            ? {
-                                  ...p,
-                                  comments: [formattedComment, ...(p.comments || [])],
-                                  comments_count: (p.comments_count || 0) + 1,
-                              }
-                            : p,
-                    ),
-                );
-            }
-            setCommentText("");
-            setShowComments(postId);
-            return true;
-        }
-        return false;
-    } catch (error) {
-        console.error("Error adding comment:", error);
-        return false;
-    } finally {
-        setCommentLoading(false);
-    }
-};
 
   const markNotificationAsRead = async (notificationId: string) => {
     try {
@@ -552,17 +425,6 @@ export default function MasterDashboard({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diff = Math.floor((now.getTime() - date.getTime()) / 1000 / 60 / 60);
-
-    if (diff < 1) return "только что";
-    if (diff < 24) return `${diff} ч назад`;
-    return date.toLocaleDateString("ru-RU");
-  };
-
-
   if (loading) {
     return (
       <motion.div
@@ -620,10 +482,7 @@ export default function MasterDashboard({
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Link href="/master/chats" className="relative block">
                   <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
                     <svg
@@ -648,11 +507,7 @@ export default function MasterDashboard({
                 </Link>
               </motion.div>
 
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="relative"
-              >
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="relative">
                 <button
                   onClick={() => setShowNotifications(!showNotifications)}
                   className="relative w-12 h-12 bg-white/20 backdrop-blur rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
@@ -686,9 +541,7 @@ export default function MasterDashboard({
                       className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl z-50 border border-gray-100 overflow-hidden"
                     >
                       <div className="p-4 bg-gradient-to-r from-firm-orange to-firm-pink">
-                        <h3 className="font-semibold text-white">
-                          Уведомления
-                        </h3>
+                        <h3 className="font-semibold text-white">Уведомления</h3>
                       </div>
                       <div className="max-h-96 overflow-y-auto">
                         {notifications.length === 0 ? (
@@ -721,9 +574,9 @@ export default function MasterDashboard({
                                     {notif.message}
                                   </p>
                                   <p className="text-xs text-gray-400 mt-2">
-                                    {new Date(
-                                      notif.created_at,
-                                    ).toLocaleDateString("ru-RU")}
+                                    {new Date(notif.created_at).toLocaleDateString(
+                                      "ru-RU",
+                                    )}
                                   </p>
                                 </div>
                                 {!notif.is_read && (
@@ -880,17 +733,13 @@ export default function MasterDashboard({
                           №{order.order_number}
                         </span>
                       </div>
-                      <p className="font-medium text-lg">
-                        {order.product_title}
-                      </p>
+                      <p className="font-medium text-lg">{order.product_title}</p>
                       <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-500">
                         <span>👤 {order.buyer_name}</span>
                         <span>💰 {order.total_amount.toLocaleString()} ₽</span>
                         <span>
                           📅{" "}
-                          {new Date(order.created_at).toLocaleDateString(
-                            "ru-RU",
-                          )}
+                          {new Date(order.created_at).toLocaleDateString("ru-RU")}
                         </span>
                       </div>
                     </div>
@@ -931,7 +780,11 @@ export default function MasterDashboard({
             <div className="flex gap-6">
               <button
                 onClick={() => setActiveTab("recent")}
-                className={`pb-2 font-['Montserrat_Alternates'] font-medium transition-all duration-300 relative ${activeTab === "recent" ? "text-firm-orange" : "text-gray-500 hover:text-gray-700"}`}
+                className={`pb-2 font-['Montserrat_Alternates'] font-medium transition-all duration-300 relative ${
+                  activeTab === "recent"
+                    ? "text-firm-orange"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
               >
                 Свежие посты
                 {activeTab === "recent" && (
@@ -943,7 +796,11 @@ export default function MasterDashboard({
               </button>
               <button
                 onClick={() => setActiveTab("my")}
-                className={`pb-2 font-['Montserrat_Alternates'] font-medium transition-all duration-300 relative ${activeTab === "my" ? "text-firm-pink" : "text-gray-500 hover:text-gray-700"}`}
+                className={`pb-2 font-['Montserrat_Alternates'] font-medium transition-all duration-300 relative ${
+                  activeTab === "my"
+                    ? "text-firm-pink"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
               >
                 Мои посты
                 {activeTab === "my" && (
@@ -974,10 +831,12 @@ export default function MasterDashboard({
                   recentPosts.map((post) => (
                     <BlogPostCard
                       key={post.id}
-                      post={post}
+                      post={normalizePostForCard(post)}
                       isOwner={true}
                       showComments={showComments === post.id}
-                      onEdit={(postId) => router.push(`/master/blog/${postId}/edit`)}
+                      onEdit={(postId) =>
+                        router.push(`/master/blog/${postId}/edit`)
+                      }
                       onDelete={(postId) => {
                         if (confirm("Удалить пост?")) {
                           fetch(`/api/master/blog/${postId}`, { method: "DELETE" })
@@ -1014,10 +873,12 @@ export default function MasterDashboard({
                   myPosts.map((post) => (
                     <BlogPostCard
                       key={post.id}
-                      post={post}
+                      post={normalizePostForCard(post)}
                       isOwner={true}
                       showComments={showComments === post.id}
-                      onEdit={(postId) => router.push(`/master/blog/${postId}/edit`)}
+                      onEdit={(postId) =>
+                        router.push(`/master/blog/${postId}/edit`)
+                      }
                       onDelete={(postId) => {
                         if (confirm("Удалить пост?")) {
                           fetch(`/api/master/blog/${postId}`, { method: "DELETE" })
@@ -1032,7 +893,6 @@ export default function MasterDashboard({
           </AnimatePresence>
         </motion.div>
 
-        {/* Модальные окна */}
         {/* Модальные окна */}
         <AddProductModal
           isOpen={showAddProductModal}
