@@ -79,6 +79,25 @@ export default function BlogPostCard({
     }
   }, [externalShowComments]);
 
+  useEffect(() => {
+  if (showCommentsState) {
+    const fetchComments = async () => {
+      try {
+        const response = await fetch(`/api/blog/posts/${post.id}/comments`);
+        if (response.ok) {
+          const data = await response.json();
+          const freshComments = data.comments || data;
+          setComments(freshComments);
+          setCommentsCount(freshComments.length);
+        }
+      } catch (error) {
+        console.error("Error fetching comments:", error);
+      }
+    };
+    fetchComments();
+  }
+}, [showCommentsState, post.id]);
+
   const handleLike = async () => {
     if (!session) {
       window.location.href = "/auth/signin?callbackUrl=/blog";
@@ -112,24 +131,33 @@ export default function BlogPostCard({
   };
 
   const handleCommentSubmit = async () => {
-    if (!session) {
-      window.location.href = "/auth/signin?callbackUrl=/blog";
-      return;
-    }
-    if (!commentText.trim()) return;
+  if (!session) {
+    window.location.href = "/auth/signin?callbackUrl=/blog";
+    return;
+  }
+  if (!commentText.trim()) return;
 
-    setCommentLoading(true);
-    try {
-      const response = await fetch(`/api/blog/posts/${post.id}/comment`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: commentText }),
-      });
+  setCommentLoading(true);
+  try {
+    const response = await fetch(`/api/blog/posts/${post.id}/comment`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: commentText }),
+    });
 
-      if (response.ok) {
-        const data = await response.json();
-        const newComment = data.comment || data;
-        
+    if (response.ok) {
+      const data = await response.json();
+      const newComment = data.comment || data;
+      
+      // Получаем обновленный список комментариев с сервера
+      const commentsResponse = await fetch(`/api/blog/posts/${post.id}/comments`);
+      if (commentsResponse.ok) {
+        const commentsData = await commentsResponse.json();
+        const freshComments = commentsData.comments || commentsData;
+        setComments(freshComments);
+        setCommentsCount(freshComments.length);
+      } else {
+        // Fallback: добавляем комментарий локально
         const userName = session.user?.name || session.user?.email?.split('@')[0] || "Пользователь";
         const userAvatar = session.user?.image || undefined;
         
@@ -143,20 +171,22 @@ export default function BlogPostCard({
         
         setComments([formattedComment, ...comments]);
         setCommentsCount(commentsCount + 1);
-        setCommentText("");
-        setShowCommentsState(true);
-      } else {
-        const error = await response.json();
-        console.error("Error adding comment:", error);
-        alert(error.error || "Ошибка при добавлении комментария");
       }
-    } catch (error) {
-      console.error("Error in comment:", error);
-      alert("Ошибка при добавлении комментария");
-    } finally {
-      setCommentLoading(false);
+      
+      setCommentText("");
+      setShowCommentsState(true);
+    } else {
+      const error = await response.json();
+      console.error("Error adding comment:", error);
+      alert(error.error || "Ошибка при добавлении комментария");
     }
-  };
+  } catch (error) {
+    console.error("Error in comment:", error);
+    alert("Ошибка при добавлении комментария");
+  } finally {
+    setCommentLoading(false);
+  }
+};
 
   const getGalleryImages = () => {
     const imageUrls = (post.images || [])
