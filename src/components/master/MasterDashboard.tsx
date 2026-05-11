@@ -336,6 +336,37 @@ export default function MasterDashboard({
     }
   };
 
+  const normalizePostForCard = (post: BlogPost) => {
+  return {
+    id: post.id,
+    title: post.title,
+    content: post.content,
+    excerpt: post.excerpt,
+    images: post.images,
+    main_image_url: post.main_image_url,
+    created_at: post.created_at,
+    views_count: post.views_count,
+    likes_count: post.likes_count,
+    comments_count: post.comments_count,
+    author_name: post.author_name,
+    author_avatar: post.author_avatar,
+    master_id: post.master_id,
+    master_name: post.master_name,
+    master_avatar: post.master_avatar,
+    is_liked: post.is_liked,
+    comments: (post.comments || []).map(comment => ({
+      id: comment.id,
+      content: comment.content,
+      created_at: comment.created_at,
+      updated_at: comment.updated_at || comment.created_at,
+      is_edited: comment.is_edited || false,
+      author_id: comment.author_id || '',
+      author_name: comment.author_name,
+      author_avatar: comment.author_avatar,
+    })),
+  };
+};
+
   const loadYarns = async () => {
     try {
       const response = await fetch("/api/catalog/yarn");
