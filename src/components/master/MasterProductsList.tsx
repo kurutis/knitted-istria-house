@@ -12,6 +12,13 @@ export interface Product {
     views: number
     created_at: string
     status: 'moderation' | 'active' | 'draft' | 'rejected' | 'blocked'
+    description?: string
+    category?: string
+    technique?: string
+    size?: string
+    care_instructions?: string
+    color?: string
+    images?: Array<{ id: string; image_url: string; sort_order: number }>
 }
 
 interface MasterProductsListProps {

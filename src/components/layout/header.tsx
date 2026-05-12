@@ -246,7 +246,7 @@ export default function Header() {
               <Link href="/shopping-cart" className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange">
                 <Image src={cart} alt="Корзина" className="w-5 h-5" />
               </Link>
-              <Link href={isAuthenticated ? (isMaster ? "/master/profile" : "/profile") : "/auth/signin"} className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange">
+              <Link href={isAuthenticated ? "/profile" : "/auth/signin"} className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange">
                 {isLoading ? (
                   <div className="w-6 h-6 rounded-full bg-gray-300 animate-pulse" />
                 ) : isAuthenticated ? (

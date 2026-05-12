@@ -1,3 +1,4 @@
+// src/components/profile/MasterProfile.tsx
 "use client";
 
 import { signOut } from "next-auth/react";
@@ -9,6 +10,11 @@ import { toast, Toaster } from "react-hot-toast";
 import MasterProductsList, {
   Product,
 } from "@/components/master/MasterProductsList";
+import AddProductModal from "@/components/modals/AddProductModal";
+import AddPostModal from "@/components/modals/AddPostModal";
+import AddClassModal from "@/components/modals/AddClassModal";
+import EditProductModal from "@/components/modals/EditProductModal";
+import BlogPostCard from "@/components/blog/BlogPostCard";
 
 interface MasterProfileProps {
   session: {
@@ -147,6 +153,26 @@ interface BlogPostFromApi {
   };
 }
 
+interface CategoryItem {
+  id: number;
+  name: string;
+  subcategories?: CategoryItem[];
+}
+
+interface EditProductData {
+    id: string;
+    title: string;
+    description: string;
+    price: number;
+    category: string;
+    technique: string;
+    size: string;
+    care_instructions: string;
+    color: string;
+    main_image_url?: string;
+    images?: Array<{ id: string; image_url: string; sort_order: number }>;
+}
+
 export default function MasterProfile({ session }: MasterProfileProps) {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isEditing, setIsEditing] = useState(false);
@@ -168,6 +194,17 @@ export default function MasterProfile({ session }: MasterProfileProps) {
       payment_status: string;
     }>;
   } | null>(null);
+
+  // Модальные окна
+  const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [showAddPostModal, setShowAddPostModal] = useState(false);
+  const [showAddClassModal, setShowAddClassModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<EditProductData | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  
+  // Данные для модальных окон
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [yarns, setYarns] = useState<{ id: string; name: string; brand: string }[]>([]);
 
   const [profileData, setProfileData] = useState({
     fullname: "",
@@ -201,6 +238,8 @@ export default function MasterProfile({ session }: MasterProfileProps) {
 
   useEffect(() => {
     fetchMasterData();
+    loadCategories();
+    loadYarns();
   }, []);
 
   const fetchMasterData = async () => {
@@ -341,6 +380,26 @@ export default function MasterProfile({ session }: MasterProfileProps) {
     }
   };
 
+  const loadCategories = async () => {
+    try {
+      const response = await fetch("/api/catalog/categories");
+      const data = await response.json();
+      setCategories(data.categories || []);
+    } catch (error) {
+      console.error("Ошибка загрузки категорий:", error);
+    }
+  };
+
+  const loadYarns = async () => {
+    try {
+      const response = await fetch("/api/catalog/yarn");
+      const data = await response.json();
+      setYarns(data || []);
+    } catch (error) {
+      console.error("Ошибка загрузки пряжи:", error);
+    }
+  };
+
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -367,7 +426,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
       });
 
       if (response.ok) {
-        const data = await response.json();
         setIsEditing(false);
         setAvatarFile(null);
         setAvatarPreview(null);
@@ -408,6 +466,25 @@ export default function MasterProfile({ session }: MasterProfileProps) {
       reader.readAsDataURL(file);
     }
   };
+
+  const handleEditProduct = (product: Product) => {
+  const editProductData: EditProductData = {
+    id: product.id,
+    title: product.title,
+    description: product.description || "",
+    price: product.price,
+    category: product.category || "",
+    technique: product.technique || "",
+    size: product.size || "",
+    care_instructions: product.care_instructions || "",
+    color: product.color || "",
+    main_image_url: product.main_image_url || undefined,
+    images: product.images || [],
+  };
+  setEditingProduct(editProductData);
+  setIsEditModalOpen(true);
+};
+
 
   const handleCancelMasterClass = async (classId: string) => {
     if (!confirm("Отменить мастер-класс? Участники получат уведомление."))
@@ -659,7 +736,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                 </motion.div>
                 <motion.div whileHover={{ scale: 1.05 }} className="text-right">
                   <p className="text-sm text-gray-500">Выручка</p>
-                  <p className="text-3xl font-bold text-firm-green">
+                  <p className="text-3xl font-bold text-green-600">
                     {stats.total_revenue.toLocaleString()} ₽
                   </p>
                 </motion.div>
@@ -749,8 +826,8 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                     { id: "dashboard", icon: "📊", label: "Панель управления" },
                     { id: "products", icon: "🧶", label: "Мои товары", count: products.length },
                     { id: "orders", icon: "📦", label: "Заказы", count: orders.filter(o => o.status === "new").length },
-                    { id: "blog", icon: "✍️", label: "Блог" },
-                    { id: "master-classes", icon: "🎓", label: "Мастер-классы" },
+                    { id: "blog", icon: "✍️", label: "Блог", count: blogPosts.length },
+                    { id: "master-classes", icon: "🎓", label: "Мастер-классы", count: masterClasses.length },
                     { id: "profile", icon: "👤", label: "Профиль" },
                     { id: "settings", icon: "⚙️", label: "Настройки" },
                   ].map((tab) => (
@@ -816,7 +893,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                     </div>
                     <div className="bg-white rounded-xl shadow-md p-4">
                       <p className="text-gray-500 text-sm">Выручка</p>
-                      <p className="text-2xl font-bold text-firm-green">
+                      <p className="text-2xl font-bold text-green-600">
                         {stats.total_revenue.toLocaleString()} ₽
                       </p>
                     </div>
@@ -833,24 +910,24 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                       Быстрые действия
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <Link
-                        href="/master/products/new"
+                      <button
+                        onClick={() => setShowAddProductModal(true)}
                         className="px-4 py-2 bg-firm-orange text-white rounded-lg text-center hover:bg-opacity-90 transition"
                       >
                         + Добавить товар
-                      </Link>
-                      <Link
-                        href="/master/blog/new"
+                      </button>
+                      <button
+                        onClick={() => setShowAddPostModal(true)}
                         className="px-4 py-2 bg-firm-pink text-white rounded-lg text-center hover:bg-opacity-90 transition"
                       >
                         + Новая запись
-                      </Link>
-                      <Link
-                        href="/master/master-classes/new"
+                      </button>
+                      <button
+                        onClick={() => setShowAddClassModal(true)}
                         className="px-4 py-2 border-2 border-firm-orange text-firm-orange rounded-lg text-center hover:bg-firm-orange hover:text-white transition"
                       >
                         + Создать МК
-                      </Link>
+                      </button>
                     </div>
                   </div>
 
@@ -889,19 +966,53 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                     <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
                       Мои товары
                     </h2>
-                    <Link
-                      href="/master/products/new"
+                    <button
+                      onClick={() => setShowAddProductModal(true)}
                       className="px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition"
                     >
                       + Добавить товар
-                    </Link>
+                    </button>
                   </div>
-                  <MasterProductsList
-                    products={products}
-                    onDelete={handleProductDelete}
-                    masterName={profileData.fullname}
-                    loading={loading}
-                  />
+
+                  {products.length === 0 ? (
+                    <div className="text-center py-12 bg-gray-50 rounded-xl">
+                      <p className="text-gray-500">У вас пока нет товаров</p>
+                      <button onClick={() => setShowAddProductModal(true)} className="mt-2 text-firm-orange hover:underline">
+                        Добавить первый товар →
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {products.map((product) => (
+                        <div key={product.id} className="group bg-white rounded-xl overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-300">
+                          <Link href={`/catalog/${product.id}`} className="block">
+                            <div className="aspect-square bg-gray-100 relative overflow-hidden">
+                              {product.main_image_url ? (
+                                <img src={product.main_image_url} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-400">Нет фото</div>
+                              )}
+                            </div>
+                            <div className="p-3">
+                              <h3 className="font-['Montserrat_Alternates'] font-semibold text-sm line-clamp-1">{product.title}</h3>
+                              <p className="text-firm-orange font-bold text-lg mt-1">{product.price.toLocaleString()} ₽</p>
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${product.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                {product.status === 'active' ? 'Активен' : 'Скрыт'}
+                              </span>
+                            </div>
+                          </Link>
+                          <div className="p-3 pt-0 flex gap-2">
+                            <button onClick={() => handleEditProduct(product)} className="flex-1 px-3 py-1.5 text-sm bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition">
+                              ✏️ Редактировать
+                            </button>
+                            <button onClick={() => handleProductDelete(product.id)} className="flex-1 px-3 py-1.5 text-sm border border-red-500 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition">
+                              🗑️ Удалить
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </motion.div>
               )}
 
@@ -964,7 +1075,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                 </motion.div>
               )}
 
-              {/* Blog Tab - упрощенный */}
+              {/* Blog Tab */}
               {activeTab === "blog" && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -972,37 +1083,64 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   className="bg-white rounded-2xl shadow-xl p-6"
                 >
                   <div className="flex justify-between items-center mb-6">
-                    <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">Мой блог</h2>
-                    <Link href="/master/blog/new" className="px-4 py-2 bg-firm-pink text-white rounded-xl">
+                    <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl bg-gradient-to-r from-firm-pink to-firm-orange bg-clip-text text-transparent">
+                      Мой блог
+                    </h2>
+                    <button
+                      onClick={() => setShowAddPostModal(true)}
+                      className="px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl hover:shadow-lg transition"
+                    >
                       + Новая запись
-                    </Link>
+                    </button>
                   </div>
-                  <div className="space-y-4">
-                    {blogPosts.map((post) => (
-                      <div key={post.id} className="border rounded-xl p-4">
-                        <div className="flex justify-between items-start">
-                          <h3 className="font-semibold">{post.title}</h3>
-                          <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(post.status)}`}>
-                            {getStatusText(post.status)}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-1">{formatDate(post.created_at)}</p>
-                        <p className="text-gray-600 mt-2 line-clamp-2">{post.excerpt}</p>
-                        <div className="flex justify-end gap-3 mt-3">
-                          <Link href={`/master/blog/${post.id}/edit`} className="text-sm text-blue-600">
-                            Редактировать
-                          </Link>
-                          <button onClick={() => handleBlogPostDelete(post.id)} className="text-sm text-red-600">
-                            Удалить
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+
+                  {blogPosts.length === 0 ? (
+                    <div className="text-center py-12 bg-gray-50 rounded-xl">
+                      <p className="text-gray-500">У вас пока нет постов</p>
+                      <button onClick={() => setShowAddPostModal(true)} className="mt-2 text-firm-orange hover:underline">
+                        Написать первый пост →
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {blogPosts.map((post) => {
+                        const normalizedPost = {
+                            id: post.id,
+                            title: post.title,
+                            content: post.content || "",
+                            excerpt: post.excerpt || "",
+                            images: [],
+                            main_image_url: undefined,
+                            created_at: post.created_at,
+                            views_count: post.views_count || 0,
+                            likes_count: post.likes_count || 0,
+                            comments_count: post.comments_count || 0,
+                            author_name: profileData.fullname,
+                            author_avatar: profileData.avatarUrl || undefined,  // ← null → undefined
+                            master_id: session?.user?.id || "",
+                            master_name: profileData.fullname,
+                            master_avatar: profileData.avatarUrl || undefined,  // ← null → undefined
+                            is_liked: false,
+                            comments: [],
+                          };
+                        return (
+                          <div key={post.id}>
+                            <BlogPostCard
+                              post={normalizedPost}
+                              isOwner={true}
+                              onEdit={(postId) => window.location.href = `/master/blog/${postId}/edit`}
+                              onDelete={(postId) => handleBlogPostDelete(postId)}
+                              variant="default"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </motion.div>
               )}
 
-              {/* Master Classes Tab - упрощенный */}
+              {/* Master Classes Tab */}
               {activeTab === "master-classes" && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -1010,34 +1148,113 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   className="bg-white rounded-2xl shadow-xl p-6"
                 >
                   <div className="flex justify-between items-center mb-6">
-                    <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">Мастер-классы</h2>
-                    <Link href="/master/master-classes/new" className="px-4 py-2 bg-firm-orange text-white rounded-xl">
+                    <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl bg-gradient-to-r from-firm-pink to-purple-500 bg-clip-text text-transparent">
+                      Мои мастер-классы
+                    </h2>
+                    <button
+                      onClick={() => setShowAddClassModal(true)}
+                      className="px-4 py-2 bg-gradient-to-r from-firm-pink to-purple-500 text-white rounded-xl hover:shadow-lg transition"
+                    >
                       + Создать МК
-                    </Link>
+                    </button>
                   </div>
-                  <div className="space-y-4">
-                    {masterClasses.map((mc) => (
-                      <div key={mc.id} className="border rounded-xl p-4">
-                        <div className="flex gap-4">
-                          {mc.image_url && (
-                            <img src={mc.image_url} alt={mc.title} className="w-20 h-20 object-cover rounded-lg" />
-                          )}
-                          <div className="flex-1">
-                            <h3 className="font-semibold">{mc.title}</h3>
-                            <div className="flex gap-2 mt-1">
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                                {mc.type === "online" ? "Онлайн" : "Офлайн"}
-                              </span>
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(mc.status)}`}>
-                                {getStatusText(mc.status)}
-                              </span>
+
+                  <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+                    <button
+                      onClick={() => setMasterClassFilter("all")}
+                      className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition ${masterClassFilter === "all" ? "bg-firm-orange text-white" : "border border-gray-300 hover:bg-gray-50"}`}
+                    >
+                      Все ({masterClasses.length})
+                    </button>
+                    <button
+                      onClick={() => setMasterClassFilter("published")}
+                      className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition ${masterClassFilter === "published" ? "bg-firm-orange text-white" : "border border-gray-300 hover:bg-gray-50"}`}
+                    >
+                      Опубликованные ({masterClasses.filter(mc => mc.status === "published").length})
+                    </button>
+                    <button
+                      onClick={() => setMasterClassFilter("draft")}
+                      className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition ${masterClassFilter === "draft" ? "bg-firm-orange text-white" : "border border-gray-300 hover:bg-gray-50"}`}
+                    >
+                      Черновики ({masterClasses.filter(mc => mc.status === "draft").length})
+                    </button>
+                  </div>
+
+                  {masterClasses.length === 0 ? (
+                    <div className="text-center py-12 bg-gray-50 rounded-xl">
+                      <p className="text-gray-500">У вас нет созданных мастер-классов</p>
+                      <button onClick={() => setShowAddClassModal(true)} className="mt-2 text-firm-orange hover:underline">
+                        Создать первый мастер-класс →
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {masterClasses
+                        .filter(mc => masterClassFilter === "all" || mc.status === masterClassFilter)
+                        .map((mc) => (
+                          <div key={mc.id} className="border border-gray-100 rounded-lg p-5 hover:shadow-md transition-shadow">
+                            <div className="flex gap-4">
+                              {mc.image_url && (
+                                <div className="w-32 h-32 shrink-0 rounded-lg overflow-hidden bg-gray-100">
+                                  <img src={mc.image_url} alt={mc.title} className="w-full h-full object-cover" />
+                                </div>
+                              )}
+                              <div className="flex-1">
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg">{mc.title}</h3>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <span className={`px-2 py-0.5 rounded-full text-xs ${mc.type === "online" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}>
+                                        {mc.type === "online" ? "🖥️ Онлайн" : "📍 Офлайн"}
+                                      </span>
+                                      <span className={`px-2 py-0.5 rounded-full text-xs ${getStatusColor(mc.status)}`}>
+                                        {getStatusText(mc.status)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="text-xl font-bold text-firm-orange">{mc.price} ₽</div>
+                                    <div className="text-sm text-gray-500">{mc.current_participants || 0}/{mc.max_participants} участников</div>
+                                  </div>
+                                </div>
+                                <p className="text-gray-600 mt-2 text-sm line-clamp-2">{mc.description}</p>
+                                <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
+                                  <span>📅 {formatDate(mc.date_time)}</span>
+                                  <span>⏰ {formatTime(mc.date_time)}</span>
+                                  <span>⏱️ {mc.duration_minutes} мин</span>
+                                </div>
+                                <div className="mt-3 flex justify-end gap-2">
+                                  <button
+                                    onClick={() => {
+                                      setSelectedMasterClass(mc);
+                                      setShowParticipantsModal(true);
+                                    }}
+                                    className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition"
+                                  >
+                                    👥 Участники ({mc.registrations?.length || 0})
+                                  </button>
+                                  {mc.status === "published" && new Date(mc.date_time) > new Date() && (
+                                    <button onClick={() => handleCancelMasterClass(mc.id)} className="px-3 py-1.5 border border-red-500 text-red-500 rounded-lg text-sm hover:bg-red-500 hover:text-white transition">
+                                      Отменить
+                                    </button>
+                                  )}
+                                  {mc.status === "draft" && (
+                                    <>
+                                      <Link href={`/master/master-classes/${mc.id}/edit`} className="px-3 py-1.5 bg-firm-orange text-white rounded-lg text-sm hover:bg-opacity-90 transition">
+                                        Редактировать
+                                      </Link>
+                                      <button onClick={() => handleDeleteMasterClass(mc.id)} className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition">
+                                        Удалить
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                            <p className="text-sm text-gray-600 mt-2">{mc.price.toLocaleString()} ₽</p>
                           </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                        ))}
+                    </div>
+                  )}
                 </motion.div>
               )}
 
@@ -1075,60 +1292,25 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                     <form onSubmit={handleProfileUpdate} className="space-y-4">
                       <div>
                         <label className="block text-gray-700 mb-1">Имя *</label>
-                        <input
-                          type="text"
-                          name="fullname"
-                          value={profileData.fullname}
-                          onChange={handleInputChange}
-                          required
-                          className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange"
-                        />
+                        <input type="text" name="fullname" value={profileData.fullname} onChange={handleInputChange} required className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange" />
                       </div>
                       <div>
                         <label className="block text-gray-700 mb-1">Телефон</label>
-                        <input
-                          type="tel"
-                          name="phone"
-                          value={profileData.phone || ""}
-                          onChange={handleInputChange}
-                          className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink"
-                        />
+                        <input type="tel" name="phone" value={profileData.phone || ""} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink" />
                       </div>
                       <div>
                         <label className="block text-gray-700 mb-1">Город</label>
-                        <input
-                          type="text"
-                          name="city"
-                          value={profileData.city || ""}
-                          onChange={handleInputChange}
-                          className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange"
-                        />
+                        <input type="text" name="city" value={profileData.city || ""} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange" />
                       </div>
                       <div>
                         <label className="block text-gray-700 mb-1">Описание</label>
-                        <textarea
-                          name="description"
-                          value={profileData.description || ""}
-                          onChange={handleInputChange}
-                          rows={4}
-                          className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink"
-                        />
+                        <textarea name="description" value={profileData.description || ""} onChange={handleInputChange} rows={4} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink" />
                       </div>
                       <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          name="custom_orders_enabled"
-                          checked={profileData.custom_orders_enabled}
-                          onChange={handleCheckboxChange}
-                          className="w-5 h-5 accent-firm-orange"
-                        />
+                        <input type="checkbox" name="custom_orders_enabled" checked={profileData.custom_orders_enabled} onChange={handleCheckboxChange} className="w-5 h-5 accent-firm-orange" />
                         <label>Принимаю индивидуальные заказы</label>
                       </div>
-                      <button
-                        type="submit"
-                        disabled={saving}
-                        className="w-full py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl font-semibold disabled:opacity-50"
-                      >
+                      <button type="submit" disabled={saving} className="w-full py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl font-semibold disabled:opacity-50">
                         {saving ? "Сохранение..." : "Сохранить изменения"}
                       </button>
                     </form>
@@ -1154,6 +1336,10 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                         <p className="text-gray-500 text-sm">Описание</p>
                         <p className="font-medium">{profileData.description || "Не указано"}</p>
                       </div>
+                      <div className="bg-gray-50 rounded-xl p-4 md:col-span-2">
+                        <p className="text-gray-500 text-sm">Индивидуальные заказы</p>
+                        <p className="font-medium">{profileData.custom_orders_enabled ? "✅ Принимаю" : "❌ Не принимаю"}</p>
+                      </div>
                     </div>
                   )}
                 </motion.div>
@@ -1171,9 +1357,9 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                     <div>
                       <h3 className="font-semibold text-lg mb-3">Смена пароля</h3>
                       <form className="space-y-4 max-w-md">
-                        <input type="password" placeholder="Текущий пароль" className="w-full p-3 rounded-xl bg-gray-100" />
-                        <input type="password" placeholder="Новый пароль" className="w-full p-3 rounded-xl bg-gray-100" />
-                        <input type="password" placeholder="Подтверждение" className="w-full p-3 rounded-xl bg-gray-100" />
+                        <input type="password" placeholder="Текущий пароль" className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange" />
+                        <input type="password" placeholder="Новый пароль" className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink" />
+                        <input type="password" placeholder="Подтверждение" className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange" />
                         <button className="px-6 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl">
                           Изменить пароль
                         </button>
@@ -1192,6 +1378,89 @@ export default function MasterProfile({ session }: MasterProfileProps) {
           </div>
         </div>
       </div>
+
+      {/* Модальные окна */}
+      <AddProductModal
+        isOpen={showAddProductModal}
+        onClose={() => setShowAddProductModal(false)}
+        onSuccess={fetchMasterData}
+        categories={categories}
+        yarns={yarns}
+      />
+
+      <AddPostModal
+        isOpen={showAddPostModal}
+        onClose={() => setShowAddPostModal(false)}
+        onSuccess={fetchMasterData}
+        session={session}
+      />
+
+      <AddClassModal
+        isOpen={showAddClassModal}
+        onClose={() => setShowAddClassModal(false)}
+        onSuccess={fetchMasterData}
+      />
+
+      <EditProductModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingProduct(null);
+        }}
+        onSuccess={fetchMasterData}
+        product={editingProduct!}
+        categories={categories}
+      />
+
+      {/* Модалка участников */}
+      <AnimatePresence>
+        {showParticipantsModal && selectedMasterClass && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowParticipantsModal(false)}
+          >
+            <div
+              className="bg-white rounded-xl max-w-lg w-full max-h-[80vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
+                <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl">
+                  Участники: {selectedMasterClass.title}
+                </h2>
+                <button
+                  onClick={() => setShowParticipantsModal(false)}
+                  className="text-gray-500 hover:text-gray-700 text-xl"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="p-4 space-y-3">
+                {!selectedMasterClass.registrations?.length ? (
+                  <p className="text-center text-gray-500 py-8">Нет записавшихся участников</p>
+                ) : (
+                  selectedMasterClass.registrations.map((reg) => (
+                    <div key={reg.id} className="border rounded-lg p-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium">{reg.user_name || reg.user_email}</p>
+                          <p className="text-sm text-gray-500">{reg.user_email}</p>
+                          {reg.user_phone && <p className="text-sm text-gray-500">{reg.user_phone}</p>}
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-400">Записан: {formatDate(reg.created_at)}</p>
+                          <span className={`px-2 py-0.5 rounded-full text-xs ${reg.payment_status === "paid" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
+                            {reg.payment_status === "paid" ? "Оплачено" : "Ожидает оплаты"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
