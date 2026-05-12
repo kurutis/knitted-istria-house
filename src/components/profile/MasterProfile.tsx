@@ -15,6 +15,8 @@ import AddPostModal from "@/components/modals/AddPostModal";
 import AddClassModal from "@/components/modals/AddClassModal";
 import EditProductModal from "@/components/modals/EditProductModal";
 import BlogPostCard from "@/components/blog/BlogPostCard";
+import EditPostModal from "@/components/modals/EditPostModal";
+import EditClassModal from "@/components/modals/EditClassModal";
 
 interface MasterProfileProps {
   session: {
@@ -47,6 +49,8 @@ interface BlogPost {
   views_count?: number;
   comments_count?: number;
   likes_count?: number;
+  category?: string;
+  tags?: string;
 }
 
 interface MasterClass {
@@ -62,6 +66,8 @@ interface MasterClass {
   date_time: string;
   duration_minutes: number;
   location?: string;
+  online_link?: string;
+  materials?: string;
   registrations?: Array<{
     id: string;
     user_name?: string;
@@ -160,17 +166,41 @@ interface CategoryItem {
 }
 
 interface EditProductData {
-    id: string;
-    title: string;
-    description: string;
-    price: number;
-    category: string;
-    technique: string;
-    size: string;
-    care_instructions: string;
-    color: string;
-    main_image_url?: string;
-    images?: Array<{ id: string; image_url: string; sort_order: number }>;
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  category: string;
+  technique: string;
+  size: string;
+  care_instructions: string;
+  color: string;
+  main_image_url?: string;
+  images?: Array<{ id: string; image_url: string; sort_order: number }>;
+}
+
+interface EditPostData {
+  id: string;
+  title: string;
+  content: string;
+  excerpt: string;
+  category: string;
+  tags: string;
+}
+
+interface EditClassData {
+  id: string;
+  title: string;
+  description: string;
+  type: string;
+  price: number;
+  max_participants: number;
+  date_time: string;
+  duration_minutes: number;
+  location?: string;
+  online_link?: string;
+  materials?: string;
+  image_url?: string;
 }
 
 export default function MasterProfile({ session }: MasterProfileProps) {
@@ -201,7 +231,11 @@ export default function MasterProfile({ session }: MasterProfileProps) {
   const [showAddClassModal, setShowAddClassModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<EditProductData | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  
+  const [editingPost, setEditingPost] = useState<EditPostData | null>(null);
+  const [isEditPostModalOpen, setIsEditPostModalOpen] = useState(false);
+  const [editingClass, setEditingClass] = useState<EditClassData | null>(null);
+  const [isEditClassModalOpen, setIsEditClassModalOpen] = useState(false);
+
   // Данные для модальных окон
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [yarns, setYarns] = useState<{ id: string; name: string; brand: string }[]>([]);
@@ -324,6 +358,8 @@ export default function MasterProfile({ session }: MasterProfileProps) {
             views_count: post.views || 0,
             comments_count: post.stats?.comments_count || 0,
             likes_count: post.stats?.likes_count || 0,
+            category: "",
+            tags: "",
           }));
         } else if (Array.isArray(blogData)) {
           blogList = blogData;
@@ -468,23 +504,52 @@ export default function MasterProfile({ session }: MasterProfileProps) {
   };
 
   const handleEditProduct = (product: Product) => {
-  const editProductData: EditProductData = {
-    id: product.id,
-    title: product.title,
-    description: product.description || "",
-    price: product.price,
-    category: product.category || "",
-    technique: product.technique || "",
-    size: product.size || "",
-    care_instructions: product.care_instructions || "",
-    color: product.color || "",
-    main_image_url: product.main_image_url || undefined,
-    images: product.images || [],
+    const editProductData: EditProductData = {
+      id: product.id,
+      title: product.title,
+      description: product.description || "",
+      price: product.price,
+      category: product.category || "",
+      technique: product.technique || "",
+      size: product.size || "",
+      care_instructions: product.care_instructions || "",
+      color: product.color || "",
+      main_image_url: product.main_image_url || undefined,
+      images: product.images || [],
+    };
+    setEditingProduct(editProductData);
+    setIsEditModalOpen(true);
   };
-  setEditingProduct(editProductData);
-  setIsEditModalOpen(true);
-};
 
+  const handleEditPost = (post: BlogPost) => {
+    setEditingPost({
+      id: post.id,
+      title: post.title,
+      content: post.content || "",
+      excerpt: post.excerpt || "",
+      category: post.category || "",
+      tags: post.tags || "",
+    });
+    setIsEditPostModalOpen(true);
+  };
+
+  const handleEditClass = (mc: MasterClass) => {
+    setEditingClass({
+      id: mc.id,
+      title: mc.title,
+      description: mc.description,
+      type: mc.type,
+      price: mc.price,
+      max_participants: mc.max_participants,
+      date_time: mc.date_time,
+      duration_minutes: mc.duration_minutes,
+      location: mc.location,
+      online_link: mc.online_link || "",
+      materials: mc.materials || "",
+      image_url: mc.image_url,
+    });
+    setIsEditClassModalOpen(true);
+  };
 
   const handleCancelMasterClass = async (classId: string) => {
     if (!confirm("Отменить мастер-класс? Участники получат уведомление."))
@@ -570,7 +635,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
         });
         if (response.ok) {
           setProducts((prev) =>
-            prev.filter((p: { id: string }) => p.id !== productId),
+            prev.filter((p: Product) => p.id !== productId),
           );
           toast.success("Товар удален");
         }
@@ -589,7 +654,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
         });
         if (response.ok) {
           setBlogPosts((prev) =>
-            prev.filter((p: { id: string }) => p.id !== postId),
+            prev.filter((p: BlogPost) => p.id !== postId),
           );
           toast.success("Пост удален");
         }
@@ -1105,31 +1170,31 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                     <div className="space-y-6">
                       {blogPosts.map((post) => {
                         const normalizedPost = {
-                            id: post.id,
-                            title: post.title,
-                            content: post.content || "",
-                            excerpt: post.excerpt || "",
-                            images: [],
-                            main_image_url: undefined,
-                            created_at: post.created_at,
-                            views_count: post.views_count || 0,
-                            likes_count: post.likes_count || 0,
-                            comments_count: post.comments_count || 0,
-                            author_name: profileData.fullname,
-                            author_avatar: profileData.avatarUrl || undefined,  // ← null → undefined
-                            master_id: session?.user?.id || "",
-                            master_name: profileData.fullname,
-                            master_avatar: profileData.avatarUrl || undefined,  // ← null → undefined
-                            is_liked: false,
-                            comments: [],
-                          };
+                          id: post.id,
+                          title: post.title,
+                          content: post.content || "",
+                          excerpt: post.excerpt || "",
+                          images: [],
+                          main_image_url: undefined,
+                          created_at: post.created_at,
+                          views_count: post.views_count || 0,
+                          likes_count: post.likes_count || 0,
+                          comments_count: post.comments_count || 0,
+                          author_name: profileData.fullname,
+                          author_avatar: profileData.avatarUrl || undefined,
+                          master_id: session?.user?.id || "",
+                          master_name: profileData.fullname,
+                          master_avatar: profileData.avatarUrl || undefined,
+                          is_liked: false,
+                          comments: [],
+                        };
                         return (
                           <div key={post.id}>
                             <BlogPostCard
                               post={normalizedPost}
                               isOwner={true}
-                              onEdit={(postId) => window.location.href = `/master/blog/${postId}/edit`}
-                              onDelete={(postId) => handleBlogPostDelete(postId)}
+                              onEdit={() => handleEditPost(post)}
+                              onDelete={() => handleBlogPostDelete(post.id)}
                               variant="default"
                             />
                           </div>
@@ -1240,11 +1305,17 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                                   )}
                                   {mc.status === "draft" && (
                                     <>
-                                      <Link href={`/master/master-classes/${mc.id}/edit`} className="px-3 py-1.5 bg-firm-orange text-white rounded-lg text-sm hover:bg-opacity-90 transition">
-                                        Редактировать
-                                      </Link>
-                                      <button onClick={() => handleDeleteMasterClass(mc.id)} className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition">
-                                        Удалить
+                                      <button
+                                        onClick={() => handleEditClass(mc)}
+                                        className="px-3 py-1.5 bg-firm-orange text-white rounded-lg text-sm hover:bg-opacity-90 transition"
+                                      >
+                                        ✏️ Редактировать
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteMasterClass(mc.id)}
+                                        className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition"
+                                      >
+                                        🗑️ Удалить
                                       </button>
                                     </>
                                   )}
@@ -1410,6 +1481,26 @@ export default function MasterProfile({ session }: MasterProfileProps) {
         onSuccess={fetchMasterData}
         product={editingProduct!}
         categories={categories}
+      />
+
+      <EditPostModal
+        isOpen={isEditPostModalOpen}
+        onClose={() => {
+          setIsEditPostModalOpen(false);
+          setEditingPost(null);
+        }}
+        onSuccess={fetchMasterData}
+        post={editingPost!}
+      />
+
+      <EditClassModal
+        isOpen={isEditClassModalOpen}
+        onClose={() => {
+          setIsEditClassModalOpen(false);
+          setEditingClass(null);
+        }}
+        onSuccess={fetchMasterData}
+        masterClass={editingClass!}
       />
 
       {/* Модалка участников */}
