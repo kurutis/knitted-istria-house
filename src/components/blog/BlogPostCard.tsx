@@ -98,21 +98,15 @@ export default function BlogPostCard({
       const response = await fetch(`/api/blog/posts/${post.id}/comments`);
       if (response.ok) {
         const data = await response.json();
-        let freshComments: {
-          id: string;
-          content: string;
-          created_at: string;
-          updated_at?: string;
-          is_edited?: boolean;
-          author_id: string;
-          author_name: string;
-          author_avatar?: string;
-        }[] = [];
+        let freshComments = [];
+        
+        // API возвращает { success: true, comments: [...] }
         if (data.comments && Array.isArray(data.comments)) {
           freshComments = data.comments;
         } else if (Array.isArray(data)) {
           freshComments = data;
         }
+        
         setComments(freshComments);
         setCommentsCount(freshComments.length);
       }
@@ -135,7 +129,7 @@ export default function BlogPostCard({
     
     try {
       const response = await fetch(`/api/blog/posts/${post.id}/like`, {
-        method: post.is_liked ? "DELETE" : "POST",
+        method: isLiked ? "DELETE" : "POST",
       });
       
       if (!response.ok) {
@@ -169,7 +163,21 @@ export default function BlogPostCard({
       });
 
       if (response.ok) {
-        await fetchComments();
+        const data = await response.json();
+        // API возвращает comment данные напрямую
+        const newComment = {
+          id: data.id,
+          content: data.content,
+          created_at: data.created_at,
+          updated_at: data.updated_at || data.created_at,
+          is_edited: false,
+          author_id: data.author_id,
+          author_name: data.author_name,
+          author_avatar: data.author_avatar
+        };
+        
+        setComments([newComment, ...comments]);
+        setCommentsCount(commentsCount + 1);
         setCommentText("");
         setShowCommentsState(true);
       } else {
@@ -197,7 +205,20 @@ export default function BlogPostCard({
       });
 
       if (response.ok) {
-        await fetchComments();
+        const data = await response.json();
+        // API возвращает { success: true, comment: {...} }
+        const updatedComment = data.comment || data;
+        
+        setComments(comments.map(comment => 
+          comment.id === commentId 
+            ? {
+                ...comment,
+                content: updatedComment.content,
+                updated_at: updatedComment.updated_at,
+                is_edited: true
+              }
+            : comment
+        ));
         setEditingCommentId(null);
         setEditingCommentText("");
       } else {
@@ -222,9 +243,11 @@ export default function BlogPostCard({
       });
 
       if (response.ok) {
-        await fetchComments();
+        setComments(comments.filter(comment => comment.id !== commentId));
+        setCommentsCount(commentsCount - 1);
       } else {
-        alert("Ошибка при удалении комментария");
+        const error = await response.json();
+        alert(error.error || "Ошибка при удалении комментария");
       }
     } catch (error) {
       console.error("Error deleting comment:", error);
