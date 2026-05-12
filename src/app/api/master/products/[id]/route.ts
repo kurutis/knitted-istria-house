@@ -105,10 +105,6 @@ function validateProductData(data: ProductData): { valid: boolean; error?: strin
         return { valid: false, error: 'Описание не может превышать 10000 символов' };
     }
 
-    if (data.care_instructions && data.care_instructions.length > 1000) {
-        return { valid: false, error: 'Инструкция по уходу не может превышать 1000 символов' };
-    }
-
     return { valid: true };
 }
 
