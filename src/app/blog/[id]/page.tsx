@@ -12,9 +12,11 @@ interface Comment {
   id: string;
   content: string;
   created_at: string;
+  updated_at?: string;
+  is_edited?: boolean;
   author_id: string;
   author_name: string;
-  author_avatar: string;
+  author_avatar: string | null;
 }
 
 interface BlogPost {
@@ -30,12 +32,154 @@ interface BlogPost {
   created_at: string;
   master_id: string;
   master_name: string;
-  master_avatar: string;
+  master_avatar: string | null;
   is_liked: boolean;
   is_author?: boolean;
   comments?: Comment[];
   images?: Array<{ id: string; url: string; sort_order: number }>;
 }
+
+// Компонент аватарки
+const UserAvatar = ({ userId, name, avatarUrl, size = 40 }: { 
+  userId?: string; 
+  name?: string; 
+  avatarUrl?: string | null;
+  size?: number;
+}) => {
+  const [avatarError, setAvatarError] = useState(false);
+
+  if (avatarUrl && !avatarError) {
+    return (
+      <img
+        src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`}
+        alt={name || "Avatar"}
+        className="rounded-full object-cover"
+        style={{ width: size, height: size }}
+        onError={() => setAvatarError(true)}
+      />
+    );
+  }
+
+  return (
+    <div 
+      className="rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold"
+      style={{ width: size, height: size, fontSize: size * 0.4 }}
+    >
+      {name?.charAt(0).toUpperCase() || "U"}
+    </div>
+  );
+};
+
+// Компонент аватарки текущего пользователя
+const CurrentUserAvatar = ({ size = 40 }: { size?: number }) => {
+  const { data: session } = useSession();
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>("");
+  const [avatarError, setAvatarError] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const isMaster = session?.user?.role === "master";
+
+  useEffect(() => {
+    if (!session?.user) {
+      setLoading(false);
+      return;
+    }
+
+    const loadCurrentUserProfile = async () => {
+      try {
+        if (isMaster) {
+          const response = await fetch("/api/master/profile");
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.profile) {
+              if (data.profile.avatar_url) {
+                setAvatarUrl(data.profile.avatar_url);
+              }
+              if (data.profile.fullname && data.profile.fullname.trim()) {
+                setUserName(data.profile.fullname);
+              } else {
+                const email = session.user?.email;
+                if (email) setUserName(email.split('@')[0]);
+                else setUserName("Мастер");
+              }
+            }
+          }
+        } else {
+          const response = await fetch("/api/user/profile");
+          if (response.ok) {
+            const data = await response.json();
+            let avatar = null;
+            let name = "";
+            
+            if (data.profile) {
+              avatar = data.profile.avatar_url;
+              name = data.profile.fullname || "";
+            } else {
+              avatar = data.avatar_url;
+              name = data.full_name || data.fullname || "";
+            }
+            
+            if (avatar) setAvatarUrl(avatar);
+            
+            if (name && name.trim()) {
+              setUserName(name);
+            } else {
+              const email = session.user?.email;
+              if (email) setUserName(email.split('@')[0]);
+              else setUserName("Пользователь");
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error loading profile:", error);
+        const email = session.user?.email;
+        if (email) setUserName(email.split('@')[0]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCurrentUserProfile();
+  }, [session, isMaster]);
+
+  const getInitials = () => {
+    if (loading) return "U";
+    if (userName && userName.length > 0) {
+      return userName.charAt(0).toUpperCase();
+    }
+    return "U";
+  };
+
+  if (loading) {
+    return (
+      <div 
+        className="rounded-full bg-gray-200 animate-pulse"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+
+  if (avatarUrl && !avatarError) {
+    return (
+      <img
+        src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`}
+        alt={userName || "Profile"}
+        className="rounded-full object-cover"
+        style={{ width: size, height: size }}
+        onError={() => setAvatarError(true)}
+      />
+    );
+  }
+
+  return (
+    <div 
+      className="rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold"
+      style={{ width: size, height: size, fontSize: size * 0.4 }}
+    >
+      {getInitials()}
+    </div>
+  );
+};
 
 export default function BlogPostPage() {
   const { id } = useParams();
@@ -135,14 +279,21 @@ export default function BlogPostPage() {
       });
 
       if (response.ok) {
-        const updatedComment = await response.json();
+        const data = await response.json();
+        const updatedComment = data.comment || data;
+        
         setPost((prev) =>
           prev
             ? {
                 ...prev,
                 comments: prev.comments?.map((c) =>
                   c.id === commentId
-                    ? { ...c, content: updatedComment.content }
+                    ? { 
+                        ...c, 
+                        content: updatedComment.content,
+                        updated_at: updatedComment.updated_at,
+                        is_edited: true
+                      }
                     : c,
                 ),
               }
@@ -172,14 +323,25 @@ export default function BlogPostPage() {
 
     setCommentLoading(true);
     try {
-      const response = await fetch(`/api/blog/posts/${id}/comment`, {
+      const response = await fetch(`/api/blog/posts/${id}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: commentText }),
       });
 
       if (response.ok) {
-        const newComment = await response.json();
+        const data = await response.json();
+        const newComment = {
+          id: data.id,
+          content: data.content,
+          created_at: data.created_at,
+          updated_at: data.created_at,
+          is_edited: false,
+          author_id: data.author_id,
+          author_name: data.author_name,
+          author_avatar: data.author_avatar
+        };
+        
         setPost((prev) =>
           prev
             ? {
@@ -517,20 +679,12 @@ export default function BlogPostPage() {
           href={`/masters/${post.master_id}`}
           className="flex items-center gap-3 hover:opacity-80 group"
         >
-          <motion.div
-            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden"
-            whileHover={{ scale: 1.1 }}
-          >
-            {post.master_avatar ? (
-              <img
-                src={post.master_avatar}
-                alt={post.master_name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              post.master_name?.charAt(0).toUpperCase()
-            )}
-          </motion.div>
+          <UserAvatar 
+            userId={post.master_id}
+            name={post.master_name}
+            avatarUrl={post.master_avatar}
+            size={48}
+          />
           <div>
             <p className="font-semibold text-base sm:text-lg group-hover:text-firm-orange transition">
               {post.master_name}
@@ -686,9 +840,7 @@ export default function BlogPostPage() {
         {/* Форма добавления комментария */}
         {session ? (
           <div className="flex gap-3 sm:gap-4 mb-8">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold flex-shrink-0 text-sm sm:text-base">
-              {session.user.name?.charAt(0).toUpperCase()}
-            </div>
+            <CurrentUserAvatar size={40} />
             <div className="flex-1">
               <textarea
                 value={commentText}
@@ -737,17 +889,12 @@ export default function BlogPostPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.05 }}
               >
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden text-sm sm:text-base">
-                  {comment.author_avatar ? (
-                    <img
-                      src={comment.author_avatar}
-                      alt={comment.author_name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    comment.author_name?.charAt(0).toUpperCase()
-                  )}
-                </div>
+                <UserAvatar 
+                  userId={comment.author_id}
+                  name={comment.author_name}
+                  avatarUrl={comment.author_avatar}
+                  size={40}
+                />
                 <div className="flex-1">
                   <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2">
@@ -757,6 +904,9 @@ export default function BlogPostPage() {
                         </p>
                         <p className="text-xs text-gray-400 mt-0.5">
                           {formatDate(comment.created_at)}
+                          {comment.is_edited && (
+                            <span className="ml-2 text-gray-400 text-xs">(ред.)</span>
+                          )}
                         </p>
                       </div>
 
