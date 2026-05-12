@@ -349,16 +349,26 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Ошибка создания мастер-класса' }, { status: 500 });
         }
 
-        // Загружаем изображение
+        // Загружаем изображение с правильными правами доступа
         let imageUrl = null;
         if (imageFile && imageFile.size > 0) {
             try {
-                imageUrl = await uploadToS3(imageFile, 'classes', newClass.id);
+                // Функция uploadToS3 должна иметь ACL: 'public-read'
+                imageUrl = await uploadToS3(imageFile, 'classes', newClass.id, {
+                    contentType: imageFile.type
+                });
+                
                 if (imageUrl) {
-                    await supabase
+                    const { error: updateError } = await supabase
                         .from('master_classes')
                         .update({ image_url: imageUrl })
                         .eq('id', newClass.id);
+                    
+                    if (updateError) {
+                        logError('Error updating class with image URL', updateError);
+                    }
+                } else {
+                    logError('Failed to upload image to S3', new Error('Upload returned null'));
                 }
             } catch (uploadError) {
                 logError('Error uploading class image', uploadError, 'warning');
@@ -376,6 +386,7 @@ export async function POST(request: Request) {
             type,
             price,
             max_participants,
+            hasImage: !!imageUrl,
             duration: Date.now() - startTime
         });
 
@@ -509,7 +520,10 @@ export async function PUT(request: Request) {
                 await deleteFromS3(existing.image_url);
             }
             
-            const imageUrl = await uploadToS3(imageFile, 'classes', classId);
+            const imageUrl = await uploadToS3(imageFile, 'classes', classId, {
+                contentType: imageFile.type
+            });
+            
             if (imageUrl) {
                 await supabase
                     .from('master_classes')

@@ -115,7 +115,7 @@ function validateFile(file: File): { valid: boolean; error?: string } {
     return { valid: true };
 }
 
-// Загрузка файла в S3
+// Загрузка файла в S3 - ИСПРАВЛЕНО: добавлен ACL: 'public-read'
 export async function uploadToS3(
     file: File,
     folder: string,
@@ -145,7 +145,8 @@ export async function uploadToS3(
             Key: key,
             Body: buffer,
             ContentType: contentType,
-            CacheControl: 'public, max-age=31536000', // 1 год кэширования
+            CacheControl: 'public, max-age=31536000',
+            ACL: 'public-read',  // ← ДОБАВЛЕНО! Это ключевая строка для публичного доступа
             Metadata: {
                 originalName: encodeURIComponent(file.name),
                 uploadedAt: new Date().toISOString(),
@@ -162,6 +163,7 @@ export async function uploadToS3(
             folder,
             size: buffer.length,
             type: contentType,
+            acl: 'public-read',
             duration: Date.now() - startTime
         });
         
