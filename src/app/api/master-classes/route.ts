@@ -1,3 +1,4 @@
+// app/api/master-classes/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -5,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
 import { cachedQuery } from "@/lib/db-optimized";
 import { logError, logInfo } from "@/lib/error-logger";
+import { getPublicUrl } from "@/lib/s3-storage";
 
 interface MasterProfile {
     full_name: string | null;
@@ -31,7 +33,22 @@ interface MasterClassDetailRegistration {
 }
 
 // Rate limiting
-const limiter = rateLimit({ limit: 60, windowMs: 60 * 1000 }); // 60 запросов в минуту
+const limiter = rateLimit({ limit: 60, windowMs: 60 * 1000 });
+
+// Функция для получения полного URL изображения из Selectel
+function getFullImageUrl(imagePath: string | null): string | null {
+    if (!imagePath) return null;
+    if (imagePath.startsWith('http')) return imagePath;
+    
+    // Используем функцию из s3-storage для получения публичного URL
+    const publicUrl = getPublicUrl(imagePath);
+    if (publicUrl) return publicUrl;
+    
+    // Fallback на прямой URL Selectel
+    const selectelUrl = process.env.S3_PUBLIC_URL || 'https://30bd5b8c-136d-48e3-b7c1-71a168d4fef4.selstorage.ru';
+    const cleanPath = imagePath.replace(/^\/+/, '');
+    return `${selectelUrl}/${cleanPath}`;
+}
 
 export async function GET(request: Request) {
     const startTime = Date.now();
@@ -53,7 +70,7 @@ export async function GET(request: Request) {
 
         // Параметры пагинации и фильтрации
         const { searchParams } = new URL(request.url);
-        const type = searchParams.get('type'); // online, offline, hybrid
+        const type = searchParams.get('type');
         const masterId = searchParams.get('masterId');
         const limit = Math.min(parseInt(searchParams.get('limit') || '12'), 50);
         const page = parseInt(searchParams.get('page') || '1');
@@ -168,13 +185,13 @@ export async function GET(request: Request) {
                     location: mc.location,
                     online_link: mc.online_link,
                     materials: mc.materials,
-                    image_url: mc.image_url,
+                    image_url: getFullImageUrl(mc.image_url), // ← ИСПРАВЛЕНО!
                     created_at: mc.created_at,
                     updated_at: mc.updated_at,
                     master_id: mc.master_id,
-                    master_name: mc.users?.profiles?.full_name || mc.users?.email,
-                    master_avatar: mc.users?.profiles?.avatar_url,
-                    master_city: mc.users?.profiles?.city,
+                    master_name: mc.users?.profiles?.[0]?.full_name || mc.users?.email,
+                    master_avatar: mc.users?.profiles?.[0]?.avatar_url,
+                    master_city: mc.users?.profiles?.[0]?.city,
                     is_upcoming: isUpcoming,
                     is_registered: isRegistered,
                     can_register: isUpcoming && !isRegistered && spotsLeft > 0
@@ -300,15 +317,15 @@ export async function GET_BY_ID(
                 location: masterClass.location,
                 online_link: masterClass.online_link,
                 materials: masterClass.materials,
-                image_url: masterClass.image_url,
+                image_url: getFullImageUrl(masterClass.image_url), // ← ИСПРАВЛЕНО!
                 created_at: masterClass.created_at,
                 updated_at: masterClass.updated_at,
                 master_id: masterClass.master_id,
-                master_name: masterClass.users?.profiles?.full_name || masterClass.users?.email,
-                master_avatar: masterClass.users?.profiles?.avatar_url,
-                master_city: masterClass.users?.profiles?.city,
-                master_phone: masterClass.users?.profiles?.phone,
-                master_address: masterClass.users?.profiles?.address,
+                master_name: masterClass.users?.profiles?.[0]?.full_name || masterClass.users?.email,
+                master_avatar: masterClass.users?.profiles?.[0]?.avatar_url,
+                master_city: masterClass.users?.profiles?.[0]?.city,
+                master_phone: masterClass.users?.profiles?.[0]?.phone,
+                master_address: masterClass.users?.profiles?.[0]?.address,
                 is_registered: isRegistered,
                 payment_status: paymentStatus,
                 can_register: !isRegistered && spotsLeft > 0 && masterClass.status === 'published'

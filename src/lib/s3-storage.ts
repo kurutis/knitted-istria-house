@@ -50,8 +50,10 @@ function generateKey(folder: string, id: string, originalName: string): string {
 }
 
 // Получение публичного URL
-function getPublicUrl(key: string): string {
-    return `${S3_CONFIG.publicUrl}/${key}`;
+export function getPublicUrl(key: string): string {
+    const publicUrl = process.env.S3_PUBLIC_URL || 'https://30bd5b8c-136d-48e3-b7c1-71a168d4fef4.selstorage.ru';
+    const cleanKey = key.replace(/^\/+/, '');
+    return `${publicUrl}/${cleanKey}`;
 }
 
 // Извлечение ключа из URL
