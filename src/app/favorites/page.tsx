@@ -4,7 +4,6 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { motion } from "framer-motion"
 
 interface FavoriteProduct {
@@ -45,8 +44,10 @@ export default function FavoritesPage() {
             
             const data = await response.json()
             
+            console.log('Favorites API response:', data) // Для отладки
+            
             // API возвращает { success, favorites, pagination, stats }
-            if (data.success && data.favorites) {
+            if (data && data.success && Array.isArray(data.favorites)) {
                 setFavorites(data.favorites)
             } else if (Array.isArray(data)) {
                 // Если вдруг вернулся массив
@@ -63,6 +64,8 @@ export default function FavoritesPage() {
     }
 
     const handleRemoveFromFavorites = async (productId: string) => {
+        if (!productId) return
+        
         setRemovingId(productId)
         try {
             const response = await fetch(`/api/user/favorites?productId=${productId}`, {
@@ -83,8 +86,11 @@ export default function FavoritesPage() {
         }
     }
 
-    const formatPrice = (price: number) => {
-        return new Intl.NumberFormat('ru-RU').format(price)
+    const formatPrice = (price: number | string | undefined) => {
+        if (price === undefined || price === null) return '0'
+        const numPrice = typeof price === 'string' ? parseFloat(price) : price
+        if (isNaN(numPrice)) return '0'
+        return new Intl.NumberFormat('ru-RU').format(numPrice)
     }
 
     if (loading) {
@@ -111,7 +117,7 @@ export default function FavoritesPage() {
                     </p>
                 </div>
 
-                {favorites.length === 0 ? (
+                {!favorites || favorites.length === 0 ? (
                     <motion.div 
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -135,7 +141,7 @@ export default function FavoritesPage() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
                         {favorites.map((product, index) => (
                             <motion.div
-                                key={product.id}
+                                key={product.id || index}
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.05 }}
@@ -148,8 +154,11 @@ export default function FavoritesPage() {
                                         {product.main_image_url ? (
                                             <img
                                                 src={product.main_image_url}
-                                                alt={product.title}
+                                                alt={product.title || 'Товар'}
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).style.display = 'none'
+                                                }}
                                             />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-gray-400">
@@ -179,7 +188,7 @@ export default function FavoritesPage() {
                                     <div className="p-3 sm:p-4">
                                         <Link href={`/catalog/${product.id}`}>
                                             <h3 className="font-['Montserrat_Alternates'] font-medium text-sm sm:text-base line-clamp-2 hover:text-firm-orange transition-colors">
-                                                {product.title}
+                                                {product.title || 'Без названия'}
                                             </h3>
                                         </Link>
                                         
