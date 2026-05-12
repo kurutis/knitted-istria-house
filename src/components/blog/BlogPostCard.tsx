@@ -58,7 +58,7 @@ const formatDate = (dateString: string) => {
   return date.toLocaleDateString("ru-RU");
 };
 
-// Компонент аватарки с загрузкой из API
+// Компонент аватарки для любого пользователя по ID
 const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: { 
   userId?: string; 
   name?: string; 
@@ -66,7 +66,7 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
   size?: number;
 }) => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl || null);
-  const [userName, setUserName] = useState<string>(name || "");
+  const [displayName, setDisplayName] = useState<string>(name || "");
   const [avatarError, setAvatarError] = useState(false);
   const [loading, setLoading] = useState(!initialAvatarUrl && !!userId);
 
@@ -96,9 +96,9 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
           }
           // Получаем имя из профиля
           if (data.profile?.full_name) {
-            setUserName(data.profile.full_name);
+            setDisplayName(data.profile.full_name);
           } else if (data.profile?.fullname) {
-            setUserName(data.profile.fullname);
+            setDisplayName(data.profile.fullname);
           }
         } else {
           // Если мастер не найден, пробуем загрузить профиль пользователя
@@ -109,7 +109,7 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
               setAvatarUrl(userData.avatarUrl || userData.avatar_url);
             }
             if (userData.fullName || userData.full_name) {
-              setUserName(userData.fullName || userData.full_name);
+              setDisplayName(userData.fullName || userData.full_name);
             }
           }
         }
@@ -124,8 +124,8 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
   }, [userId, initialAvatarUrl]);
 
   const getInitials = () => {
-    if (userName && userName.length > 0) {
-      return userName.charAt(0).toUpperCase();
+    if (displayName && displayName.length > 0) {
+      return displayName.charAt(0).toUpperCase();
     }
     if (name && name.length > 0 && name !== "User" && !name.includes("@")) {
       return name.charAt(0).toUpperCase();
@@ -146,7 +146,7 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
     return (
       <img
         src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`}
-        alt={userName || "Avatar"}
+        alt={displayName || "Avatar"}
         className="rounded-full object-cover"
         style={{ width: size, height: size }}
         onError={() => setAvatarError(true)}
@@ -164,18 +164,20 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
   );
 };
 
-// Компонент для отображения текущего пользователя (использует session)
+// Компонент для отображения текущего пользователя
 const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
   const { data: session } = useSession();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("");
   const [avatarError, setAvatarError] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const isMaster = session?.user?.role === "master";
 
   useEffect(() => {
     if (!session?.user) {
       setLoading(false);
+      setProfileLoaded(true);
       return;
     }
 
@@ -187,32 +189,66 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
         if (response.ok) {
           const data = await response.json();
           let avatar = null;
-          let name = session.user.name || "";
+          let name = "";
           
-          if (isMaster && data.profile?.avatar_url) {
+          if (isMaster && data.profile) {
             avatar = data.profile.avatar_url;
-            name = data.profile.full_name || data.profile.fullname || name;
-          } else if (data.avatarUrl) {
-            avatar = data.avatarUrl;
-            name = data.fullName || data.full_name || name;
-          } else if (data.avatar_url) {
-            avatar = data.avatar_url;
-            name = data.full_name || data.fullname || name;
+            name = data.profile.full_name || data.profile.fullname || "";
+          } else {
+            avatar = data.avatarUrl || data.avatar_url;
+            name = data.fullName || data.full_name || data.name || "";
           }
           
           if (avatar) {
             setAvatarUrl(avatar);
           }
-          if (name && name !== session.user.name) {
+          
+          // Устанавливаем имя
+          if (name && name.trim()) {
             setUserName(name);
-          } else if (session.user.name && !session.user.name.includes("@")) {
-            setUserName(session.user.name);
+          } else {
+            // Используем данные из сессии как fallback
+            const sessionName = session.user?.name;
+            const sessionEmail = session.user?.email;
+            
+            if (sessionName && sessionName !== "User" && !sessionName.includes("@")) {
+              setUserName(sessionName);
+            } else if (sessionEmail) {
+              // Берем первую часть email
+              setUserName(sessionEmail.split('@')[0]);
+            } else {
+              setUserName("Пользователь");
+            }
+          }
+        } else {
+          // Если API вернул ошибку, используем данные из сессии
+          const sessionName = session.user?.name;
+          const sessionEmail = session.user?.email;
+          
+          if (sessionName && sessionName !== "User" && !sessionName.includes("@")) {
+            setUserName(sessionName);
+          } else if (sessionEmail) {
+            setUserName(sessionEmail.split('@')[0]);
+          } else {
+            setUserName("Пользователь");
           }
         }
       } catch (error) {
         console.error("Error loading current user profile:", error);
+        // При ошибке используем данные из сессии
+        const sessionName = session.user?.name;
+        const sessionEmail = session.user?.email;
+        
+        if (sessionName && sessionName !== "User" && !sessionName.includes("@")) {
+          setUserName(sessionName);
+        } else if (sessionEmail) {
+          setUserName(sessionEmail.split('@')[0]);
+        } else {
+          setUserName("Пользователь");
+        }
       } finally {
         setLoading(false);
+        setProfileLoaded(true);
       }
     };
 
@@ -220,14 +256,9 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
   }, [session, isMaster]);
 
   const getInitials = () => {
+    if (!profileLoaded) return "U";
     if (userName && userName.length > 0) {
       return userName.charAt(0).toUpperCase();
-    }
-    if (session?.user?.name && session.user.name.length > 0 && !session.user.name.includes("@")) {
-      return session.user.name.charAt(0).toUpperCase();
-    }
-    if (session?.user?.email && session.user.email.length > 0) {
-      return session.user.email.charAt(0).toUpperCase();
     }
     return "U";
   };
@@ -245,7 +276,7 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
     return (
       <img
         src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`}
-        alt="Profile"
+        alt={userName || "Profile"}
         className="rounded-full object-cover"
         style={{ width: size, height: size }}
         onError={() => setAvatarError(true)}
