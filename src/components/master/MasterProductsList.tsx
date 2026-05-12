@@ -4,21 +4,21 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 
 export interface Product {
-    id: string
-    title: string
-    price: number
-    main_image_url: string | null
-    master_name?: string
-    views: number
-    created_at: string
-    status: 'moderation' | 'active' | 'draft' | 'rejected' | 'blocked'
-    description?: string
-    category?: string
-    technique?: string
-    size?: string
-    care_instructions?: string
-    color?: string
-    images?: Array<{ id: string; image_url: string; sort_order: number }>
+  id: string;
+  title: string;
+  price: number;
+  main_image_url: string | null;
+  master_name?: string;
+  views: number;
+  created_at: string;
+  status: 'moderation' | 'active' | 'draft' | 'rejected' | 'blocked';
+  category?: string;
+  technique?: string;
+  size?: string;
+  color?: string;
+  care_instructions?: string;
+  description?: string;
+  images?: Array<{ id: string; image_url: string; sort_order: number }>;
 }
 
 interface MasterProductsListProps {

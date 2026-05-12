@@ -1,8 +1,7 @@
 // components/modals/EditProductModal.tsx
 "use client";
 
-import React, { useState, useEffect, useRef, JSX } from "react";
-import Image from "next/image";
+import React, { useState, useEffect, JSX } from "react";
 import { motion } from "framer-motion";
 
 interface CategoryItem {
@@ -53,8 +52,6 @@ export default function EditProductModal({
     size: "",
     care_instructions: "",
     color: "",
-    yarn_id: "",
-    custom_yarn: "",
   });
 
   useEffect(() => {
@@ -68,8 +65,6 @@ export default function EditProductModal({
         size: product.size || "",
         care_instructions: product.care_instructions || "",
         color: product.color || "",
-        yarn_id: "",
-        custom_yarn: "",
       });
     }
   }, [product]);
@@ -80,6 +75,9 @@ export default function EditProductModal({
   };
 
   const renderCategoryOptions = (cats: CategoryItem[], level = 0): JSX.Element[] => {
+    if (!cats || !Array.isArray(cats)) {
+      return [];
+    }
     const options: JSX.Element[] = [];
     cats.forEach(cat => {
       const prefix = "—".repeat(level);
@@ -88,7 +86,7 @@ export default function EditProductModal({
           {prefix} {cat.name}
         </option>
       );
-      if (cat.subcategories?.length) {
+      if (cat.subcategories && Array.isArray(cat.subcategories) && cat.subcategories.length) {
         options.push(...renderCategoryOptions(cat.subcategories, level + 1));
       }
     });
@@ -97,6 +95,13 @@ export default function EditProductModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Проверяем, что категория выбрана
+    if (!formData.category) {
+      alert("Пожалуйста, выберите категорию товара");
+      return;
+    }
+    
     setSaving(true);
     try {
       const payload = {
@@ -109,24 +114,32 @@ export default function EditProductModal({
         care_instructions: formData.care_instructions,
         color: formData.color,
       };
+      
       const response = await fetch(`/api/master/products/${product.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!response.ok) throw new Error("Failed to update product");
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Ошибка при обновлении");
+      }
+      
       alert("Товар успешно обновлен");
       onSuccess();
       onClose();
     } catch (error) {
       console.error(error);
-      alert("Ошибка при обновлении товара");
+      alert(error instanceof Error ? error.message : "Ошибка при обновлении товара");
     } finally {
       setSaving(false);
     }
   };
 
   if (!isOpen) return null;
+
+  const safeCategories = Array.isArray(categories) ? categories : [];
 
   return (
     <motion.div
@@ -149,17 +162,35 @@ export default function EditProductModal({
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl">✕</button>
         </div>
+        
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-gray-700 mb-1 font-medium">Название товара *</label>
-              <input type="text" name="title" value={formData.title} onChange={handleInputChange} required className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange" />
+              <label className="block text-gray-700 mb-1 font-medium">
+                Название товара <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                required
+                className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange"
+              />
             </div>
             <div>
-              <label className="block text-gray-700 mb-1 font-medium">Категория *</label>
-              <select name="category" value={formData.category} onChange={handleInputChange} required className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink">
+              <label className="block text-gray-700 mb-1 font-medium">
+                Категория <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="category"
+                value={formData.category}
+                onChange={handleInputChange}
+                required
+                className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink"
+              >
                 <option value="">Выберите категорию</option>
-                {renderCategoryOptions(categories)}
+                {renderCategoryOptions(safeCategories)}
               </select>
             </div>
           </div>
@@ -167,14 +198,24 @@ export default function EditProductModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-gray-700 mb-1 font-medium">Техника вязки</label>
-              <select name="technique" value={formData.technique} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange">
+              <select
+                name="technique"
+                value={formData.technique}
+                onChange={handleInputChange}
+                className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange"
+              >
                 <option value="">Выберите технику</option>
                 {techniques.map(tech => <option key={tech} value={tech}>{tech}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-gray-700 mb-1 font-medium">Размер</label>
-              <select name="size" value={formData.size} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink">
+              <select
+                name="size"
+                value={formData.size}
+                onChange={handleInputChange}
+                className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink"
+              >
                 <option value="">Выберите размер</option>
                 {sizes.map(size => <option key={size} value={size}>{size}</option>)}
               </select>
@@ -183,33 +224,74 @@ export default function EditProductModal({
 
           <div>
             <label className="block text-gray-700 mb-1 font-medium">Описание</label>
-            <textarea name="description" value={formData.description} onChange={handleInputChange} rows={4} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink" />
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleInputChange}
+              rows={4}
+              className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink"
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-gray-700 mb-1 font-medium">Цвет</label>
-              <input type="text" name="color" value={formData.color} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange" placeholder="Красный, Синий, Зеленый..." />
+              <input
+                type="text"
+                name="color"
+                value={formData.color}
+                onChange={handleInputChange}
+                className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange"
+                placeholder="Красный, Синий, Зеленый..."
+              />
             </div>
             <div>
               <label className="block text-gray-700 mb-1 font-medium">Уход</label>
-              <input type="text" name="care_instructions" value={formData.care_instructions} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink" placeholder="Ручная стирка при 30°C..." />
+              <input
+                type="text"
+                name="care_instructions"
+                value={formData.care_instructions}
+                onChange={handleInputChange}
+                className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink"
+                placeholder="Ручная стирка при 30°C..."
+              />
             </div>
           </div>
 
           <div>
-            <label className="block text-gray-700 mb-1 font-medium">Цена *</label>
+            <label className="block text-gray-700 mb-1 font-medium">
+              Цена <span className="text-red-500">*</span>
+            </label>
             <div className="relative">
-              <input type="number" name="price" value={formData.price} onChange={handleInputChange} required min="0" step="100" className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange" />
+              <input
+                type="number"
+                name="price"
+                value={formData.price}
+                onChange={handleInputChange}
+                required
+                min="0"
+                step="100"
+                className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange"
+              />
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">₽</span>
             </div>
           </div>
 
           <div className="flex gap-3 pt-4 border-t">
-            <button type="submit" disabled={saving} className="flex-1 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl font-medium disabled:opacity-50">
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl font-medium disabled:opacity-50"
+            >
               {saving ? "Сохранение..." : "Сохранить изменения"}
             </button>
-            <button type="button" onClick={onClose} className="px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50">Отмена</button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50"
+            >
+              Отмена
+            </button>
           </div>
         </form>
       </motion.div>

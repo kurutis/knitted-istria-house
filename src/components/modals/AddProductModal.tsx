@@ -1,4 +1,3 @@
-// components/modals/AddProductModal.tsx
 "use client";
 
 import React, { useState, useRef, useEffect, JSX } from "react";
@@ -89,6 +88,11 @@ export default function AddProductModal({
   };
 
   const renderCategoryOptions = (cats: CategoryItem[], level = 0): JSX.Element[] => {
+    // Добавляем проверку, что cats - массив
+    if (!cats || !Array.isArray(cats)) {
+      return [];
+    }
+    
     const options: JSX.Element[] = [];
     cats.forEach(cat => {
       const prefix = "—".repeat(level);
@@ -97,7 +101,7 @@ export default function AddProductModal({
           {prefix} {cat.name}
         </option>
       );
-      if (cat.subcategories?.length) {
+      if (cat.subcategories && Array.isArray(cat.subcategories) && cat.subcategories.length) {
         options.push(...renderCategoryOptions(cat.subcategories, level + 1));
       }
     });
@@ -150,7 +154,11 @@ export default function AddProductModal({
     setImagePreviews([]);
   };
 
+  // Добавляем проверку перед рендером
   if (!isOpen) return null;
+  
+  // Проверяем, что categories - массив
+  const safeCategories = Array.isArray(categories) ? categories : [];
 
   return (
     <motion.div
@@ -214,7 +222,7 @@ export default function AddProductModal({
               <label className="block text-gray-700 mb-1 font-medium">Категория *</label>
               <select name="category" value={productForm.category} onChange={handleInputChange} required className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink">
                 <option value="">Выберите категорию</option>
-                {renderCategoryOptions(categories)}
+                {renderCategoryOptions(safeCategories)}
               </select>
             </div>
           </div>
@@ -224,7 +232,7 @@ export default function AddProductModal({
               <label className="block text-gray-700 mb-1 font-medium">Название пряжи</label>
               <select name="yarn_id" value={productForm.yarn_id} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange">
                 <option value="">Выберите пряжу</option>
-                {yarns.map(yarn => <option key={yarn.id} value={yarn.id}>{yarn.name} - {yarn.brand}</option>)}
+                {Array.isArray(yarns) && yarns.map(yarn => <option key={yarn.id} value={yarn.id}>{yarn.name} - {yarn.brand}</option>)}
                 <option value="custom">Другая пряжа (указать вручную)</option>
               </select>
               {productForm.yarn_id === "custom" && (
