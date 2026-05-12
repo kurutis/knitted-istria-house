@@ -66,9 +66,9 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
   size?: number;
 }) => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl || null);
+  const [userName, setUserName] = useState<string>(name || "");
   const [avatarError, setAvatarError] = useState(false);
   const [loading, setLoading] = useState(!initialAvatarUrl && !!userId);
-  const { data: session } = useSession();
 
   useEffect(() => {
     // Если уже есть аватарка, не загружаем
@@ -84,8 +84,8 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
       return;
     }
 
-    // Загружаем аватар из API
-    const loadAvatar = async () => {
+    // Загружаем профиль пользователя
+    const loadUserProfile = async () => {
       try {
         // Пробуем загрузить профиль мастера
         const response = await fetch(`/api/master/profile?userId=${userId}`);
@@ -94,19 +94,40 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
           if (data.profile?.avatar_url) {
             setAvatarUrl(data.profile.avatar_url);
           }
+          // Получаем имя из профиля
+          if (data.profile?.full_name) {
+            setUserName(data.profile.full_name);
+          } else if (data.profile?.fullname) {
+            setUserName(data.profile.fullname);
+          }
+        } else {
+          // Если мастер не найден, пробуем загрузить профиль пользователя
+          const userResponse = await fetch(`/api/user/profile?userId=${userId}`);
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            if (userData.avatarUrl || userData.avatar_url) {
+              setAvatarUrl(userData.avatarUrl || userData.avatar_url);
+            }
+            if (userData.fullName || userData.full_name) {
+              setUserName(userData.fullName || userData.full_name);
+            }
+          }
         }
       } catch (error) {
-        console.error("Error loading avatar:", error);
+        console.error("Error loading user profile:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    loadAvatar();
+    loadUserProfile();
   }, [userId, initialAvatarUrl]);
 
   const getInitials = () => {
-    if (name && name.length > 0) {
+    if (userName && userName.length > 0) {
+      return userName.charAt(0).toUpperCase();
+    }
+    if (name && name.length > 0 && name !== "User" && !name.includes("@")) {
       return name.charAt(0).toUpperCase();
     }
     return "U";
@@ -125,7 +146,106 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
     return (
       <img
         src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`}
-        alt={name || "Avatar"}
+        alt={userName || "Avatar"}
+        className="rounded-full object-cover"
+        style={{ width: size, height: size }}
+        onError={() => setAvatarError(true)}
+      />
+    );
+  }
+
+  return (
+    <div 
+      className="rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold"
+      style={{ width: size, height: size, fontSize: size * 0.4 }}
+    >
+      {getInitials()}
+    </div>
+  );
+};
+
+// Компонент для отображения текущего пользователя (использует session)
+const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
+  const { data: session } = useSession();
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>("");
+  const [avatarError, setAvatarError] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const isMaster = session?.user?.role === "master";
+
+  useEffect(() => {
+    if (!session?.user) {
+      setLoading(false);
+      return;
+    }
+
+    const loadCurrentUserProfile = async () => {
+      try {
+        const apiUrl = isMaster ? "/api/master/profile" : "/api/user/profile";
+        const response = await fetch(apiUrl);
+        
+        if (response.ok) {
+          const data = await response.json();
+          let avatar = null;
+          let name = session.user.name || "";
+          
+          if (isMaster && data.profile?.avatar_url) {
+            avatar = data.profile.avatar_url;
+            name = data.profile.full_name || data.profile.fullname || name;
+          } else if (data.avatarUrl) {
+            avatar = data.avatarUrl;
+            name = data.fullName || data.full_name || name;
+          } else if (data.avatar_url) {
+            avatar = data.avatar_url;
+            name = data.full_name || data.fullname || name;
+          }
+          
+          if (avatar) {
+            setAvatarUrl(avatar);
+          }
+          if (name && name !== session.user.name) {
+            setUserName(name);
+          } else if (session.user.name && !session.user.name.includes("@")) {
+            setUserName(session.user.name);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading current user profile:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCurrentUserProfile();
+  }, [session, isMaster]);
+
+  const getInitials = () => {
+    if (userName && userName.length > 0) {
+      return userName.charAt(0).toUpperCase();
+    }
+    if (session?.user?.name && session.user.name.length > 0 && !session.user.name.includes("@")) {
+      return session.user.name.charAt(0).toUpperCase();
+    }
+    if (session?.user?.email && session.user.email.length > 0) {
+      return session.user.email.charAt(0).toUpperCase();
+    }
+    return "U";
+  };
+
+  if (loading) {
+    return (
+      <div 
+        className="rounded-full bg-gray-200 animate-pulse"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+
+  if (avatarUrl && !avatarError) {
+    return (
+      <img
+        src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`}
+        alt="Profile"
         className="rounded-full object-cover"
         style={{ width: size, height: size }}
         onError={() => setAvatarError(true)}
@@ -400,11 +520,7 @@ export default function BlogPostCard({
       >
         {session && (
           <div className="flex gap-3 mb-4">
-            <UserAvatar 
-              userId={session.user?.id}
-              name={session.user?.name || ""}
-              size={32}
-            />
+            <CurrentUserAvatar size={32} />
             <div className="flex-1">
               <textarea
                 value={commentText}
