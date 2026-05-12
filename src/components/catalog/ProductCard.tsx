@@ -141,29 +141,29 @@ export default function ProductCard({ product }: ProductCardProps) {
     }
 
     const updateQuantity = async (newQuantity: number) => {
-        if (newQuantity < 1) {
-            await removeFromCart()
-            return
-        }
-
-        setLoading(true)
-        try {
-            const response = await fetch(`/api/cart/${product.id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ quantity: newQuantity })
-            })
-
-            if (response.ok) {
-                setQuantity(newQuantity)
-                setIsInCart(true)
-            }
-        } catch (error) {
-            console.error('Error updating quantity:', error)
-        } finally {
-            setLoading(false)
-        }
+    if (newQuantity < 1) {
+        await removeFromCart()
+        return
     }
+
+    setLoading(true)
+    try {
+        const response = await fetch('/api/cart', {  // ← ИСПРАВЛЕНО: убрали /${product.id}
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId: product.id, quantity: newQuantity })
+        })
+
+        if (response.ok) {
+            setQuantity(newQuantity)
+            setIsInCart(true)
+        }
+    } catch (error) {
+        console.error('Error updating quantity:', error)
+    } finally {
+        setLoading(false)
+    }
+}
 
     const addToCart = async (e: React.MouseEvent) => {
         e.preventDefault()

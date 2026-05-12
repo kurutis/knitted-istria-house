@@ -57,26 +57,26 @@ export default function ShoppingCartPage() {
         }
     }
 
-    const updateQuantity = async (productId: string, newQuantity: number) => {
-        if (newQuantity < 1) return
+   const updateQuantity = async (productId: string, newQuantity: number) => {
+    if (newQuantity < 1) return
+    
+    setUpdating(productId)
+    try {
+        const response = await fetch('/api/cart', {  // ← убрали /${productId}
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId, quantity: newQuantity })
+        })
         
-        setUpdating(productId)
-        try {
-            const response = await fetch(`/api/cart/${productId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ quantity: newQuantity })
-            })
-            
-            if (response.ok) {
-                await fetchCart()
-            }
-        } catch (error) {
-            console.error('Error updating quantity:', error)
-        } finally {
-            setUpdating(null)
+        if (response.ok) {
+            await fetchCart()
         }
+    } catch (error) {
+        console.error('Error updating quantity:', error)
+    } finally {
+        setUpdating(null)
     }
+}
 
     const removeItem = async (productId: string) => {
         if (!confirm('Удалить товар из корзины?')) return
