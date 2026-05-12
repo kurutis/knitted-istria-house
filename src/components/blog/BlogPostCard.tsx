@@ -162,7 +162,6 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
   );
 };
 
-// Компонент для отображения текущего пользователя (мастер или покупатель)
 const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
   const { data: session } = useSession();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -170,7 +169,6 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
   const [avatarError, setAvatarError] = useState(false);
   const [loading, setLoading] = useState(true);
   const isMaster = session?.user?.role === "master";
-  const role = session?.user?.role;
 
   useEffect(() => {
     if (!session?.user) {
@@ -180,57 +178,51 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
 
     const loadCurrentUserProfile = async () => {
       try {
-        // Для мастера используем /api/master/profile
         if (isMaster) {
           const response = await fetch("/api/master/profile");
           if (response.ok) {
             const data = await response.json();
             if (data.success && data.profile) {
-              const profileData = data.profile;
-              if (profileData.avatar_url) {
-                setAvatarUrl(profileData.avatar_url);
-              }
-              if (profileData.fullname) {
-                setUserName(profileData.fullname);
+              if (data.profile.avatar_url) setAvatarUrl(data.profile.avatar_url);
+              if (data.profile.fullname && data.profile.fullname.trim()) {
+                setUserName(data.profile.fullname);
               } else {
                 const email = session.user?.email;
                 if (email) setUserName(email.split('@')[0]);
                 else setUserName("Мастер");
               }
             }
-          } else {
-            const email = session.user?.email;
-            if (email) setUserName(email.split('@')[0]);
-            else setUserName("Мастер");
           }
-        } 
-        // Для обычного пользователя (покупателя)
-        else {
+        } else {
           const response = await fetch("/api/user/profile");
           if (response.ok) {
             const data = await response.json();
-            if (data.avatar_url) {
-              setAvatarUrl(data.avatar_url);
+            let avatar = null;
+            let name = "";
+            
+            if (data.profile) {
+              avatar = data.profile.avatar_url;
+              name = data.profile.fullname || "";
+            } else {
+              avatar = data.avatar_url;
+              name = data.full_name || data.fullname || "";
             }
-            if (data.full_name) {
-              setUserName(data.full_name);
+            
+            if (avatar) setAvatarUrl(avatar);
+            
+            if (name && name.trim()) {
+              setUserName(name);
             } else {
               const email = session.user?.email;
               if (email) setUserName(email.split('@')[0]);
               else setUserName("Пользователь");
             }
-          } else {
-            const email = session.user?.email;
-            if (email) setUserName(email.split('@')[0]);
-            else setUserName("Пользователь");
           }
         }
       } catch (error) {
         console.error("Error loading profile:", error);
         const email = session.user?.email;
         if (email) setUserName(email.split('@')[0]);
-        else if (isMaster) setUserName("Мастер");
-        else setUserName("Пользователь");
       } finally {
         setLoading(false);
       }

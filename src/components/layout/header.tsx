@@ -31,7 +31,7 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Загружаем профиль пользователя
+  // Загружаем профиль пользователя из API
   useEffect(() => {
     const loadUserProfile = async () => {
       if (!isAuthenticated) {
@@ -40,67 +40,60 @@ export default function Header() {
       }
 
       try {
-        // Используем правильный API в зависимости от роли
-        const apiUrl = isMaster ? "/api/master/profile" : "/api/user/profile";
-        console.log("Loading profile from:", apiUrl);
-        
-        const response = await fetch(apiUrl);
-        console.log("Response status:", response.status);
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log("Profile data:", data);
-          
-          let avatar = null;
-          let name = "";
-          
-          if (isMaster) {
-            // Для мастера: data.profile.avatar_url, data.profile.full_name
+        // Для мастера используем /api/master/profile
+        if (isMaster) {
+          const response = await fetch("/api/master/profile");
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.profile) {
+              const profileData = data.profile;
+              if (profileData.avatar_url) {
+                setAvatarUrl(profileData.avatar_url);
+              }
+              if (profileData.fullname && profileData.fullname.trim()) {
+                setUserName(profileData.fullname);
+              } else {
+                const email = session?.user?.email;
+                if (email) setUserName(email.split('@')[0]);
+                else setUserName("Мастер");
+              }
+            }
+          }
+        } 
+        // Для обычного пользователя (покупатель, админ)
+        else {
+          const response = await fetch("/api/user/profile");
+          if (response.ok) {
+            const data = await response.json();
+            let avatar = null;
+            let name = "";
+            
+            // Поддерживаем оба формата ответа
             if (data.profile) {
               avatar = data.profile.avatar_url;
-              name = data.profile.full_name || "";
-            }
-          } else {
-            // Для обычного пользователя: data.avatar_url, data.full_name
-            avatar = data.avatar_url;
-            name = data.full_name || "";
-          }
-          
-          if (avatar) {
-            setAvatarUrl(avatar);
-          }
-          
-          // Устанавливаем имя
-          if (name && name.trim()) {
-            setUserName(name);
-            console.log("User name set to:", name);
-          } else {
-            // Fallback: используем email
-            const email = session?.user?.email;
-            if (email) {
-              setUserName(email.split('@')[0]);
-              console.log("Using email name:", email.split('@')[0]);
+              name = data.profile.fullname || data.profile.full_name || "";
             } else {
-              setUserName("Пользователь");
+              avatar = data.avatar_url;
+              name = data.full_name || data.fullname || "";
             }
-          }
-        } else {
-          console.error("Failed to load profile");
-          const email = session?.user?.email;
-          if (email) {
-            setUserName(email.split('@')[0]);
-          } else {
-            setUserName("Пользователь");
+            
+            if (avatar) {
+              setAvatarUrl(avatar);
+            }
+            
+            if (name && name.trim()) {
+              setUserName(name);
+            } else {
+              const email = session?.user?.email;
+              if (email) setUserName(email.split('@')[0]);
+              else setUserName("Пользователь");
+            }
           }
         }
       } catch (error) {
         console.error("Error loading profile:", error);
         const email = session?.user?.email;
-        if (email) {
-          setUserName(email.split('@')[0]);
-        } else {
-          setUserName("Пользователь");
-        }
+        if (email) setUserName(email.split('@')[0]);
       } finally {
         setProfileLoaded(true);
       }
