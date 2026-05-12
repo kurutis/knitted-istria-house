@@ -19,7 +19,9 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>("");
   const [avatarError, setAvatarError] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -29,66 +31,76 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Загружаем аватар из API профиля
+  // Загружаем профиль пользователя
   useEffect(() => {
-    const loadAvatar = async () => {
+    const loadUserProfile = async () => {
       if (!isAuthenticated) {
-        console.log("Not authenticated, skipping avatar load");
+        setProfileLoaded(true);
         return;
       }
 
-      console.log("Loading avatar for role:", isMaster ? "master" : "user");
-
       try {
         const apiUrl = isMaster ? "/api/master/profile" : "/api/user/profile";
-        console.log("Fetching from:", apiUrl);
-
         const response = await fetch(apiUrl);
-        console.log("Response status:", response.status);
 
         if (response.ok) {
           const data = await response.json();
-          console.log("API response:", data);
-
           let avatar = null;
-          if (isMaster && data.profile?.avatar_url) {
+          let name = "";
+
+          if (isMaster && data.profile) {
             avatar = data.profile.avatar_url;
-            console.log("Master avatar URL:", avatar);
-          } else if (data.avatarUrl) {
-            avatar = data.avatarUrl;
-            console.log("User avatar URL:", avatar);
-          } else if (data.avatar_url) {
-            avatar = data.avatar_url;
-            console.log("Avatar URL:", avatar);
+            name = data.profile.full_name || data.profile.fullname || "";
+          } else {
+            avatar = data.avatarUrl || data.avatar_url;
+            name = data.fullName || data.full_name || data.name || "";
           }
 
           if (avatar) {
             setAvatarUrl(avatar);
-            console.log("Avatar set successfully");
+          }
+
+          // Устанавливаем имя из профиля
+          if (name && name.trim()) {
+            setUserName(name);
           } else {
-            console.log("No avatar found in response");
+            // Fallback: используем email
+            const email = session?.user?.email;
+            if (email) {
+              setUserName(email.split('@')[0]);
+            } else {
+              setUserName("Пользователь");
+            }
           }
         } else {
-          console.error("Failed to load profile:", await response.text());
+          // Fallback при ошибке API
+          const email = session?.user?.email;
+          if (email) {
+            setUserName(email.split('@')[0]);
+          } else {
+            setUserName("Пользователь");
+          }
         }
       } catch (error) {
-        console.error("Error loading avatar:", error);
+        console.error("Error loading profile:", error);
+        const email = session?.user?.email;
+        if (email) {
+          setUserName(email.split('@')[0]);
+        } else {
+          setUserName("Пользователь");
+        }
+      } finally {
+        setProfileLoaded(true);
       }
     };
 
-    loadAvatar();
-  }, [isAuthenticated, isMaster]);
+    loadUserProfile();
+  }, [isAuthenticated, isMaster, session?.user?.email]);
 
   const getInitials = () => {
-    if (!session?.user) return "U";
-    const name = session.user.name;
-    const email = session.user.email;
-
-    if (name && name.length > 0) {
-      return name.charAt(0).toUpperCase();
-    }
-    if (email && email.length > 0) {
-      return email.charAt(0).toUpperCase();
+    if (!profileLoaded) return "U";
+    if (userName && userName.length > 0) {
+      return userName.charAt(0).toUpperCase();
     }
     return "U";
   };

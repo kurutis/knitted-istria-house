@@ -207,42 +207,28 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
           if (name && name.trim()) {
             setUserName(name);
           } else {
-            // Используем данные из сессии как fallback
-            const sessionName = session.user?.name;
-            const sessionEmail = session.user?.email;
-            
-            if (sessionName && sessionName !== "User" && !sessionName.includes("@")) {
-              setUserName(sessionName);
-            } else if (sessionEmail) {
-              // Берем первую часть email
-              setUserName(sessionEmail.split('@')[0]);
+            // Fallback: используем email
+            const email = session.user?.email;
+            if (email) {
+              setUserName(email.split('@')[0]);
             } else {
               setUserName("Пользователь");
             }
           }
         } else {
-          // Если API вернул ошибку, используем данные из сессии
-          const sessionName = session.user?.name;
-          const sessionEmail = session.user?.email;
-          
-          if (sessionName && sessionName !== "User" && !sessionName.includes("@")) {
-            setUserName(sessionName);
-          } else if (sessionEmail) {
-            setUserName(sessionEmail.split('@')[0]);
+          // Fallback при ошибке API
+          const email = session.user?.email;
+          if (email) {
+            setUserName(email.split('@')[0]);
           } else {
             setUserName("Пользователь");
           }
         }
       } catch (error) {
         console.error("Error loading current user profile:", error);
-        // При ошибке используем данные из сессии
-        const sessionName = session.user?.name;
-        const sessionEmail = session.user?.email;
-        
-        if (sessionName && sessionName !== "User" && !sessionName.includes("@")) {
-          setUserName(sessionName);
-        } else if (sessionEmail) {
-          setUserName(sessionEmail.split('@')[0]);
+        const email = session.user?.email;
+        if (email) {
+          setUserName(email.split('@')[0]);
         } else {
           setUserName("Пользователь");
         }
@@ -256,7 +242,7 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
   }, [session, isMaster]);
 
   const getInitials = () => {
-    if (!profileLoaded) return "U";
+    if (!profileLoaded || loading) return "U";
     if (userName && userName.length > 0) {
       return userName.charAt(0).toUpperCase();
     }
@@ -293,7 +279,6 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
     </div>
   );
 };
-
 export default function BlogPostCard({ 
   post, 
   showComments: externalShowComments,
