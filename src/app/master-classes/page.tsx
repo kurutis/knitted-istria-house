@@ -13,9 +13,8 @@ import type { MasterClass } from "@/types/master-class"
 import AddClassModal from "@/components/modals/AddClassModal"
 import EditClassModal from "@/components/modals/EditClassModal"
 
-
 export default function MasterClassesPage() {
-    const { data: session, status } = useSession()
+    const { data: session } = useSession()
     const router = useRouter()
     const [masterClasses, setMasterClasses] = useState<MasterClass[]>([])
     const [myRegisteredClasses, setMyRegisteredClasses] = useState<MasterClass[]>([])
@@ -46,7 +45,7 @@ export default function MasterClassesPage() {
                 fetchMyCreatedClasses()
             }
         }
-    }, [session])
+    }, [session, isMaster])
 
     const fetchMasterClasses = async () => {
         try {
@@ -253,11 +252,7 @@ export default function MasterClassesPage() {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="text-center">
-                    <motion.div
-                        className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto"
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    />
+                    <div className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full animate-spin mx-auto" />
                     <p className="mt-4 font-['Montserrat_Alternates'] text-gray-600">
                         Загрузка мастер-классов...
                     </p>
@@ -267,48 +262,31 @@ export default function MasterClassesPage() {
     }
 
     return (
-        <motion.div 
-            className="max-w-7xl mx-auto px-4 py-6 sm:py-8"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-        >
+        <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
             {/* Заголовок */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <motion.h1 
-                    className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl lg:text-4xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent"
-                    initial={{ x: -30, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ duration: 0.5 }}
-                >
+                <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl lg:text-4xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
                     Мастер-классы
-                </motion.h1>
+                </h1>
                 {isMaster && (
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
+                    <button
                         onClick={() => setShowCreateModal(true)}
                         className="px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition flex items-center gap-2"
                     >
                         <span className="text-lg">+</span>
                         <span>Создать мастер-класс</span>
-                    </motion.button>
+                    </button>
                 )}
             </div>
 
             {/* Вкладки */}
-            <motion.div 
-                className="flex gap-2 sm:gap-4 mb-6 border-b border-gray-200"
-                initial={{ y: -20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.1, duration: 0.4 }}
-            >
+            <div className="flex gap-2 sm:gap-4 mb-6 border-b border-gray-200">
                 {[
                     { id: 'all', label: 'Все мастер-классы', icon: '🎓' },
                     ...(session?.user ? [{ id: 'my', label: 'Мои записи', icon: '📝', count: myRegisteredClasses.length }] : []),
                     ...(isMaster ? [{ id: 'created', label: 'Мои мастер-классы', icon: '✍️', count: myCreatedClasses.length }] : [])
                 ].map((tab) => (
-                    <motion.button
+                    <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as 'all' | 'my' | 'created')}
                         className={`pb-2 px-3 sm:px-4 font-medium transition-all duration-300 relative flex items-center gap-1 sm:gap-2 text-sm sm:text-base ${
@@ -316,8 +294,6 @@ export default function MasterClassesPage() {
                                 ? 'text-firm-orange' 
                                 : 'text-gray-500 hover:text-gray-700'
                         }`}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
                     >
                         <span>{tab.icon}</span>
                         <span className="hidden sm:inline">{tab.label}</span>
@@ -328,49 +304,22 @@ export default function MasterClassesPage() {
                             </span>
                         )}
                         {activeTab === tab.id && (
-                            <motion.div 
-                                layoutId="activeTab"
-                                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-firm-orange to-firm-pink"
-                                transition={{ duration: 0.3 }}
-                            />
+                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-firm-orange to-firm-pink" />
                         )}
-                    </motion.button>
+                    </button>
                 ))}
-            </motion.div>
+            </div>
 
             <AnimatePresence mode="wait">
                 {/* Вкладка "Все мастер-классы" */}
                 {activeTab === 'all' && (
-                    <motion.div
-                        key="all"
-                        variants={tabVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="exit"
-                        transition={{ duration: 0.3 }}
-                        className="flex flex-col lg:flex-row gap-6"
-                    >
+                    <div className="flex flex-col lg:flex-row gap-6">
                         {/* Календарь */}
-                        <motion.div 
-                            className="w-full lg:w-1/3 xl:w-1/4 bg-white rounded-2xl shadow-xl p-4 h-fit sticky top-24"
-                            initial={{ opacity: 0, x: -30 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.2 }}
-                        >
+                        <div className="w-full lg:w-1/3 xl:w-1/4 bg-white rounded-2xl shadow-xl p-4 h-fit sticky top-24">
                             <div className="flex justify-between items-center mb-4">
-                                <button 
-                                    onClick={() => changeMonth(-1)} 
-                                    className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition"
-                                >
-                                    ←
-                                </button>
+                                <button onClick={() => changeMonth(-1)} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition">←</button>
                                 <h2 className="font-semibold text-base sm:text-lg">{monthNames[month]} {year}</h2>
-                                <button 
-                                    onClick={() => changeMonth(1)} 
-                                    className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition"
-                                >
-                                    →
-                                </button>
+                                <button onClick={() => changeMonth(1)} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition">→</button>
                             </div>
 
                             <div className="grid grid-cols-7 gap-0.5 sm:gap-1 text-center mb-2">
@@ -413,22 +362,20 @@ export default function MasterClassesPage() {
                                     )
                                 })}
                             </div>
-                        </motion.div>
+                        </div>
 
                         {/* Список мастер-классов */}
                         <div className="flex-1 space-y-4">
                             {selectedDate && (
                                 <div className="bg-gradient-to-r from-firm-orange/10 to-firm-pink/10 rounded-xl p-3">
                                     <p className="text-gray-600 text-sm">
-                                        📅 Мастер-классы на {selectedDate.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                        📅 Мастер-классы на {selectedDate.toLocaleDateString('ru-RU')}
                                     </p>
                                 </div>
                             )}
 
                             {(() => {
-                                const classesToShow = selectedDate 
-                                    ? getClassesForDate(selectedDate) 
-                                    : masterClasses
+                                const classesToShow = selectedDate ? getClassesForDate(selectedDate) : masterClasses
                                 
                                 if (classesToShow.length === 0) {
                                     return (
@@ -450,20 +397,12 @@ export default function MasterClassesPage() {
                                 ))
                             })()}
                         </div>
-                    </motion.div>
+                    </div>
                 )}
 
                 {/* Вкладка "Мои записи" */}
                 {activeTab === 'my' && (
-                    <motion.div
-                        key="my"
-                        variants={tabVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="exit"
-                        transition={{ duration: 0.3 }}
-                        className="space-y-4"
-                    >
+                    <div className="space-y-4">
                         {!session ? (
                             <div className="text-center py-12 bg-gray-50 rounded-xl">
                                 <div className="text-6xl mb-4">🔒</div>
@@ -489,20 +428,12 @@ export default function MasterClassesPage() {
                                 />
                             ))
                         )}
-                    </motion.div>
+                    </div>
                 )}
 
                 {/* Вкладка "Мои мастер-классы" */}
                 {activeTab === 'created' && isMaster && (
-                    <motion.div
-                        key="created"
-                        variants={tabVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="exit"
-                        transition={{ duration: 0.3 }}
-                        className="space-y-4"
-                    >
+                    <div className="space-y-4">
                         {myCreatedClasses.length === 0 ? (
                             <div className="text-center py-12 bg-gray-50 rounded-xl">
                                 <div className="text-6xl mb-4">🎨</div>
@@ -525,11 +456,11 @@ export default function MasterClassesPage() {
                                 />
                             ))
                         )}
-                    </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
 
-            {/* Модальное окно создания мастер-класса */}
+            {/* Модальные окна */}
             <AddClassModal
                 isOpen={showCreateModal}
                 onClose={() => setShowCreateModal(false)}
@@ -539,7 +470,6 @@ export default function MasterClassesPage() {
                 }}
             />
 
-            {/* Модальное окно редактирования мастер-класса */}
             {editingClass && (
                 <EditClassModal
                     isOpen={showEditModal}
@@ -555,6 +485,6 @@ export default function MasterClassesPage() {
                     masterClass={editingClass}
                 />
             )}
-        </motion.div>
+        </div>
     )
 }
