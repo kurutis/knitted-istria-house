@@ -205,7 +205,7 @@ export default function Header() {
                 {isLoading ? (
                   <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gray-300 animate-pulse" />
                 ) : isAuthenticated ? (
-                  <Link href={isMaster ? "/master/profile" : "/profile"} className="block">
+                  <Link href="/profile" className="block">
                     {avatarUrl && !avatarError ? (
                       <img
                         src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`}
