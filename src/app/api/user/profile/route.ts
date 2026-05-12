@@ -71,124 +71,99 @@ function validateAddress(address: string): { valid: boolean; error?: string } {
 
 // GET - получить профиль пользователя
 export async function GET(request: Request) {
-    const startTime = Date.now();
+  try {
+    const session = await getServerSession(authOptions);
     
-    try {
-        const session = await getServerSession(authOptions);
-        
-        if (!session?.user) {
-            return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
-        }
-
-        // Rate limiting
-        const ip = request.headers.get('x-forwarded-for') || 'unknown';
-        const rateLimitResult = getLimiter(request);
-        if (!rateLimitResult.success) {
-            return NextResponse.json({ 
-                error: 'Слишком много запросов. Попробуйте через минуту.' 
-            }, { status: 429 });
-        }
-
-        // Кэшируем профиль
-        const cacheKey = `user_profile_${session.user.id}`;
-        
-        const profile = await cachedQuery(cacheKey, async () => {
-            const { data: user, error } = await supabase
-                .from('users')
-                .select(`
-                    id,
-                    email,
-                    role,
-                    created_at,
-                    profiles!left (
-                        full_name,
-                        phone,
-                        city,
-                        address,
-                        avatar_url,
-                        newsletter_agreement,
-                        created_at,
-                        updated_at
-                    )
-                `)
-                .eq('id', session.user.id)
-                .single();
-
-            if (error) {
-                logError('Error fetching user profile', error);
-                throw new Error('DATABASE_ERROR');
-            }
-
-            // Проверяем, существует ли профиль, если нет - создаем
-            if (!user.profiles) {
-                const now = new Date().toISOString();
-                await supabase
-                    .from('profiles')
-                    .insert({
-                        user_id: session.user.id,
-                        created_at: now,
-                        updated_at: now
-                    });
-                
-                // Повторно получаем данные
-                const { data: updatedUser } = await supabase
-                    .from('users')
-                    .select(`id, email, role, profiles!left (*)`)
-                    .eq('id', session.user.id)
-                    .single();
-                
-                return {
-                    id: updatedUser?.id,
-                    email: updatedUser?.email,
-                    role: updatedUser?.role || 'buyer',
-                    fullname: updatedUser?.profiles?.[0]?.full_name || '',
-                    phone: updatedUser?.profiles?.[0]?.phone || '',
-                    city: updatedUser?.profiles?.[0]?.city || '',
-                    address: updatedUser?.profiles?.[0]?.address || '',
-                    avatar_url: updatedUser?.profiles?.[0]?.avatar_url || null,
-                    newsletter_agreement: updatedUser?.profiles?.[0]?.newsletter_agreement || false,
-                    member_since: user?.created_at || new Date().toISOString(),
-                    has_profile: !!updatedUser?.profiles
-                };
-            }
-
-            return {
-                id: user.id,
-                email: user.email,
-                role: user.role || 'buyer',
-                fullname: user.profiles?.[0]?.full_name || '',
-                phone: user.profiles?.[0]?.phone || '',
-                city: user.profiles?.[0]?.city || '',
-                address: user.profiles?.[0]?.address || '',
-                avatar_url: user.profiles?.[0]?.avatar_url || null,
-                newsletter_agreement: user.profiles?.[0]?.newsletter_agreement || false,
-                member_since: user.created_at,
-                has_profile: true
-            };
-        });
-
-        logInfo('User profile fetched', {
-            userId: session.user.id,
-            role: profile.role,
-            hasAvatar: !!profile.avatar_url,
-            duration: Date.now() - startTime
-        });
-
-        return NextResponse.json({
-            success: true,
-            profile,
-            meta: {
-                cached: Date.now() - startTime < 100,
-                timestamp: new Date().toISOString()
-            }
-        }, { status: 200 });
-        
-    } catch (error) {
-        logError('Error fetching user profile', error);
-        return NextResponse.json({ 
-            error: 'Ошибка загрузки профиля' 
-        }, { status: 500 });
+    if (!session?.user) {
+      return NextResponse.json({ error: "Неавторизован" }, { status: 401 });
     }
+
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId") || session.user.id;
+
+    // Получаем пользователя
+    const { data: user, error: userError } = await supabase
+      .from("users")
+      .select("id, email, role, created_at")
+      .eq("id", userId)
+      .single();
+
+    if (userError) {
+      console.error("Error fetching user:", userError);
+      return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 });
+    }
+
+    // Получаем профиль
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("full_name, phone, city, address, avatar_url, newsletter_agreement, created_at, updated_at")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    // Проверяем, существует ли профиль, если нет - создаем
+    if (!profile && !profileError) {
+      const now = new Date().toISOString();
+      await supabase
+        .from("profiles")
+        .insert({
+          user_id: userId,
+          created_at: now,
+          updated_at: now
+        });
+      
+      // Повторно получаем данные
+      const { data: newProfile } = await supabase
+        .from("profiles")
+        .select("full_name, phone, city, address, avatar_url, newsletter_agreement, created_at, updated_at")
+        .eq("user_id", userId)
+        .single();
+      
+      return NextResponse.json({
+        success: true,
+        profile: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          fullname: newProfile?.full_name || "",
+          phone: newProfile?.phone || "",
+          city: newProfile?.city || "",
+          address: newProfile?.address || "",
+          avatar_url: newProfile?.avatar_url || null,
+          newsletter_agreement: newProfile?.newsletter_agreement || false,
+          member_since: user.created_at,
+          has_profile: true
+        }
+      });
+    }
+
+    // ВАЖНО: Правильно маппим full_name -> fullname
+    return NextResponse.json({
+      success: true,
+      profile: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        fullname: profile?.full_name || "",  // ← КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ
+        phone: profile?.phone || "",
+        city: profile?.city || "",
+        address: profile?.address || "",
+        avatar_url: profile?.avatar_url || null,
+        newsletter_agreement: profile?.newsletter_agreement || false,
+        member_since: user.created_at,
+        has_profile: true
+      },
+      meta: {
+        cached: false,
+        timestamp: new Date().toISOString()
+      }
+    });
+    
+  } catch (error) {
+    console.error("Error in user profile API:", error);
+    return NextResponse.json({ 
+      error: "Внутренняя ошибка сервера" 
+    }, { status: 500 });
+  }
 }
 
 // PUT - обновить профиль пользователя
