@@ -14,14 +14,7 @@ export interface BlogPostCardProps {
     title: string;
     content: string;
     excerpt?: string;
-    images?:
-      | Array<{
-          id: string;
-          url?: string;
-          image_url?: string;
-          sort_order: number;
-        }>
-      | string[];
+    images?: Array<{ id: string; url?: string; image_url?: string; sort_order: number }> | string[];
     main_image_url?: string;
     created_at: string;
     views_count: number;
@@ -51,13 +44,9 @@ export interface BlogPostCardProps {
   variant?: "default" | "compact" | "full";
 }
 
-const getImageUrl = (
-  img:
-    | string
-    | { id: string; url?: string; image_url?: string; sort_order: number },
-): string => {
-  if (typeof img === "string") return img;
-  return img.url || img.image_url || "";
+const getImageUrl = (img: string | { id: string; url?: string; image_url?: string; sort_order: number }): string => {
+  if (typeof img === 'string') return img;
+  return img.url || img.image_url || '';
 };
 
 const formatDate = (dateString: string) => {
@@ -69,32 +58,113 @@ const formatDate = (dateString: string) => {
   return date.toLocaleDateString("ru-RU");
 };
 
-export default function BlogPostCard({
-  post,
+// Компонент аватарки с загрузкой из API
+const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: { 
+  userId?: string; 
+  name?: string; 
+  avatarUrl?: string | null;
+  size?: number;
+}) => {
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl || null);
+  const [avatarError, setAvatarError] = useState(false);
+  const [loading, setLoading] = useState(!initialAvatarUrl && !!userId);
+  const { data: session } = useSession();
+
+  useEffect(() => {
+    // Если уже есть аватарка, не загружаем
+    if (initialAvatarUrl) {
+      setAvatarUrl(initialAvatarUrl);
+      setLoading(false);
+      return;
+    }
+
+    // Если нет userId, не загружаем
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
+    // Загружаем аватар из API
+    const loadAvatar = async () => {
+      try {
+        // Пробуем загрузить профиль мастера
+        const response = await fetch(`/api/master/profile?userId=${userId}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.profile?.avatar_url) {
+            setAvatarUrl(data.profile.avatar_url);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading avatar:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAvatar();
+  }, [userId, initialAvatarUrl]);
+
+  const getInitials = () => {
+    if (name && name.length > 0) {
+      return name.charAt(0).toUpperCase();
+    }
+    return "U";
+  };
+
+  if (loading) {
+    return (
+      <div 
+        className="rounded-full bg-gray-200 animate-pulse"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+
+  if (avatarUrl && !avatarError) {
+    return (
+      <img
+        src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`}
+        alt={name || "Avatar"}
+        className="rounded-full object-cover"
+        style={{ width: size, height: size }}
+        onError={() => setAvatarError(true)}
+      />
+    );
+  }
+
+  return (
+    <div 
+      className="rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold"
+      style={{ width: size, height: size, fontSize: size * 0.4 }}
+    >
+      {getInitials()}
+    </div>
+  );
+};
+
+export default function BlogPostCard({ 
+  post, 
   showComments: externalShowComments,
   isOwner = false,
   onEdit,
   onDelete,
-  variant = "default",
+  variant = "default"
 }: BlogPostCardProps) {
   const { data: session } = useSession();
-  const [showCommentsState, setShowCommentsState] = useState(
-    externalShowComments || false,
-  );
+  const [showCommentsState, setShowCommentsState] = useState(externalShowComments || false);
   const [commentText, setCommentText] = useState("");
   const [commentLoading, setCommentLoading] = useState(false);
-
+  
   const [isLiked, setIsLiked] = useState(post.is_liked || false);
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
   const [comments, setComments] = useState(post.comments || []);
-
+  
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentText, setEditingCommentText] = useState("");
   const [updatingComment, setUpdatingComment] = useState(false);
-  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(
-    null,
-  );
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
 
   useEffect(() => {
     if (externalShowComments !== undefined) {
@@ -114,14 +184,13 @@ export default function BlogPostCard({
       if (response.ok) {
         const data = await response.json();
         let freshComments = [];
-
-        // API возвращает { success: true, comments: [...] }
+        
         if (data.comments && Array.isArray(data.comments)) {
           freshComments = data.comments;
         } else if (Array.isArray(data)) {
           freshComments = data;
         }
-
+        
         setComments(freshComments);
         setCommentsCount(freshComments.length);
       }
@@ -135,18 +204,18 @@ export default function BlogPostCard({
       window.location.href = "/auth/signin?callbackUrl=/blog";
       return;
     }
-
+    
     const newIsLiked = !isLiked;
     const newLikesCount = newIsLiked ? likesCount + 1 : likesCount - 1;
-
+    
     setIsLiked(newIsLiked);
     setLikesCount(newLikesCount);
-
+    
     try {
       const response = await fetch(`/api/blog/posts/${post.id}/like`, {
         method: isLiked ? "DELETE" : "POST",
       });
-
+      
       if (!response.ok) {
         setIsLiked(isLiked);
         setLikesCount(likesCount);
@@ -187,9 +256,9 @@ export default function BlogPostCard({
           is_edited: false,
           author_id: data.author_id,
           author_name: data.author_name,
-          author_avatar: data.author_avatar,
+          author_avatar: data.author_avatar
         };
-
+        
         setComments([newComment, ...comments]);
         setCommentsCount(commentsCount + 1);
         setCommentText("");
@@ -220,21 +289,18 @@ export default function BlogPostCard({
 
       if (response.ok) {
         const data = await response.json();
-        // API возвращает { success: true, comment: {...} }
-        const updatedComment = data.comment || data;
-
-        setComments(
-          comments.map((comment) =>
-            comment.id === commentId
-              ? {
-                  ...comment,
-                  content: updatedComment.content,
-                  updated_at: updatedComment.updated_at,
-                  is_edited: true,
-                }
-              : comment,
-          ),
-        );
+        const updatedComment = data;
+        
+        setComments(comments.map(comment => 
+          comment.id === commentId 
+            ? {
+                ...comment,
+                content: updatedComment.content,
+                updated_at: updatedComment.updated_at,
+                is_edited: true
+              }
+            : comment
+        ));
         setEditingCommentId(null);
         setEditingCommentText("");
       } else {
@@ -259,7 +325,7 @@ export default function BlogPostCard({
       });
 
       if (response.ok) {
-        setComments(comments.filter((comment) => comment.id !== commentId));
+        setComments(comments.filter(comment => comment.id !== commentId));
         setCommentsCount(commentsCount - 1);
       } else {
         const error = await response.json();
@@ -275,19 +341,19 @@ export default function BlogPostCard({
 
   const getGalleryImages = () => {
     const imageUrls = (post.images || [])
-      .map((img) => getImageUrl(img))
+      .map(img => getImageUrl(img))
       .filter(Boolean);
-
+    
     if (post.main_image_url && !imageUrls.includes(post.main_image_url)) {
       return [post.main_image_url, ...imageUrls];
     }
-
+    
     return imageUrls;
   };
 
   const renderPostImages = () => {
     const galleryImages = getGalleryImages();
-
+    
     if (galleryImages.length === 0) return null;
 
     if (variant === "compact") {
@@ -307,7 +373,7 @@ export default function BlogPostCard({
       id: `img-${index}`,
       url: url,
       image_url: url,
-      sort_order: index,
+      sort_order: index
     }));
 
     return (
@@ -324,7 +390,7 @@ export default function BlogPostCard({
 
   const renderComments = () => {
     if (!showCommentsState) return null;
-
+    
     return (
       <motion.div
         initial={{ opacity: 0, height: 0 }}
@@ -334,9 +400,11 @@ export default function BlogPostCard({
       >
         {session && (
           <div className="flex gap-3 mb-4">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-              {session.user?.name?.charAt(0).toUpperCase() || "U"}
-            </div>
+            <UserAvatar 
+              userId={session.user?.id}
+              name={session.user?.name || ""}
+              size={32}
+            />
             <div className="flex-1">
               <textarea
                 value={commentText}
@@ -364,36 +432,25 @@ export default function BlogPostCard({
           ) : (
             comments.map((comment) => (
               <div key={comment.id} className="flex gap-3 group">
-                <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 overflow-hidden">
-                  {comment.author_avatar ? (
-                    <Image
-                      src={comment.author_avatar}
-                      alt={comment.author_name}
-                      width={32}
-                      height={32}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    comment.author_name?.charAt(0).toUpperCase() || "U"
-                  )}
-                </div>
+                <UserAvatar 
+                  userId={comment.author_id}
+                  name={comment.author_name}
+                  avatarUrl={comment.author_avatar}
+                  size={32}
+                />
                 <div className="flex-1">
                   <div className="bg-white rounded-xl p-3 shadow-sm">
                     <div className="flex justify-between items-start">
                       <div>
-                        <p className="font-semibold text-sm">
-                          {comment.author_name}
-                        </p>
+                        <p className="font-semibold text-sm">{comment.author_name}</p>
                         <p className="text-xs text-gray-400 mt-0.5">
                           {formatDate(comment.created_at)}
                           {comment.is_edited && (
-                            <span className="ml-2 text-gray-400 text-xs">
-                              (ред.)
-                            </span>
+                            <span className="ml-2 text-gray-400 text-xs">(ред.)</span>
                           )}
                         </p>
                       </div>
-
+                      
                       {session?.user?.id === comment.author_id && (
                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition">
                           {editingCommentId === comment.id ? (
@@ -448,9 +505,7 @@ export default function BlogPostCard({
                         autoFocus
                       />
                     ) : (
-                      <p className="text-gray-700 text-sm mt-2">
-                        {comment.content}
-                      </p>
+                      <p className="text-gray-700 text-sm mt-2">{comment.content}</p>
                     )}
                   </div>
                 </div>
@@ -477,18 +532,8 @@ export default function BlogPostCard({
       <div className="flex items-center gap-6 pt-4 mt-4 border-t border-gray-100">
         <AnimatedButton
           icon={
-            <svg
-              className="w-6 h-6"
-              viewBox="0 0 24 24"
-              fill={isLiked ? "#D97C8E" : "none"}
-              stroke={isLiked ? "#D97C8E" : "#9CA3AF"}
-              strokeWidth="1.5"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-              />
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill={isLiked ? "#D97C8E" : "none"} stroke={isLiked ? "#D97C8E" : "#9CA3AF"} strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
             </svg>
           }
           count={likesCount}
@@ -499,18 +544,8 @@ export default function BlogPostCard({
 
         <AnimatedButton
           icon={
-            <svg
-              className="w-6 h-6"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke={showCommentsState ? "#F97316" : "#9CA3AF"}
-              strokeWidth="1.5"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-              />
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke={showCommentsState ? "#F97316" : "#9CA3AF"} strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
             </svg>
           }
           count={commentsCount}
@@ -522,18 +557,12 @@ export default function BlogPostCard({
         {isOwner && (
           <div className="flex gap-2 ml-auto">
             {onEdit && (
-              <button
-                onClick={() => onEdit(post.id)}
-                className="text-gray-500 hover:text-firm-orange transition"
-              >
+              <button onClick={() => onEdit(post.id)} className="text-gray-500 hover:text-firm-orange transition">
                 ✏️ Редактировать
               </button>
             )}
             {onDelete && (
-              <button
-                onClick={() => onDelete(post.id)}
-                className="text-gray-500 hover:text-red-500 transition"
-              >
+              <button onClick={() => onDelete(post.id)} className="text-gray-500 hover:text-red-500 transition">
                 🗑️ Удалить
               </button>
             )}
@@ -542,24 +571,9 @@ export default function BlogPostCard({
 
         <div className="flex-1"></div>
         <span className="text-sm text-gray-400 flex items-center gap-1">
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-            />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-            />
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
           </svg>
           {post.views_count}
         </span>
@@ -575,32 +589,16 @@ export default function BlogPostCard({
       className="p-6 transition-all duration-300 bg-white rounded-2xl shadow-xl hover:shadow-2xl overflow-hidden"
     >
       <div className="max-w-3xl mx-auto">
-        <Link
-          href={`/masters/${post.master_id}`}
-          className="flex items-center gap-3 group mb-4"
-        >
-          <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden">
-            {post.author_avatar ? (
-              <Image
-                src={post.author_avatar}
-                alt={post.author_name}
-                width={48}
-                height={48}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span className="text-lg">
-                {post.author_name?.charAt(0).toUpperCase() || "М"}
-              </span>
-            )}
-          </div>
+        <Link href={`/masters/${post.master_id}`} className="flex items-center gap-3 group mb-4">
+          <UserAvatar 
+            userId={post.master_id}
+            name={post.author_name}
+            avatarUrl={post.author_avatar}
+            size={48}
+          />
           <div>
-            <p className="font-semibold group-hover:text-firm-orange transition-colors">
-              {post.author_name}
-            </p>
-            <p className="text-xs text-gray-400">
-              {formatDate(post.created_at)}
-            </p>
+            <p className="font-semibold group-hover:text-firm-orange transition-colors">{post.author_name}</p>
+            <p className="text-xs text-gray-400">{formatDate(post.created_at)}</p>
           </div>
         </Link>
 
@@ -614,17 +612,16 @@ export default function BlogPostCard({
           {post.excerpt || post.content?.substring(0, 300)}...
         </p>
 
-        <Link
-          href={`/blog/${post.id}`}
-          className="text-firm-orange hover:underline text-sm mt-3 inline-flex items-center gap-1 group"
-        >
+        <Link href={`/blog/${post.id}`} className="text-firm-orange hover:underline text-sm mt-3 inline-flex items-center gap-1 group">
           Читать полностью
           <span className="inline-block">→</span>
         </Link>
 
         {renderActions()}
 
-        <AnimatePresence>{renderComments()}</AnimatePresence>
+        <AnimatePresence>
+          {renderComments()}
+        </AnimatePresence>
       </div>
     </motion.div>
   );
