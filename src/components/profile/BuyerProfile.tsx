@@ -67,14 +67,23 @@ export default function BuyerProfile({ session, initialTab }: BuyerProfileProps)
             setLoading(true)
             const response = await fetch('/api/user/profile')
             const data = await response.json()
+            
+            // Исправлено: API возвращает { success: true, profile: {...} }
+            let profile
+            if (data.profile) {
+                profile = data.profile
+            } else {
+                profile = data
+            }
+            
             setProfileData({
-                fullname: data.fullname || '',
-                email: data.email || '',
-                phone: data.phone || '',
-                city: data.city || '',
-                address: data.address || '',
-                avatarUrl: data.avatarUrl || null,
-                role: data.role || 'buyer'
+                fullname: profile.fullname || profile.full_name || session?.user?.name || '',
+                email: profile.email || session?.user?.email || '',
+                phone: profile.phone || '',
+                city: profile.city || '',
+                address: profile.address || '',
+                avatarUrl: profile.avatar_url || null,
+                role: profile.role || 'buyer'
             })
         } catch (error) {
             console.error('Error fetching profile:', error)
@@ -104,9 +113,10 @@ export default function BuyerProfile({ session, initialTab }: BuyerProfileProps)
         try {
             const response = await fetch('/api/user/orders')
             const data = await response.json()
-            setOrders(data)
-            const total = data.reduce((sum: number, order: { total_amount: number }) => sum + order.total_amount, 0)
-            setStats(prev => ({ ...prev, totalOrders: data.length, totalSpent: total }))
+            const ordersList = Array.isArray(data) ? data : data.orders || []
+            setOrders(ordersList)
+            const total = ordersList.reduce((sum: number, order: { total_amount: number }) => sum + (order.total_amount || 0), 0)
+            setStats(prev => ({ ...prev, totalOrders: ordersList.length, totalSpent: total }))
         } catch (error) {
             console.error('Error fetching orders:', error)
         }
@@ -116,8 +126,9 @@ export default function BuyerProfile({ session, initialTab }: BuyerProfileProps)
         try {
             const response = await fetch('/api/user/favorites')
             const data = await response.json()
-            setFavorites(data)
-            setStats(prev => ({ ...prev, favoriteCount: data.length }))
+            const favoritesList = Array.isArray(data) ? data : data.favorites || []
+            setFavorites(favoritesList)
+            setStats(prev => ({ ...prev, favoriteCount: favoritesList.length }))
         } catch (error) {
             console.error('Error fetching favorites:', error)
         }
@@ -223,10 +234,10 @@ export default function BuyerProfile({ session, initialTab }: BuyerProfileProps)
     }
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value, type, checked } = e.target
+        const { name, value } = e.target
         setProfileData(prev => ({
             ...prev,
-            [name]: type === 'checkbox' ? checked : value
+            [name]: value
         }))
     }
 
@@ -354,7 +365,11 @@ export default function BuyerProfile({ session, initialTab }: BuyerProfileProps)
                                         {avatarPreview ? (
                                             <img src={avatarPreview} alt="avatar preview" className="w-full h-full object-cover" />
                                         ) : profileData.avatarUrl ? (
-                                            <img src={profileData.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                                            <img 
+                                                src={`/api/proxy/avatar?url=${encodeURIComponent(profileData.avatarUrl)}`} 
+                                                alt="avatar" 
+                                                className="w-full h-full object-cover" 
+                                            />
                                         ) : (
                                             <span className="text-4xl font-['Montserrat_Alternates'] font-bold text-white">
                                                 {profileData.fullname?.charAt(0).toUpperCase() || session?.user?.name?.charAt(0).toUpperCase() || 'U'}
@@ -599,7 +614,7 @@ export default function BuyerProfile({ session, initialTab }: BuyerProfileProps)
                                     </motion.div>
                                 )}
 
-                                {/* Orders Tab */}
+                                {/* Orders Tab - остальные табы без изменений */}
                                 {activeTab === 'orders' && (
                                     <motion.div
                                         key="orders"
