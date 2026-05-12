@@ -166,8 +166,10 @@ export default function ProductPage() {
         try {
             const response = await fetch('/api/user/favorites')
             const data = await response.json()
-            const isFav = data.some((item: { id: string }) => item.id === id)
-            setIsFavorite(!!isFav)
+            // API возвращает { success, favorites, ... }
+            const favoritesList = data.favorites || (Array.isArray(data) ? data : [])
+            const isFav = favoritesList.some((item: { id: string }) => item.id === id)
+            setIsFavorite(isFav)
         } catch (error) {
             console.error('Error checking favorite status:', error)
         }
