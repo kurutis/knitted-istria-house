@@ -35,10 +35,11 @@ export async function GET(request: Request) {
 
         const cacheKey = 'categories_full_tree';
         const result = await cachedQuery(cacheKey, async () => {
-            // Получаем категории - убрал slug и is_active
+            // Получаем ТОЛЬКО активные категории
             const { data: categories, error } = await supabase
                 .from('categories')
                 .select('id, name, description, parent_category_id, icon_url, sort_order')
+                .eq('is_active', true)  // ← ДОБАВЛЯЕМ ФИЛЬТР ПО АКТИВНОСТИ
                 .order('sort_order', { ascending: true, nullsFirst: false })
                 .order('name', { ascending: true });
 
@@ -51,26 +52,27 @@ export async function GET(request: Request) {
                 return { categories: [] };
             }
 
-            // Подсчет товаров
-            const { data: productsCount } = await supabase
+            // Подсчет товаров для каждой категории
+            const { data: products } = await supabase
                 .from('products')
                 .select('category')
                 .eq('status', 'active')
                 .not('category', 'is', null);
 
             const countMap = new Map();
-            if (productsCount) {
-                productsCount.forEach(p => {
+            if (products) {
+                products.forEach(p => {
                     if (p.category) {
                         countMap.set(p.category, (countMap.get(p.category) || 0) + 1);
                     }
                 });
             }
 
-            // Построение дерева
+            // Построение дерева категорий
             const categoriesMap = new Map();
             const rootCategories = [];
 
+            // Сначала создаем все узлы
             for (const cat of categories) {
                 categoriesMap.set(cat.id, {
                     id: cat.id,
@@ -86,6 +88,7 @@ export async function GET(request: Request) {
                 });
             }
 
+            // Затем строим иерархию
             for (const cat of categories) {
                 const categoryNode = categoriesMap.get(cat.id);
                 if (cat.parent_category_id && categoriesMap.has(cat.parent_category_id)) {
@@ -98,6 +101,7 @@ export async function GET(request: Request) {
                 }
             }
 
+            // Сортируем подкатегории
             const sortSubcategories = (items: CategoryNode[]) => {
                 items.sort((a, b) => {
                     if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
@@ -114,7 +118,7 @@ export async function GET(request: Request) {
             return { categories: rootCategories };
         }, 300);
 
-        logApiRequest('GET', '/api/categories', 200, Date.now() - startTime);
+        logApiRequest('GET', '/api/catalog/categories', 200, Date.now() - startTime);
 
         return NextResponse.json({ 
             success: true,
