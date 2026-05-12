@@ -42,28 +42,7 @@ async function getCartSummary(userId: string) {
     return { cartCount, totalAmount };
 }
 
-async function handleDeleteItem(userId: string, productId: string) {
-    const { error: deleteError } = await supabase
-        .from('cart')
-        .delete()
-        .eq('user_id', userId)
-        .eq('product_id', productId);
-
-    if (deleteError) {
-        logError('Error deleting from cart', deleteError);
-        return NextResponse.json({ error: 'Ошибка удаления из корзины' }, { status: 500 });
-    }
-
-    invalidateCache(`cart_${userId}`);
-    const cartInfo = await getCartSummary(userId);
-
-    return NextResponse.json({ 
-        success: true, 
-        message: 'Товар удален из корзины',
-        ...cartInfo
-    });
-}
-
+// GET - получить корзину
 export async function GET(request: Request) {
     const startTime = Date.now();
     
@@ -114,22 +93,15 @@ export async function GET(request: Request) {
 
             if (error) throw error;
 
-            const validItems = cartItems?.filter(item => 
-                item.products && 
-                item.products[0]?.is_available !== false &&
-                (item.products[0]?.stock_quantity === null || item.products[0]?.stock_quantity >= item.quantity)
-            ) || [];
-
-            const items = validItems.map(item => ({
+            const items = cartItems?.map(item => ({
                 product_id: item.product_id,
                 quantity: item.quantity,
-                title: sanitize.text(item.products[0]?.title),
-                price: parseFloat(item.products[0]?.price),
-                main_image_url: item.products[0]?.main_image_url,
-                master_name: sanitize.text(item.products[0]?.users?.[0]?.profiles?.[0]?.full_name || item.products[0]?.users?.[0]?.email),
-                is_available_in_stock: item.products[0]?.stock_quantity === null || item.products[0]?.stock_quantity >= item.quantity,
-                stock_quantity: item.products[0]?.stock_quantity
-            }));
+                title: sanitize.text(item.products?.[0]?.title || ''),
+                price: parseFloat(item.products?.[0]?.price) || 0,
+                final_price: parseFloat(item.products?.[0]?.price) || 0,
+                main_image_url: item.products?.[0]?.main_image_url,
+                master_name: sanitize.text(item.products?.[0]?.users?.[0]?.profiles?.[0]?.full_name || item.products?.[0]?.users?.[0]?.email || 'Мастер'),
+            })) || [];
 
             const totalCount = items.reduce((sum, item) => sum + item.quantity, 0);
             const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -139,7 +111,12 @@ export async function GET(request: Request) {
 
         logApiRequest('GET', '/api/cart', 200, Date.now() - startTime, session.user.id);
 
-        return NextResponse.json(cartData);
+        // Возвращаем в формате, который ожидает фронтенд
+        return NextResponse.json({
+            items: cartData.items,
+            totalCount: cartData.totalCount,
+            totalAmount: cartData.totalAmount
+        });
         
     } catch (error) {
         logError('Error fetching cart', error);
@@ -152,13 +129,13 @@ export async function GET(request: Request) {
     }
 }
 
+// POST - добавить товар в корзину
 export async function POST(request: Request) {
     const startTime = Date.now();
     
     try {
         const rateLimitResult = cartLimiter(request);
         if (!rateLimitResult.success) {
-            logInfo('Rate limit exceeded for cart POST', { ip: getClientIP(request) });
             return NextResponse.json({ 
                 error: 'Слишком много запросов. Попробуйте через минуту.' 
             }, { status: 429 });
@@ -180,48 +157,26 @@ export async function POST(request: Request) {
             .single();
 
         if (productError || !product) {
-            if (productError?.code === 'PGRST116') {
-                return NextResponse.json({ error: 'Товар не найден' }, { status: 404 });
-            }
-            logError('Error checking product', productError);
-            return NextResponse.json({ error: 'Ошибка проверки товара' }, { status: 500 });
+            return NextResponse.json({ error: 'Товар не найден' }, { status: 404 });
         }
 
         if (product.is_available === false) {
             return NextResponse.json({ error: 'Товар временно недоступен' }, { status: 400 });
         }
 
-        if (product.stock_quantity !== null && product.stock_quantity < quantity) {
-            return NextResponse.json({ 
-                error: `Недостаточно товара на складе. Доступно: ${product.stock_quantity}` 
-            }, { status: 400 });
-        }
-
-        const { data: existingItem, error: checkError } = await supabase
+        const { data: existingItem } = await supabase
             .from('cart')
             .select('quantity')
             .eq('user_id', session.user.id)
             .eq('product_id', productId)
             .maybeSingle();
 
-        if (checkError && checkError.code !== 'PGRST116') {
-            logError('Error checking cart', checkError);
-            return NextResponse.json({ error: 'Ошибка проверки корзины' }, { status: 500 });
-        }
-
         const now = new Date().toISOString();
-        let finalQuantity = quantity;
 
         if (existingItem) {
-            finalQuantity = existingItem.quantity + quantity;
+            const finalQuantity = existingItem.quantity + quantity;
             
-            if (product.stock_quantity !== null && product.stock_quantity < finalQuantity) {
-                return NextResponse.json({ 
-                    error: `Невозможно добавить. В корзине уже ${existingItem.quantity} шт., доступно ${product.stock_quantity} шт.` 
-                }, { status: 400 });
-            }
-
-            const { error: updateError } = await supabase
+            await supabase
                 .from('cart')
                 .update({
                     quantity: finalQuantity,
@@ -229,31 +184,21 @@ export async function POST(request: Request) {
                 })
                 .eq('user_id', session.user.id)
                 .eq('product_id', productId);
-
-            if (updateError) {
-                logError('Error updating cart', updateError);
-                return NextResponse.json({ error: 'Ошибка добавления в корзину' }, { status: 500 });
-            }
         } else {
-            const { error: insertError } = await supabase
+            await supabase
                 .from('cart')
                 .insert({
                     user_id: session.user.id,
                     product_id: productId,
-                    quantity: finalQuantity,
+                    quantity: quantity,
                     created_at: now,
                     updated_at: now
                 });
-
-            if (insertError) {
-                logError('Error inserting into cart', insertError);
-                return NextResponse.json({ error: 'Ошибка добавления в корзину' }, { status: 500 });
-            }
         }
 
         invalidateCache(`cart_${session.user.id}`);
 
-        const { data: cartCount, error: countError } = await supabase
+        const { data: cartCount } = await supabase
             .from('cart')
             .select('quantity')
             .eq('user_id', session.user.id);
@@ -277,92 +222,13 @@ export async function POST(request: Request) {
     }
 }
 
-export async function PUT(request: Request) {
-    const startTime = Date.now();
-    
-    try {
-        const rateLimitResult = cartLimiter(request);
-        if (!rateLimitResult.success) {
-            logInfo('Rate limit exceeded for cart PUT', { ip: getClientIP(request) });
-            return NextResponse.json({ 
-                error: 'Слишком много запросов. Попробуйте через минуту.' 
-            }, { status: 429 });
-        }
-
-        const session = await getServerSession(authOptions);
-        if (!session?.user) {
-            return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
-        }
-
-        const body = await request.json();
-        const validatedData = updateQuantitySchema.parse(body);
-        const { productId, quantity } = validatedData;
-
-        if (quantity === 0) {
-            return await handleDeleteItem(session.user.id, productId);
-        }
-
-        const { data: product, error: productError } = await supabase
-            .from('products')
-            .select('id, stock_quantity, is_available')
-            .eq('id', productId)
-            .single();
-
-        if (productError || !product) {
-            return NextResponse.json({ error: 'Товар не найден' }, { status: 404 });
-        }
-
-        if (product.is_available === false) {
-            return NextResponse.json({ error: 'Товар временно недоступен' }, { status: 400 });
-        }
-
-        if (product.stock_quantity !== null && product.stock_quantity < quantity) {
-            return NextResponse.json({ 
-                error: `Недостаточно товара на складе. Доступно: ${product.stock_quantity}` 
-            }, { status: 400 });
-        }
-
-        const { error: updateError } = await supabase
-            .from('cart')
-            .update({ 
-                quantity, 
-                updated_at: new Date().toISOString() 
-            })
-            .eq('user_id', session.user.id)
-            .eq('product_id', productId);
-
-        if (updateError) {
-            logError('Error updating cart quantity', updateError);
-            return NextResponse.json({ error: 'Ошибка обновления количества' }, { status: 500 });
-        }
-
-        invalidateCache(`cart_${session.user.id}`);
-        const cartInfo = await getCartSummary(session.user.id);
-
-        logApiRequest('PUT', '/api/cart', 200, Date.now() - startTime, session.user.id);
-
-        return NextResponse.json({
-            success: true,
-            message: 'Количество обновлено',
-            ...cartInfo
-        });
-        
-    } catch (error) {
-        if (error instanceof z.ZodError) {
-            return NextResponse.json({ error: error.issues[0]?.message || 'Ошибка валидации' }, { status: 400 });
-        }
-        logError('Error updating cart quantity', error);
-        return NextResponse.json({ error: 'Ошибка обновления количества' }, { status: 500 });
-    }
-}
-
+// DELETE - удалить товар из корзины
 export async function DELETE(request: Request) {
     const startTime = Date.now();
     
     try {
         const rateLimitResult = cartLimiter(request);
         if (!rateLimitResult.success) {
-            logInfo('Rate limit exceeded for cart DELETE', { ip: getClientIP(request) });
             return NextResponse.json({ 
                 error: 'Слишком много запросов. Попробуйте через минуту.' 
             }, { status: 429 });
@@ -384,23 +250,24 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ error: 'Неверный формат ID товара' }, { status: 400 });
         }
 
-        const { data: cartItem, error: checkError } = await supabase
+        await supabase
             .from('cart')
-            .select('product_id')
+            .delete()
             .eq('user_id', session.user.id)
-            .eq('product_id', productId)
-            .maybeSingle();
+            .eq('product_id', productId);
 
-        if (checkError) {
-            logError('Error checking cart item', checkError);
-            return NextResponse.json({ error: 'Ошибка проверки товара в корзине' }, { status: 500 });
-        }
+        invalidateCache(`cart_${session.user.id}`);
 
-        if (!cartItem) {
-            return NextResponse.json({ error: 'Товар не найден в корзине' }, { status: 404 });
-        }
+        const cartInfo = await getCartSummary(session.user.id);
 
-        return await handleDeleteItem(session.user.id, productId);
+        logApiRequest('DELETE', '/api/cart', 200, Date.now() - startTime, session.user.id);
+
+        return NextResponse.json({ 
+            success: true, 
+            message: 'Товар удален из корзины',
+            cartCount: cartInfo.cartCount,
+            totalAmount: cartInfo.totalAmount
+        });
         
     } catch (error) {
         logError('Error deleting from cart', error);

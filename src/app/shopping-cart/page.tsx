@@ -9,7 +9,6 @@ interface CartItem {
     product_id: string
     title: string
     price: number
-    final_price: number
     quantity: number
     main_image_url: string
     master_name: string
@@ -29,7 +28,7 @@ export default function ShoppingCartPage() {
     const [updating, setUpdating] = useState<string | null>(null)
     const [promoCode, setPromoCode] = useState('')
     const [discount, setDiscount] = useState(0)
-    const [step, setStep] = useState(1) // 1: Review Cart, 2: Shipping, 3: Payment
+    const [step, setStep] = useState(1)
 
     useEffect(() => {
         if (status === 'unauthenticated') {
@@ -109,7 +108,7 @@ export default function ShoppingCartPage() {
         }
     }
 
-    const estimatedTax = cart.totalAmount * 0.07 // 7% налог
+    const estimatedTax = cart.totalAmount * 0.07
     const shippingCost = step >= 2 ? (cart.totalAmount > 5000 ? 0 : 350) : 0
     const totalWithDiscount = cart.totalAmount - discount
     const finalTotal = totalWithDiscount + estimatedTax + shippingCost
@@ -144,11 +143,9 @@ export default function ShoppingCartPage() {
 
     return (
         <div className="max-w-7xl mx-auto px-4 py-8">
-            {/* Заголовок и шаги */}
             <div className="text-center mb-8">
                 <h1 className="font-['Montserrat_Alternates'] font-bold text-3xl mb-6">Оформление заказа</h1>
                 
-                {/* Шаги оформления */}
                 <div className="flex items-center justify-center gap-4">
                     {[
                         { num: 1, title: 'Корзина' },
@@ -184,13 +181,11 @@ export default function ShoppingCartPage() {
             </div>
 
             <div className="flex flex-col lg:flex-row gap-8">
-                {/* Левая колонка - список товаров */}
                 <div className="flex-1">
                     <div className="space-y-4">
                         {cart.items.map((item) => (
                             <div key={item.product_id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                                 <div className="flex gap-6">
-                                    {/* Изображение */}
                                     <Link href={`/catalog/${item.product_id}`} className="w-24 h-24 flex-shrink-0">
                                         {item.main_image_url ? (
                                             <img
@@ -205,7 +200,6 @@ export default function ShoppingCartPage() {
                                         )}
                                     </Link>
 
-                                    {/* Информация */}
                                     <div className="flex-1">
                                         <div className="flex justify-between">
                                             <div>
@@ -247,7 +241,7 @@ export default function ShoppingCartPage() {
                                             </div>
                                             <div className="text-right">
                                                 <p className="font-['Montserrat_Alternates'] font-bold text-xl text-firm-orange">
-                                                    {((item.final_price || item.price) * item.quantity).toLocaleString()} ₽
+                                                    {(item.price * item.quantity).toLocaleString()} ₽
                                                 </p>
                                             </div>
                                         </div>
@@ -266,7 +260,6 @@ export default function ShoppingCartPage() {
                     </div>
                 </div>
 
-                {/* Правая колонка - итоги */}
                 <div className="lg:w-96">
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-5">
                         <h2 className="font-['Montserrat_Alternates'] font-bold text-xl mb-4">Итого</h2>
@@ -294,7 +287,6 @@ export default function ShoppingCartPage() {
                             )}
                         </div>
 
-                        {/* Промокод */}
                         <div className="mt-4 pb-4 border-b border-gray-200">
                             <div className="flex gap-2">
                                 <input
