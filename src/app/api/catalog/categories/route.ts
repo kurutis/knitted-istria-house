@@ -35,11 +35,10 @@ export async function GET(request: Request) {
 
         const cacheKey = 'categories_full_tree';
         const result = await cachedQuery(cacheKey, async () => {
-            // Получаем ТОЛЬКО активные категории
+            // Получаем все категории (без фильтра по is_active, так как поля нет)
             const { data: categories, error } = await supabase
                 .from('categories')
                 .select('id, name, description, parent_category_id, icon_url, sort_order')
-                .eq('is_active', true)  // ← ДОБАВЛЯЕМ ФИЛЬТР ПО АКТИВНОСТИ
                 .order('sort_order', { ascending: true, nullsFirst: false })
                 .order('name', { ascending: true });
 
@@ -48,16 +47,23 @@ export async function GET(request: Request) {
                 throw new Error(error.message);
             }
 
+            console.log('Fetched categories count:', categories?.length || 0); // Отладка
+
             if (!categories || categories.length === 0) {
+                console.log('No categories found in database');
                 return { categories: [] };
             }
 
             // Подсчет товаров для каждой категории
-            const { data: products } = await supabase
+            const { data: products, error: productsError } = await supabase
                 .from('products')
                 .select('category')
                 .eq('status', 'active')
                 .not('category', 'is', null);
+
+            if (productsError) {
+                console.error('Error fetching products for count:', productsError);
+            }
 
             const countMap = new Map();
             if (products) {
@@ -67,6 +73,8 @@ export async function GET(request: Request) {
                     }
                 });
             }
+
+            console.log('Products count map:', Array.from(countMap.entries())); // Отладка
 
             // Построение дерева категорий
             const categoriesMap = new Map();
@@ -114,6 +122,9 @@ export async function GET(request: Request) {
                 });
             };
             sortSubcategories(rootCategories);
+
+            console.log('Root categories count:', rootCategories.length); // Отладка
+            console.log('Root categories:', rootCategories.map(c => c.name)); // Отладка
 
             return { categories: rootCategories };
         }, 300);
