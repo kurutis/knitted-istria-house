@@ -111,7 +111,6 @@ export default function Header() {
   };
 
   const navLinks = [
-    { href: "/", label: "🏠", name: "Главная" },
     { href: "/catalog", label: "🧶", name: "Каталог" },
     { href: "/blog", label: "📝", name: "Блог" },
     { href: "/master-classes", label: "🎓", name: "Мастер-классы" },
