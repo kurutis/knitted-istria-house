@@ -136,15 +136,17 @@ export default function BuyerProfile({
 
   const fetchFavorites = async () => {
     try {
-      const response = await fetch("/api/user/favorites");
-      const data = await response.json();
-      const favoritesList = Array.isArray(data) ? data : data.favorites || [];
-      setFavorites(favoritesList);
-      setStats((prev) => ({ ...prev, favoriteCount: favoritesList.length }));
+        const response = await fetch('/api/user/favorites')
+        const data = await response.json()
+        
+        const favoritesList = Array.isArray(data) ? data : data.favorites || []
+        
+        setFavorites(favoritesList)
+        setStats(prev => ({ ...prev, favoriteCount: favoritesList.length }))
     } catch (error) {
-      console.error("Error fetching favorites:", error);
+        console.error('Error fetching favorites:', error)
     }
-  };
+}
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
