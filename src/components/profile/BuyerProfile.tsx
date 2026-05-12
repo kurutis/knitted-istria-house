@@ -138,8 +138,11 @@ export default function BuyerProfile({
     try {
         const response = await fetch('/api/user/favorites')
         const data = await response.json()
+        console.log('Favorites API response:', data) // Отладка
         
         const favoritesList = Array.isArray(data) ? data : data.favorites || []
+        console.log('Favorites list:', favoritesList) // Отладка
+        console.log('First favorite item:', favoritesList[0]) // Отладка - посмотрим структуру
         
         setFavorites(favoritesList)
         setStats(prev => ({ ...prev, favoriteCount: favoritesList.length }))
@@ -869,11 +872,9 @@ export default function BuyerProfile({
                                   <h3 className="font-['Montserrat_Alternates'] font-semibold text-base line-clamp-1 group-hover:text-firm-orange transition-colors">
                                     {item.title}
                                   </h3>
-                                  {item.master_name && (
-                                    <p className="text-xs text-gray-400 mt-1 line-clamp-1">
-                                      от {item.master_name}
+                                  <p className="text-xs text-gray-400 mt-1 line-clamp-1">
+                                        от {item.master_name || 'Мастер'}
                                     </p>
-                                  )}
                                   <div className="flex items-center justify-between mt-3">
                                     <span className="font-['Montserrat_Alternates'] font-bold text-lg text-firm-pink">
                                       {item.price.toLocaleString()} ₽
