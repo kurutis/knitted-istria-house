@@ -11,7 +11,6 @@ interface CategoryNode {
     description: string
     parent_category_id: number | null
     icon_url?: string
-    sort_order: number
     products_count: number
     subcategories: CategoryNode[]
     level: number
@@ -35,11 +34,10 @@ export async function GET(request: Request) {
 
         const cacheKey = 'categories_full_tree';
         const result = await cachedQuery(cacheKey, async () => {
-            // Получаем все категории (без фильтра по is_active, так как поля нет)
+            // Получаем все категории
             const { data: categories, error } = await supabase
                 .from('categories')
-                .select('id, name, description, parent_category_id, icon_url, sort_order')
-                .order('sort_order', { ascending: true, nullsFirst: false })
+                .select('id, name, description, parent_category_id, icon_url')
                 .order('name', { ascending: true });
 
             if (error) {
@@ -47,7 +45,7 @@ export async function GET(request: Request) {
                 throw new Error(error.message);
             }
 
-            console.log('Fetched categories count:', categories?.length || 0); // Отладка
+            console.log('Fetched categories count:', categories?.length || 0);
 
             if (!categories || categories.length === 0) {
                 console.log('No categories found in database');
@@ -74,7 +72,7 @@ export async function GET(request: Request) {
                 });
             }
 
-            console.log('Products count map:', Array.from(countMap.entries())); // Отладка
+            console.log('Products count map:', Array.from(countMap.entries()));
 
             // Построение дерева категорий
             const categoriesMap = new Map();
@@ -88,7 +86,6 @@ export async function GET(request: Request) {
                     description: sanitize.text(cat.description || ''),
                     parent_category_id: cat.parent_category_id,
                     icon_url: cat.icon_url,
-                    sort_order: cat.sort_order || 0,
                     products_count: countMap.get(cat.name) || 0,
                     subcategories: [],
                     level: 0,
@@ -109,12 +106,9 @@ export async function GET(request: Request) {
                 }
             }
 
-            // Сортируем подкатегории
+            // Сортируем подкатегории по имени
             const sortSubcategories = (items: CategoryNode[]) => {
-                items.sort((a, b) => {
-                    if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
-                    return a.name.localeCompare(b.name);
-                });
+                items.sort((a, b) => a.name.localeCompare(b.name));
                 items.forEach(item => {
                     if (item.subcategories?.length) {
                         sortSubcategories(item.subcategories);
@@ -123,8 +117,8 @@ export async function GET(request: Request) {
             };
             sortSubcategories(rootCategories);
 
-            console.log('Root categories count:', rootCategories.length); // Отладка
-            console.log('Root categories:', rootCategories.map(c => c.name)); // Отладка
+            console.log('Root categories count:', rootCategories.length);
+            console.log('Root categories:', rootCategories.map(c => c.name));
 
             return { categories: rootCategories };
         }, 300);
