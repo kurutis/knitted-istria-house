@@ -95,7 +95,7 @@ export async function GET(request: Request) {
 
         // Получаем мастеров для товаров
         const masterIds = [...new Set(products.map(p => p.master_id).filter(Boolean))];
-        const mastersMap = new Map();
+        const masterNamesMap = new Map();
         
         if (masterIds.length > 0) {
             // Получаем данные мастеров
@@ -120,7 +120,7 @@ export async function GET(request: Request) {
                 
                 masters.forEach(m => {
                     const profile = profileMap.get(m.user_id);
-                    mastersMap.set(m.id, {
+                    masterNamesMap.set(m.id, {
                         master_name: profile?.full_name || 'Мастер',
                         master_avatar: profile?.avatar_url || null
                     });
@@ -128,12 +128,13 @@ export async function GET(request: Request) {
             }
         }
 
-        // Форматируем результат
+        // Создаем Map для быстрого доступа к товарам
         const productMap = new Map();
         products.forEach(p => {
             productMap.set(p.id, p);
         });
         
+        // Форматируем результат
         const formattedFavorites = favoriteItems.map(item => {
             const product = productMap.get(item.product_id);
             
@@ -141,7 +142,7 @@ export async function GET(request: Request) {
                 return null;
             }
             
-            const master = mastersMap.get(product.master_id) || { master_name: 'Мастер', master_avatar: null };
+            const masterInfo = masterNamesMap.get(product.master_id) || { master_name: 'Мастер', master_avatar: null };
             
             return {
                 id: product.id,
@@ -150,8 +151,8 @@ export async function GET(request: Request) {
                 price: parseFloat(product.price) || 0,
                 main_image_url: product.main_image_url || null,
                 master_id: product.master_id,
-                master_name: master.master_name,
-                master_avatar: master.master_avatar,
+                master_name: masterInfo.master_name,
+                master_avatar: masterInfo.master_avatar,
                 added_at: item.created_at,
                 in_stock: product.status === 'active'
             };
