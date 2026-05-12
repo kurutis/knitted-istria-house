@@ -51,6 +51,7 @@ interface BlogPost {
   likes_count?: number;
   category?: string;
   tags?: string;
+  main_image_url?: string;
 }
 
 interface MasterClass {
@@ -157,6 +158,7 @@ interface BlogPostFromApi {
     comments_count: number;
     likes_count: number;
   };
+  main_image_url: string;
 }
 
 interface CategoryItem {
@@ -229,7 +231,9 @@ export default function MasterProfile({ session }: MasterProfileProps) {
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [showAddPostModal, setShowAddPostModal] = useState(false);
   const [showAddClassModal, setShowAddClassModal] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<EditProductData | null>(null);
+  const [editingProduct, setEditingProduct] = useState<EditProductData | null>(
+    null,
+  );
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<EditPostData | null>(null);
   const [isEditPostModalOpen, setIsEditPostModalOpen] = useState(false);
@@ -238,7 +242,9 @@ export default function MasterProfile({ session }: MasterProfileProps) {
 
   // Данные для модальных окон
   const [categories, setCategories] = useState<CategoryItem[]>([]);
-  const [yarns, setYarns] = useState<{ id: string; name: string; brand: string }[]>([]);
+  const [yarns, setYarns] = useState<
+    { id: string; name: string; brand: string }[]
+  >([]);
 
   const [profileData, setProfileData] = useState({
     fullname: "",
@@ -360,6 +366,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
             likes_count: post.stats?.likes_count || 0,
             category: "",
             tags: "",
+            main_image_url: post.main_image_url,
           }));
         } else if (Array.isArray(blogData)) {
           blogList = blogData;
@@ -653,9 +660,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
           method: "DELETE",
         });
         if (response.ok) {
-          setBlogPosts((prev) =>
-            prev.filter((p: BlogPost) => p.id !== postId),
-          );
+          setBlogPosts((prev) => prev.filter((p: BlogPost) => p.id !== postId));
           toast.success("Пост удален");
         }
       } catch (error) {
@@ -749,7 +754,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
       <Toaster position="top-right" />
-      
+
       <div className="mt-5 flex items-start justify-center py-8 px-4">
         <div className="flex flex-col gap-6 w-full max-w-7xl">
           {/* Header с приветствием */}
@@ -889,10 +894,30 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                 <nav className="space-y-2">
                   {[
                     { id: "dashboard", icon: "📊", label: "Панель управления" },
-                    { id: "products", icon: "🧶", label: "Мои товары", count: products.length },
-                    { id: "orders", icon: "📦", label: "Заказы", count: orders.filter(o => o.status === "new").length },
-                    { id: "blog", icon: "✍️", label: "Блог", count: blogPosts.length },
-                    { id: "master-classes", icon: "🎓", label: "Мастер-классы", count: masterClasses.length },
+                    {
+                      id: "products",
+                      icon: "🧶",
+                      label: "Мои товары",
+                      count: products.length,
+                    },
+                    {
+                      id: "orders",
+                      icon: "📦",
+                      label: "Заказы",
+                      count: orders.filter((o) => o.status === "new").length,
+                    },
+                    {
+                      id: "blog",
+                      icon: "✍️",
+                      label: "Блог",
+                      count: blogPosts.length,
+                    },
+                    {
+                      id: "master-classes",
+                      icon: "🎓",
+                      label: "Мастер-классы",
+                      count: masterClasses.length,
+                    },
                     { id: "profile", icon: "👤", label: "Профиль" },
                     { id: "settings", icon: "⚙️", label: "Настройки" },
                   ].map((tab) => (
@@ -920,9 +945,9 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                       )}
                     </button>
                   ))}
-                  
+
                   <div className="border-t border-gray-200 my-2 pt-2"></div>
-                  
+
                   <button
                     onClick={() => signOut({ callbackUrl: "/" })}
                     className="w-full text-left px-4 py-3 rounded-xl transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-3 text-red-600 hover:bg-red-50"
@@ -1001,13 +1026,20 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                       Последние заказы
                     </h3>
                     {orders.slice(0, 5).map((order) => (
-                      <div key={order.id} className="border-b border-gray-100 py-3 flex justify-between items-center">
+                      <div
+                        key={order.id}
+                        className="border-b border-gray-100 py-3 flex justify-between items-center"
+                      >
                         <div>
                           <p className="font-medium">{order.product_title}</p>
-                          <p className="text-sm text-gray-500">{order.buyer_name}</p>
+                          <p className="text-sm text-gray-500">
+                            {order.buyer_name}
+                          </p>
                         </div>
                         <div className="text-right">
-                          <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(order.status)}`}>
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full ${getStatusColor(order.status)}`}
+                          >
                             {getStatusText(order.status)}
                           </span>
                           <p className="font-semibold text-firm-orange mt-1">
@@ -1042,35 +1074,64 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   {products.length === 0 ? (
                     <div className="text-center py-12 bg-gray-50 rounded-xl">
                       <p className="text-gray-500">У вас пока нет товаров</p>
-                      <button onClick={() => setShowAddProductModal(true)} className="mt-2 text-firm-orange hover:underline">
+                      <button
+                        onClick={() => setShowAddProductModal(true)}
+                        className="mt-2 text-firm-orange hover:underline"
+                      >
                         Добавить первый товар →
                       </button>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                       {products.map((product) => (
-                        <div key={product.id} className="group bg-white rounded-xl overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-300">
-                          <Link href={`/catalog/${product.id}`} className="block">
+                        <div
+                          key={product.id}
+                          className="group bg-white rounded-xl overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-300"
+                        >
+                          <Link
+                            href={`/catalog/${product.id}`}
+                            className="block"
+                          >
                             <div className="aspect-square bg-gray-100 relative overflow-hidden">
                               {product.main_image_url ? (
-                                <img src={product.main_image_url} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                <img
+                                  src={product.main_image_url}
+                                  alt={product.title}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                />
                               ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-400">Нет фото</div>
+                                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                  Нет фото
+                                </div>
                               )}
                             </div>
                             <div className="p-3">
-                              <h3 className="font-['Montserrat_Alternates'] font-semibold text-sm line-clamp-1">{product.title}</h3>
-                              <p className="text-firm-orange font-bold text-lg mt-1">{product.price.toLocaleString()} ₽</p>
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${product.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                {product.status === 'active' ? 'Активен' : 'Скрыт'}
+                              <h3 className="font-['Montserrat_Alternates'] font-semibold text-sm line-clamp-1">
+                                {product.title}
+                              </h3>
+                              <p className="text-firm-orange font-bold text-lg mt-1">
+                                {product.price.toLocaleString()} ₽
+                              </p>
+                              <span
+                                className={`text-xs px-2 py-0.5 rounded-full ${product.status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}
+                              >
+                                {product.status === "active"
+                                  ? "Активен"
+                                  : "Скрыт"}
                               </span>
                             </div>
                           </Link>
                           <div className="p-3 pt-0 flex gap-2">
-                            <button onClick={() => handleEditProduct(product)} className="flex-1 px-3 py-1.5 text-sm bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition">
-                              ✏️ Редактировать
+                            <button
+                              onClick={() => handleEditProduct(product)}
+                              className="flex-1 px-2 py-1.5 text-xs bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition whitespace-nowrap"
+                            >
+                              ✏️ Ред.
                             </button>
-                            <button onClick={() => handleProductDelete(product.id)} className="flex-1 px-3 py-1.5 text-sm border border-red-500 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition">
+                            <button
+                              onClick={() => handleProductDelete(product.id)}
+                              className="flex-1 px-2 py-1.5 text-xs border border-red-500 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition whitespace-nowrap"
+                            >
                               🗑️ Удалить
                             </button>
                           </div>
@@ -1093,30 +1154,51 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   </h2>
                   <div className="space-y-4">
                     {orders.map((order) => (
-                      <div key={order.id} className="border rounded-xl p-4 hover:shadow-md transition">
+                      <div
+                        key={order.id}
+                        className="border rounded-xl p-4 hover:shadow-md transition"
+                      >
                         <div className="flex justify-between items-start mb-2">
                           <div>
-                            <span className="font-semibold">Заказ #{order.order_number}</span>
-                            <span className={`ml-3 text-xs px-2 py-1 rounded-full ${getStatusColor(order.status)}`}>
+                            <span className="font-semibold">
+                              Заказ #{order.order_number}
+                            </span>
+                            <span
+                              className={`ml-3 text-xs px-2 py-1 rounded-full ${getStatusColor(order.status)}`}
+                            >
                               {getStatusText(order.status)}
                             </span>
                           </div>
-                          <span className="text-sm text-gray-500">{formatDate(order.created_at)}</span>
+                          <span className="text-sm text-gray-500">
+                            {formatDate(order.created_at)}
+                          </span>
                         </div>
                         <p className="text-gray-600">{order.product_title}</p>
                         <div className="flex justify-between items-center mt-3">
-                          <p className="text-sm text-gray-500">Покупатель: {order.buyer_name}</p>
+                          <p className="text-sm text-gray-500">
+                            Покупатель: {order.buyer_name}
+                          </p>
                           <div className="flex gap-2">
                             {order.status === "new" && (
                               <>
                                 <button
-                                  onClick={() => handleOrderStatusChange(order.id, "confirmed")}
+                                  onClick={() =>
+                                    handleOrderStatusChange(
+                                      order.id,
+                                      "confirmed",
+                                    )
+                                  }
                                   className="px-3 py-1 bg-green-500 text-white rounded-lg text-sm"
                                 >
                                   Подтвердить
                                 </button>
                                 <button
-                                  onClick={() => handleOrderStatusChange(order.id, "cancelled")}
+                                  onClick={() =>
+                                    handleOrderStatusChange(
+                                      order.id,
+                                      "cancelled",
+                                    )
+                                  }
                                   className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm"
                                 >
                                   Отклонить
@@ -1125,13 +1207,17 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                             )}
                             {order.status === "confirmed" && (
                               <button
-                                onClick={() => handleOrderStatusChange(order.id, "shipped")}
+                                onClick={() =>
+                                  handleOrderStatusChange(order.id, "shipped")
+                                }
                                 className="px-3 py-1 bg-purple-500 text-white rounded-lg text-sm"
                               >
                                 Отправить
                               </button>
                             )}
-                            <span className="font-bold text-firm-orange">{order.total_amount} ₽</span>
+                            <span className="font-bold text-firm-orange">
+                              {order.total_amount} ₽
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -1162,7 +1248,10 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   {blogPosts.length === 0 ? (
                     <div className="text-center py-12 bg-gray-50 rounded-xl">
                       <p className="text-gray-500">У вас пока нет постов</p>
-                      <button onClick={() => setShowAddPostModal(true)} className="mt-2 text-firm-orange hover:underline">
+                      <button
+                        onClick={() => setShowAddPostModal(true)}
+                        className="mt-2 text-firm-orange hover:underline"
+                      >
                         Написать первый пост →
                       </button>
                     </div>
@@ -1175,7 +1264,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                           content: post.content || "",
                           excerpt: post.excerpt || "",
                           images: [],
-                          main_image_url: undefined,
+                          main_image_url: post.main_image_url || undefined,
                           created_at: post.created_at,
                           views_count: post.views_count || 0,
                           likes_count: post.likes_count || 0,
@@ -1235,54 +1324,95 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                       onClick={() => setMasterClassFilter("published")}
                       className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition ${masterClassFilter === "published" ? "bg-firm-orange text-white" : "border border-gray-300 hover:bg-gray-50"}`}
                     >
-                      Опубликованные ({masterClasses.filter(mc => mc.status === "published").length})
+                      Опубликованные (
+                      {
+                        masterClasses.filter((mc) => mc.status === "published")
+                          .length
+                      }
+                      )
                     </button>
                     <button
                       onClick={() => setMasterClassFilter("draft")}
                       className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition ${masterClassFilter === "draft" ? "bg-firm-orange text-white" : "border border-gray-300 hover:bg-gray-50"}`}
                     >
-                      Черновики ({masterClasses.filter(mc => mc.status === "draft").length})
+                      Черновики (
+                      {
+                        masterClasses.filter((mc) => mc.status === "draft")
+                          .length
+                      }
+                      )
                     </button>
                   </div>
 
                   {masterClasses.length === 0 ? (
                     <div className="text-center py-12 bg-gray-50 rounded-xl">
-                      <p className="text-gray-500">У вас нет созданных мастер-классов</p>
-                      <button onClick={() => setShowAddClassModal(true)} className="mt-2 text-firm-orange hover:underline">
+                      <p className="text-gray-500">
+                        У вас нет созданных мастер-классов
+                      </p>
+                      <button
+                        onClick={() => setShowAddClassModal(true)}
+                        className="mt-2 text-firm-orange hover:underline"
+                      >
                         Создать первый мастер-класс →
                       </button>
                     </div>
                   ) : (
                     <div className="space-y-4">
                       {masterClasses
-                        .filter(mc => masterClassFilter === "all" || mc.status === masterClassFilter)
+                        .filter(
+                          (mc) =>
+                            masterClassFilter === "all" ||
+                            mc.status === masterClassFilter,
+                        )
                         .map((mc) => (
-                          <div key={mc.id} className="border border-gray-100 rounded-lg p-5 hover:shadow-md transition-shadow">
+                          <div
+                            key={mc.id}
+                            className="border border-gray-100 rounded-lg p-5 hover:shadow-md transition-shadow"
+                          >
                             <div className="flex gap-4">
                               {mc.image_url && (
                                 <div className="w-32 h-32 shrink-0 rounded-lg overflow-hidden bg-gray-100">
-                                  <img src={mc.image_url} alt={mc.title} className="w-full h-full object-cover" />
+                                  <img
+                                    src={mc.image_url}
+                                    alt={mc.title}
+                                    className="w-full h-full object-cover"
+                                  />
                                 </div>
                               )}
                               <div className="flex-1">
                                 <div className="flex justify-between items-start">
                                   <div>
-                                    <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg">{mc.title}</h3>
+                                    <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg">
+                                      {mc.title}
+                                    </h3>
                                     <div className="flex items-center gap-2 mt-1">
-                                      <span className={`px-2 py-0.5 rounded-full text-xs ${mc.type === "online" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}>
-                                        {mc.type === "online" ? "🖥️ Онлайн" : "📍 Офлайн"}
+                                      <span
+                                        className={`px-2 py-0.5 rounded-full text-xs ${mc.type === "online" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}
+                                      >
+                                        {mc.type === "online"
+                                          ? "🖥️ Онлайн"
+                                          : "📍 Офлайн"}
                                       </span>
-                                      <span className={`px-2 py-0.5 rounded-full text-xs ${getStatusColor(mc.status)}`}>
+                                      <span
+                                        className={`px-2 py-0.5 rounded-full text-xs ${getStatusColor(mc.status)}`}
+                                      >
                                         {getStatusText(mc.status)}
                                       </span>
                                     </div>
                                   </div>
                                   <div className="text-right">
-                                    <div className="text-xl font-bold text-firm-orange">{mc.price} ₽</div>
-                                    <div className="text-sm text-gray-500">{mc.current_participants || 0}/{mc.max_participants} участников</div>
+                                    <div className="text-xl font-bold text-firm-orange">
+                                      {mc.price} ₽
+                                    </div>
+                                    <div className="text-sm text-gray-500">
+                                      {mc.current_participants || 0}/
+                                      {mc.max_participants} участников
+                                    </div>
                                   </div>
                                 </div>
-                                <p className="text-gray-600 mt-2 text-sm line-clamp-2">{mc.description}</p>
+                                <p className="text-gray-600 mt-2 text-sm line-clamp-2">
+                                  {mc.description}
+                                </p>
                                 <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
                                   <span>📅 {formatDate(mc.date_time)}</span>
                                   <span>⏰ {formatTime(mc.date_time)}</span>
@@ -1296,13 +1426,20 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                                     }}
                                     className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition"
                                   >
-                                    👥 Участники ({mc.registrations?.length || 0})
+                                    👥 Участники (
+                                    {mc.registrations?.length || 0})
                                   </button>
-                                  {mc.status === "published" && new Date(mc.date_time) > new Date() && (
-                                    <button onClick={() => handleCancelMasterClass(mc.id)} className="px-3 py-1.5 border border-red-500 text-red-500 rounded-lg text-sm hover:bg-red-500 hover:text-white transition">
-                                      Отменить
-                                    </button>
-                                  )}
+                                  {mc.status === "published" &&
+                                    new Date(mc.date_time) > new Date() && (
+                                      <button
+                                        onClick={() =>
+                                          handleCancelMasterClass(mc.id)
+                                        }
+                                        className="px-3 py-1.5 border border-red-500 text-red-500 rounded-lg text-sm hover:bg-red-500 hover:text-white transition"
+                                      >
+                                        Отменить
+                                      </button>
+                                    )}
                                   {mc.status === "draft" && (
                                     <>
                                       <button
@@ -1312,7 +1449,9 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                                         ✏️ Редактировать
                                       </button>
                                       <button
-                                        onClick={() => handleDeleteMasterClass(mc.id)}
+                                        onClick={() =>
+                                          handleDeleteMasterClass(mc.id)
+                                        }
                                         className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition"
                                       >
                                         🗑️ Удалить
@@ -1337,7 +1476,9 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   className="bg-white rounded-2xl shadow-xl p-6"
                 >
                   <div className="flex justify-between items-center mb-6">
-                    <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">Профиль мастера</h2>
+                    <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">
+                      Профиль мастера
+                    </h2>
                     {!isEditing ? (
                       <button
                         onClick={() => setIsEditing(true)}
@@ -1362,26 +1503,69 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   {isEditing ? (
                     <form onSubmit={handleProfileUpdate} className="space-y-4">
                       <div>
-                        <label className="block text-gray-700 mb-1">Имя *</label>
-                        <input type="text" name="fullname" value={profileData.fullname} onChange={handleInputChange} required className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange" />
+                        <label className="block text-gray-700 mb-1">
+                          Имя *
+                        </label>
+                        <input
+                          type="text"
+                          name="fullname"
+                          value={profileData.fullname}
+                          onChange={handleInputChange}
+                          required
+                          className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange"
+                        />
                       </div>
                       <div>
-                        <label className="block text-gray-700 mb-1">Телефон</label>
-                        <input type="tel" name="phone" value={profileData.phone || ""} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink" />
+                        <label className="block text-gray-700 mb-1">
+                          Телефон
+                        </label>
+                        <input
+                          type="tel"
+                          name="phone"
+                          value={profileData.phone || ""}
+                          onChange={handleInputChange}
+                          className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink"
+                        />
                       </div>
                       <div>
-                        <label className="block text-gray-700 mb-1">Город</label>
-                        <input type="text" name="city" value={profileData.city || ""} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange" />
+                        <label className="block text-gray-700 mb-1">
+                          Город
+                        </label>
+                        <input
+                          type="text"
+                          name="city"
+                          value={profileData.city || ""}
+                          onChange={handleInputChange}
+                          className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange"
+                        />
                       </div>
                       <div>
-                        <label className="block text-gray-700 mb-1">Описание</label>
-                        <textarea name="description" value={profileData.description || ""} onChange={handleInputChange} rows={4} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink" />
+                        <label className="block text-gray-700 mb-1">
+                          Описание
+                        </label>
+                        <textarea
+                          name="description"
+                          value={profileData.description || ""}
+                          onChange={handleInputChange}
+                          rows={4}
+                          className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink"
+                        />
                       </div>
                       <div className="flex items-center gap-3">
-                        <input type="checkbox" name="custom_orders_enabled" checked={profileData.custom_orders_enabled} onChange={handleCheckboxChange} className="w-5 h-5 accent-firm-orange" />
+                        <input
+                          type="checkbox"
+                          name="custom_orders_enabled"
+                          checked={profileData.custom_orders_enabled}
+                          onChange={handleCheckboxChange}
+                          className="w-5 h-5 accent-firm-orange"
+                        />
                         <label>Принимаю индивидуальные заказы</label>
                       </div>
-                      <button type="submit" disabled={saving} className="w-full py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl font-semibold disabled:opacity-50">
+                      <button
+                        type="submit"
+                        disabled={saving}
+                        className="w-full py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl font-semibold disabled:opacity-50"
+                      >
                         {saving ? "Сохранение..." : "Сохранить изменения"}
                       </button>
                     </form>
@@ -1397,19 +1581,31 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                       </div>
                       <div className="bg-gray-50 rounded-xl p-4">
                         <p className="text-gray-500 text-sm">Телефон</p>
-                        <p className="font-medium">{profileData.phone || "Не указано"}</p>
+                        <p className="font-medium">
+                          {profileData.phone || "Не указано"}
+                        </p>
                       </div>
                       <div className="bg-gray-50 rounded-xl p-4">
                         <p className="text-gray-500 text-sm">Город</p>
-                        <p className="font-medium">{profileData.city || "Не указано"}</p>
+                        <p className="font-medium">
+                          {profileData.city || "Не указано"}
+                        </p>
                       </div>
                       <div className="bg-gray-50 rounded-xl p-4 md:col-span-2">
                         <p className="text-gray-500 text-sm">Описание</p>
-                        <p className="font-medium">{profileData.description || "Не указано"}</p>
+                        <p className="font-medium">
+                          {profileData.description || "Не указано"}
+                        </p>
                       </div>
                       <div className="bg-gray-50 rounded-xl p-4 md:col-span-2">
-                        <p className="text-gray-500 text-sm">Индивидуальные заказы</p>
-                        <p className="font-medium">{profileData.custom_orders_enabled ? "✅ Принимаю" : "❌ Не принимаю"}</p>
+                        <p className="text-gray-500 text-sm">
+                          Индивидуальные заказы
+                        </p>
+                        <p className="font-medium">
+                          {profileData.custom_orders_enabled
+                            ? "✅ Принимаю"
+                            : "❌ Не принимаю"}
+                        </p>
                       </div>
                     </div>
                   )}
@@ -1423,21 +1619,39 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   animate={{ opacity: 1, y: 0 }}
                   className="bg-white rounded-2xl shadow-xl p-6"
                 >
-                  <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-6">Настройки</h2>
+                  <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-6">
+                    Настройки
+                  </h2>
                   <div className="space-y-6">
                     <div>
-                      <h3 className="font-semibold text-lg mb-3">Смена пароля</h3>
+                      <h3 className="font-semibold text-lg mb-3">
+                        Смена пароля
+                      </h3>
                       <form className="space-y-4 max-w-md">
-                        <input type="password" placeholder="Текущий пароль" className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange" />
-                        <input type="password" placeholder="Новый пароль" className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink" />
-                        <input type="password" placeholder="Подтверждение" className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange" />
+                        <input
+                          type="password"
+                          placeholder="Текущий пароль"
+                          className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange"
+                        />
+                        <input
+                          type="password"
+                          placeholder="Новый пароль"
+                          className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink"
+                        />
+                        <input
+                          type="password"
+                          placeholder="Подтверждение"
+                          className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange"
+                        />
                         <button className="px-6 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl">
                           Изменить пароль
                         </button>
                       </form>
                     </div>
                     <div className="border-t pt-6">
-                      <h3 className="font-semibold text-lg mb-3 text-red-600">Опасная зона</h3>
+                      <h3 className="font-semibold text-lg mb-3 text-red-600">
+                        Опасная зона
+                      </h3>
                       <button className="px-4 py-2 border-2 border-red-500 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition">
                         Удалить аккаунт
                       </button>
@@ -1527,20 +1741,36 @@ export default function MasterProfile({ session }: MasterProfileProps) {
               </div>
               <div className="p-4 space-y-3">
                 {!selectedMasterClass.registrations?.length ? (
-                  <p className="text-center text-gray-500 py-8">Нет записавшихся участников</p>
+                  <p className="text-center text-gray-500 py-8">
+                    Нет записавшихся участников
+                  </p>
                 ) : (
                   selectedMasterClass.registrations.map((reg) => (
                     <div key={reg.id} className="border rounded-lg p-3">
                       <div className="flex justify-between items-start">
                         <div>
-                          <p className="font-medium">{reg.user_name || reg.user_email}</p>
-                          <p className="text-sm text-gray-500">{reg.user_email}</p>
-                          {reg.user_phone && <p className="text-sm text-gray-500">{reg.user_phone}</p>}
+                          <p className="font-medium">
+                            {reg.user_name || reg.user_email}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {reg.user_email}
+                          </p>
+                          {reg.user_phone && (
+                            <p className="text-sm text-gray-500">
+                              {reg.user_phone}
+                            </p>
+                          )}
                         </div>
                         <div className="text-right">
-                          <p className="text-xs text-gray-400">Записан: {formatDate(reg.created_at)}</p>
-                          <span className={`px-2 py-0.5 rounded-full text-xs ${reg.payment_status === "paid" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
-                            {reg.payment_status === "paid" ? "Оплачено" : "Ожидает оплаты"}
+                          <p className="text-xs text-gray-400">
+                            Записан: {formatDate(reg.created_at)}
+                          </p>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-xs ${reg.payment_status === "paid" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}
+                          >
+                            {reg.payment_status === "paid"
+                              ? "Оплачено"
+                              : "Ожидает оплаты"}
                           </span>
                         </div>
                       </div>
