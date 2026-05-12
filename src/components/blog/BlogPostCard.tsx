@@ -65,18 +65,21 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
   avatarUrl?: string | null;
   size?: number;
 }) => {
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl || null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string>(name || "");
   const [avatarError, setAvatarError] = useState(false);
-  const [loading, setLoading] = useState(!initialAvatarUrl && !!userId);
+  const [loading, setLoading] = useState(true);
+  const { data: session } = useSession();
 
   useEffect(() => {
+    // Если передан avatarUrl, используем его
     if (initialAvatarUrl) {
       setAvatarUrl(initialAvatarUrl);
       setLoading(false);
       return;
     }
 
+    // Если нет userId, ничего не загружаем
     if (!userId) {
       setLoading(false);
       return;
@@ -84,49 +87,51 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
 
     const loadUserProfile = async () => {
       try {
-        // Сначала пробуем загрузить как мастера
-        let response = await fetch(`/api/master/profile?userId=${userId}`);
-        const isMasterUser = response.ok;
-        
+        // Загружаем профиль конкретного пользователя по userId
+        const response = await fetch(`/api/user/profile?userId=${userId}`);
         if (response.ok) {
           const data = await response.json();
-          if (data.success && data.profile) {
-            if (data.profile.avatar_url) {
-              setAvatarUrl(data.profile.avatar_url);
-            }
-            if (data.profile.fullname) {
-              setDisplayName(data.profile.fullname);
-            }
+          // Обрабатываем разные форматы ответа
+          const profile = data.profile || data;
+          if (profile.avatar_url) {
+            setAvatarUrl(profile.avatar_url);
+          }
+          if (profile.fullname || profile.full_name) {
+            setDisplayName(profile.fullname || profile.full_name);
+          } else if (name) {
+            setDisplayName(name);
           }
         } else {
-          // Если не мастер, пробуем как обычного пользователя
-          response = await fetch(`/api/user/profile?userId=${userId}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.avatar_url) {
-              setAvatarUrl(data.avatar_url);
+          // Если не нашли в user/profile, пробуем master/profile
+          const masterResponse = await fetch(`/api/master/profile?userId=${userId}`);
+          if (masterResponse.ok) {
+            const masterData = await masterResponse.json();
+            const profile = masterData.profile || masterData;
+            if (profile.avatar_url) {
+              setAvatarUrl(profile.avatar_url);
             }
-            if (data.full_name) {
-              setDisplayName(data.full_name);
+            if (profile.fullname) {
+              setDisplayName(profile.fullname);
             }
+          } else if (name) {
+            setDisplayName(name);
           }
         }
       } catch (error) {
         console.error("Error loading user profile:", error);
+        if (name) setDisplayName(name);
       } finally {
         setLoading(false);
       }
     };
 
+    // НЕ загружаем текущего пользователя! Загружаем того, чей userId передан
     loadUserProfile();
-  }, [userId, initialAvatarUrl]);
+  }, [userId, initialAvatarUrl, name]);
 
   const getInitials = () => {
     if (displayName && displayName.length > 0) {
       return displayName.charAt(0).toUpperCase();
-    }
-    if (name && name.length > 0 && name !== "User" && !name.includes("@")) {
-      return name.charAt(0).toUpperCase();
     }
     return "U";
   };
