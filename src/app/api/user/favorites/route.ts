@@ -3,15 +3,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
-import { cachedQuery, invalidateCache } from "@/lib/db-optimized";
+import { invalidateCache } from "@/lib/db-optimized";
 import { logError, logInfo } from "@/lib/error-logger";
 
 // Rate limiting
-const getLimiter = rateLimit({ limit: 60, windowMs: 60 * 1000 }); // 60 запросов в минуту
-const postLimiter = rateLimit({ limit: 30, windowMs: 60 * 1000 }); // 30 добавлений в минуту
-const deleteLimiter = rateLimit({ limit: 30, windowMs: 60 * 1000 }); // 30 удалений в минуту
+const getLimiter = rateLimit({ limit: 60, windowMs: 60 * 1000 });
+const postLimiter = rateLimit({ limit: 30, windowMs: 60 * 1000 });
+const deleteLimiter = rateLimit({ limit: 30, windowMs: 60 * 1000 });
 
-// Валидация UUID
 function isValidUUID(uuid: string): boolean {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     return uuidRegex.test(uuid);
@@ -28,8 +27,6 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
         }
 
-        // Rate limiting
-        const ip = request.headers.get('x-forwarded-for') || 'unknown';
         const rateLimitResult = getLimiter(request);
         if (!rateLimitResult.success) {
             return NextResponse.json({ 
@@ -39,110 +36,156 @@ export async function GET(request: Request) {
             }, { status: 429 });
         }
 
-        // Параметры пагинации
         const { searchParams } = new URL(request.url);
         const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
         const page = parseInt(searchParams.get('page') || '1');
         const offset = (page - 1) * limit;
 
-        // Кэшируем избранное
-        const cacheKey = `favorites_${session.user.id}_${page}_${limit}`;
+        // Сначала получаем ID избранных товаров
+        const { data: favoriteItems, error: favError, count } = await supabase
+            .from('favorites')
+            .select('product_id, created_at', { count: 'exact' })
+            .eq('user_id', session.user.id)
+            .order('created_at', { ascending: false })
+            .range(offset, offset + limit - 1);
+
+        if (favError) {
+            logError('Error fetching favorites', favError);
+            return NextResponse.json({ 
+                favorites: [], 
+                pagination: { total: 0, page, limit, totalPages: 0 },
+                stats: { total: 0 }
+            }, { status: 500 });
+        }
+
+        if (!favoriteItems || favoriteItems.length === 0) {
+            return NextResponse.json({
+                success: true,
+                favorites: [],
+                pagination: { total: 0, page, limit, totalPages: 0, hasMore: false },
+                stats: { total: 0 }
+            });
+        }
+
+        // Получаем ID товаров
+        const productIds = favoriteItems.map(item => item.product_id);
         
-        const result = await cachedQuery(cacheKey, async () => {
-            // Получаем избранные товары с данными о продуктах
-            const { data: favorites, error, count } = await supabase
-                .from('favorites')
-                .select(`
-                    product_id,
-                    created_at,
-                    products!inner (
-                        id,
-                        title,
-                        description,
-                        price,
-                        status,
-                        main_image_url,
-                        master_id,
-                        users!inner (
-                            id,
-                            email,
-                            profiles!left (
-                                full_name,
-                                avatar_url,
-                                city
-                            )
-                        )
-                    )
-                `, { count: 'exact' })
-                .eq('user_id', session.user.id)
-                .eq('products.status', 'active')
-                .order('created_at', { ascending: false })
-                .range(offset, offset + limit - 1);
+        // Получаем данные товаров
+        const { data: products, error: productsError } = await supabase
+            .from('products')
+            .select(`
+                id,
+                title,
+                description,
+                price,
+                status,
+                main_image_url,
+                master_id
+            `)
+            .in('id', productIds);
 
-            if (error) {
-                logError('Error fetching favorites', error);
-                throw new Error('DATABASE_ERROR');
+        if (productsError) {
+            logError('Error fetching products for favorites', productsError);
+            return NextResponse.json({ 
+                favorites: [], 
+                pagination: { total: 0, page, limit, totalPages: 0 },
+                stats: { total: 0 }
+            }, { status: 500 });
+        }
+
+        // Получаем мастеров для товаров
+        const masterIds = [...new Set(products.map(p => p.master_id).filter(Boolean))];
+        const mastersMap = new Map();
+        
+        if (masterIds.length > 0) {
+            // Получаем данные мастеров
+            const { data: masters } = await supabase
+                .from('masters')
+                .select('id, user_id')
+                .in('id', masterIds);
+            
+            if (masters) {
+                const userIds = masters.map(m => m.user_id);
+                
+                // Получаем профили пользователей
+                const { data: profiles } = await supabase
+                    .from('profiles')
+                    .select('user_id, full_name, avatar_url')
+                    .in('user_id', userIds);
+                
+                const profileMap = new Map();
+                profiles?.forEach(p => {
+                    profileMap.set(p.user_id, p);
+                });
+                
+                masters.forEach(m => {
+                    const profile = profileMap.get(m.user_id);
+                    mastersMap.set(m.id, {
+                        master_name: profile?.full_name || 'Мастер',
+                        master_avatar: profile?.avatar_url || null
+                    });
+                });
             }
+        }
 
-            if (!favorites || favorites.length === 0) {
-                return {
-                    favorites: [],
-                    pagination: { total: 0, page, limit, totalPages: 0 },
-                    stats: { total: 0 }
-                };
-            }
-
-            // Форматируем данные
-            const formattedFavorites = favorites.map(fav => ({
-                id: fav.products?.[0]?.id,
-                title: fav.products?.[0]?.title,
-                description: fav.products?.[0]?.description?.substring(0, 100) + (fav.products?.[0]?.description?.length > 100 ? '...' : ''),
-                price: parseFloat(fav.products?.[0]?.price || 0),
-                main_image_url: fav.products?.[0]?.main_image_url,
-                master_id: fav.products?.[0]?.master_id,
-                master_name: fav.products?.[0]?.users?.[0]?.profiles?.[0]?.full_name || fav.products?.[0]?.users?.[0]?.email,
-                master_avatar: fav.products?.[0]?.users?.[0]?.profiles?.[0]?.avatar_url,
-                master_city: fav.products?.[0]?.users?.[0]?.profiles?.[0]?.city,
-                added_at: fav.created_at,
-                in_stock: fav.products?.[0]?.status === 'active'
-            }));
-
-            return {
-                favorites: formattedFavorites,
-                pagination: {
-                    total: count || 0,
-                    page,
-                    limit,
-                    totalPages: Math.ceil((count || 0) / limit),
-                    hasMore: offset + limit < (count || 0)
-                },
-                stats: {
-                    total: count || 0
-                }
-            };
+        // Форматируем результат
+        const productMap = new Map();
+        products.forEach(p => {
+            productMap.set(p.id, p);
         });
+        
+        const formattedFavorites = favoriteItems.map(item => {
+            const product = productMap.get(item.product_id);
+            
+            if (!product) {
+                return null;
+            }
+            
+            const master = mastersMap.get(product.master_id) || { master_name: 'Мастер', master_avatar: null };
+            
+            return {
+                id: product.id,
+                title: product.title || 'Без названия',
+                description: product.description || '',
+                price: parseFloat(product.price) || 0,
+                main_image_url: product.main_image_url || null,
+                master_id: product.master_id,
+                master_name: master.master_name,
+                master_avatar: master.master_avatar,
+                added_at: item.created_at,
+                in_stock: product.status === 'active'
+            };
+        }).filter(Boolean);
+
+        const total = count || 0;
+        const totalPages = Math.ceil(total / limit);
 
         logInfo('Favorites fetched', {
             userId: session.user.id,
-            count: result.favorites.length,
-            total: result.stats.total,
+            count: formattedFavorites.length,
+            total: total,
             duration: Date.now() - startTime
         });
 
         return NextResponse.json({
             success: true,
-            ...result,
-            meta: {
-                cached: Date.now() - startTime < 100,
-                timestamp: new Date().toISOString()
-            }
-        }, { status: 200 });
+            favorites: formattedFavorites,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages,
+                hasMore: offset + limit < total
+            },
+            stats: { total }
+        });
         
     } catch (error) {
         logError('Error fetching favorites', error);
         return NextResponse.json({ 
+            success: false,
+            favorites: [], 
             error: 'Ошибка загрузки избранного',
-            favorites: [],
             pagination: { total: 0, page: 1, limit: 20, totalPages: 0 },
             stats: { total: 0 }
         }, { status: 500 });
@@ -160,8 +203,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
         }
 
-        // Rate limiting
-        const ip = request.headers.get('x-forwarded-for') || 'unknown';
         const rateLimitResult = postLimiter(request);
         if (!rateLimitResult.success) {
             return NextResponse.json({ 
@@ -179,7 +220,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Неверный формат ID товара' }, { status: 400 });
         }
 
-        // Проверяем, существует ли товар и активен ли он
+        // Проверяем, существует ли товар
         const { data: product, error: productError } = await supabase
             .from('products')
             .select('id, title, status')
@@ -195,24 +236,18 @@ export async function POST(request: Request) {
         }
 
         // Проверяем, есть ли уже в избранном
-        const { data: existing, error: checkError } = await supabase
+        const { data: existing } = await supabase
             .from('favorites')
-            .select('product_id, created_at')
+            .select('product_id')
             .eq('user_id', session.user.id)
             .eq('product_id', productId)
             .maybeSingle();
-
-        if (checkError && checkError.code !== 'PGRST116') {
-            logError('Error checking favorite', checkError);
-            return NextResponse.json({ error: 'Ошибка проверки избранного' }, { status: 500 });
-        }
 
         if (existing) {
             return NextResponse.json({ 
                 success: true,
                 message: 'Товар уже в избранном',
-                already_favorite: true,
-                added_at: existing.created_at
+                already_favorite: true
             }, { status: 200 });
         }
 
@@ -231,7 +266,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Ошибка добавления в избранное' }, { status: 500 });
         }
 
-        // Инвалидируем кэш избранного
+        // Инвалидируем кэш
         invalidateCache(new RegExp(`favorites_${session.user.id}`));
 
         logInfo('Product added to favorites', {
@@ -264,8 +299,6 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
         }
 
-        // Rate limiting
-        const ip = request.headers.get('x-forwarded-for') || 'unknown';
         const rateLimitResult = deleteLimiter(request);
         if (!rateLimitResult.success) {
             return NextResponse.json({ 
@@ -284,26 +317,6 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ error: 'Неверный формат ID товара' }, { status: 400 });
         }
 
-        // Проверяем, есть ли в избранном
-        const { data: existing, error: checkError } = await supabase
-            .from('favorites')
-            .select('product_id, created_at')
-            .eq('user_id', session.user.id)
-            .eq('product_id', productId)
-            .maybeSingle();
-
-        if (checkError && checkError.code !== 'PGRST116') {
-            logError('Error checking favorite for delete', checkError);
-            return NextResponse.json({ error: 'Ошибка проверки избранного' }, { status: 500 });
-        }
-
-        if (!existing) {
-            return NextResponse.json({ 
-                error: 'Товар не найден в избранном',
-                not_found: true
-            }, { status: 404 });
-        }
-
         // Удаляем из избранного
         const { error: deleteError } = await supabase
             .from('favorites')
@@ -316,13 +329,12 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ error: 'Ошибка удаления из избранного' }, { status: 500 });
         }
 
-        // Инвалидируем кэш избранного
+        // Инвалидируем кэш
         invalidateCache(new RegExp(`favorites_${session.user.id}`));
 
         logInfo('Product removed from favorites', {
             userId: session.user.id,
             productId,
-            wasAddedAt: existing.created_at,
             duration: Date.now() - startTime
         });
 
