@@ -71,46 +71,47 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
   const [loading, setLoading] = useState(!initialAvatarUrl && !!userId);
 
   useEffect(() => {
-    // Если уже есть аватарка, не загружаем
     if (initialAvatarUrl) {
       setAvatarUrl(initialAvatarUrl);
       setLoading(false);
       return;
     }
 
-    // Если нет userId, не загружаем
     if (!userId) {
       setLoading(false);
       return;
     }
 
-    // Загружаем профиль пользователя
     const loadUserProfile = async () => {
       try {
-        // Пробуем загрузить профиль мастера
-        const response = await fetch(`/api/master/profile?userId=${userId}`);
+        // Сначала пробуем загрузить как мастера
+        let response = await fetch(`/api/master/profile?userId=${userId}`);
+        const isMaster = response.ok;
+        
+        if (!isMaster) {
+          // Если не мастер, пробуем как обычного пользователя
+          response = await fetch(`/api/user/profile?userId=${userId}`);
+        }
+        
         if (response.ok) {
           const data = await response.json();
-          if (data.profile?.avatar_url) {
-            setAvatarUrl(data.profile.avatar_url);
+          
+          let avatar = null;
+          let fullName = "";
+          
+          if (isMaster && data.profile) {
+            avatar = data.profile.avatar_url;
+            fullName = data.profile.full_name || "";
+          } else if (!isMaster && data) {
+            avatar = data.avatar_url;
+            fullName = data.full_name || "";
           }
-          // Получаем имя из профиля
-          if (data.profile?.full_name) {
-            setDisplayName(data.profile.full_name);
-          } else if (data.profile?.fullname) {
-            setDisplayName(data.profile.fullname);
+          
+          if (avatar) {
+            setAvatarUrl(avatar);
           }
-        } else {
-          // Если мастер не найден, пробуем загрузить профиль пользователя
-          const userResponse = await fetch(`/api/user/profile?userId=${userId}`);
-          if (userResponse.ok) {
-            const userData = await userResponse.json();
-            if (userData.avatarUrl || userData.avatar_url) {
-              setAvatarUrl(userData.avatarUrl || userData.avatar_url);
-            }
-            if (userData.fullName || userData.full_name) {
-              setDisplayName(userData.fullName || userData.full_name);
-            }
+          if (fullName) {
+            setDisplayName(fullName);
           }
         }
       } catch (error) {
@@ -171,13 +172,11 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
   const [userName, setUserName] = useState<string>("");
   const [avatarError, setAvatarError] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [profileLoaded, setProfileLoaded] = useState(false);
   const isMaster = session?.user?.role === "master";
 
   useEffect(() => {
     if (!session?.user) {
       setLoading(false);
-      setProfileLoaded(true);
       return;
     }
 
@@ -188,26 +187,25 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
         
         if (response.ok) {
           const data = await response.json();
+          
           let avatar = null;
           let name = "";
           
           if (isMaster && data.profile) {
             avatar = data.profile.avatar_url;
-            name = data.profile.full_name || data.profile.fullname || "";
+            name = data.profile.full_name || "";
           } else {
-            avatar = data.avatarUrl || data.avatar_url;
-            name = data.fullName || data.full_name || data.name || "";
+            avatar = data.avatar_url;
+            name = data.full_name || "";
           }
           
           if (avatar) {
             setAvatarUrl(avatar);
           }
           
-          // Устанавливаем имя
           if (name && name.trim()) {
             setUserName(name);
           } else {
-            // Fallback: используем email
             const email = session.user?.email;
             if (email) {
               setUserName(email.split('@')[0]);
@@ -216,7 +214,6 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
             }
           }
         } else {
-          // Fallback при ошибке API
           const email = session.user?.email;
           if (email) {
             setUserName(email.split('@')[0]);
@@ -225,7 +222,7 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
           }
         }
       } catch (error) {
-        console.error("Error loading current user profile:", error);
+        console.error("Error loading profile:", error);
         const email = session.user?.email;
         if (email) {
           setUserName(email.split('@')[0]);
@@ -234,7 +231,6 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
         }
       } finally {
         setLoading(false);
-        setProfileLoaded(true);
       }
     };
 
@@ -242,7 +238,7 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
   }, [session, isMaster]);
 
   const getInitials = () => {
-    if (!profileLoaded || loading) return "U";
+    if (loading) return "U";
     if (userName && userName.length > 0) {
       return userName.charAt(0).toUpperCase();
     }
@@ -279,6 +275,7 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
     </div>
   );
 };
+
 export default function BlogPostCard({ 
   post, 
   showComments: externalShowComments,
