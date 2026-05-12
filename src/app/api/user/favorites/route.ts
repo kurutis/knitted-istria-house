@@ -27,21 +27,12 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
         }
 
-        const rateLimitResult = getLimiter(request);
-        if (!rateLimitResult.success) {
-            return NextResponse.json({ 
-                error: 'Слишком много запросов. Попробуйте через минуту.',
-                favorites: [],
-                pagination: {}
-            }, { status: 429 });
-        }
-
         const { searchParams } = new URL(request.url);
         const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
         const page = parseInt(searchParams.get('page') || '1');
         const offset = (page - 1) * limit;
 
-        // Сначала получаем ID избранных товаров
+        // Получаем избранные товары
         const { data: favoriteItems, error: favError, count } = await supabase
             .from('favorites')
             .select('product_id, created_at', { count: 'exact' })
@@ -50,7 +41,7 @@ export async function GET(request: Request) {
             .range(offset, offset + limit - 1);
 
         if (favError) {
-            logError('Error fetching favorites', favError);
+            console.error('Error fetching favorites:', favError);
             return NextResponse.json({ 
                 favorites: [], 
                 pagination: { total: 0, page, limit, totalPages: 0 },
@@ -76,16 +67,14 @@ export async function GET(request: Request) {
             .select(`
                 id,
                 title,
-                description,
                 price,
-                status,
                 main_image_url,
                 master_id
             `)
             .in('id', productIds);
 
         if (productsError) {
-            logError('Error fetching products for favorites', productsError);
+            console.error('Error fetching products:', productsError);
             return NextResponse.json({ 
                 favorites: [], 
                 pagination: { total: 0, page, limit, totalPages: 0 },
@@ -93,80 +82,52 @@ export async function GET(request: Request) {
             }, { status: 500 });
         }
 
-        // Получаем мастеров для товаров
-        const masterIds = [...new Set(products.map(p => p.master_id).filter(Boolean))];
-        const masterNamesMap = new Map();
+        // Получаем мастеров (user_id) для всех товаров
+        const masterUserIds = [...new Set(products.map(p => p.master_id).filter(Boolean))];
         
-        if (masterIds.length > 0) {
-            // Получаем данные мастеров
-            const { data: masters } = await supabase
-                .from('masters')
-                .select('id, user_id')
-                .in('id', masterIds);
-            
-            if (masters) {
-                const userIds = masters.map(m => m.user_id);
-                
-                // Получаем профили пользователей
-                const { data: profiles } = await supabase
-                    .from('profiles')
-                    .select('user_id, full_name, avatar_url')
-                    .in('user_id', userIds);
-                
-                const profileMap = new Map();
-                profiles?.forEach(p => {
-                    profileMap.set(p.user_id, p);
-                });
-                
-                masters.forEach(m => {
-                    const profile = profileMap.get(m.user_id);
-                    masterNamesMap.set(m.id, {
-                        master_name: profile?.full_name || 'Мастер',
-                        master_avatar: profile?.avatar_url || null
-                    });
-                });
-            }
+        // Получаем профили мастеров напрямую (master_id = user_id)
+        const { data: masterProfiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('user_id, full_name, avatar_url')
+            .in('user_id', masterUserIds);
+
+        if (profilesError) {
+            console.error('Error fetching master profiles:', profilesError);
         }
 
-        // Создаем Map для быстрого доступа к товарам
-        const productMap = new Map();
-        products.forEach(p => {
-            productMap.set(p.id, p);
+        // Создаем Map для быстрого доступа к именам мастеров
+        const masterMap = new Map();
+        masterProfiles?.forEach(profile => {
+            masterMap.set(profile.user_id, {
+                master_name: profile.full_name || 'Мастер',
+                master_avatar: profile.avatar_url
+            });
         });
-        
+
         // Форматируем результат
         const formattedFavorites = favoriteItems.map(item => {
-            const product = productMap.get(item.product_id);
+            const product = products.find(p => p.id === item.product_id);
+            if (!product) return null;
             
-            if (!product) {
-                return null;
-            }
-            
-            const masterInfo = masterNamesMap.get(product.master_id) || { master_name: 'Мастер', master_avatar: null };
+            const masterInfo = masterMap.get(product.master_id) || { master_name: 'Мастер', master_avatar: null };
             
             return {
                 id: product.id,
                 title: product.title || 'Без названия',
-                description: product.description || '',
                 price: parseFloat(product.price) || 0,
-                main_image_url: product.main_image_url || null,
+                main_image_url: product.main_image_url,
                 master_id: product.master_id,
                 master_name: masterInfo.master_name,
                 master_avatar: masterInfo.master_avatar,
                 added_at: item.created_at,
-                in_stock: product.status === 'active'
+                in_stock: true
             };
         }).filter(Boolean);
 
         const total = count || 0;
         const totalPages = Math.ceil(total / limit);
 
-        logInfo('Favorites fetched', {
-            userId: session.user.id,
-            count: formattedFavorites.length,
-            total: total,
-            duration: Date.now() - startTime
-        });
+        console.log('Formatted favorites:', formattedFavorites); // Для отладки
 
         return NextResponse.json({
             success: true,
@@ -182,7 +143,7 @@ export async function GET(request: Request) {
         });
         
     } catch (error) {
-        logError('Error fetching favorites', error);
+        console.error('Error fetching favorites:', error);
         return NextResponse.json({ 
             success: false,
             favorites: [], 
