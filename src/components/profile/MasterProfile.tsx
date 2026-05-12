@@ -1,10 +1,11 @@
-// src/components/profile/MasterProfile.tsx
 "use client";
 
 import { signOut } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast, Toaster } from "react-hot-toast";
 import MasterProductsList, {
   Product,
 } from "@/components/master/MasterProductsList";
@@ -371,14 +372,14 @@ export default function MasterProfile({ session }: MasterProfileProps) {
         setAvatarFile(null);
         setAvatarPreview(null);
         await fetchMasterData();
-        alert("Профиль успешно обновлен");
+        toast.success("Профиль успешно обновлен");
       } else {
         const error = await response.json();
-        alert(error.error || "Ошибка при обновлении профиля");
+        toast.error(error.error || "Ошибка при обновлении профиля");
       }
     } catch (error) {
       console.error("Error updating profile:", error);
-      alert("Ошибка при обновлении профиля");
+      toast.error("Ошибка при обновлении профиля");
     } finally {
       setSaving(false);
     }
@@ -422,13 +423,13 @@ export default function MasterProfile({ session }: MasterProfileProps) {
 
       if (response.ok) {
         fetchMasterData();
-        alert("Мастер-класс отменен");
+        toast.success("Мастер-класс отменен");
       } else {
-        alert("Ошибка при отмене мастер-класса");
+        toast.error("Ошибка при отмене мастер-класса");
       }
     } catch (error) {
       console.error("Error canceling master class:", error);
-      alert("Ошибка при отмене мастер-класса");
+      toast.error("Ошибка при отмене мастер-класса");
     }
   };
 
@@ -442,13 +443,13 @@ export default function MasterProfile({ session }: MasterProfileProps) {
 
       if (response.ok) {
         fetchMasterData();
-        alert("Мастер-класс удален");
+        toast.success("Мастер-класс удален");
       } else {
-        alert("Ошибка при удалении мастер-класса");
+        toast.error("Ошибка при удалении мастер-класса");
       }
     } catch (error) {
       console.error("Error deleting master class:", error);
-      alert("Ошибка при удалении мастер-класса");
+      toast.error("Ошибка при удалении мастер-класса");
     }
   };
 
@@ -476,9 +477,11 @@ export default function MasterProfile({ session }: MasterProfileProps) {
             order.id === orderId ? { ...order, status: newStatus } : order,
           ),
         );
+        toast.success(`Статус заказа изменен на "${getStatusText(newStatus)}"`);
       }
     } catch (error) {
       console.error("Error updating order:", error);
+      toast.error("Ошибка при обновлении статуса");
     }
   };
 
@@ -492,9 +495,11 @@ export default function MasterProfile({ session }: MasterProfileProps) {
           setProducts((prev) =>
             prev.filter((p: { id: string }) => p.id !== productId),
           );
+          toast.success("Товар удален");
         }
       } catch (error) {
         console.error("Error deleting product:", error);
+        toast.error("Ошибка при удалении товара");
       }
     }
   };
@@ -509,9 +514,11 @@ export default function MasterProfile({ session }: MasterProfileProps) {
           setBlogPosts((prev) =>
             prev.filter((p: { id: string }) => p.id !== postId),
           );
+          toast.success("Пост удален");
         }
       } catch (error) {
         console.error("Error deleting blog post:", error);
+        toast.error("Ошибка при удалении поста");
       }
     }
   };
@@ -598,1093 +605,590 @@ export default function MasterProfile({ session }: MasterProfileProps) {
   }
 
   return (
-    <div className="mt-5 flex items-start justify-center">
-      <div className="flex flex-col gap-5 w-[90%] max-w-7xl">
-        <div className="flex gap-4 flex-wrap">
-          {profileData.is_verified && (
-            <div className="bg-firm-green text-main px-4 py-2 rounded-full text-sm font-['Montserrat_Alternates'] flex items-center gap-2">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-              Верифицированный мастер
-            </div>
-          )}
-          {profileData.is_partner && (
-            <div className="bg-firm-orange bg-opacity-10 text-main px-4 py-2 rounded-full text-sm font-['Montserrat_Alternates'] flex items-center gap-2">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              Партнер фабрики
-            </div>
-          )}
-          {profileData.custom_orders_enabled && (
-            <div className="bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-['Montserrat_Alternates'] flex items-center gap-2">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                />
-              </svg>
-              Принимаю индивидуальные заказы
-            </div>
-          )}
-        </div>
-        <div className="flex gap-8">
-          {/* Sidebar */}
-          <div className="w-1/5">
-            <div className="bg-white rounded-lg shadow-md p-4 sticky top-5">
-              <div className="flex flex-col items-center mb-6">
-                <div className="relative w-24 h-24 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center overflow-hidden border-2 border-white shadow-lg group">
-                  {avatarPreview ? (
-                    <img
-                      src={avatarPreview}
-                      alt="avatar preview"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : profileData.avatarUrl ? (
-                    <img
-                      src={profileData.avatarUrl}
-                      alt="avatar"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-3xl font-['Montserrat_Alternates'] font-semibold text-white">
-                      {profileData.fullname?.charAt(0).toUpperCase()}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+      <Toaster position="top-right" />
+      
+      <div className="mt-5 flex items-start justify-center py-8 px-4">
+        <div className="flex flex-col gap-6 w-full max-w-7xl">
+          {/* Header с приветствием */}
+          <motion.div
+            initial={{ opacity: 0, y: -30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="bg-gradient-to-r from-firm-orange/10 to-firm-pink/10 rounded-2xl p-6 backdrop-blur-sm"
+          >
+            <div className="flex justify-between items-center flex-wrap gap-4">
+              <div>
+                <h1 className="font-['Montserrat_Alternates'] font-bold text-3xl md:text-4xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
+                  Панель мастера
+                </h1>
+                <p className="text-gray-600 mt-2">
+                  Добро пожаловать, {profileData.fullname || "Мастер"}!
+                </p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {profileData.is_verified && (
+                    <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                      ✓ Верифицированный мастер
                     </span>
                   )}
-
-                  {isEditing && (
-                    <label className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                      <span className="text-white text-xs">Изменить</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleAvatarChange}
-                      />
-                    </label>
+                  {profileData.is_partner && (
+                    <span className="inline-block px-3 py-1 bg-orange-100 text-orange-700 text-xs rounded-full">
+                      🤝 Партнер фабрики
+                    </span>
+                  )}
+                  {profileData.custom_orders_enabled && (
+                    <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
+                      ✨ Принимаю инд. заказы
+                    </span>
                   )}
                 </div>
-                <h3 className="mt-3 font-['Montserrat_Alternates'] font-semibold text-lg text-center">
-                  {profileData.fullname}
-                </h3>
-                <p className="text-sm text-gray-500 text-center">
-                  {profileData.email}
-                </p>
-
-                <div className="flex items-center gap-1 mt-3">
-                  {[...Array(5)].map((_, i) => (
-                    <svg
-                      key={i}
-                      className={`w-5 h-5 ${i < Math.floor(profileData.rating) ? "text-yellow-400" : "text-gray-300"}`}
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
-                  <span className="text-sm font-semibold ml-1">
-                    {profileData.rating}
-                  </span>
-                </div>
-                <p className="text-m text-gray-600 mt-1">
-                  {profileData.total_sales} продаж
-                </p>
-                <p className="text-sm text-gray-400 mt-1">
-                  {stats.total_followers} подписчиков
-                </p>
               </div>
-              <nav className="space-y-1">
-                <button
-                  onClick={() => setActiveTab("dashboard")}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-3 ${activeTab === "dashboard" ? "bg-firm-orange text-white" : "hover:bg-[#eaeaea]"}`}
-                >
-                  <span>📊</span> Панель управления
-                </button>
-                <button
-                  onClick={() => setActiveTab("products")}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-3 ${activeTab === "products" ? "bg-firm-pink text-white" : "hover:bg-[#eaeaea]"}`}
-                >
-                  <span>🧶</span> Мои товары{" "}
-                  {products.length > 0 && (
-                    <span className="ml-auto bg-white text-firm-pink text-xs px-2 py-1 rounded-full">
-                      {products.length}
-                    </span>
-                  )}
-                </button>
-                <button
-                  onClick={() => setActiveTab("orders")}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-3 ${activeTab === "orders" ? "bg-firm-orange text-white" : "hover:bg-[#eaeaea]"}`}
-                >
-                  <span>📦</span> Заказы{" "}
-                  {orders.filter((o: Order) => o.status === "new").length >
-                    0 && (
-                    <span className="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                      {orders.filter((o: Order) => o.status === "new").length}
-                    </span>
-                  )}
-                </button>
-                <button
-                  onClick={() => setActiveTab("blog")}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-3 ${activeTab === "blog" ? "bg-firm-pink text-white" : "hover:bg-[#eaeaea]"}`}
-                >
-                  <span>✍️</span> Блог
-                </button>
-                <button
-                  onClick={() => setActiveTab("master-classes")}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-3 ${activeTab === "master-classes" ? "bg-firm-orange text-white" : "hover:bg-[#eaeaea]"}`}
-                >
-                  <span>🎓</span> Мастер-классы
-                </button>
-                <button
-                  onClick={() => setActiveTab("profile")}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-3 ${activeTab === "profile" ? "bg-firm-pink text-white" : "hover:bg-[#eaeaea]"}`}
-                >
-                  <span>👤</span> Профиль
-                </button>
-                <button
-                  onClick={() => setActiveTab("settings")}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-3 ${activeTab === "settings" ? "bg-firm-orange text-white" : "hover:bg-[#eaeaea]"}`}
-                >
-                  <span>⚙️</span> Настройки
-                </button>
-                <div className="border-t border-gray-200 my-2"></div>
-                <button
-                  onClick={() => signOut({ callbackUrl: "/" })}
-                  className="w-full text-left px-4 py-3 rounded-lg transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-3 text-red-600 hover:bg-red-50"
-                >
-                  <span>🚪</span> Выйти
-                </button>
-              </nav>
-            </div>
-          </div>
 
-          {/* Main Content */}
-          <div className="w-4/5">
-            {/* Dashboard Tab */}
-            {activeTab === "dashboard" && (
-              <div className="space-y-6">
-                <div className="flex gap-4 justify-between">
-                  <div className="bg-white rounded-lg shadow-md p-6 w-full">
-                    <p className="text-gray-500 text-sm font-['Montserrat_Alternates']">
-                      Просмотры
-                    </p>
-                    <p className="text-3xl font-bold font-['Montserrat_Alternates'] text-firm-orange">
-                      {stats.total_views}
-                    </p>
-                    <p className="text-xs text-firm-green mt-1">
-                      +{stats.monthly_views} за месяц
-                    </p>
+              <div className="flex gap-6">
+                <motion.div whileHover={{ scale: 1.05 }} className="text-right">
+                  <p className="text-sm text-gray-500">Просмотры</p>
+                  <p className="text-3xl font-bold text-firm-orange">
+                    {stats.total_views}
+                  </p>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} className="text-right">
+                  <p className="text-sm text-gray-500">Заказы</p>
+                  <p className="text-3xl font-bold text-firm-pink">
+                    {stats.total_orders}
+                  </p>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} className="text-right">
+                  <p className="text-sm text-gray-500">Выручка</p>
+                  <p className="text-3xl font-bold text-firm-green">
+                    {stats.total_revenue.toLocaleString()} ₽
+                  </p>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} className="text-right">
+                  <p className="text-sm text-gray-500">Подписчики</p>
+                  <p className="text-3xl font-bold text-firm-orange">
+                    {stats.total_followers}
+                  </p>
+                </motion.div>
+              </div>
+            </div>
+          </motion.div>
+
+          <div className="flex flex-col md:flex-row gap-8">
+            {/* Sidebar */}
+            <div className="md:w-1/3 lg:w-1/4">
+              <div className="bg-white rounded-2xl shadow-xl p-6 sticky top-5 backdrop-blur-sm bg-white/95 border border-gray-100">
+                <div className="flex flex-col items-center mb-6">
+                  <div className="relative w-28 h-28 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center overflow-hidden border-4 border-white shadow-lg group">
+                    {avatarPreview ? (
+                      <img
+                        src={avatarPreview}
+                        alt="avatar preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : profileData.avatarUrl ? (
+                      <img
+                        src={`/api/proxy/avatar?url=${encodeURIComponent(profileData.avatarUrl)}`}
+                        alt="avatar"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-4xl font-['Montserrat_Alternates'] font-bold text-white">
+                        {profileData.fullname?.charAt(0).toUpperCase() || "М"}
+                      </span>
+                    )}
+
+                    {isEditing && (
+                      <label className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                        <span className="text-white text-sm">Изменить</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleAvatarChange}
+                        />
+                      </label>
+                    )}
                   </div>
-                  <div className="bg-white rounded-lg shadow-md p-6 w-full">
-                    <p className="text-gray-500 text-sm font-['Montserrat_Alternates']">
-                      Заказы
-                    </p>
-                    <p className="text-3xl font-bold font-['Montserrat_Alternates'] text-firm-pink">
-                      {stats.total_orders}
-                    </p>
-                    <p className="text-xs text-firm-green mt-1">
-                      +{stats.monthly_orders} за месяц
-                    </p>
-                  </div>
-                  <div className="bg-white rounded-lg shadow-md p-6 w-full">
-                    <p className="text-gray-500 text-sm font-['Montserrat_Alternates']">
-                      Выручка
-                    </p>
-                    <p className="text-3xl font-bold font-['Montserrat_Alternates'] text-firm-green">
-                      {stats.total_revenue.toLocaleString()} ₽
-                    </p>
-                    <p className="text-xs text-firm-green mt-1">
-                      +{stats.monthly_revenue.toLocaleString()} ₽ за месяц
-                    </p>
-                  </div>
-                  <div className="bg-white rounded-lg shadow-md p-6 w-full">
-                    <p className="text-gray-500 text-sm font-['Montserrat_Alternates']">
-                      Подписчики
-                    </p>
-                    <p className="text-3xl font-bold font-['Montserrat_Alternates'] text-firm-orange">
-                      {stats.total_followers}
-                    </p>
-                    <p className="text-xs text-firm-green mt-1">+12 за месяц</p>
-                  </div>
-                </div>
-                <div className="bg-white rounded-lg shadow-md p-6">
-                  <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-4">
-                    Быстрые действия
+                  <h3 className="mt-4 font-['Montserrat_Alternates'] font-semibold text-xl text-center">
+                    {profileData.fullname}
                   </h3>
-                  <div className="flex justify-between gap-5">
-                    <Link
-                      href="/master/products/new"
-                      className="w-full px-4 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition-all duration-300 text-center"
-                    >
-                      + Добавить товар
-                    </Link>
-                    <Link
-                      href="/master/blog/new"
-                      className="w-full px-4 py-2 bg-firm-pink text-white rounded-lg hover:bg-opacity-90 transition-all duration-300 text-center"
-                    >
-                      + Новая запись в блоге
-                    </Link>
-                    <Link
-                      href="/master/master-classes/new"
-                      className="w-full px-4 py-2 border-2 border-firm-orange text-firm-orange rounded-lg hover:bg-firm-orange hover:text-white transition-all duration-300 text-center"
-                    >
-                      + Создать мастер-класс
-                    </Link>
+                  <p className="text-sm text-gray-500 text-center">
+                    {profileData.email}
+                  </p>
+                  {profileData.city && (
+                    <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                      📍 {profileData.city}
+                    </p>
+                  )}
+
+                  <div className="flex items-center gap-1 mt-3">
+                    {[...Array(5)].map((_, i) => (
+                      <svg
+                        key={i}
+                        className={`w-5 h-5 ${i < Math.floor(profileData.rating) ? "text-yellow-400" : "text-gray-300"}`}
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    ))}
+                    <span className="text-sm font-semibold ml-1">
+                      {profileData.rating}
+                    </span>
                   </div>
+                  <p className="text-m text-gray-600 mt-1">
+                    {profileData.total_sales} продаж
+                  </p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    {stats.total_followers} подписчиков
+                  </p>
                 </div>
-                <div className="bg-white rounded-lg shadow-md p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg">
+
+                <nav className="space-y-2">
+                  {[
+                    { id: "dashboard", icon: "📊", label: "Панель управления" },
+                    { id: "products", icon: "🧶", label: "Мои товары", count: products.length },
+                    { id: "orders", icon: "📦", label: "Заказы", count: orders.filter(o => o.status === "new").length },
+                    { id: "blog", icon: "✍️", label: "Блог" },
+                    { id: "master-classes", icon: "🎓", label: "Мастер-классы" },
+                    { id: "profile", icon: "👤", label: "Профиль" },
+                    { id: "settings", icon: "⚙️", label: "Настройки" },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-3 ${
+                        activeTab === tab.id
+                          ? "bg-gradient-to-r from-firm-orange to-firm-pink text-white shadow-lg"
+                          : "hover:bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      <span className="text-xl">{tab.icon}</span>
+                      <span className="flex-1">{tab.label}</span>
+                      {tab.count !== undefined && tab.count > 0 && (
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full ${
+                            activeTab === tab.id
+                              ? "bg-white text-firm-orange"
+                              : "bg-firm-orange/20 text-firm-orange"
+                          }`}
+                        >
+                          {tab.count}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                  
+                  <div className="border-t border-gray-200 my-2 pt-2"></div>
+                  
+                  <button
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                    className="w-full text-left px-4 py-3 rounded-xl transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-3 text-red-600 hover:bg-red-50"
+                  >
+                    <span className="text-xl">🚪</span>
+                    <span>Выйти</span>
+                  </button>
+                </nav>
+              </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="md:w-2/3 lg:w-3/4">
+              {/* Dashboard Tab */}
+              {activeTab === "dashboard" && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-6"
+                >
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-white rounded-xl shadow-md p-4">
+                      <p className="text-gray-500 text-sm">Просмотры</p>
+                      <p className="text-2xl font-bold text-firm-orange">
+                        {stats.total_views}
+                      </p>
+                    </div>
+                    <div className="bg-white rounded-xl shadow-md p-4">
+                      <p className="text-gray-500 text-sm">Заказы</p>
+                      <p className="text-2xl font-bold text-firm-pink">
+                        {stats.total_orders}
+                      </p>
+                    </div>
+                    <div className="bg-white rounded-xl shadow-md p-4">
+                      <p className="text-gray-500 text-sm">Выручка</p>
+                      <p className="text-2xl font-bold text-firm-green">
+                        {stats.total_revenue.toLocaleString()} ₽
+                      </p>
+                    </div>
+                    <div className="bg-white rounded-xl shadow-md p-4">
+                      <p className="text-gray-500 text-sm">Подписчики</p>
+                      <p className="text-2xl font-bold text-firm-orange">
+                        {stats.total_followers}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl shadow-md p-6">
+                    <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-4">
+                      Быстрые действия
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <Link
+                        href="/master/products/new"
+                        className="px-4 py-2 bg-firm-orange text-white rounded-lg text-center hover:bg-opacity-90 transition"
+                      >
+                        + Добавить товар
+                      </Link>
+                      <Link
+                        href="/master/blog/new"
+                        className="px-4 py-2 bg-firm-pink text-white rounded-lg text-center hover:bg-opacity-90 transition"
+                      >
+                        + Новая запись
+                      </Link>
+                      <Link
+                        href="/master/master-classes/new"
+                        className="px-4 py-2 border-2 border-firm-orange text-firm-orange rounded-lg text-center hover:bg-firm-orange hover:text-white transition"
+                      >
+                        + Создать МК
+                      </Link>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl shadow-md p-6">
+                    <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-4">
                       Последние заказы
                     </h3>
-                    <button
-                      onClick={() => setActiveTab("orders")}
-                      className="text-sm text-firm-orange hover:underline"
-                    >
-                      Все заказы →
-                    </button>
-                  </div>
-                  <div className="space-y-3">
-                    {orders.slice(0, 3).map((order: Order) => (
-                      <div
-                        key={order.id}
-                        className="flex justify-between items-center p-4 border rounded-lg hover:shadow-md transition-shadow"
-                      >
+                    {orders.slice(0, 5).map((order) => (
+                      <div key={order.id} className="border-b border-gray-100 py-3 flex justify-between items-center">
                         <div>
-                          <p className="font-semibold">{order.product_title}</p>
-                          <div className="flex items-center gap-3 mt-1">
-                            <p className="text-sm text-gray-500">
-                              {order.buyer_name}
-                            </p>
-                            <span className="text-xs text-gray-400">•</span>
-                            <p className="text-sm text-gray-500">
-                              {formatDate(order.created_at)}
-                            </p>
-                          </div>
+                          <p className="font-medium">{order.product_title}</p>
+                          <p className="text-sm text-gray-500">{order.buyer_name}</p>
                         </div>
-                        <div className="flex items-center gap-4">
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}
-                          >
+                        <div className="text-right">
+                          <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(order.status)}`}>
                             {getStatusText(order.status)}
                           </span>
-                          <span className="font-semibold text-firm-orange">
+                          <p className="font-semibold text-firm-orange mt-1">
                             {order.total_amount} ₽
-                          </span>
+                          </p>
                         </div>
                       </div>
                     ))}
                   </div>
-                </div>
-                <div className="bg-white rounded-lg shadow-md p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg">
-                      Популярные товары
-                    </h3>
-                    <button
-                      onClick={() => setActiveTab("products")}
-                      className="text-sm text-firm-pink hover:underline"
-                    >
-                      Все товары →
-                    </button>
-                  </div>
-                  <div className="space-y-3">
-                    {products
-                      .filter((p: Product) => p.status === "active")
-                      .sort((a: Product, b: Product) => b.views - a.views)
-                      .slice(0, 3)
-                      .map((product: Product) => (
-                        <div
-                          key={product.id}
-                          className="flex justify-between items-center p-4 border rounded-lg hover:shadow-md transition-shadow"
-                        >
-                          <div>
-                            <p className="font-semibold">{product.title}</p>
-                            <p className="text-sm text-gray-500 mt-1">
-                              {product.views} просмотров
-                            </p>
-                          </div>
-                          <span className="font-semibold text-firm-pink">
-                            {product.price} ₽
-                          </span>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              </div>
-            )}
+                </motion.div>
+              )}
 
-            {/* Products Tab */}
-            {activeTab === "products" && (
-              <div className="bg-white rounded-2xl shadow-xl p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
-                    Мои товары
+              {/* Products Tab */}
+              {activeTab === "products" && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white rounded-2xl shadow-xl p-6"
+                >
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
+                      Мои товары
+                    </h2>
+                    <Link
+                      href="/master/products/new"
+                      className="px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition"
+                    >
+                      + Добавить товар
+                    </Link>
+                  </div>
+                  <MasterProductsList
+                    products={products}
+                    onDelete={handleProductDelete}
+                    masterName={profileData.fullname}
+                    loading={loading}
+                  />
+                </motion.div>
+              )}
+
+              {/* Orders Tab */}
+              {activeTab === "orders" && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white rounded-2xl shadow-xl p-6"
+                >
+                  <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-6">
+                    Заказы
                   </h2>
-                  <Link
-                    href="/master/products/new"
-                    className="px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-2"
-                  >
-                    + Добавить товар
-                  </Link>
-                </div>
-
-                <MasterProductsList
-                  products={products}
-                  onDelete={handleProductDelete}
-                  masterName={profileData.fullname}
-                  loading={loading}
-                />
-              </div>
-            )}
-
-            {/* Orders Tab */}
-            {activeTab === "orders" && (
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-6">
-                  Заказы
-                </h2>
-                <div className="space-y-4">
-                  {orders.map((order) => (
-                    <div
-                      key={order.id}
-                      className="border rounded-lg p-5 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <div className="flex items-center gap-3 mb-2">
-                            <span className="font-['Montserrat_Alternates'] font-semibold text-lg">
-                              Заказ #{order.order_number}
-                            </span>
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}
-                            >
+                  <div className="space-y-4">
+                    {orders.map((order) => (
+                      <div key={order.id} className="border rounded-xl p-4 hover:shadow-md transition">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <span className="font-semibold">Заказ #{order.order_number}</span>
+                            <span className={`ml-3 text-xs px-2 py-1 rounded-full ${getStatusColor(order.status)}`}>
                               {getStatusText(order.status)}
                             </span>
                           </div>
-                          <p className="font-medium">{order.product_title}</p>
+                          <span className="text-sm text-gray-500">{formatDate(order.created_at)}</span>
                         </div>
-                        <span className="text-sm text-gray-500">
-                          {formatDateTime(order.created_at)}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                        <div>
-                          <p className="text-gray-500">Покупатель</p>
-                          <p className="font-medium">{order.buyer_name}</p>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <div className="flex gap-2">
-                          {order.status === "new" && (
-                            <>
+                        <p className="text-gray-600">{order.product_title}</p>
+                        <div className="flex justify-between items-center mt-3">
+                          <p className="text-sm text-gray-500">Покупатель: {order.buyer_name}</p>
+                          <div className="flex gap-2">
+                            {order.status === "new" && (
+                              <>
+                                <button
+                                  onClick={() => handleOrderStatusChange(order.id, "confirmed")}
+                                  className="px-3 py-1 bg-green-500 text-white rounded-lg text-sm"
+                                >
+                                  Подтвердить
+                                </button>
+                                <button
+                                  onClick={() => handleOrderStatusChange(order.id, "cancelled")}
+                                  className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm"
+                                >
+                                  Отклонить
+                                </button>
+                              </>
+                            )}
+                            {order.status === "confirmed" && (
                               <button
-                                onClick={() =>
-                                  handleOrderStatusChange(order.id, "confirmed")
-                                }
-                                className="px-3 py-1 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600"
+                                onClick={() => handleOrderStatusChange(order.id, "shipped")}
+                                className="px-3 py-1 bg-purple-500 text-white rounded-lg text-sm"
                               >
-                                Подтвердить
+                                Отправить
                               </button>
-                              <button
-                                onClick={() =>
-                                  handleOrderStatusChange(order.id, "cancelled")
-                                }
-                                className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600"
-                              >
-                                Отклонить
-                              </button>
-                            </>
-                          )}
-                          {order.status === "confirmed" && (
-                            <button
-                              onClick={() =>
-                                handleOrderStatusChange(order.id, "shipped")
-                              }
-                              className="px-3 py-1 bg-purple-500 text-white rounded-lg text-sm hover:bg-purple-600"
-                            >
-                              Отметить как отправлено
-                            </button>
-                          )}
-                          {order.status === "shipped" && (
-                            <button
-                              onClick={() =>
-                                handleOrderStatusChange(order.id, "delivered")
-                              }
-                              className="px-3 py-1 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600"
-                            >
-                              Подтвердить доставку
-                            </button>
-                          )}
+                            )}
+                            <span className="font-bold text-firm-orange">{order.total_amount} ₽</span>
+                          </div>
                         </div>
-                        <span className="font-['Montserrat_Alternates'] font-bold text-firm-pink text-xl">
-                          {order.total_amount} ₽
-                        </span>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                    ))}
+                  </div>
+                </motion.div>
+              )}
 
-            {/* Blog Tab */}
-            {activeTab === "blog" && (
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">
-                    Мой блог
-                  </h2>
-                  <Link
-                    href="/master/blog/new"
-                    className="px-4 py-2 bg-firm-pink text-white rounded-lg hover:bg-opacity-90 transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-2"
-                  >
-                    + Новая запись
-                  </Link>
-                </div>
-                <div className="space-y-4">
-                  {blogPosts.map((post) => (
-                    <div
-                      key={post.id}
-                      className="border rounded-lg p-5 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg">
-                            {post.title}
-                          </h3>
-                          <p className="text-sm text-gray-500 mt-1">
-                            {formatDate(post.created_at)}
-                          </p>
+              {/* Blog Tab - упрощенный */}
+              {activeTab === "blog" && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white rounded-2xl shadow-xl p-6"
+                >
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">Мой блог</h2>
+                    <Link href="/master/blog/new" className="px-4 py-2 bg-firm-pink text-white rounded-xl">
+                      + Новая запись
+                    </Link>
+                  </div>
+                  <div className="space-y-4">
+                    {blogPosts.map((post) => (
+                      <div key={post.id} className="border rounded-xl p-4">
+                        <div className="flex justify-between items-start">
+                          <h3 className="font-semibold">{post.title}</h3>
+                          <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(post.status)}`}>
+                            {getStatusText(post.status)}
+                          </span>
                         </div>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(post.status)}`}
-                        >
-                          {getStatusText(post.status)}
-                        </span>
-                      </div>
-                      <p className="text-gray-600 mb-3 line-clamp-2">
-                        {post.excerpt || post.content?.substring(0, 200)}...
-                      </p>
-                      <div className="flex justify-between items-center">
-                        <div className="flex gap-4 text-sm text-gray-500">
-                          <span>👁️ {post.views_count || 0} просмотров</span>
-                          <span>💬 {post.comments_count || 0} комментариев</span>
-                          <span>❤️ {post.likes_count || 0} лайков</span>
-                        </div>
-                        <div className="flex gap-3">
-                          <Link
-                            href={`/master/blog/${post.id}/edit`}
-                            className="text-sm text-blue-600 hover:underline"
-                          >
+                        <p className="text-sm text-gray-500 mt-1">{formatDate(post.created_at)}</p>
+                        <p className="text-gray-600 mt-2 line-clamp-2">{post.excerpt}</p>
+                        <div className="flex justify-end gap-3 mt-3">
+                          <Link href={`/master/blog/${post.id}/edit`} className="text-sm text-blue-600">
                             Редактировать
                           </Link>
-                          <button
-                            onClick={() => handleBlogPostDelete(post.id)}
-                            className="text-sm text-red-600 hover:underline"
-                          >
+                          <button onClick={() => handleBlogPostDelete(post.id)} className="text-sm text-red-600">
                             Удалить
                           </button>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                    ))}
+                  </div>
+                </motion.div>
+              )}
 
-            {/* Master Classes Tab */}
-            {activeTab === "master-classes" && (
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">
-                    Мои мастер-классы
-                  </h2>
-                  <Link
-                    href="/master/master-classes/new"
-                    className="px-4 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-2"
-                  >
-                    + Создать мастер-класс
-                  </Link>
-                </div>
-
-                <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-                  <button
-                    onClick={() => setMasterClassFilter("all")}
-                    className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition ${masterClassFilter === "all" ? "bg-firm-orange text-white" : "border border-gray-300 hover:bg-gray-50"}`}
-                  >
-                    Все ({masterClasses.length})
-                  </button>
-                  <button
-                    onClick={() => setMasterClassFilter("published")}
-                    className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition ${masterClassFilter === "published" ? "bg-firm-orange text-white" : "border border-gray-300 hover:bg-gray-50"}`}
-                  >
-                    Опубликованные (
-                    {
-                      masterClasses.filter(
-                        (mc) => mc.status === "published",
-                      ).length
-                    }
-                    )
-                  </button>
-                  <button
-                    onClick={() => setMasterClassFilter("draft")}
-                    className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition ${masterClassFilter === "draft" ? "bg-firm-orange text-white" : "border border-gray-300 hover:bg-gray-50"}`}
-                  >
-                    Черновики (
-                    {
-                      masterClasses.filter(
-                        (mc) => mc.status === "draft",
-                      ).length
-                    }
-                    )
-                  </button>
-                  <button
-                    onClick={() => setMasterClassFilter("cancelled")}
-                    className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition ${masterClassFilter === "cancelled" ? "bg-firm-orange text-white" : "border border-gray-300 hover:bg-gray-50"}`}
-                  >
-                    Отмененные (
-                    {
-                      masterClasses.filter(
-                        (mc) => mc.status === "cancelled",
-                      ).length
-                    }
-                    )
-                  </button>
-                </div>
-
-                {masterClasses.length === 0 ? (
-                  <div className="text-center py-12 bg-gray-50 rounded-lg">
-                    <p className="text-gray-500 mb-4">
-                      У вас нет созданных мастер-классов
-                    </p>
-                    <Link
-                      href="/master/master-classes/new"
-                      className="inline-block px-6 py-3 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition"
-                    >
-                      Создать первый мастер-класс →
+              {/* Master Classes Tab - упрощенный */}
+              {activeTab === "master-classes" && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white rounded-2xl shadow-xl p-6"
+                >
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">Мастер-классы</h2>
+                    <Link href="/master/master-classes/new" className="px-4 py-2 bg-firm-orange text-white rounded-xl">
+                      + Создать МК
                     </Link>
                   </div>
-                ) : (
                   <div className="space-y-4">
-                    {masterClasses
-                      .filter(
-                        (mc) =>
-                          masterClassFilter === "all" ||
-                          mc.status === masterClassFilter,
-                      )
-                      .map((mc) => (
-                        <div
-                          key={mc.id}
-                          className="border border-gray-100 rounded-lg p-5 hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex gap-4">
-                            {mc.image_url && (
-                              <div className="w-32 h-32 shrink-0 rounded-lg overflow-hidden bg-gray-100">
-                                <Image
-                                  src={mc.image_url}
-                                  alt={mc.title}
-                                  className="w-full h-full object-cover"
-                                  width={160}
-                                  height={160}
-                                />
-                              </div>
-                            )}
-                            <div className="flex-1">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg">
-                                    {mc.title}
-                                  </h3>
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <span
-                                      className={`px-2 py-0.5 rounded-full text-xs ${mc.type === "online" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}
-                                    >
-                                      {mc.type === "online"
-                                        ? "🖥️ Онлайн"
-                                        : "📍 Офлайн"}
-                                    </span>
-                                    <span
-                                      className={`px-2 py-0.5 rounded-full text-xs ${getStatusColor(mc.status)}`}
-                                    >
-                                      {getStatusText(mc.status)}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <div className="text-xl font-bold text-firm-orange">
-                                    {mc.price} ₽
-                                  </div>
-                                  <div className="text-sm text-gray-500">
-                                    {mc.current_participants || 0}/
-                                    {mc.max_participants} участников
-                                  </div>
-                                </div>
-                              </div>
-                              <p className="text-gray-600 mt-2 text-sm line-clamp-2">
-                                {mc.description}
-                              </p>
-                              <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
-                                <div className="flex items-center gap-1">
-                                  📅 {formatDate(mc.date_time)}
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  ⏰ {formatTime(mc.date_time)}
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  ⏱️ {mc.duration_minutes} мин
-                                </div>
-                                {mc.type === "offline" && mc.location && (
-                                  <div className="flex items-center gap-1">
-                                    📍 {mc.location}
-                                  </div>
-                                )}
-                              </div>
-                              <div className="mt-3 flex justify-end gap-2">
-                                <button
-                                  onClick={() => {
-                                    setSelectedMasterClass(mc);
-                                    setShowParticipantsModal(true);
-                                  }}
-                                  className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition"
-                                >
-                                  👥 Участники (
-                                  {mc.registrations?.length || 0})
-                                </button>
-                                {mc.status === "published" &&
-                                  new Date(mc.date_time) > new Date() && (
-                                    <button
-                                      onClick={() =>
-                                        handleCancelMasterClass(mc.id)
-                                      }
-                                      className="px-3 py-1.5 border border-red-500 text-red-500 rounded-lg text-sm hover:bg-red-500 hover:text-white transition"
-                                    >
-                                      Отменить
-                                    </button>
-                                  )}
-                                {mc.status === "draft" && (
-                                  <>
-                                    <Link
-                                      href={`/master/master-classes/${mc.id}/edit`}
-                                      className="px-3 py-1.5 bg-firm-orange text-white rounded-lg text-sm hover:bg-opacity-90 transition"
-                                    >
-                                      Редактировать
-                                    </Link>
-                                    <button
-                                      onClick={() =>
-                                        handleDeleteMasterClass(mc.id)
-                                      }
-                                      className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition"
-                                    >
-                                      Удалить
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Participants Modal */}
-            {showParticipantsModal && selectedMasterClass && (
-              <div
-                className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-                onClick={() => setShowParticipantsModal(false)}
-              >
-                <div
-                  className="bg-white rounded-xl max-w-lg w-full max-h-[80vh] overflow-y-auto"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
-                    <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl">
-                      Участники: {selectedMasterClass.title}
-                    </h2>
-                    <button
-                      onClick={() => setShowParticipantsModal(false)}
-                      className="text-gray-500 hover:text-gray-700 text-xl"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div className="p-4 space-y-3">
-                    {selectedMasterClass.registrations?.length === 0 ? (
-                      <p className="text-center text-gray-500 py-8">
-                        Нет записавшихся участников
-                      </p>
-                    ) : (
-                      selectedMasterClass.registrations?.map((reg) => (
-                        <div key={reg.id} className="border rounded-lg p-3">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="font-medium">
-                                {reg.user_name || reg.user_email}
-                              </p>
-                              <p className="text-sm text-gray-500">
-                                {reg.user_email}
-                              </p>
-                              {reg.user_phone && (
-                                <p className="text-sm text-gray-500">
-                                  {reg.user_phone}
-                                </p>
-                              )}
-                            </div>
-                            <div className="text-right">
-                              <p className="text-xs text-gray-400">
-                                Записан: {formatDate(reg.created_at)}
-                              </p>
-                              <span
-                                className={`px-2 py-0.5 rounded-full text-xs ${reg.payment_status === "paid" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}
-                              >
-                                {reg.payment_status === "paid"
-                                  ? "Оплачено"
-                                  : "Ожидает оплаты"}
+                    {masterClasses.map((mc) => (
+                      <div key={mc.id} className="border rounded-xl p-4">
+                        <div className="flex gap-4">
+                          {mc.image_url && (
+                            <img src={mc.image_url} alt={mc.title} className="w-20 h-20 object-cover rounded-lg" />
+                          )}
+                          <div className="flex-1">
+                            <h3 className="font-semibold">{mc.title}</h3>
+                            <div className="flex gap-2 mt-1">
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                                {mc.type === "online" ? "Онлайн" : "Офлайн"}
+                              </span>
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(mc.status)}`}>
+                                {getStatusText(mc.status)}
                               </span>
                             </div>
+                            <p className="text-sm text-gray-600 mt-2">{mc.price.toLocaleString()} ₽</p>
                           </div>
                         </div>
-                      ))
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Profile Tab */}
+              {activeTab === "profile" && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white rounded-2xl shadow-xl p-6"
+                >
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">Профиль мастера</h2>
+                    {!isEditing ? (
+                      <button
+                        onClick={() => setIsEditing(true)}
+                        className="px-4 py-2 border-2 border-firm-pink rounded-lg hover:bg-firm-pink hover:text-white transition"
+                      >
+                        Редактировать
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setIsEditing(false);
+                          setAvatarFile(null);
+                          setAvatarPreview(null);
+                        }}
+                        className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition"
+                      >
+                        Отмена
+                      </button>
                     )}
                   </div>
-                </div>
-              </div>
-            )}
 
-            {/* Profile Tab */}
-            {activeTab === "profile" && (
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">
-                    Профиль мастера
-                  </h2>
-                  {!isEditing ? (
-                    <button
-                      className="px-4 py-2 border-2 border-firm-pink rounded-lg hover:scale-105 hover:border-4 hover:bg-firm-pink hover:text-white transition-all duration-300 font-['Montserrat_Alternates']"
-                      onClick={() => setIsEditing(true)}
-                    >
-                      Редактировать
-                    </button>
-                  ) : (
-                    <button
-                      className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-all duration-300 font-['Montserrat_Alternates']"
-                      onClick={() => {
-                        setIsEditing(false);
-                        setAvatarFile(null);
-                        setAvatarPreview(null);
-                      }}
-                    >
-                      Отмена
-                    </button>
-                  )}
-                </div>
-                {isEditing ? (
-                  <form onSubmit={handleProfileUpdate} className="space-y-4">
-                    <div>
-                      <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">
-                        Имя <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        className="w-full p-2 rounded-lg bg-[#eaeaea] outline-firm-orange focus:outline-2"
-                        type="text"
-                        name="fullname"
-                        value={profileData.fullname}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">
-                        Телефон
-                      </label>
-                      <input
-                        className="w-full p-2 rounded-lg bg-[#eaeaea] outline-firm-pink focus:outline-2"
-                        type="tel"
-                        name="phone"
-                        value={profileData.phone || ""}
-                        onChange={handleInputChange}
-                        placeholder="+7 (999) 123-45-67"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">
-                        Город
-                      </label>
-                      <input
-                        className="w-full p-2 rounded-lg bg-[#eaeaea] outline-firm-orange focus:outline-2"
-                        type="text"
-                        name="city"
-                        value={profileData.city || ""}
-                        onChange={handleInputChange}
-                        placeholder="Москва"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">
-                        Адрес
-                      </label>
-                      <input
-                        className="w-full p-2 rounded-lg bg-[#eaeaea] outline-firm-pink focus:outline-2"
-                        type="text"
-                        name="address"
-                        value={profileData.address || ""}
-                        onChange={handleInputChange}
-                        placeholder="ул. Примерная, д. 1"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">
-                        Описание
-                      </label>
-                      <textarea
-                        className="w-full p-2 rounded-lg bg-[#eaeaea] outline-firm-orange focus:outline-2"
-                        name="description"
-                        value={profileData.description || ""}
-                        onChange={handleInputChange}
-                        rows={4}
-                        placeholder="Расскажите о себе и своем творчестве..."
-                      />
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="relative flex items-center">
+                  {isEditing ? (
+                    <form onSubmit={handleProfileUpdate} className="space-y-4">
+                      <div>
+                        <label className="block text-gray-700 mb-1">Имя *</label>
+                        <input
+                          type="text"
+                          name="fullname"
+                          value={profileData.fullname}
+                          onChange={handleInputChange}
+                          required
+                          className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-700 mb-1">Телефон</label>
+                        <input
+                          type="tel"
+                          name="phone"
+                          value={profileData.phone || ""}
+                          onChange={handleInputChange}
+                          className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-700 mb-1">Город</label>
+                        <input
+                          type="text"
+                          name="city"
+                          value={profileData.city || ""}
+                          onChange={handleInputChange}
+                          className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-700 mb-1">Описание</label>
+                        <textarea
+                          name="description"
+                          value={profileData.description || ""}
+                          onChange={handleInputChange}
+                          rows={4}
+                          className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink"
+                        />
+                      </div>
+                      <div className="flex items-center gap-3">
                         <input
                           type="checkbox"
                           name="custom_orders_enabled"
                           checked={profileData.custom_orders_enabled}
                           onChange={handleCheckboxChange}
-                          className="w-5 h-5 appearance-none border-2 border-firm-pink rounded-md bg-[#EAEAEA] checked:bg-firm-pink checked:border-firm-pink transition-all duration-200 cursor-pointer"
+                          className="w-5 h-5 accent-firm-orange"
                         />
-                        {profileData.custom_orders_enabled && (
-                          <svg
-                            className="absolute w-4 h-4 text-white left-0.5 top-0.5 pointer-events-none"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="3"
-                          >
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
-                        )}
+                        <label>Принимаю индивидуальные заказы</label>
                       </div>
-                      <label className="text-gray-700 cursor-pointer select-none font-['Montserrat_Alternates']">
-                        Принимаю индивидуальные заказы
-                      </label>
-                    </div>
-                    <button
-                      type="submit"
-                      disabled={saving}
-                      className="w-full mt-6 p-3 bg-firm-pink text-white rounded-lg hover:scale-105 transition-all duration-300 font-['Montserrat_Alternates'] font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {saving ? "Сохранение..." : "Сохранить изменения"}
-                    </button>
-                  </form>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="border-b border-gray-400 pb-4">
-                        <p className="text-gray-500 text-sm font-['Montserrat_Alternates']">
-                          Имя
-                        </p>
-                        <p className="text-lg font-medium">
-                          {profileData.fullname}
-                        </p>
-                      </div>
-                      <div className="border-b border-gray-400 pb-4">
-                        <p className="text-gray-500 text-sm font-['Montserrat_Alternates']">
-                          Email
-                        </p>
-                        <p className="text-lg font-medium">
-                          {profileData.email}
-                        </p>
-                      </div>
-                      <div className="border-b border-gray-400 pb-4">
-                        <p className="text-gray-500 text-sm font-['Montserrat_Alternates']">
-                          Телефон
-                        </p>
-                        <p className="text-lg font-medium">
-                          {profileData.phone || "Не указано"}
-                        </p>
-                      </div>
-                      <div className="border-b border-gray-400 pb-4">
-                        <p className="text-gray-500 text-sm font-['Montserrat_Alternates']">
-                          Город
-                        </p>
-                        <p className="text-lg font-medium">
-                          {profileData.city || "Не указано"}
-                        </p>
-                      </div>
-                      <div className="col-span-2 border-gray-400 border-b pb-4">
-                        <p className="text-gray-500 text-sm font-['Montserrat_Alternates']">
-                          Описание
-                        </p>
-                        <p className="text-lg font-medium">
-                          {profileData.description || "Не указано"}
-                        </p>
-                      </div>
-                      <div className="col-span-2">
-                        <p className="text-gray-500 text-sm font-['Montserrat_Alternates']">
-                          Индивидуальные заказы
-                        </p>
-                        <p className="text-lg font-medium">
-                          {profileData.custom_orders_enabled
-                            ? "✅ Принимаю"
-                            : "❌ Не принимаю"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Settings Tab */}
-            {activeTab === "settings" && (
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-6">
-                  Настройки
-                </h2>
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-3">
-                      Смена пароля
-                    </h3>
-                    <form className="space-y-4 max-w-md">
-                      <div>
-                        <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">
-                          Текущий пароль
-                        </label>
-                        <input
-                          type="password"
-                          className="w-full p-2 rounded-lg bg-[#eaeaea] outline-firm-orange"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">
-                          Новый пароль
-                        </label>
-                        <input
-                          type="password"
-                          className="w-full p-2 rounded-lg bg-[#eaeaea] outline-firm-pink"
-                          placeholder="не менее 6 символов"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">
-                          Подтверждение
-                        </label>
-                        <input
-                          type="password"
-                          className="w-full p-2 rounded-lg bg-[#eaeaea] outline-firm-orange"
-                          placeholder="повторите пароль"
-                        />
-                      </div>
-                      <button className="px-4 py-2 border-2 border-firm-orange rounded-lg hover:scale-105 transition-all duration-300 font-['Montserrat_Alternates']">
-                        Изменить пароль
+                      <button
+                        type="submit"
+                        disabled={saving}
+                        className="w-full py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl font-semibold disabled:opacity-50"
+                      >
+                        {saving ? "Сохранение..." : "Сохранить изменения"}
                       </button>
                     </form>
-                  </div>
-                  <div className="border-t border-gray-400 pt-6">
-                    <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-3">
-                      Уведомления
-                    </h3>
-                    <div className="space-y-2">
-                      <label className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          className="w-5 h-5 accent-firm-orange"
-                          defaultChecked
-                        />
-                        <span className="font-['Montserrat_Alternates']">
-                          О новых заказах
-                        </span>
-                      </label>
-                      <label className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          className="w-5 h-5 accent-firm-pink"
-                          defaultChecked
-                        />
-                        <span className="font-['Montserrat_Alternates']">
-                          О сообщениях от покупателей
-                        </span>
-                      </label>
-                      <label className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          className="w-5 h-5 accent-firm-orange"
-                        />
-                        <span className="font-['Montserrat_Alternates']">
-                          О новых отзывах
-                        </span>
-                      </label>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-gray-50 rounded-xl p-4">
+                        <p className="text-gray-500 text-sm">Имя</p>
+                        <p className="font-medium">{profileData.fullname}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-4">
+                        <p className="text-gray-500 text-sm">Email</p>
+                        <p className="font-medium">{profileData.email}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-4">
+                        <p className="text-gray-500 text-sm">Телефон</p>
+                        <p className="font-medium">{profileData.phone || "Не указано"}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-4">
+                        <p className="text-gray-500 text-sm">Город</p>
+                        <p className="font-medium">{profileData.city || "Не указано"}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-4 md:col-span-2">
+                        <p className="text-gray-500 text-sm">Описание</p>
+                        <p className="font-medium">{profileData.description || "Не указано"}</p>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
+              {/* Settings Tab */}
+              {activeTab === "settings" && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white rounded-2xl shadow-xl p-6"
+                >
+                  <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-6">Настройки</h2>
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="font-semibold text-lg mb-3">Смена пароля</h3>
+                      <form className="space-y-4 max-w-md">
+                        <input type="password" placeholder="Текущий пароль" className="w-full p-3 rounded-xl bg-gray-100" />
+                        <input type="password" placeholder="Новый пароль" className="w-full p-3 rounded-xl bg-gray-100" />
+                        <input type="password" placeholder="Подтверждение" className="w-full p-3 rounded-xl bg-gray-100" />
+                        <button className="px-6 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl">
+                          Изменить пароль
+                        </button>
+                      </form>
+                    </div>
+                    <div className="border-t pt-6">
+                      <h3 className="font-semibold text-lg mb-3 text-red-600">Опасная зона</h3>
+                      <button className="px-4 py-2 border-2 border-red-500 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition">
+                        Удалить аккаунт
+                      </button>
                     </div>
                   </div>
-                  <div className="border-t border-gray-400 pt-6">
-                    <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-3">
-                      Магазин
-                    </h3>
-                    <div className="space-y-2">
-                      <label className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          className="w-5 h-5 accent-firm-pink"
-                          defaultChecked
-                        />
-                        <span className="font-['Montserrat_Alternates']">
-                          Автоматически подтверждать заказы
-                        </span>
-                      </label>
-                      <label className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          className="w-5 h-5 accent-firm-orange"
-                        />
-                        <span className="font-['Montserrat_Alternates']">
-                          Отображать мои товары в поиске
-                        </span>
-                      </label>
-                    </div>
-                  </div>
-                  <div className="border-t border-gray-400 pt-6">
-                    <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-3 text-red-600">
-                      Опасная зона
-                    </h3>
-                    <button className="px-4 py-2 border-2 border-red-500 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all duration-300">
-                      Удалить аккаунт
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
+                </motion.div>
+              )}
+            </div>
           </div>
         </div>
       </div>
