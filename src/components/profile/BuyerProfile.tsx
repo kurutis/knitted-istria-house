@@ -20,6 +20,16 @@ interface BuyerProfileProps {
   initialTab?: string;
 }
 
+interface Order {
+    id: string
+    order_number: string
+    status: string
+    payment_status: string
+    total_amount: number
+    created_at: string
+    items_count: number
+}
+
 export default function BuyerProfile({
   session,
   initialTab,
@@ -50,7 +60,7 @@ export default function BuyerProfile({
   });
   const [savingNotifications, setSavingNotifications] = useState(false);
 
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState<Order[]>([])
   const [favorites, setFavorites] = useState([]);
   const [stats, setStats] = useState({
     totalOrders: 0,
@@ -115,24 +125,29 @@ export default function BuyerProfile({
 
   const fetchOrders = async () => {
     try {
-      const response = await fetch("/api/user/orders");
-      const data = await response.json();
-      const ordersList = Array.isArray(data) ? data : data.orders || [];
-      setOrders(ordersList);
-      const total = ordersList.reduce(
-        (sum: number, order: { total_amount: number }) =>
-          sum + (order.total_amount || 0),
-        0,
-      );
-      setStats((prev) => ({
-        ...prev,
-        totalOrders: ordersList.length,
-        totalSpent: total,
-      }));
+        const response = await fetch('/api/orders')
+        const data = await response.json()
+        console.log('Orders API response:', data) // Отладка
+        
+        // API возвращает { orders: [], pagination: {} }
+        const ordersList = data.orders || []
+        setOrders(ordersList)
+        
+        const total = ordersList.reduce(
+            (sum: number, order: { total_amount: number }) =>
+                sum + (order.total_amount || 0),
+            0,
+        )
+        setStats((prev) => ({
+            ...prev,
+            totalOrders: ordersList.length,
+            totalSpent: total,
+        }))
     } catch (error) {
-      console.error("Error fetching orders:", error);
+        console.error('Error fetching orders:', error)
+        toast.error('Ошибка загрузки заказов')
     }
-  };
+}
 
   const fetchFavorites = async () => {
     try {
@@ -704,92 +719,95 @@ export default function BuyerProfile({
                 )}
 
                 {/* Orders Tab - остальные табы без изменений */}
-                {activeTab === "orders" && (
-                  <motion.div
-                    key="orders"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="bg-white rounded-2xl shadow-xl p-6 md:p-8"
-                  >
-                    <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-6">
-                      Мои заказы
-                    </h2>
-                    {orders.length === 0 ? (
-                      <div className="text-center py-12 bg-gray-50 rounded-xl">
-                        <div className="text-6xl mb-4">📦</div>
-                        <p className="text-gray-500 mb-4 font-['Montserrat_Alternates']">
-                          У вас пока нет заказов
-                        </p>
-                        <Link
-                          href="/catalog"
-                          className="inline-block px-6 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all"
-                        >
-                          🛍️ Перейти в каталог
-                        </Link>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {orders.map(
-                          (
-                            order: {
-                              id: string;
-                              order_number: string;
-                              status: string;
-                              created_at: string;
-                              items_count: number;
-                              total_amount: number;
-                            },
-                            idx: number,
-                          ) => (
-                            <motion.div
-                              key={order.id}
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: idx * 0.1 }}
-                              whileHover={{ y: -2 }}
-                              className="border border-gray-200 rounded-xl p-5 hover:shadow-lg transition-all"
-                            >
-                              <div className="flex justify-between items-start mb-3 flex-wrap gap-2">
-                                <div>
-                                  <span className="font-['Montserrat_Alternates'] font-semibold text-lg">
+                {/* Orders Tab */}
+{activeTab === "orders" && (
+    <motion.div
+        key="orders"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        className="bg-white rounded-2xl shadow-xl p-6 md:p-8"
+    >
+        <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-6 bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
+            Мои заказы
+        </h2>
+        
+        {orders.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-xl">
+                <div className="text-6xl mb-4">📦</div>
+                <p className="text-gray-500 mb-4 font-['Montserrat_Alternates']">
+                    У вас пока нет заказов
+                </p>
+                <Link
+                    href="/catalog"
+                    className="inline-block px-6 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all"
+                >
+                    🛍️ Перейти в каталог
+                </Link>
+            </div>
+        ) : (
+            <div className="space-y-4">
+                {orders.map((order: Order, idx: number) => (
+                    <motion.div
+                        key={order.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.1 }}
+                        whileHover={{ y: -2 }}
+                        className="border border-gray-200 rounded-xl p-5 hover:shadow-lg transition-all"
+                    >
+                        <div className="flex justify-between items-start mb-3 flex-wrap gap-2">
+                            <div>
+                                <span className="font-['Montserrat_Alternates'] font-semibold text-lg">
                                     Заказ #{order.order_number}
-                                  </span>
-                                  <span
+                                </span>
+                                <span
                                     className={`ml-3 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}
-                                  >
-                                    {getStatusText(order.status)}
-                                  </span>
-                                </div>
-                                <span className="text-sm text-gray-500">
-                                  {new Date(
-                                    order.created_at,
-                                  ).toLocaleDateString("ru-RU")}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center flex-wrap gap-2">
-                                <p className="font-medium">
-                                  {order.items_count} товаров
-                                </p>
-                                <span className="font-['Montserrat_Alternates'] font-bold text-xl text-firm-orange">
-                                  {order.total_amount.toLocaleString()} ₽
-                                </span>
-                              </div>
-                              <div className="mt-3 flex justify-end">
-                                <Link
-                                  href={`/profile/orders/${order.id}`}
-                                  className="text-sm text-firm-orange hover:underline inline-flex items-center gap-1"
                                 >
-                                  Подробнее →
-                                </Link>
-                              </div>
-                            </motion.div>
-                          ),
-                        )}
-                      </div>
-                    )}
-                  </motion.div>
-                )}
+                                    {getStatusText(order.status)}
+                                </span>
+                                {order.payment_status === 'paid' ? (
+                                    <span className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                        ✅ Оплачен
+                                    </span>
+                                ) : (
+                                    <span className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                                        ⏳ Ожидает оплаты
+                                    </span>
+                                )}
+                            </div>
+                            <span className="text-sm text-gray-500">
+                                {new Date(order.created_at).toLocaleDateString("ru-RU", {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric",
+                                })}
+                            </span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center flex-wrap gap-2">
+                            <p className="font-medium">
+                                {order.items_count || 0} товаров
+                            </p>
+                            <span className="font-['Montserrat_Alternates'] font-bold text-xl text-firm-orange">
+                                {order.total_amount.toLocaleString()} ₽
+                            </span>
+                        </div>
+                        
+                        <div className="mt-3 flex justify-end">
+                            <Link
+                                href={`/profile/orders/${order.id}`}
+                                className="text-sm text-firm-orange hover:underline inline-flex items-center gap-1"
+                            >
+                                Подробнее →
+                            </Link>
+                        </div>
+                    </motion.div>
+                ))}
+            </div>
+        )}
+    </motion.div>
+)}
 
                 {/* Favorites Tab */}
                 {/* Favorites Tab */}
