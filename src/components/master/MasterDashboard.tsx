@@ -6,14 +6,13 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import BlogPostCard from "@/components/blog/BlogPostCard";
+import toast from 'react-hot-toast';
 
 // Импорт компонентов модальных окон
 import AddProductModal from "@/components/modals/AddProductModal";
 import AddPostModal from "@/components/modals/AddPostModal";
 import AddClassModal from "@/components/modals/AddClassModal";
 
-// Импорт остальных компонентов
-import { AnimatedButton } from "@/components/ui/AnimatedButton";
 
 interface ApiCommentData {
   id: string;
@@ -63,11 +62,26 @@ interface Order {
   id: string;
   order_number: string;
   status: "new" | "confirmed" | "shipped" | "delivered" | "cancelled";
+  payment_status?: "pending" | "paid" | "failed";
   created_at: string;
-  product_title: string;
-  buyer_name: string;
+  product_title?: string;
+  buyer_name?: string;
   total_amount: number;
+  shipping_full_name?: string;
+  shipping_phone?: string;
+  shipping_city?: string;
+  shipping_address?: string;
+  buyer_comment?: string | null;
+  items?: Array<{
+    id: string;
+    product_id: string;
+    product_title: string;
+    quantity: number;
+    price: number;
+    total: number;
+  }>;
 }
+
 
 interface BlogPost {
   id: string;
@@ -119,6 +133,16 @@ type CategoryItem = {
   name: string;
   subcategories?: CategoryItem[];
 };
+
+interface MasterOrdersResponse {
+  orders: Order[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
 
 // Вспомогательная функция для получения URL изображения
 const getImageUrl = (
@@ -195,6 +219,11 @@ export default function MasterDashboard({
   const [showAddPostModal, setShowAddPostModal] = useState(false);
   const [showAddClassModal, setShowAddClassModal] = useState(false);
 
+  const [masterOrders, setMasterOrders] = useState<Order[]>([]);
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+  const [trackingNumber, setTrackingNumber] = useState<{ [key: string]: string }>({});
+  const [showTrackingModal, setShowTrackingModal] = useState<string | null>(null);
+
   // Данные для модальных окон
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [yarns, setYarns] = useState<
@@ -203,6 +232,7 @@ export default function MasterDashboard({
 
   useEffect(() => {
     fetchMasterData();
+    fetchMasterOrders();
   }, []);
 
   useEffect(() => {
@@ -211,6 +241,54 @@ export default function MasterDashboard({
       loadYarns();
     }
   }, [showAddProductModal]);
+
+  const fetchMasterOrders = async () => {
+    try {
+        const response = await fetch('/api/master/orders?status=all');
+        const data: MasterOrdersResponse = await response.json();
+        
+        if (data.orders) {
+            setMasterOrders(data.orders);
+            setStats(prev => ({
+                ...prev,
+                total_orders: data.orders.length,
+                new_orders: data.orders.filter((o: Order) => o.status === 'new').length
+            }));
+        }
+    } catch (error) {
+        console.error('Error fetching master orders:', error);
+        toast.error('Ошибка загрузки заказов');
+    }
+};
+
+const updateOrderStatus = async (orderId: string, newStatus: string, tracking?: string) => {
+    setUpdatingOrderId(orderId);
+    try {
+        const response = await fetch(`/api/master/orders/${orderId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                status: newStatus,
+                tracking_number: tracking 
+            })
+        });
+
+        if (response.ok) {
+            await fetchMasterOrders();
+            toast.success(`Статус заказа обновлен на "${getStatusText(newStatus)}"`);
+            setShowTrackingModal(null);
+            setTrackingNumber(prev => ({ ...prev, [orderId]: '' }));
+        } else {
+            const error = await response.json();
+            toast.error(error.error || 'Ошибка обновления статуса');
+        }
+    } catch (error) {
+        console.error('Error updating order status:', error);
+        toast.error('Ошибка при обновлении статуса');
+    } finally {
+        setUpdatingOrderId(null);
+    }
+};
 
   const fetchMasterData = async () => {
     try {
@@ -690,84 +768,200 @@ export default function MasterDashboard({
         </motion.div>
 
         {/* Заказы */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="bg-white rounded-2xl shadow-xl mb-8 overflow-hidden"
+<motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.5 }}
+  className="bg-white rounded-2xl shadow-xl mb-8 overflow-hidden"
+>
+  <div className="p-6 border-b border-gray-200">
+    <div className="flex justify-between items-center flex-wrap gap-4">
+      <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl flex items-center gap-2">
+        📦 Заказы на мои товары
+        {stats.new_orders > 0 && (
+          <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full animate-pulse">
+            {stats.new_orders} новых
+          </span>
+        )}
+      </h2>
+      <div className="flex gap-2">
+        <select 
+          onChange={(e) => {
+            const status = e.target.value;
+            if (status === 'all') {
+              fetchMasterOrders();
+            } else {
+              fetch(`/api/master/orders?status=${status}`)
+                .then(res => res.json())
+                .then((data: MasterOrdersResponse) => setMasterOrders(data.orders));
+            }
+          }}
+          className="px-3 py-1 rounded-lg border border-gray-200 text-sm"
         >
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl flex items-center gap-2">
-              📦 Заказы
-              {orders.filter((o) => o.status === "new").length > 0 && (
-                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full animate-pulse">
-                  {orders.filter((o) => o.status === "new").length} новых
-                </span>
-              )}
-            </h2>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {orders.length === 0 ? (
-              <div className="p-12 text-center text-gray-500">
-                У вас пока нет заказов
-              </div>
-            ) : (
-              orders.slice(0, 5).map((order, idx) => (
-                <motion.div
-                  key={order.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.05 }}
-                  whileHover={{ backgroundColor: "#f9fafb" }}
-                  className="p-6 transition-all duration-300"
+          <option value="all">Все заказы</option>
+          <option value="new">Новые</option>
+          <option value="confirmed">Подтвержденные</option>
+          <option value="shipped">Отправленные</option>
+          <option value="delivered">Доставленные</option>
+          <option value="cancelled">Отмененные</option>
+        </select>
+        <button
+          onClick={fetchMasterOrders}
+          className="px-3 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-sm"
+        >
+          🔄 Обновить
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <div className="divide-y divide-gray-100">
+    {masterOrders.length === 0 ? (
+      <div className="p-12 text-center text-gray-500">
+        <div className="text-6xl mb-4">📦</div>
+        <p>У вас пока нет заказов на товары</p>
+        <Link href="/master/products/add" className="text-firm-orange hover:underline mt-2 inline-block">
+          Добавить товары →
+        </Link>
+      </div>
+    ) : (
+      masterOrders.map((order, idx) => (
+        <motion.div
+          key={order.id}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: idx * 0.05 }}
+          whileHover={{ backgroundColor: "#f9fafb" }}
+          className="p-6 transition-all duration-300"
+        >
+          <div className="flex justify-between items-start flex-wrap gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2 flex-wrap">
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}
                 >
-                  <div className="flex justify-between items-start flex-wrap gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2 flex-wrap">
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}
-                        >
-                          {getStatusText(order.status)}
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          №{order.order_number}
-                        </span>
-                      </div>
-                      <p className="font-medium text-lg">{order.product_title}</p>
-                      <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-500">
-                        <span>👤 {order.buyer_name}</span>
-                        <span>💰 {order.total_amount.toLocaleString()} ₽</span>
-                        <span>
-                          📅{" "}
-                          {new Date(order.created_at).toLocaleDateString("ru-RU")}
-                        </span>
-                      </div>
-                    </div>
-                    <Link href={`/master/orders/${order.id}`}>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="px-4 py-2 text-sm border-2 border-firm-orange text-firm-orange rounded-xl hover:bg-firm-orange hover:text-white transition-all duration-300"
-                      >
-                        Подробнее
-                      </motion.button>
-                    </Link>
+                  {getStatusText(order.status)}
+                </span>
+                <span className="text-sm text-gray-500">
+                  №{order.order_number}
+                </span>
+                {order.payment_status && (
+                  <span className={`text-xs px-2 py-1 rounded-full ${order.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                    {order.payment_status === 'paid' ? '✅ Оплачен' : '⏳ Ожидает оплаты'}
+                  </span>
+                )}
+              </div>
+              
+              {order.items && order.items.length > 0 && (
+                <div className="mb-3">
+                  <p className="font-medium">Товары в заказе:</p>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {order.items.map((item, i) => (
+                      <span key={i} className="text-sm bg-gray-100 px-2 py-1 rounded">
+                        {item.product_title} x{item.quantity}
+                      </span>
+                    ))}
                   </div>
-                </motion.div>
-              ))
-            )}
-          </div>
-          {orders.length > 5 && (
-            <div className="p-4 text-center border-t bg-gray-50">
-              <Link
-                href="/master/orders"
-                className="text-sm text-firm-orange hover:underline"
-              >
-                Все заказы →
-              </Link>
+                </div>
+              )}
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-500">
+                <span>👤 Покупатель: {order.buyer_name || 'Не указан'}</span>
+                <span>💰 Сумма: {order.total_amount.toLocaleString()} ₽</span>
+                <span>📅 {new Date(order.created_at).toLocaleDateString("ru-RU")}</span>
+                {order.shipping_city && order.shipping_address && (
+                  <span>📍 {order.shipping_city}, {order.shipping_address}</span>
+                )}
+              </div>
+              
+              {order.buyer_comment && (
+                <div className="mt-2 p-2 bg-gray-50 rounded-lg text-sm">
+                  <span className="font-medium">💬 Комментарий покупателя:</span>
+                  <p className="text-gray-600 mt-1">{order.buyer_comment}</p>
+                </div>
+              )}
             </div>
-          )}
+            
+            <div className="flex flex-col gap-2 min-w-[140px]">
+              <Link href={`/master/orders/${order.id}`}>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full px-4 py-2 text-sm border border-firm-orange text-firm-orange rounded-xl hover:bg-firm-orange hover:text-white transition-all duration-300"
+                >
+                  Подробнее
+                </motion.button>
+              </Link>
+              
+              <select
+                value={order.status}
+                onChange={(e) => {
+                  const newStatus = e.target.value as Order['status'];
+                  if (newStatus === 'shipped') {
+                    setShowTrackingModal(order.id);
+                  } else {
+                    updateOrderStatus(order.id, newStatus);
+                  }
+                }}
+                disabled={updatingOrderId === order.id}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:border-firm-orange focus:outline-none"
+              >
+                <option value="new">🆕 Новый</option>
+                <option value="confirmed">✅ Подтвердить</option>
+                <option value="shipped">📦 Отправлен</option>
+                <option value="delivered">🏠 Доставлен</option>
+                <option value="cancelled">❌ Отменить</option>
+              </select>
+              
+              {updatingOrderId === order.id && (
+                <div className="flex justify-center">
+                  <div className="w-5 h-5 border-2 border-firm-orange border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
+            </div>
+          </div>
         </motion.div>
+      ))
+    )}
+  </div>
+</motion.div>
+
+{/* Модальное окно для трек-номера */}
+{showTrackingModal && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="bg-white rounded-2xl max-w-md w-full p-6"
+    >
+      <h3 className="text-xl font-semibold mb-4">Отправка заказа</h3>
+      <p className="text-gray-600 mb-4">
+        Укажите трек-номер для отслеживания посылки
+      </p>
+      <input
+        type="text"
+        value={trackingNumber[showTrackingModal] || ''}
+        onChange={(e) => setTrackingNumber(prev => ({ ...prev, [showTrackingModal]: e.target.value }))}
+        placeholder="Трек-номер"
+        className="w-full p-3 border border-gray-200 rounded-xl mb-4 focus:border-firm-orange focus:outline-none"
+      />
+      <div className="flex gap-3">
+        <button
+          onClick={() => updateOrderStatus(showTrackingModal, 'shipped', trackingNumber[showTrackingModal])}
+          className="flex-1 px-4 py-2 bg-firm-orange text-white rounded-xl hover:bg-firm-pink transition-colors"
+        >
+          Подтвердить отправку
+        </button>
+        <button
+          onClick={() => setShowTrackingModal(null)}
+          className="flex-1 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+        >
+          Отмена
+        </button>
+      </div>
+    </motion.div>
+  </div>
+)}
 
         {/* Лента новостей с использованием BlogPostCard */}
         <motion.div
