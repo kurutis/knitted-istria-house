@@ -4,15 +4,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 
-interface BlogPostUpdateData {
-    status: string;
-    updated_at: string;
-    moderation_comment?: string;
-    published_at?: string;
-    blocked_at?: string;
-    blocked_by?: string;
-}
-
 export async function GET(request: Request) {
     try {
         const session = await getServerSession(authOptions);
@@ -21,37 +12,10 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
         }
 
-        // Получаем ВСЕ посты
+        // Получаем посты
         const { data: posts, error } = await supabase
             .from('blog_posts')
-            .select(`
-                id,
-                title,
-                content,
-                excerpt,
-                category,
-                tags,
-                main_image_url,
-                views_count,
-                likes_count,
-                status,
-                created_at,
-                updated_at,
-                master_id,
-                users!inner (
-                    email,
-                    profiles!left (
-                        full_name,
-                        avatar_url
-                    )
-                ),
-                blog_images (
-                    id,
-                    image_url,
-                    sort_order
-                ),
-                blog_comments (count)
-            `)
+            .select('*')
             .order('created_at', { ascending: false });
 
         if (error) {
@@ -63,10 +27,52 @@ export async function GET(request: Request) {
             return NextResponse.json([], { status: 200 });
         }
 
-        // Форматируем данные
+        // Получаем авторов постов
+        const masterIds = posts.map(p => p.master_id).filter(Boolean);
+        
+        const userMap = new Map();
+        const profileMap = new Map();
+        
+        if (masterIds.length > 0) {
+            // Получаем пользователей
+            const { data: users } = await supabase
+                .from('users')
+                .select('id, email')
+                .in('id', masterIds);
+            
+            users?.forEach(u => {
+                userMap.set(u.id, u);
+            });
+            
+            // Получаем профили
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('user_id, full_name, avatar_url')
+                .in('user_id', masterIds);
+            
+            profiles?.forEach(p => {
+                profileMap.set(p.user_id, p);
+            });
+        }
+
+        // Получаем количество комментариев для каждого поста
+        const commentsCountMap = new Map();
+        if (posts.length > 0) {
+            const postIds = posts.map(p => p.id);
+            const { data: comments } = await supabase
+                .from('blog_comments')
+                .select('post_id')
+                .in('post_id', postIds);
+            
+            comments?.forEach(c => {
+                commentsCountMap.set(c.post_id, (commentsCountMap.get(c.post_id) || 0) + 1);
+            });
+        }
+
+        // Форматируем результат
         const formattedPosts = posts.map(post => {
-            const user = post.users?.[0];
-            const profile = user?.profiles?.[0];
+            const user = userMap.get(post.master_id);
+            const profile = profileMap.get(post.master_id);
             
             return {
                 id: post.id,
@@ -76,7 +82,7 @@ export async function GET(request: Request) {
                 category: post.category || '',
                 tags: post.tags || [],
                 main_image_url: post.main_image_url,
-                views_count: post.views_count || 0,
+                views_count: post.views_count || post.views || 0,
                 likes_count: post.likes_count || 0,
                 status: post.status,
                 created_at: post.created_at,
@@ -85,8 +91,8 @@ export async function GET(request: Request) {
                 author_name: profile?.full_name || user?.email?.split('@')[0] || 'Автор',
                 author_email: user?.email || '',
                 author_avatar: profile?.avatar_url || null,
-                images: post.blog_images || [],
-                comments_count: post.blog_comments?.length || 0
+                images: [],
+                comments_count: commentsCountMap.get(post.id) || 0
             };
         });
 
@@ -159,27 +165,15 @@ export async function PUT(request: Request) {
                 return NextResponse.json({ error: 'Неизвестное действие' }, { status: 400 });
         }
 
-        // Обновляем статус поста - используем конкретный тип вместо any
-        const updateData: BlogPostUpdateData = {
-            status: newStatus,
-            updated_at: now
-        };
-
-        if (action === 'reject' && reason) {
-            updateData.moderation_comment = reason;
-        }
-        if (action === 'block') {
-            updateData.moderation_comment = reason || 'Заблокировано модератором';
-            updateData.blocked_at = now;
-            updateData.blocked_by = session.user.id;
-        }
-        if (action === 'approve') {
-            updateData.published_at = now;
-        }
-
+        // Обновляем статус поста
         const { error: updateError } = await supabase
             .from('blog_posts')
-            .update(updateData)
+            .update({
+                status: newStatus,
+                updated_at: now,
+                moderation_comment: (action === 'reject' || action === 'block') && reason ? reason : undefined,
+                published_at: action === 'approve' ? now : undefined
+            })
             .eq('id', postId);
 
         if (updateError) {
