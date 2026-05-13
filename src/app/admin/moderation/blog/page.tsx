@@ -42,7 +42,7 @@ export default function AdminModerationBlogPage() {
     const [actionLoading, setActionLoading] = useState<string | null>(null)
     const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null)
     const [showModal, setShowModal] = useState(false)
-    const [filter, setFilter] = useState<'all' | 'moderation' | 'draft'>('all')
+    const [filter, setFilter] = useState<'all' | 'moderation' | 'draft' | 'published' | 'blocked'>('all');
 
     useEffect(() => {
         if (status === 'loading') return
@@ -179,10 +179,18 @@ export default function AdminModerationBlogPage() {
         })
     }
 
+    const stats = {
+        all: posts.length,
+        moderation: posts.filter(p => p.status === 'moderation').length,
+        draft: posts.filter(p => p.status === 'draft').length,
+        published: posts.filter(p => p.status === 'published').length,
+        blocked: posts.filter(p => p.status === 'blocked').length
+    };
+
     const filteredPosts = posts.filter(p => {
-        if (filter === 'all') return p.status === 'moderation' || p.status === 'draft'
+        if (filter === 'all') return true
         return p.status === filter
-    })
+    });
 
     if (loading) {
         return (
