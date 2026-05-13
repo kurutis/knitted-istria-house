@@ -498,37 +498,37 @@ const updateOrderStatus = async (orderId: string, newStatus: string, tracking?: 
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "new":
-        return "bg-blue-100 text-blue-700";
-      case "confirmed":
-        return "bg-green-100 text-green-700";
-      case "shipped":
-        return "bg-purple-100 text-purple-700";
-      case "delivered":
-        return "bg-gray-100 text-gray-700";
-      case "cancelled":
-        return "bg-red-100 text-red-700";
-      default:
-        return "bg-gray-100 text-gray-700";
+        case "new":
+            return "bg-blue-100 text-blue-700";
+        case "processing":
+            return "bg-green-100 text-green-700";
+        case "shipped":
+            return "bg-purple-100 text-purple-700";
+        case "delivered":
+            return "bg-gray-100 text-gray-700";
+        case "cancelled":
+            return "bg-red-100 text-red-700";
+        default:
+            return "bg-gray-100 text-gray-700";
     }
-  };
+};
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case "new":
-        return "🆕 Новый";
-      case "confirmed":
-        return "✅ Подтвержден";
-      case "shipped":
-        return "📦 Отправлен";
-      case "delivered":
-        return "🏠 Доставлен";
-      case "cancelled":
-        return "❌ Отменен";
-      default:
-        return status;
+        case "new":
+            return "🆕 Новый";
+        case "processing":
+            return "✅ В обработке";
+        case "shipped":
+            return "📦 Отправлен";
+        case "delivered":
+            return "🏠 Доставлен";
+        case "cancelled":
+            return "❌ Отменен";
+        default:
+            return status;
     }
-  };
+};
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -936,22 +936,22 @@ const updateOrderStatus = async (orderId: string, newStatus: string, tracking?: 
               <select
                 value={order.status}
                 onChange={(e) => {
-                  const newStatus = e.target.value as Order['status'];
-                  if (newStatus === 'shipped') {
-                    setShowTrackingModal(order.id);
-                  } else {
-                    updateOrderStatus(order.id, newStatus);
-                  }
+                    const newStatus = e.target.value;
+                    if (newStatus === 'shipped') {
+                        setShowTrackingModal(order.id);
+                    } else {
+                        updateOrderStatus(order.id, newStatus);
+                    }
                 }}
                 disabled={updatingOrderId === order.id}
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:border-firm-orange focus:outline-none"
-              >
+            >
                 <option value="new">🆕 Новый</option>
                 <option value="confirmed">✅ Подтвердить</option>
                 <option value="shipped">📦 Отправлен</option>
                 <option value="delivered">🏠 Доставлен</option>
                 <option value="cancelled">❌ Отменить</option>
-              </select>
+            </select>
               
               {updatingOrderId === order.id && (
                 <div className="flex justify-center">

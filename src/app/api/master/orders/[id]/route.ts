@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/auth";
 
 type OrderUpdateData = {
     status: string;
@@ -9,6 +9,18 @@ type OrderUpdateData = {
     tracking_number?: string;
     shipped_at?: string;
     delivered_at?: string;
+};
+
+// Допустимые статусы из constraint
+const ALLOWED_STATUSES = ['new', 'processing', 'shipped', 'delivered', 'cancelled'];
+
+// Маппинг статусов из UI в статусы БД
+const STATUS_MAP: Record<string, string> = {
+    'new': 'new',
+    'confirmed': 'processing',  // confirmed -> processing
+    'shipped': 'shipped',
+    'delivered': 'delivered',
+    'cancelled': 'cancelled'
 };
 
 export async function PATCH(
@@ -26,7 +38,26 @@ export async function PATCH(
         const body = await request.json();
         const { status, tracking_number } = body;
 
-        // ИСПРАВЛЕНО: Проверяем роль из таблицы users, а не profiles
+        // Маппим статус из UI в статус БД
+        const dbStatus = STATUS_MAP[status];
+        
+        if (!dbStatus) {
+            console.error(`Invalid status: ${status}`);
+            return NextResponse.json({ 
+                error: `Недопустимый статус: ${status}. Допустимые значения: ${Object.keys(STATUS_MAP).join(', ')}` 
+            }, { status: 400 });
+        }
+
+        if (!ALLOWED_STATUSES.includes(dbStatus)) {
+            console.error(`Mapped status ${dbStatus} not allowed`);
+            return NextResponse.json({ 
+                error: `Внутренняя ошибка: статус ${dbStatus} не разрешен` 
+            }, { status: 400 });
+        }
+
+        console.log(`Updating order ${id}: UI status "${status}" -> DB status "${dbStatus}"`);
+
+        // Проверяем роль пользователя
         const { data: user, error: userError } = await supabase
             .from('users')
             .select('role, is_banned')
@@ -77,16 +108,16 @@ export async function PATCH(
 
         // Обновляем статус заказа
         const updateData: OrderUpdateData = { 
-            status, 
+            status: dbStatus,  // Используем смапленный статус
             updated_at: new Date().toISOString() 
         };
         
-        if (status === 'shipped' && tracking_number) {
+        if (dbStatus === 'shipped' && tracking_number) {
             updateData.tracking_number = tracking_number;
             updateData.shipped_at = new Date().toISOString();
         }
         
-        if (status === 'delivered') {
+        if (dbStatus === 'delivered') {
             updateData.delivered_at = new Date().toISOString();
         }
 
@@ -106,8 +137,8 @@ export async function PATCH(
         let notificationTitle = '';
         let notificationMessage = '';
 
-        switch (status) {
-            case 'confirmed':
+        switch (dbStatus) {
+            case 'processing':
                 notificationTitle = 'Заказ подтвержден';
                 notificationMessage = `Ваш заказ #${updatedOrder.order_number} подтвержден мастером и готовится к отправке.`;
                 break;
