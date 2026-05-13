@@ -1,3 +1,4 @@
+// src/app/admin/dashboard/page.tsx
 'use client'
 
 import { useSession } from "next-auth/react"
@@ -80,7 +81,11 @@ interface DashboardStats {
         name?: string
         email: string
         role: string
+        role_code: string
         created_at: string
+        phone?: string | null
+        avatar?: string | null
+        city?: string | null
     }>
     recentOrders: Array<{
         id: string
@@ -89,6 +94,7 @@ interface DashboardStats {
         status: string
         created_at: string
         buyer_name?: string
+        buyer_email?: string
     }>
     topCategories: Array<{
         name: string
@@ -136,8 +142,8 @@ export default function AdminDashboardPage() {
             }
             
             const data = await response.json()
+            console.log('Dashboard data:', data)
             setStats(data)
-            console.log('Recent users roles:', data.recentUsers?.map((u: { email: unknown; role: unknown; role_code: unknown }) => ({ email: u.email, role: u.role, role_code: u.role_code })));
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка'
             setError(errorMessage)
@@ -197,7 +203,6 @@ export default function AdminDashboardPage() {
     }
 
     if (!stats) return null
-    
 
     const statCards = [
         { 
@@ -445,11 +450,11 @@ export default function AdminDashboardPage() {
                                         <td className="p-4 text-gray-600">{user.email}</td>
                                         <td className="p-4">
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                user.role === 'master' ? 'bg-green-100 text-green-700' :
-                                                user.role === 'admin' ? 'bg-red-100 text-red-700' :
+                                                user.role === 'Мастер' ? 'bg-green-100 text-green-700' :
+                                                user.role === 'Администратор' ? 'bg-red-100 text-red-700' :
                                                 'bg-blue-100 text-blue-700'
                                             }`}>
-                                                {user.role === 'master' ? 'Мастер' : user.role === 'admin' ? 'Админ' : 'Покупатель'}
+                                                {user.role}
                                             </span>
                                         </td>
                                         <td className="p-4 text-gray-500">{formatDate(user.created_at)}</td>
