@@ -166,30 +166,40 @@ export default function ProductCard({ product }: ProductCardProps) {
 }
 
     const addToCart = async (e: React.MouseEvent) => {
-        e.preventDefault()
-        if (!session) {
-            window.location.href = '/auth/signin?callbackUrl=/catalog'
-            return
-        }
-
-        setLoading(true)
-        try {
-            const response = await fetch('/api/cart', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ productId: product.id, quantity: 1 })
-            })
-
-            if (response.ok) {
-                setIsInCart(true)
-                setQuantity(1)
-            }
-        } catch (error) {
-            console.error('Error adding to cart:', error)
-        } finally {
-            setLoading(false)
-        }
+    e.preventDefault();
+    if (!session) {
+        window.location.href = '/auth/signin?callbackUrl=/catalog';
+        return;
     }
+
+    setLoading(true);
+    try {
+        console.log('Adding to cart - product:', { 
+            id: product.id, 
+            title: product.title 
+        });
+        
+        const response = await fetch('/api/cart', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId: product.id, quantity: 1 })
+        });
+        
+        const data = await response.json();
+        console.log('Response:', response.status, data);
+        
+        if (response.ok) {
+            setIsInCart(true);
+            setQuantity(1);
+        } else {
+            console.error('Error response:', data);
+        }
+    } catch (error) {
+        console.error('Error adding to cart:', error);
+    } finally {
+        setLoading(false);
+    }
+};
 
     const removeFromCart = async () => {
         setLoading(true)

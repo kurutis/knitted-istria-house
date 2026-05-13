@@ -1,3 +1,4 @@
+// app/api/cart/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -41,7 +42,6 @@ export async function GET(request: Request) {
 
         const cacheKey = `cart_${session.user.id}`;
         const cartData = await cachedQuery(cacheKey, async () => {
-            // Получаем товары в корзине
             const { data: cartItems, error } = await supabase
                 .from('cart')
                 .select(`
@@ -61,10 +61,8 @@ export async function GET(request: Request) {
                 return { items: [], totalCount: 0, totalAmount: 0 };
             }
 
-            // Получаем ID товаров
             const productIds = cartItems.map(item => item.product_id);
             
-            // Получаем данные товаров
             const { data: products, error: productsError } = await supabase
                 .from('products')
                 .select(`
@@ -81,21 +79,19 @@ export async function GET(request: Request) {
                 return { items: [], totalCount: 0, totalAmount: 0 };
             }
 
-            // Создаем Map для быстрого доступа к товарам
             const productsMap = new Map();
             products?.forEach(p => {
                 productsMap.set(p.id, p);
             });
 
-            // Получаем имена мастеров
             const masterIds = [...new Set(products?.map(p => p.master_id).filter(Boolean) || [])];
             const masterNamesMap = new Map();
             
             if (masterIds.length > 0) {
                 const { data: masters } = await supabase
                     .from('masters')
-                    .select('id, user_id')
-                    .in('id', masterIds);
+                    .select('user_id')
+                    .in('user_id', masterIds);
                 
                 if (masters) {
                     const userIds = masters.map(m => m.user_id);
@@ -111,12 +107,11 @@ export async function GET(request: Request) {
                     
                     masters.forEach(m => {
                         const profile = profileMap.get(m.user_id);
-                        masterNamesMap.set(m.id, profile?.full_name || 'Мастер');
+                        masterNamesMap.set(m.user_id, profile?.full_name || 'Мастер');
                     });
                 }
             }
 
-            // Формируем результат
             const items = cartItems.map(item => {
                 const product = productsMap.get(item.product_id);
                 return {
@@ -172,19 +167,21 @@ export async function POST(request: Request) {
         const validatedData = addToCartSchema.parse(body);
         const { productId, quantity } = validatedData;
 
-        // Проверяем товар
+        // Проверяем товар - используем status вместо is_available
         const { data: product, error: productError } = await supabase
             .from('products')
-            .select('id, title, price, is_available')
+            .select('id, title, price, status')
             .eq('id', productId)
             .single();
 
         if (productError || !product) {
+            logInfo('Product not found for cart', { productId });
             return NextResponse.json({ error: 'Товар не найден' }, { status: 404 });
         }
 
-        if (product.is_available === false) {
-            return NextResponse.json({ error: 'Товар временно недоступен' }, { status: 400 });
+        // Проверяем статус товара
+        if (product.status !== 'active') {
+            return NextResponse.json({ error: 'Товар недоступен' }, { status: 400 });
         }
 
         // Проверяем, есть ли уже в корзине
@@ -198,7 +195,6 @@ export async function POST(request: Request) {
         const now = new Date().toISOString();
 
         if (existingItem) {
-            // Обновляем количество
             await supabase
                 .from('cart')
                 .update({
@@ -208,7 +204,6 @@ export async function POST(request: Request) {
                 .eq('user_id', session.user.id)
                 .eq('product_id', productId);
         } else {
-            // Добавляем новый товар
             await supabase
                 .from('cart')
                 .insert({
@@ -222,13 +217,14 @@ export async function POST(request: Request) {
 
         invalidateCache(`cart_${session.user.id}`);
 
-        // Получаем общее количество
         const { data: cartItems } = await supabase
             .from('cart')
             .select('quantity')
             .eq('user_id', session.user.id);
 
         const totalCount = cartItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+
+        logApiRequest('POST', '/api/cart', 201, Date.now() - startTime, session.user.id);
 
         return NextResponse.json({
             success: true,
@@ -274,14 +270,12 @@ export async function PATCH(request: Request) {
         }
 
         if (quantity === 0) {
-            // Удаляем товар
             await supabase
                 .from('cart')
                 .delete()
                 .eq('user_id', session.user.id)
                 .eq('product_id', productId);
         } else {
-            // Проверяем, есть ли уже в корзине
             const { data: existingItem } = await supabase
                 .from('cart')
                 .select('id')
@@ -290,7 +284,6 @@ export async function PATCH(request: Request) {
                 .maybeSingle();
 
             if (existingItem) {
-                // Обновляем количество
                 await supabase
                     .from('cart')
                     .update({ 
@@ -300,7 +293,6 @@ export async function PATCH(request: Request) {
                     .eq('user_id', session.user.id)
                     .eq('product_id', productId);
             } else {
-                // Добавляем новый товар
                 await supabase
                     .from('cart')
                     .insert({
@@ -315,7 +307,6 @@ export async function PATCH(request: Request) {
 
         invalidateCache(`cart_${session.user.id}`);
 
-        // Получаем обновленную корзину
         const { data: cartItems } = await supabase
             .from('cart')
             .select('quantity')
@@ -367,7 +358,6 @@ export async function DELETE(request: Request) {
 
         invalidateCache(`cart_${session.user.id}`);
 
-        // Получаем обновленную корзину
         const { data: cartItems } = await supabase
             .from('cart')
             .select('quantity')
