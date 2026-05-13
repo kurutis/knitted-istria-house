@@ -47,11 +47,10 @@ export async function GET(request: Request) {
                 monthlyStatsResult,
                 previousMonthStatsResult
             ] = await Promise.all([
-                // Общее количество пользователей (не админов)
+                // Общее количество пользователей
                 supabase
                     .from('users')
-                    .select('*', { count: 'exact', head: true })
-                    .neq('role', 'admin'),
+                    .select('*', { count: 'exact', head: true }),
                 
                 // Количество мастеров
                 supabase
@@ -101,7 +100,7 @@ export async function GET(request: Request) {
                     .lt('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
             ]);
 
-            // Получаем последних пользователей с их профилями (отдельные запросы)
+            // Получаем последних 10 пользователей (без фильтрации по роли)
             const { data: users } = await supabase
                 .from('users')
                 .select('id, email, role, created_at')
@@ -121,14 +120,20 @@ export async function GET(request: Request) {
                 profileMap.set(p.user_id, p);
             });
 
-            // Форматируем пользователей
+            // Форматируем пользователей с корректным отображением ролей
             const recentUsers = users?.map(user => {
                 const profile = profileMap.get(user.id);
                 const userName = profile?.full_name || user.email?.split('@')[0] || 'Пользователь';
                 
-                let displayRole = 'Покупатель';
-                if (user.role === 'master') displayRole = 'Мастер';
-                else if (user.role === 'admin') displayRole = 'Администратор';
+                // Правильное отображение роли
+                let displayRole = 'Пользователь';
+                if (user.role === 'master') {
+                    displayRole = 'Мастер';
+                } else if (user.role === 'admin') {
+                    displayRole = 'Администратор';
+                } else if (user.role === 'buyer') {
+                    displayRole = 'Покупатель';
+                }
                 
                 return {
                     id: user.id,
@@ -143,7 +148,7 @@ export async function GET(request: Request) {
                 };
             }) || [];
 
-            // Получаем последние заказы с информацией о покупателях
+            // Получаем последние заказы
             const { data: orders } = await supabase
                 .from('orders')
                 .select(`
@@ -157,14 +162,12 @@ export async function GET(request: Request) {
                 .order('created_at', { ascending: false })
                 .limit(10);
 
-            // Получаем покупателей для заказов
             const buyerIds = orders?.map(o => o.buyer_id) || [];
             const { data: buyers } = await supabase
                 .from('users')
                 .select('id, email')
                 .in('id', buyerIds);
             
-            // Получаем профили покупателей
             const { data: buyerProfiles } = await supabase
                 .from('profiles')
                 .select('user_id, full_name')
