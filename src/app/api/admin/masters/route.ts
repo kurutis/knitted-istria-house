@@ -6,33 +6,8 @@ import { NextResponse } from "next/server";
 import { rateLimit, getClientIP } from "@/lib/rate-limit";
 import { logError, logInfo, logApiRequest } from "@/lib/error-logger";
 import { sanitize } from "@/lib/sanitize";
-import { cachedQuery, invalidateCache } from "@/lib/db-optimized";
+import { invalidateCache } from "@/lib/db-optimized";
 import { z } from "zod";
-
-// Интерфейсы для типов
-interface MasterProfile {
-    full_name: string | null
-    phone: string | null
-    city: string | null
-    avatar_url: string | null
-}
-
-interface MasterData {
-    description: string | null
-    is_verified: boolean
-    is_partner: boolean
-    rating: number
-    total_sales: number
-    custom_orders_enabled: boolean
-}
-
-interface MasterWithRelations {
-    id: string
-    email: string
-    created_at: string
-    profiles: MasterProfile[] | null
-    masters: MasterData[] | null
-}
 
 // Схема валидации для PUT запроса
 const updateMasterSchema = z.object({
@@ -56,7 +31,6 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Неавторизован' }, { status: 401 })
         }
 
-        // Rate limiting
         const rateLimitResult = getLimiter(request);
         if (!rateLimitResult.success) {
             return NextResponse.json({ 
@@ -64,124 +38,111 @@ export async function GET(request: Request) {
             }, { status: 429 });
         }
 
-        // Используем кэширование из db-optimized (30 секунд)
-        const cacheKey = 'admin_masters_list';
+        // Получаем всех мастеров с их профилями
+        const { data: masters, error } = await supabase
+            .from('users')
+            .select(`
+                id,
+                email,
+                created_at,
+                profiles (
+                    full_name,
+                    phone,
+                    city,
+                    avatar_url
+                ),
+                masters (
+                    description,
+                    is_verified,
+                    is_partner,
+                    rating,
+                    total_sales,
+                    custom_orders_enabled
+                )
+            `)
+            .eq('role', 'master')
+            .order('created_at', { ascending: false })
+
+        if (error) {
+            logError('Supabase error in admin masters GET', error);
+            return NextResponse.json({ error: 'Ошибка загрузки мастеров' }, { status: 500 });
+        }
+
+        if (!masters || masters.length === 0) {
+            return NextResponse.json([], { status: 200 });
+        }
+
+        // Получаем количество товаров для каждого мастера
+        const masterIds = masters.map(m => m.id);
+        const productsCountMap = new Map<string, number>();
         
-        const result = await cachedQuery(cacheKey, async () => {
-            // Получаем всех мастеров с их профилями
-            const { data: masters, error } = await supabase
-                .from('users')
-                .select(`
-                    id,
-                    email,
-                    created_at,
-                    profiles!left (
-                        full_name,
-                        phone,
-                        city,
-                        avatar_url
-                    ),
-                    masters!left (
-                        description,
-                        is_verified,
-                        is_partner,
-                        rating,
-                        total_sales,
-                        custom_orders_enabled
-                    )
-                `)
-                .eq('role', 'master')
-                .order('created_at', { ascending: false })
+        const { data: productsCount } = await supabase
+            .from('products')
+            .select('master_id')
+            .in('master_id', masterIds)
+            .eq('status', 'active');
+        
+        productsCount?.forEach(p => {
+            productsCountMap.set(p.master_id, (productsCountMap.get(p.master_id) || 0) + 1);
+        });
 
-            if (error) {
-                logError('Supabase error in admin masters GET', error);
-                throw new Error('DATABASE_ERROR');
-            }
+        // Получаем количество подписчиков для каждого мастера
+        const followersCountMap = new Map<string, number>();
+        const { data: followersCount } = await supabase
+            .from('master_followers')
+            .select('master_id')
+            .in('master_id', masterIds);
+        
+        followersCount?.forEach(f => {
+            followersCountMap.set(f.master_id, (followersCountMap.get(f.master_id) || 0) + 1);
+        });
 
-            // Получаем количество товаров для каждого мастера
-            const masterIds = masters?.map(m => m.id) || [];
-            const productsCountMap = new Map();
+        // Форматируем данные - берем первый элемент из массивов profiles и masters
+        const formattedMasters = masters.map(master => {
+            // profiles и masters могут быть массивами или null
+            const profile = master.profiles && Array.isArray(master.profiles) && master.profiles.length > 0 
+                ? master.profiles[0] 
+                : null;
+            const masterInfo = master.masters && Array.isArray(master.masters) && master.masters.length > 0 
+                ? master.masters[0] 
+                : null;
             
-            if (masterIds.length > 0) {
-                const { data: productsCount } = await supabase
-                    .from('products')
-                    .select('master_id')
-                    .in('master_id', masterIds)
-                    .eq('status', 'active');
-                
-                productsCount?.forEach(p => {
-                    productsCountMap.set(p.master_id, (productsCountMap.get(p.master_id) || 0) + 1);
-                });
-            }
-
-            // Получаем количество подписчиков для каждого мастера
-            const followersCountMap = new Map();
-            if (masterIds.length > 0) {
-                const { data: followersCount } = await supabase
-                    .from('master_followers')
-                    .select('master_id')
-                    .in('master_id', masterIds);
-                
-                followersCount?.forEach(f => {
-                    followersCountMap.set(f.master_id, (followersCountMap.get(f.master_id) || 0) + 1);
-                });
-            }
-
-            // Форматируем данные с санитизацией
-            const formattedMasters = (masters as MasterWithRelations[] | null)?.map(master => ({
+            return {
                 id: master.id,
                 user_id: master.id,
-                name: sanitize.text(master.profiles?.[0]?.full_name || master.email?.split('@')[0] || 'Мастер'),
-                full_name: sanitize.text(master.profiles?.[0]?.full_name || ''),
+                name: profile?.full_name ? sanitize.text(profile.full_name) : master.email?.split('@')[0] || 'Мастер',
+                full_name: profile?.full_name ? sanitize.text(profile.full_name) : '',
                 email: sanitize.email(master.email),
-                phone: sanitize.phone(master.profiles?.[0]?.phone || ''),
-                city: sanitize.text(master.profiles?.[0]?.city || ''),
-                description: sanitize.text(master.masters?.[0]?.description || ''),
-                is_verified: master.masters?.[0]?.is_verified || false,
-                is_partner: master.masters?.[0]?.is_partner || false,
+                phone: profile?.phone ? sanitize.phone(profile.phone) : null,
+                city: profile?.city ? sanitize.text(profile.city) : null,
+                description: masterInfo?.description ? sanitize.text(masterInfo.description) : null,
+                is_verified: masterInfo?.is_verified || false,
+                is_partner: masterInfo?.is_partner || false,
                 created_at: master.created_at,
                 products_count: productsCountMap.get(master.id) || 0,
                 followers_count: followersCountMap.get(master.id) || 0,
-                rating: parseFloat(master.masters?.[0]?.rating?.toString() || '0') || 0,
-                total_sales: master.masters?.[0]?.total_sales || 0,
-                avatar_url: master.profiles?.[0]?.avatar_url || null,
-                custom_orders_enabled: master.masters?.[0]?.custom_orders_enabled || false,
+                rating: masterInfo?.rating || 0,
+                total_sales: masterInfo?.total_sales || 0,
+                avatar_url: profile?.avatar_url || null,
+                custom_orders_enabled: masterInfo?.custom_orders_enabled || false,
                 has_products: (productsCountMap.get(master.id) || 0) > 0
-            })) || [];
-
-            // Статистика по статусам
-            const stats = {
-                total: formattedMasters.length,
-                verified: formattedMasters.filter(m => m.is_verified).length,
-                unverified: formattedMasters.filter(m => !m.is_verified).length,
-                with_products: formattedMasters.filter(m => m.has_products).length,
-                partners: formattedMasters.filter(m => m.is_partner).length
             };
-
-            return {
-                masters: formattedMasters,
-                stats,
-                lastUpdated: new Date().toISOString()
-            };
-        }, 30);
+        });
 
         logApiRequest('GET', '/api/admin/masters', 200, Date.now() - startTime, session.user.id);
 
-        return NextResponse.json(result.masters, { 
+        return NextResponse.json(formattedMasters, { 
             status: 200,
             headers: {
                 'Cache-Control': 'private, max-age=30',
                 'X-RateLimit-Limit': rateLimitResult.limit?.toString() || '30',
-                'X-RateLimit-Remaining': rateLimitResult.remaining?.toString() || '30',
-                'X-Total-Count': result.masters.length.toString(),
-                'X-Verified-Count': result.stats.verified.toString(),
-                'X-Unverified-Count': result.stats.unverified.toString()
+                'X-RateLimit-Remaining': rateLimitResult.remaining?.toString() || '30'
             }
         });
         
     } catch (error) {
         logError('Error fetching masters', error);
-        return NextResponse.json({ error: 'Ошибка загрузки мастеров' }, { status: 500 })
+        return NextResponse.json({ error: 'Ошибка загрузки мастеров' }, { status: 500 });
     }
 }
 
@@ -195,7 +156,6 @@ export async function PUT(request: Request) {
             return NextResponse.json({ error: 'Неавторизован' }, { status: 401 })
         }
 
-        // Rate limiting
         const rateLimitResult = putLimiter(request);
         if (!rateLimitResult.success) {
             return NextResponse.json({ 
@@ -205,7 +165,6 @@ export async function PUT(request: Request) {
 
         const body = await request.json()
         
-        // Валидация входных данных
         const validatedData = updateMasterSchema.parse({
             masterId: body.masterId,
             action: body.action,
@@ -226,21 +185,6 @@ export async function PUT(request: Request) {
             return NextResponse.json({ error: 'Мастер не найден' }, { status: 404 })
         }
 
-        // Предотвращение повторных действий
-        if (action === 'approve' && existingMaster.is_verified === true) {
-            return NextResponse.json({ error: 'Мастер уже верифицирован' }, { status: 400 })
-        }
-        if (action === 'remove_verification' && existingMaster.is_verified === false) {
-            return NextResponse.json({ error: 'Мастер уже не верифицирован' }, { status: 400 })
-        }
-
-        // Получаем информацию о мастере для уведомления
-        const { data: masterInfo } = await supabase
-            .from('users')
-            .select('email, profiles!left (full_name)')
-            .eq('id', masterId)
-            .single()
-
         const now = new Date().toISOString();
         let newVerifiedStatus = false;
         let notificationTitle = '';
@@ -250,51 +194,31 @@ export async function PUT(request: Request) {
             case 'approve':
                 newVerifiedStatus = true;
                 notificationTitle = '🎉 Ваша заявка одобрена!';
-                notificationMessage = 'Поздравляем! Вы стали верифицированным мастером. Теперь ваши товары будут видны в каталоге, и вы сможете создавать мастер-классы.';
+                notificationMessage = 'Поздравляем! Вы стали верифицированным мастером.';
                 
-                const { error: approveError } = await supabase
+                await supabase
                     .from('masters')
                     .update({
                         is_verified: true,
                         updated_at: now
                     })
                     .eq('user_id', masterId)
-
-                if (approveError) throw approveError;
                 break
 
             case 'reject':
                 newVerifiedStatus = false;
                 notificationTitle = 'Заявка на верификацию отклонена';
+                notificationMessage = reason 
+                    ? `К сожалению, ваша заявка на верификацию не прошла. Причина: ${reason}`
+                    : 'К сожалению, ваша заявка на верификацию не прошла.';
                 
-                if (reason) {
-                    notificationMessage = `К сожалению, ваша заявка на верификацию не прошла. Причина: ${reason}`;
-                    
-                    // Баним мастера при отклонении с причиной
-                    const { error: banError } = await supabase
-                        .from('users')
-                        .update({
-                            is_banned: true,
-                            ban_reason: reason,
-                            banned_at: now,
-                            updated_at: now
-                        })
-                        .eq('id', masterId)
-
-                    if (banError) throw banError;
-                } else {
-                    notificationMessage = 'К сожалению, ваша заявка на верификацию не прошла. Пожалуйста, заполните профиль полностью и попробуйте снова.';
-                }
-                
-                const { error: rejectError } = await supabase
+                await supabase
                     .from('masters')
                     .update({
                         is_verified: false,
                         updated_at: now
                     })
                     .eq('user_id', masterId)
-
-                if (rejectError) throw rejectError;
                 break
 
             case 'remove_verification':
@@ -302,17 +226,15 @@ export async function PUT(request: Request) {
                 notificationTitle = 'Статус верификации снят';
                 notificationMessage = reason 
                     ? `Ваш статус верифицированного мастера был снят. Причина: ${reason}`
-                    : 'Ваш статус верифицированного мастера был снят. Пожалуйста, обратитесь в поддержку для получения дополнительной информации.';
+                    : 'Ваш статус верифицированного мастера был снят.';
                 
-                const { error: removeError } = await supabase
+                await supabase
                     .from('masters')
                     .update({
                         is_verified: false,
                         updated_at: now
                     })
                     .eq('user_id', masterId)
-
-                if (removeError) throw removeError;
                 break
 
             default:
@@ -332,36 +254,15 @@ export async function PUT(request: Request) {
                 is_read: false
             });
 
-        // Логируем действие администратора
-        await supabase
-            .from('audit_logs')
-            .insert({
-                user_id: session.user.id,
-                action: `MASTER_${action.toUpperCase()}`,
-                entity_type: 'master',
-                entity_id: masterId,
-                old_values: { is_verified: existingMaster.is_verified, is_banned: existingMaster.is_banned },
-                new_values: { is_verified: newVerifiedStatus, reason: reason || null },
-                created_at: now
-            });
-
         // Инвалидируем кэш
         invalidateCache('admin_masters_list');
         invalidateCache(`master_profile_${masterId}`);
-        invalidateCache(`master_stats_${masterId}`);
 
         logApiRequest('PUT', '/api/admin/masters', 200, Date.now() - startTime, session.user.id);
-        logInfo(`Admin ${action} master`, { 
-            masterId, 
-            adminId: session.user.id,
-            oldStatus: existingMaster.is_verified,
-            newStatus: newVerifiedStatus,
-            hasReason: !!reason
-        });
 
         const responseMessages = {
             approve: 'Мастер успешно верифицирован',
-            reject: reason ? 'Мастер отклонён и заблокирован' : 'Мастер отклонён',
+            reject: 'Мастер отклонён',
             remove_verification: 'Верификация снята'
         };
 
