@@ -72,7 +72,6 @@ async function sendBanNotification(userId: string, isBanned: boolean, reason?: s
     }
 }
 
-// GET - получить список пользователей
 export async function GET(request: Request) {
     const startTime = Date.now();
     
@@ -153,25 +152,38 @@ export async function GET(request: Request) {
                 throw new Error('DATABASE_ERROR');
             }
 
-            const formattedUsers = users?.map(user => ({
-                id: user.id,
-                email: sanitize.email(user.email),
-                role: user.role,
-                role_text: getRoleText(user.role),
-                created_at: user.created_at,
-                is_banned: user.is_banned || false,
-                ban_reason: user.ban_reason,
-                banned_at: user.banned_at,
-                name: user.profiles?.[0]?.full_name ? sanitize.text(user.profiles[0].full_name) : null,
-                phone: user.profiles?.[0]?.phone ? sanitize.phone(user.profiles[0].phone) : null,
-                city: user.profiles?.[0]?.city ? sanitize.text(user.profiles[0].city) : null,
-                avatar_url: user.profiles?.[0]?.avatar_url,
-                is_verified: user.masters?.[0]?.is_verified || false,
-                is_partner: user.masters?.[0]?.is_partner || false,
-                rating: user.masters?.[0]?.rating || 0,
-                total_sales: user.masters?.[0]?.total_sales || 0,
-                custom_orders_enabled: user.masters?.[0]?.custom_orders_enabled || false
-            })) || [];
+            // Исправленный маппинг пользователей
+            const formattedUsers = users?.map(user => {
+                // Безопасное получение профиля (profiles приходит как массив)
+                const profile = user.profiles && Array.isArray(user.profiles) && user.profiles.length > 0 
+                    ? user.profiles[0] 
+                    : null;
+                
+                // Безопасное получение данных мастера
+                const master = user.masters && Array.isArray(user.masters) && user.masters.length > 0 
+                    ? user.masters[0] 
+                    : null;
+                
+                return {
+                    id: user.id,
+                    email: sanitize.email(user.email),
+                    role: user.role,
+                    role_text: getRoleText(user.role),
+                    created_at: user.created_at,
+                    is_banned: user.is_banned || false,
+                    ban_reason: user.ban_reason,
+                    banned_at: user.banned_at,
+                    name: profile?.full_name ? sanitize.text(profile.full_name) : null,
+                    phone: profile?.phone ? sanitize.phone(profile.phone) : null,
+                    city: profile?.city ? sanitize.text(profile.city) : null,
+                    avatar_url: profile?.avatar_url || null,
+                    is_verified: master?.is_verified || false,
+                    is_partner: master?.is_partner || false,
+                    rating: master?.rating || 0,
+                    total_sales: master?.total_sales || 0,
+                    custom_orders_enabled: master?.custom_orders_enabled || false
+                };
+            }) || [];
 
             const { data: allUsers } = await supabase
                 .from('users')
