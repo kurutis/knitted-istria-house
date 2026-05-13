@@ -136,33 +136,33 @@ export async function PUT(request: Request) {
         let notificationTitle = '';
         let notificationMessage = '';
 
-        switch (action) {
-            case 'approve':
-                if (existingPost.status !== 'moderation' && existingPost.status !== 'draft') {
-                    return NextResponse.json({ error: 'Пост уже опубликован' }, { status: 400 });
-                }
-                newStatus = 'published';
-                message = 'Пост успешно одобрен и опубликован';
-                notificationTitle = '✅ Пост опубликован';
-                notificationMessage = `Ваш пост "${existingPost.title}" успешно прошел модерацию и опубликован!`;
-                break;
-            case 'reject':
-                if (existingPost.status !== 'moderation') {
-                    return NextResponse.json({ error: 'Пост уже отклонён' }, { status: 400 });
-                }
-                newStatus = 'draft';
-                message = 'Пост отправлен на доработку';
-                notificationTitle = '📝 Пост на доработку';
-                notificationMessage = `Ваш пост "${existingPost.title}" отправлен на доработку. Причина: ${reason || 'Не указана'}`;
-                break;
-            case 'block':
-                newStatus = 'blocked';
-                message = 'Пост заблокирован';
-                notificationTitle = '🔒 Пост заблокирован';
-                notificationMessage = `Ваш пост "${existingPost.title}" был заблокирован. Причина: ${reason || 'Нарушение правил'}`;
-                break;
-            default:
-                return NextResponse.json({ error: 'Неизвестное действие' }, { status: 400 });
+        // Поддерживаем оба варианта: 'reject' и 'draft'
+        if (action === 'approve') {
+            if (existingPost.status !== 'moderation' && existingPost.status !== 'draft') {
+                return NextResponse.json({ error: 'Пост уже опубликован' }, { status: 400 });
+            }
+            newStatus = 'published';
+            message = 'Пост успешно одобрен и опубликован';
+            notificationTitle = '✅ Пост опубликован';
+            notificationMessage = `Ваш пост "${existingPost.title}" успешно прошел модерацию и опубликован!`;
+        } 
+        else if (action === 'reject' || action === 'draft') {
+            if (existingPost.status !== 'moderation') {
+                return NextResponse.json({ error: 'Пост уже отклонён' }, { status: 400 });
+            }
+            newStatus = 'draft';
+            message = 'Пост отправлен на доработку';
+            notificationTitle = '📝 Пост на доработку';
+            notificationMessage = `Ваш пост "${existingPost.title}" отправлен на доработку. Причина: ${reason || 'Не указана'}`;
+        }
+        else if (action === 'block') {
+            newStatus = 'blocked';
+            message = 'Пост заблокирован';
+            notificationTitle = '🔒 Пост заблокирован';
+            notificationMessage = `Ваш пост "${existingPost.title}" был заблокирован. Причина: ${reason || 'Нарушение правил'}`;
+        }
+        else {
+            return NextResponse.json({ error: 'Неизвестное действие' }, { status: 400 });
         }
 
         // Обновляем статус поста
@@ -171,7 +171,7 @@ export async function PUT(request: Request) {
             .update({
                 status: newStatus,
                 updated_at: now,
-                moderation_comment: (action === 'reject' || action === 'block') && reason ? reason : undefined,
+                moderation_comment: (action === 'reject' || action === 'draft' || action === 'block') && reason ? reason : undefined,
                 published_at: action === 'approve' ? now : undefined
             })
             .eq('id', postId);

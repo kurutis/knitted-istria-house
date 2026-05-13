@@ -122,7 +122,7 @@ export default function AdminModerationBlogPage() {
             const response = await fetch('/api/admin/blog', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ postId, action: 'draft' })
+                body: JSON.stringify({ postId, action: 'reject', reason: 'Отправлен на доработку' }) // ← измените action на 'reject'
             })
             if (!response.ok) throw new Error('Failed to return to draft')
 
