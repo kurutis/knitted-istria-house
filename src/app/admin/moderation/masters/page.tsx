@@ -120,25 +120,31 @@ export default function AdminModerationMastersPage() {
     }
 
     const handleRemoveVerification = async (masterId: string) => {
-        if (!confirm('Отозвать верификацию мастера?')) return
+    if (!confirm('Отозвать верификацию мастера? После этого мастер потеряет статус верифицированного.')) return
 
-        setActionLoading(masterId)
-        try {
-            const response = await fetch(`/api/admin/masters`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ masterId, action: 'remove_verification' })
-            })
+    setActionLoading(masterId)
+    try {
+        const response = await fetch(`/api/admin/masters`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ masterId, action: 'remove_verification' })
+        })
 
-            if (!response.ok) throw new Error('Failed to remove verification')
-            await loadMasters()
-        } catch (error) {
-            console.error('Ошибка при отзыве верификации:', error)
-            alert('Ошибка при отзыве верификации')
-        } finally {
-            setActionLoading(null)
+        const result = await response.json()
+        
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to remove verification')
         }
+        
+        alert(result.message || 'Верификация успешно снята')
+        await loadMasters()
+    } catch (error) {
+        console.error('Ошибка при отзыве верификации:', error)
+        alert(error instanceof Error ? error.message : 'Ошибка при отзыве верификации')
+    } finally {
+        setActionLoading(null)
     }
+}
 
     if (loading && pendingMasters.length === 0 && verifiedMasters.length === 0) {
         return (

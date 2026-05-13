@@ -187,20 +187,25 @@ export async function PUT(request: Request) {
         let newVerifiedStatus = false;
         let notificationTitle = '';
         let notificationMessage = '';
+        let successMessage = '';
 
         switch (action) {
             case 'approve':
                 newVerifiedStatus = true;
                 notificationTitle = '🎉 Ваша заявка одобрена!';
                 notificationMessage = 'Поздравляем! Вы стали верифицированным мастером.';
+                successMessage = 'Мастер успешно верифицирован';
                 
-                await supabase
+                // Обновляем статус в таблице masters
+                const { error: approveError } = await supabase
                     .from('masters')
                     .update({
                         is_verified: true,
                         updated_at: now
                     })
-                    .eq('user_id', masterId)
+                    .eq('user_id', masterId);
+                
+                if (approveError) throw approveError;
                 break
 
             case 'reject':
@@ -209,14 +214,31 @@ export async function PUT(request: Request) {
                 notificationMessage = reason 
                     ? `К сожалению, ваша заявка на верификацию не прошла. Причина: ${reason}`
                     : 'К сожалению, ваша заявка на верификацию не прошла.';
+                successMessage = reason ? 'Мастер отклонён и заблокирован' : 'Мастер отклонён';
                 
-                await supabase
+                // Обновляем статус в таблице masters
+                const { error: rejectError } = await supabase
                     .from('masters')
                     .update({
                         is_verified: false,
                         updated_at: now
                     })
-                    .eq('user_id', masterId)
+                    .eq('user_id', masterId);
+                
+                if (rejectError) throw rejectError;
+                
+                // Если есть причина, блокируем пользователя
+                if (reason) {
+                    await supabase
+                        .from('users')
+                        .update({
+                            is_banned: true,
+                            ban_reason: reason,
+                            banned_at: now,
+                            updated_at: now
+                        })
+                        .eq('id', masterId);
+                }
                 break
 
             case 'remove_verification':
@@ -224,15 +246,19 @@ export async function PUT(request: Request) {
                 notificationTitle = 'Статус верификации снят';
                 notificationMessage = reason 
                     ? `Ваш статус верифицированного мастера был снят. Причина: ${reason}`
-                    : 'Ваш статус верифицированного мастера был снят.';
+                    : 'Ваш статус верифицированного мастера был снят. Пожалуйста, обратитесь в поддержку.';
+                successMessage = 'Верификация снята';
                 
-                await supabase
+                // Обновляем статус в таблице masters
+                const { error: removeError } = await supabase
                     .from('masters')
                     .update({
                         is_verified: false,
                         updated_at: now
                     })
-                    .eq('user_id', masterId)
+                    .eq('user_id', masterId);
+                
+                if (removeError) throw removeError;
                 break
 
             default:
@@ -257,16 +283,17 @@ export async function PUT(request: Request) {
         invalidateCache(`master_profile_${masterId}`);
 
         logApiRequest('PUT', '/api/admin/masters', 200, Date.now() - startTime, session.user.id);
-
-        const responseMessages = {
-            approve: 'Мастер успешно верифицирован',
-            reject: 'Мастер отклонён',
-            remove_verification: 'Верификация снята'
-        };
+        logInfo(`Admin ${action} master`, { 
+            masterId, 
+            adminId: session.user.id,
+            oldStatus: existingMaster.is_verified,
+            newStatus: newVerifiedStatus,
+            hasReason: !!reason
+        });
 
         return NextResponse.json({ 
             success: true,
-            message: responseMessages[action],
+            message: successMessage,
             newStatus: newVerifiedStatus
         }, { status: 200 })
         
