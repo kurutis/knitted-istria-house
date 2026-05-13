@@ -9,27 +9,20 @@ import { sanitize } from "@/lib/sanitize";
 import { cachedQuery, invalidateCache } from "@/lib/db-optimized";
 import { z } from "zod";
 
-// Интерфейсы
+// Определяем типы
 interface UserUpdateData {
-    updated_at: string
-    is_banned?: boolean
-    banned_at?: string | null
-    ban_reason?: string | null
-    role?: string
-    role_selected?: boolean
+    updated_at: string;
+    is_banned?: boolean;
+    banned_at?: string | null;
+    ban_reason?: string | null;
+    role?: string;
+    role_selected?: boolean;
 }
 
 interface MasterUpdateData {
-    updated_at: string
-    is_verified?: boolean
-    is_partner?: boolean
-}
-
-interface UserUpdates {
-    is_banned?: boolean
-    role?: string
-    is_verified?: boolean
-    is_partner?: boolean
+    updated_at: string;
+    is_verified?: boolean;
+    is_partner?: boolean;
 }
 
 // Схема валидации для PUT запроса
@@ -37,7 +30,7 @@ const updateUserSchema = z.object({
     userId: z.string().uuid('Неверный формат ID пользователя'),
     updates: z.object({
         is_banned: z.boolean().optional(),
-        ban_reason: z.string().max(500, 'Причина бана не может превышать 500 символов').optional(),
+        ban_reason: z.string().max(500, 'Причина бана не может превышать 500 символов').optional().nullable(),
         is_verified: z.boolean().optional(),
         is_partner: z.boolean().optional(),
         role: z.enum(['buyer', 'master', 'admin']).optional(),
@@ -48,7 +41,6 @@ const updateUserSchema = z.object({
 const getLimiter = rateLimit({ limit: 30, windowMs: 60 * 1000 });
 const putLimiter = rateLimit({ limit: 20, windowMs: 60 * 1000 });
 
-// Вспомогательные функции
 function getRoleText(role: string): string {
     const roles: Record<string, string> = {
         'buyer': 'Покупатель',
@@ -58,16 +50,7 @@ function getRoleText(role: string): string {
     return roles[role] || role;
 }
 
-function getRoleColor(role: string): string {
-    const colors: Record<string, string> = {
-        'buyer': 'green',
-        'master': 'blue',
-        'admin': 'red'
-    };
-    return colors[role] || 'gray';
-}
-
-async function sendBanNotification(userId: string, isBanned: boolean, reason?: string) {
+async function sendBanNotification(userId: string, isBanned: boolean, reason?: string | null) {
     try {
         const now = new Date().toISOString();
         
@@ -89,6 +72,7 @@ async function sendBanNotification(userId: string, isBanned: boolean, reason?: s
     }
 }
 
+// GET - получить список пользователей
 export async function GET(request: Request) {
     const startTime = Date.now();
     
@@ -109,7 +93,7 @@ export async function GET(request: Request) {
 
         const { searchParams } = new URL(request.url);
         const page = parseInt(searchParams.get("page") || "1");
-        const limit = Math.min(parseInt(searchParams.get('limit') || "50"), 100);
+        const limit = Math.min(parseInt(searchParams.get('limit') || "20"), 100);
         const role = searchParams.get('role') || 'all';
         const status = searchParams.get('status') || 'all';
         const search = searchParams.get('search') || '';
@@ -117,7 +101,6 @@ export async function GET(request: Request) {
         const cacheKey = `admin_users_${page}_${limit}_${role}_${status}_${search}`;
         
         const result = await cachedQuery(cacheKey, async () => {
-            // Исправленный SELECT запрос (убраны алиасы)
             let query = supabase
                 .from('users')
                 .select(`
@@ -128,14 +111,13 @@ export async function GET(request: Request) {
                     is_banned,
                     ban_reason,
                     banned_at,
-                    profiles!left (
+                    profiles (
                         full_name,
                         phone,
                         city,
-                        avatar_url,
-                        created_at
+                        avatar_url
                     ),
-                    masters!left (
+                    masters (
                         is_verified,
                         is_partner,
                         rating,
@@ -171,13 +153,11 @@ export async function GET(request: Request) {
                 throw new Error('DATABASE_ERROR');
             }
 
-            // Исправленный маппинг с использованием [0]
             const formattedUsers = users?.map(user => ({
                 id: user.id,
                 email: sanitize.email(user.email),
                 role: user.role,
                 role_text: getRoleText(user.role),
-                role_color: getRoleColor(user.role),
                 created_at: user.created_at,
                 is_banned: user.is_banned || false,
                 ban_reason: user.ban_reason,
@@ -186,10 +166,10 @@ export async function GET(request: Request) {
                 phone: user.profiles?.[0]?.phone ? sanitize.phone(user.profiles[0].phone) : null,
                 city: user.profiles?.[0]?.city ? sanitize.text(user.profiles[0].city) : null,
                 avatar_url: user.profiles?.[0]?.avatar_url,
-                master_verified: user.masters?.[0]?.is_verified || false,
-                master_partner: user.masters?.[0]?.is_partner || false,
-                master_rating: user.masters?.[0]?.rating || 0,
-                master_total_sales: user.masters?.[0]?.total_sales || 0,
+                is_verified: user.masters?.[0]?.is_verified || false,
+                is_partner: user.masters?.[0]?.is_partner || false,
+                rating: user.masters?.[0]?.rating || 0,
+                total_sales: user.masters?.[0]?.total_sales || 0,
                 custom_orders_enabled: user.masters?.[0]?.custom_orders_enabled || false
             })) || [];
 
@@ -240,11 +220,11 @@ export async function GET(request: Request) {
     }
 }
 
+// PUT - обновить пользователя
 export async function PUT(request: Request) {
     const startTime = Date.now();
     
     try {
-        // Rate limiting
         const ip = getClientIP(request);
         const rateLimitResult = putLimiter(request);
         if (!rateLimitResult.success) {
@@ -270,7 +250,7 @@ export async function PUT(request: Request) {
 
         const { userId, updates } = validatedData;
 
-        // Получаем текущие данные пользователя для аудита
+        // Получаем текущие данные пользователя
         const { data: oldUser, error: fetchError } = await supabase
             .from('users')
             .select('role, is_banned, email, ban_reason')
@@ -284,28 +264,17 @@ export async function PUT(request: Request) {
 
         const now = new Date().toISOString();
 
-        // Обработка причины бана
-        const banReason = updates.ban_reason !== undefined 
-            ? (updates.ban_reason ? sanitize.text(updates.ban_reason) : undefined)
-            : undefined;
-
-        // Обновляем статус пользователя в таблице users
+        // 1. Обновляем пользователя в таблице users
         if (updates.is_banned !== undefined || updates.role !== undefined) {
-            const userUpdateData: UserUpdateData = {
-                updated_at: now
-            };
+            const userUpdateData: UserUpdateData = { updated_at: now };
             
             if (updates.is_banned !== undefined) {
                 userUpdateData.is_banned = updates.is_banned;
-                if (updates.is_banned) {
-                    userUpdateData.banned_at = now;
-                } else {
-                    userUpdateData.banned_at = null;
-                }
+                userUpdateData.banned_at = updates.is_banned ? now : null;
             }
             
-            if (banReason !== undefined) {
-                userUpdateData.ban_reason = banReason;
+            if (updates.ban_reason !== undefined) {
+                userUpdateData.ban_reason = updates.ban_reason;
             }
             
             if (updates.role !== undefined) {
@@ -319,16 +288,21 @@ export async function PUT(request: Request) {
                 .eq('id', userId);
 
             if (userError) {
-                logError('Error updating user status', userError);
-                return NextResponse.json({ error: 'Ошибка обновления статуса' }, { status: 500 });
+                logError('Error updating user', userError);
+                return NextResponse.json({ error: 'Ошибка обновления пользователя' }, { status: 500 });
             }
         }
 
-        // Обновляем статус мастера (верификация, партнер)
+        // 2. Обновляем статус мастера (если есть)
         if (updates.is_verified !== undefined || updates.is_partner !== undefined) {
-            const masterUpdateData: MasterUpdateData = {
-                updated_at: now
-            };
+            // Проверяем, есть ли запись в masters
+            const { data: existingMaster } = await supabase
+                .from('masters')
+                .select('user_id')
+                .eq('user_id', userId)
+                .maybeSingle();
+
+            const masterUpdateData: MasterUpdateData = { updated_at: now };
             
             if (updates.is_verified !== undefined) {
                 masterUpdateData.is_verified = updates.is_verified;
@@ -337,14 +311,25 @@ export async function PUT(request: Request) {
             if (updates.is_partner !== undefined) {
                 masterUpdateData.is_partner = updates.is_partner;
             }
-            
-            const { error: masterError } = await supabase
-                .from('masters')
-                .update(masterUpdateData)
-                .eq('user_id', userId);
 
-            if (masterError && masterError.code !== 'PGRST116') {
-                logError('Error updating master status', masterError, 'warning');
+            if (existingMaster) {
+                await supabase
+                    .from('masters')
+                    .update(masterUpdateData)
+                    .eq('user_id', userId);
+            } else if (updates.is_verified !== undefined || updates.is_partner !== undefined) {
+                await supabase
+                    .from('masters')
+                    .insert({
+                        user_id: userId,
+                        is_verified: updates.is_verified || false,
+                        is_partner: updates.is_partner || false,
+                        rating: 0,
+                        total_sales: 0,
+                        custom_orders_enabled: false,
+                        created_at: now,
+                        updated_at: now
+                    });
             }
         }
 
@@ -353,7 +338,7 @@ export async function PUT(request: Request) {
         invalidateCache(`user_${userId}`);
         invalidateCache(`master_profile_${userId}`);
 
-        // Логируем действие в audit_logs
+        // Логируем действие
         await supabase
             .from('audit_logs')
             .insert({
@@ -370,7 +355,7 @@ export async function PUT(request: Request) {
                 created_at: now
             });
 
-        // Отправляем уведомление пользователю о блокировке/разблокировке
+        // Отправляем уведомление о блокировке/разблокировке
         if (updates.is_banned !== undefined && updates.is_banned !== oldUser.is_banned) {
             await sendBanNotification(userId, updates.is_banned, updates.ban_reason);
         }
@@ -391,15 +376,24 @@ export async function PUT(request: Request) {
         }
 
         logApiRequest('PUT', '/api/admin/users', 200, Date.now() - startTime, session.user.id);
-        logInfo(`Admin updated user status`, { 
-            userId, 
-            adminId: session.user.id,
-            updates: Object.keys(updates)
-        });
+
+        // Формируем сообщение об успехе
+        let successMessage = '';
+        if (updates.is_banned !== undefined) {
+            successMessage = updates.is_banned ? 'Пользователь заблокирован' : 'Пользователь разблокирован';
+        } else if (updates.role !== undefined) {
+            successMessage = `Роль пользователя изменена на "${getRoleText(updates.role)}"`;
+        } else if (updates.is_verified !== undefined) {
+            successMessage = updates.is_verified ? 'Мастер верифицирован' : 'Верификация мастера снята';
+        } else if (updates.is_partner !== undefined) {
+            successMessage = updates.is_partner ? 'Мастер добавлен в партнеры' : 'Мастер удален из партнеров';
+        } else {
+            successMessage = 'Статус пользователя обновлен';
+        }
 
         return NextResponse.json({ 
             success: true,
-            message: getSuccessMessage(updates),
+            message: successMessage,
             updates: updates
         }, { status: 200 });
         
@@ -407,23 +401,7 @@ export async function PUT(request: Request) {
         if (error instanceof z.ZodError) {
             return NextResponse.json({ error: error.issues[0]?.message || 'Ошибка валидации' }, { status: 400 });
         }
-        logError('Error updating user status', error);
-        return NextResponse.json({ error: 'Ошибка обновления статуса' }, { status: 500 });
+        logError('Error updating user', error);
+        return NextResponse.json({ error: 'Ошибка обновления пользователя' }, { status: 500 });
     }
-}
-
-function getSuccessMessage(updates: UserUpdates): string {
-    if (updates.is_banned !== undefined) {
-        return updates.is_banned ? 'Пользователь заблокирован' : 'Пользователь разблокирован';
-    }
-    if (updates.role !== undefined) {
-        return `Роль пользователя изменена на "${getRoleText(updates.role)}"`;
-    }
-    if (updates.is_verified !== undefined) {
-        return updates.is_verified ? 'Мастер верифицирован' : 'Верификация мастера снята';
-    }
-    if (updates.is_partner !== undefined) {
-        return updates.is_partner ? 'Мастер добавлен в партнеры' : 'Мастер удален из партнеров';
-    }
-    return 'Статус пользователя обновлен';
 }
