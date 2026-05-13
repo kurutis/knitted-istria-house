@@ -8,33 +8,42 @@ import { logError, logInfo, logApiRequest } from "@/lib/error-logger";
 import { sanitize } from "@/lib/sanitize";
 import { cachedQuery, invalidateCache } from "@/lib/db-optimized";
 
+// Определяем типы
 interface UserProfile {
-    full_name: string | null
-    avatar_url: string | null
+    full_name: string | null;
+    avatar_url: string | null;
+    phone: string | null;
 }
 
 interface UserWithProfile {
-    id: string
-    role: string
-    created_at: string
-    profiles: UserProfile[] | null
+    id: string;
+    email: string;
+    role: string;
+    created_at: string;
+    profiles: UserProfile[] | null;
+}
+
+interface OrderUser {
+    email: string;
+    profiles: UserProfile[] | null;
 }
 
 interface OrderWithUser {
-    id: string
-    order_number: string
-    total_amount: number
-    status: string
-    created_at: string
-    buyer_id: string
-    users: {
-        email: string
-        profiles: UserProfile[] | null
-    } | null
+    id: string;
+    order_number: string;
+    total_amount: number;
+    status: string;
+    created_at: string;
+    buyer_id: string;
+    users: OrderUser | null;
+}
+
+interface CategoryStat {
+    category: string | null;
 }
 
 // Rate limiting
-const limiter = rateLimit({ limit: 20, windowMs: 60 * 1000 }); // 20 запросов в минуту
+const limiter = rateLimit({ limit: 20, windowMs: 60 * 1000 });
 
 export async function GET(request: Request) {
     const startTime = Date.now();
@@ -82,11 +91,10 @@ export async function GET(request: Request) {
                     .select('*', { count: 'exact', head: true })
                     .neq('role', 'admin'),
                 
-                // Количество верифицированных мастеров
+                // Количество мастеров
                 supabase
                     .from('masters')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('is_verified', true),
+                    .select('*', { count: 'exact', head: true }),
                 
                 // Количество активных товаров
                 supabase
@@ -111,23 +119,25 @@ export async function GET(request: Request) {
                     .select('*', { count: 'exact', head: true })
                     .eq('status', 'moderation'),
                 
-                // Последние 5 пользователей
+                // Последние 10 пользователей (не админов)
                 supabase
                     .from('users')
                     .select(`
                         id,
+                        email,
                         role,
                         created_at,
-                        profiles!left (
+                        profiles (
                             full_name,
-                            avatar_url
+                            avatar_url,
+                            phone
                         )
                     `)
                     .neq('role', 'admin')
                     .order('created_at', { ascending: false })
-                    .limit(5),
+                    .limit(10),
                 
-                // Последние 5 заказов
+                // Последние 10 заказов
                 supabase
                     .from('orders')
                     .select(`
@@ -139,14 +149,13 @@ export async function GET(request: Request) {
                         buyer_id,
                         users!inner (
                             email,
-                            profiles!left (
-                                full_name,
-                                avatar_url
+                            profiles (
+                                full_name
                             )
                         )
                     `)
                     .order('created_at', { ascending: false })
-                    .limit(5),
+                    .limit(10),
                 
                 // Общая выручка
                 supabase
@@ -168,34 +177,34 @@ export async function GET(request: Request) {
                     .lt('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
             ]);
 
-            // Логируем ошибки (но не прерываем выполнение)
-            if (usersCountResult.error) logError('Users count error', usersCountResult.error, 'warning');
-            if (mastersCountResult.error) logError('Masters count error', mastersCountResult.error, 'warning');
-            if (productsCountResult.error) logError('Products count error', productsCountResult.error, 'warning');
-            if (ordersCountResult.error) logError('Orders count error', ordersCountResult.error, 'warning');
-
-            // Вычисляем общую выручку
-            const totalRevenue = totalRevenueResult.data?.reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0;
-
-            // Вычисляем статистику за месяц
-            const monthlyRevenue = monthlyStatsResult.data?.reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0;
-            const monthlyOrdersCount = monthlyStatsResult.data?.length || 0;
-
-            // Вычисляем статистику за предыдущий месяц
-            const previousRevenue = previousMonthStatsResult.data?.reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0;
-            const previousOrdersCount = previousMonthStatsResult.data?.length || 0;
-
-            // Форматируем последних пользователей с санитизацией
-            const recentUsers = (recentUsersResult.data as UserWithProfile[] | null)?.map(user => ({
-                id: user.id,
-                role: user.role === 'master' ? 'Мастер' : user.role === 'buyer' ? 'Покупатель' : user.role,
-                created_at: user.created_at,
-                name: sanitize.text(user.profiles?.[0]?.full_name || 'Не указано'),
-                avatar: user.profiles?.[0]?.avatar_url || null,
-            })) || [];
+            // Форматируем последних пользователей
+            const recentUsersData = (recentUsersResult.data as UserWithProfile[] | null) || [];
+            const recentUsers = recentUsersData.map((user) => {
+                // Получаем имя из профиля
+                let userName: string | null = null;
+                let userPhone: string | null = null;
+                let userAvatar: string | null = null;
+                
+                if (user.profiles && Array.isArray(user.profiles) && user.profiles.length > 0) {
+                    userName = user.profiles[0]?.full_name;
+                    userPhone = user.profiles[0]?.phone;
+                    userAvatar = user.profiles[0]?.avatar_url;
+                }
+                
+                return {
+                    id: user.id,
+                    name: userName || user.email?.split('@')[0] || 'Пользователь',
+                    email: user.email,
+                    role: user.role === 'master' ? 'Мастер' : user.role === 'buyer' ? 'Покупатель' : user.role,
+                    created_at: user.created_at,
+                    phone: userPhone,
+                    avatar: userAvatar
+                };
+            });
 
             // Форматируем последние заказы
-            const recentOrders = (recentOrdersResult.data as OrderWithUser[] | null)?.map(order => {
+            const recentOrdersData = (recentOrdersResult.data as OrderWithUser[] | null) || [];
+            const recentOrders = recentOrdersData.map((order) => {
                 const statusMap: Record<string, string> = {
                     new: 'Новый',
                     confirmed: 'Подтверждён',
@@ -206,6 +215,12 @@ export async function GET(request: Request) {
                     completed: 'Завершён'
                 };
                 
+                // Получаем имя покупателя
+                let buyerName: string | null = null;
+                if (order.users && order.users.profiles && Array.isArray(order.users.profiles) && order.users.profiles.length > 0) {
+                    buyerName = order.users.profiles[0]?.full_name;
+                }
+                
                 return {
                     id: order.id,
                     order_number: order.order_number,
@@ -213,10 +228,24 @@ export async function GET(request: Request) {
                     status: statusMap[order.status] || order.status,
                     status_code: order.status,
                     created_at: order.created_at,
-                    buyer_name: sanitize.text(order.users?.profiles?.[0]?.full_name || order.users?.email || 'Неизвестно'),
-                    buyer_avatar: order.users?.profiles?.[0]?.avatar_url || null
+                    buyer_name: buyerName || order.users?.email?.split('@')[0] || 'Покупатель',
+                    buyer_email: order.users?.email
                 };
-            }) || [];
+            });
+
+            // Вычисляем общую выручку
+            const revenueData = totalRevenueResult.data as { total_amount: number }[] | null;
+            const totalRevenue = revenueData?.reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0;
+
+            // Вычисляем статистику за месяц
+            const monthlyData = monthlyStatsResult.data as { total_amount: number }[] | null;
+            const monthlyRevenue = monthlyData?.reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0;
+            const monthlyOrdersCount = monthlyData?.length || 0;
+
+            // Вычисляем статистику за предыдущий месяц
+            const previousData = previousMonthStatsResult.data as { total_amount: number }[] | null;
+            const previousRevenue = previousData?.reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0;
+            const previousOrdersCount = previousData?.length || 0;
 
             // Функция для вычисления процента изменений
             const calculateGrowth = (current: number, previous: number): number => {
@@ -232,7 +261,7 @@ export async function GET(request: Request) {
                 .not('category', 'is', null);
             
             const categoryMap = new Map<string, number>();
-            categoryStats?.forEach(p => {
+            (categoryStats as CategoryStat[] | null)?.forEach(p => {
                 if (p.category) {
                     categoryMap.set(p.category, (categoryMap.get(p.category) || 0) + 1);
                 }
@@ -248,8 +277,8 @@ export async function GET(request: Request) {
                 totalMasters: mastersCountResult.count || 0,
                 totalProducts: productsCountResult.count || 0,
                 totalOrders: ordersCountResult.count || 0,
-                totalRevenue: totalRevenue,
-                monthlyRevenue: monthlyRevenue,
+                totalRevenue,
+                monthlyRevenue,
                 monthlyOrders: monthlyOrdersCount,
                 pendingModeration: {
                     masters: pendingMastersResult.count || 0,
@@ -265,7 +294,7 @@ export async function GET(request: Request) {
                 },
                 lastUpdated: new Date().toISOString()
             };
-        }, 30); // TTL 30 секунд
+        }, 30);
 
         logApiRequest('GET', '/api/admin/dashboard', 200, Date.now() - startTime, session.user.id);
 
@@ -291,30 +320,5 @@ export async function GET(request: Request) {
             }, 
             { status: 500 }
         );
-    }
-}
-
-// Опционально: эндпоинт для принудительного обновления кэша
-export async function POST(request: Request) {
-    try {
-        const session = await getServerSession(authOptions)
-
-        if (!session || session.user?.role !== 'admin') {
-            return NextResponse.json({ error: 'Доступ запрещен' }, { status: 401 });
-        }
-
-        // Инвалидируем кэш
-        invalidateCache('admin_dashboard_stats');
-        
-        logInfo('Dashboard cache manually refreshed', { adminId: session.user.id });
-        
-        return NextResponse.json({ 
-            success: true, 
-            message: 'Кэш статистики обновлен' 
-        }, { status: 200 });
-        
-    } catch (error) {
-        logError('Dashboard cache refresh error', error);
-        return NextResponse.json({ error: 'Ошибка обновления кэша' }, { status: 500 });
     }
 }
