@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 
-// Тип для данных обновления заказа
 type OrderUpdateData = {
     status: string;
     updated_at: string;
@@ -27,14 +26,28 @@ export async function PATCH(
         const body = await request.json();
         const { status, tracking_number } = body;
 
-        // Проверяем, что пользователь - мастер
-        const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('role')
+        // ИСПРАВЛЕНО: Проверяем роль из таблицы users, а не profiles
+        const { data: user, error: userError } = await supabase
+            .from('users')
+            .select('role, is_banned')
             .eq('id', session.user.id)
             .single();
 
-        if (profileError || profile?.role !== 'master') {
+        if (userError) {
+            console.error('Error fetching user:', userError);
+            return NextResponse.json({ error: 'Ошибка проверки прав пользователя' }, { status: 500 });
+        }
+
+        if (!user) {
+            return NextResponse.json({ error: 'Пользователь не найден' }, { status: 404 });
+        }
+
+        if (user.is_banned) {
+            return NextResponse.json({ error: 'Ваш аккаунт заблокирован' }, { status: 403 });
+        }
+
+        if (user.role !== 'master' && user.role !== 'admin') {
+            console.log(`User role is ${user.role}, not master/admin`);
             return NextResponse.json({ error: 'Доступ только для мастеров' }, { status: 403 });
         }
 
@@ -53,11 +66,16 @@ export async function PATCH(
             .in('product_id', productIds)
             .limit(1);
 
-        if (itemsError || !orderItems || orderItems.length === 0) {
-            return NextResponse.json({ error: 'Заказ не найден или не принадлежит вам' }, { status: 404 });
+        if (itemsError) {
+            console.error('Error checking order items:', itemsError);
+            return NextResponse.json({ error: 'Ошибка проверки заказа' }, { status: 500 });
         }
 
-        // Обновляем статус заказа с правильными типами
+        if (!orderItems || orderItems.length === 0) {
+            return NextResponse.json({ error: 'Заказ не найден или не содержит ваших товаров' }, { status: 404 });
+        }
+
+        // Обновляем статус заказа
         const updateData: OrderUpdateData = { 
             status, 
             updated_at: new Date().toISOString() 
@@ -81,7 +99,7 @@ export async function PATCH(
 
         if (updateError) {
             console.error('Error updating order:', updateError);
-            return NextResponse.json({ error: 'Ошибка обновления заказа' }, { status: 500 });
+            return NextResponse.json({ error: 'Ошибка обновления заказа: ' + updateError.message }, { status: 500 });
         }
 
         // Создаем уведомление для покупателя
