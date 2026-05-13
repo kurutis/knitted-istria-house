@@ -59,7 +59,19 @@ export default function AdminModerationProductsPage() {
             if (!response.ok) throw new Error('Failed to load products')
             
             const data = await response.json()
-            setProducts(data || [])
+            console.log('API response:', data) // Отладка
+            
+            // Исправлено: API возвращает { success: true, products: [...] }
+            let productsList = []
+            if (data.success && data.products) {
+                productsList = data.products
+            } else if (Array.isArray(data)) {
+                productsList = data
+            } else if (data.products && Array.isArray(data.products)) {
+                productsList = data.products
+            }
+            
+            setProducts(productsList)
         } catch (error) {
             console.error('Ошибка загрузки товаров:', error)
         } finally {
@@ -147,6 +159,8 @@ export default function AdminModerationProductsPage() {
                 return <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">📝 На доработке</span>
             case 'active':
                 return <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">✅ Активен</span>
+            case 'rejected':
+                return <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">❌ Отклонен</span>
             default:
                 return null
         }
