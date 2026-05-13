@@ -57,16 +57,7 @@ export async function POST(request: Request) {
         // Получаем корзину пользователя
         const { data: cartItems, error: cartError } = await supabase
             .from('cart')
-            .select(`
-                product_id,
-                quantity,
-                products!inner (
-                    id,
-                    title,
-                    price,
-                    master_id
-                )
-            `)
+            .select('product_id, quantity')
             .eq('user_id', session.user.id);
 
         if (cartError) {
@@ -78,16 +69,36 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Корзина пуста' }, { status: 400 });
         }
 
-        // Получаем данные о продуктах (products приходит как массив)
+        // Получаем ID товаров из корзины
+        const productIds = cartItems.map(item => item.product_id);
+        
+        // Получаем данные о товарах
+        const { data: products, error: productsError } = await supabase
+            .from('products')
+            .select('id, title, price, master_id')
+            .in('id', productIds);
+
+        if (productsError) {
+            logError('Error fetching products for order', productsError);
+            return NextResponse.json({ error: 'Ошибка получения данных о товарах' }, { status: 500 });
+        }
+
+        // Создаем Map для быстрого доступа к товарам
+        const productsMap = new Map();
+        products?.forEach(product => {
+            productsMap.set(product.id, product);
+        });
+
+        // Проверяем, что все товары найдены
         let subtotal = 0;
         const orderItemsData = [];
         
         for (const item of cartItems) {
-            const product = item.products?.[0]; // products - это массив, берем первый элемент
+            const product = productsMap.get(item.product_id);
             
             if (!product) {
                 return NextResponse.json({ 
-                    error: `Товар не найден` 
+                    error: `Товар с ID ${item.product_id} не найден` 
                 }, { status: 400 });
             }
             
