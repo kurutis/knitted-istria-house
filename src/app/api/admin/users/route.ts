@@ -6,10 +6,37 @@ import { NextResponse } from "next/server";
 import { rateLimit, getClientIP } from "@/lib/rate-limit";
 import { logError, logInfo, logApiRequest } from "@/lib/error-logger";
 import { sanitize } from "@/lib/sanitize";
-import { cachedQuery, invalidateCache } from "@/lib/db-optimized";
+import { invalidateCache } from "@/lib/db-optimized";
 import { z } from "zod";
 
 // Определяем типы
+interface ProfileData {
+    full_name: string | null;
+    phone: string | null;
+    city: string | null;
+    avatar_url: string | null;
+}
+
+interface MasterData {
+    is_verified: boolean;
+    is_partner: boolean;
+    rating: number;
+    total_sales: number;
+    custom_orders_enabled: boolean;
+}
+
+interface UserWithRelations {
+    id: string;
+    email: string;
+    role: string;
+    created_at: string;
+    is_banned: boolean;
+    ban_reason: string | null;
+    banned_at: string | null;
+    profiles: ProfileData | null;
+    masters: MasterData | null;
+}
+
 interface UserUpdateData {
     updated_at: string;
     is_banned?: boolean;
@@ -72,6 +99,7 @@ async function sendBanNotification(userId: string, isBanned: boolean, reason?: s
     }
 }
 
+// GET - получить список пользователей
 export async function GET(request: Request) {
     const startTime = Date.now();
     
@@ -97,134 +125,114 @@ export async function GET(request: Request) {
         const status = searchParams.get('status') || 'all';
         const search = searchParams.get('search') || '';
 
-        const cacheKey = `admin_users_${page}_${limit}_${role}_${status}_${search}`;
+        let query = supabase
+            .from('users')
+            .select(`
+                id,
+                email,
+                role,
+                created_at,
+                is_banned,
+                ban_reason,
+                banned_at,
+                profiles!inner (
+                    full_name,
+                    phone,
+                    city,
+                    avatar_url
+                ),
+                masters!left (
+                    is_verified,
+                    is_partner,
+                    rating,
+                    total_sales,
+                    custom_orders_enabled
+                )
+            `, { count: 'exact' });
+
+        if (role !== 'all') {
+            query = query.eq('role', role);
+        }
+
+        if (status === 'banned') {
+            query = query.eq('is_banned', true);
+        } else if (status === 'active') {
+            query = query.eq('is_banned', false);
+        }
+
+        if (search && search.trim()) {
+            const safeSearch = sanitize.text(search);
+            query = query.or(`email.ilike.%${safeSearch}%,profiles.full_name.ilike.%${safeSearch}%,profiles.phone.ilike.%${safeSearch}%`);
+        }
+
+        const from = (page - 1) * limit;
+        const to = from + limit - 1;
         
-        const result = await cachedQuery(cacheKey, async () => {
-            let query = supabase
-                .from('users')
-                .select(`
-                    id,
-                    email,
-                    role,
-                    created_at,
-                    is_banned,
-                    ban_reason,
-                    banned_at,
-                    profiles (
-                        full_name,
-                        phone,
-                        city,
-                        avatar_url
-                    ),
-                    masters (
-                        is_verified,
-                        is_partner,
-                        rating,
-                        total_sales,
-                        custom_orders_enabled
-                    )
-                `, { count: 'exact' });
+        const { data: users, error, count } = await query
+            .order('created_at', { ascending: false })
+            .range(from, to);
 
-            if (role !== 'all') {
-                query = query.eq('role', role);
-            }
+        if (error) {
+            logError('Supabase error in admin users GET', error);
+            return NextResponse.json({ error: 'Ошибка загрузки пользователей' }, { status: 500 });
+        }
 
-            if (status === 'banned') {
-                query = query.eq('is_banned', true);
-            } else if (status === 'active') {
-                query = query.eq('is_banned', false);
-            }
-
-            if (search && search.trim()) {
-                const safeSearch = sanitize.text(search);
-                query = query.or(`email.ilike.%${safeSearch}%,profiles.full_name.ilike.%${safeSearch}%,profiles.phone.ilike.%${safeSearch}%`);
-            }
-
-            const from = (page - 1) * limit;
-            const to = from + limit - 1;
+        // Форматируем пользователей с правильной типизацией
+        const typedUsers = users as unknown as UserWithRelations[];
+        
+        const formattedUsers = typedUsers.map(user => {
+            const profile = user.profiles;
+            const master = user.masters;
             
-            const { data: users, error, count } = await query
-                .order('created_at', { ascending: false })
-                .range(from, to);
-
-            if (error) {
-                logError('Supabase error in admin users GET', error);
-                throw new Error('DATABASE_ERROR');
-            }
-
-            // Исправленный маппинг пользователей
-            const formattedUsers = users?.map(user => {
-                // Безопасное получение профиля (profiles приходит как массив)
-                const profile = user.profiles && Array.isArray(user.profiles) && user.profiles.length > 0 
-                    ? user.profiles[0] 
-                    : null;
-                
-                // Безопасное получение данных мастера
-                const master = user.masters && Array.isArray(user.masters) && user.masters.length > 0 
-                    ? user.masters[0] 
-                    : null;
-                
-                return {
-                    id: user.id,
-                    email: sanitize.email(user.email),
-                    role: user.role,
-                    role_text: getRoleText(user.role),
-                    created_at: user.created_at,
-                    is_banned: user.is_banned || false,
-                    ban_reason: user.ban_reason,
-                    banned_at: user.banned_at,
-                    name: profile?.full_name ? sanitize.text(profile.full_name) : null,
-                    phone: profile?.phone ? sanitize.phone(profile.phone) : null,
-                    city: profile?.city ? sanitize.text(profile.city) : null,
-                    avatar_url: profile?.avatar_url || null,
-                    is_verified: master?.is_verified || false,
-                    is_partner: master?.is_partner || false,
-                    rating: master?.rating || 0,
-                    total_sales: master?.total_sales || 0,
-                    custom_orders_enabled: master?.custom_orders_enabled || false
-                };
-            }) || [];
-
-            const { data: allUsers } = await supabase
-                .from('users')
-                .select('role, is_banned');
-            
-            const stats = {
-                total: allUsers?.length || 0,
-                by_role: {
-                    buyer: allUsers?.filter(u => u.role === 'buyer').length || 0,
-                    master: allUsers?.filter(u => u.role === 'master').length || 0,
-                    admin: allUsers?.filter(u => u.role === 'admin').length || 0
-                },
-                banned: allUsers?.filter(u => u.is_banned === true).length || 0,
-                active: allUsers?.filter(u => u.is_banned === false).length || 0
-            };
-
             return {
-                users: formattedUsers,
-                pagination: {
-                    total: count || 0,
-                    page,
-                    limit,
-                    totalPages: Math.ceil((count || 0) / limit),
-                    hasMore: to + 1 < (count || 0)
-                },
-                stats,
-                lastUpdated: new Date().toISOString()
+                id: user.id,
+                email: sanitize.email(user.email),
+                role: user.role,
+                role_text: getRoleText(user.role),
+                created_at: user.created_at,
+                is_banned: user.is_banned || false,
+                ban_reason: user.ban_reason,
+                banned_at: user.banned_at,
+                name: profile?.full_name ? sanitize.text(profile.full_name) : null,
+                phone: profile?.phone ? sanitize.phone(profile.phone) : null,
+                city: profile?.city ? sanitize.text(profile.city) : null,
+                avatar_url: profile?.avatar_url || null,
+                is_verified: master?.is_verified || false,
+                is_partner: master?.is_partner || false,
+                rating: master?.rating || 0,
+                total_sales: master?.total_sales || 0,
+                custom_orders_enabled: master?.custom_orders_enabled || false
             };
-        }, 30);
-
-        logApiRequest('GET', '/api/admin/users', 200, Date.now() - startTime, session.user.id);
-
-        return NextResponse.json(result, { 
-            status: 200,
-            headers: { 
-                'Cache-Control': 'private, max-age=30',
-                'X-RateLimit-Limit': rateLimitResult.limit?.toString() || '30',
-                'X-RateLimit-Remaining': rateLimitResult.remaining?.toString() || '30',
-                'X-Total-Count': result.pagination.total.toString()
-            }
         });
+
+        // Статистика
+        const { data: allUsers } = await supabase
+            .from('users')
+            .select('role, is_banned');
+        
+        const stats = {
+            total: allUsers?.length || 0,
+            by_role: {
+                buyer: allUsers?.filter(u => u.role === 'buyer').length || 0,
+                master: allUsers?.filter(u => u.role === 'master').length || 0,
+                admin: allUsers?.filter(u => u.role === 'admin').length || 0
+            },
+            banned: allUsers?.filter(u => u.is_banned === true).length || 0,
+            active: allUsers?.filter(u => u.is_banned === false).length || 0
+        };
+
+        return NextResponse.json({
+            users: formattedUsers,
+            pagination: {
+                total: count || 0,
+                page,
+                limit,
+                totalPages: Math.ceil((count || 0) / limit),
+                hasMore: to + 1 < (count || 0)
+            },
+            stats,
+            lastUpdated: new Date().toISOString()
+        }, { status: 200 });
         
     } catch (error) {
         logError('Error in admin users GET', error);
@@ -307,7 +315,6 @@ export async function PUT(request: Request) {
 
         // 2. Обновляем статус мастера (если есть)
         if (updates.is_verified !== undefined || updates.is_partner !== undefined) {
-            // Проверяем, есть ли запись в masters
             const { data: existingMaster } = await supabase
                 .from('masters')
                 .select('user_id')
@@ -389,7 +396,6 @@ export async function PUT(request: Request) {
 
         logApiRequest('PUT', '/api/admin/users', 200, Date.now() - startTime, session.user.id);
 
-        // Формируем сообщение об успехе
         let successMessage = '';
         if (updates.is_banned !== undefined) {
             successMessage = updates.is_banned ? 'Пользователь заблокирован' : 'Пользователь разблокирован';
