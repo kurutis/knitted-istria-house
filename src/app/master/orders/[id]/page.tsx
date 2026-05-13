@@ -149,7 +149,7 @@ export default function MasterOrderPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
         <h1 className="text-2xl font-bold text-gray-700 mb-4">Заказ не найден</h1>
-        <Link href="/master/dashboard" className="text-firm-orange hover:underline">
+        <Link href="/" className="text-firm-orange hover:underline">
           Вернуться в панель управления
         </Link>
       </div>
@@ -161,7 +161,7 @@ export default function MasterOrderPage() {
       <div className="max-w-5xl mx-auto">
         {/* Заголовок и навигация */}
         <div className="mb-6">
-          <Link href="/master/dashboard" className="text-firm-orange hover:underline inline-flex items-center gap-1">
+          <Link href="/" className="text-firm-orange hover:underline inline-flex items-center gap-1">
             ← Назад в панель управления
           </Link>
         </div>
