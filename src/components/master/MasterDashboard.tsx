@@ -264,7 +264,7 @@ export default function MasterDashboard({
     try {
         console.log("Fetching master orders...");
         const response = await fetch('/api/master/orders?status=all', {
-            credentials: 'include', // Важно для отправки cookies
+            credentials: 'include',
             headers: {
                 'Content-Type': 'application/json',
             }
@@ -275,31 +275,25 @@ export default function MasterDashboard({
         if (!response.ok) {
             const errorData = await response.json();
             console.error("Error response:", errorData);
-            
-            if (response.status === 401) {
-                toast.error('Пожалуйста, войдите в систему');
-                router.push('/auth/signin');
-                return;
-            }
-            
-            if (response.status === 403) {
-                toast.error('У вас нет прав доступа. Вы зарегистрированы как мастер?');
-                return;
-            }
-            
-            throw new Error(errorData.error || 'Ошибка загрузки заказов');
+            toast.error(errorData.error || 'Ошибка загрузки заказов');
+            return;
         }
         
-        const data: MasterOrdersResponse = await response.json();
+        const data = await response.json();
         console.log("Orders data:", data);
         
-        if (data.orders) {
+        if (data.orders && Array.isArray(data.orders)) {
             setMasterOrders(data.orders);
             setStats(prev => ({
                 ...prev,
                 total_orders: data.orders.length,
-                new_orders: data.orders.filter((o: Order) => o.status === 'new').length
+                new_orders: data.orders.filter((o: Order) => o.status === 'new').length,
+                total_products: data.orders.reduce((sum: number, order: Order) => 
+                    sum + (order.items?.length || 0), 0
+                )
             }));
+        } else {
+            setMasterOrders([]);
         }
     } catch (error) {
         console.error('Error fetching master orders:', error);

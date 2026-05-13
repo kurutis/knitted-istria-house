@@ -2,37 +2,35 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { PostgrestError } from "@supabase/supabase-js";
 
-// Определяем типы для данных
-type OrderItemWithOrder = {
-    id: string;
+// Тип для элемента заказа из базы данных
+type OrderItemFromDB = {
+    id: number;
     quantity: number;
     price: number;
     total: number;
     product_title: string;
     product_id: string;
     order_id: string;
-    orders: {
-        id: string;
-        order_number: string;
-        status: string;
-        payment_status: string;
-        total_amount: number;
-        created_at: string;
-        shipping_full_name: string;
-        shipping_phone: string;
-        shipping_city: string;
-        shipping_address: string;
-        buyer_comment: string | null;
-        buyer_id: string;
-        profiles: {
-            full_name: string;
-            email: string;
-        } | null;
-    };
 };
 
+// Тип для заказа из базы данных
+type OrderFromDB = {
+    id: string;
+    order_number: string;
+    status: string;
+    payment_status: string;
+    total_amount: number;
+    created_at: string;
+    shipping_full_name: string;
+    shipping_phone: string;
+    shipping_city: string;
+    shipping_address: string;
+    buyer_comment: string | null;
+    buyer_id: string;
+};
+
+// Тип для заказа мастера (возвращаемый)
 type MasterOrder = {
     id: string;
     order_number: string;
@@ -48,7 +46,7 @@ type MasterOrder = {
     shipping_address: string;
     buyer_comment: string | null;
     items: Array<{
-        id: string;
+        id: number;
         product_id: string;
         product_title: string;
         quantity: number;
@@ -57,46 +55,17 @@ type MasterOrder = {
     }>;
 };
 
-// GET - получить заказы мастера
 export async function GET(request: Request) {
     try {
         const session = await getServerSession(authOptions);
         
-        console.log("Session in master/orders:", session); // Для отладки
+        console.log("=== MASTER ORDERS API ===");
         
         if (!session?.user) {
-            console.log("No session found");
             return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
         }
 
         console.log("User ID:", session.user.id);
-        console.log("User role:", session.user.role);
-
-        // Проверяем, что пользователь - мастер
-        const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single();
-
-        console.log("Profile data:", profile);
-        console.log("Profile error:", profileError);
-
-        if (profileError) {
-            console.error("Profile fetch error:", profileError);
-            return NextResponse.json({ error: 'Ошибка получения профиля' }, { status: 500 });
-        }
-
-        if (profile?.role !== 'master') {
-            console.log("User is not a master. Role:", profile?.role);
-            return NextResponse.json({ error: 'Доступ только для мастеров' }, { status: 403 });
-        }
-
-        const { searchParams } = new URL(request.url);
-        const status = searchParams.get('status');
-        const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
-        const page = parseInt(searchParams.get('page') || '1');
-        const offset = (page - 1) * limit;
 
         // Получаем товары мастера
         const { data: masterProducts, error: productsError } = await supabase
@@ -104,121 +73,166 @@ export async function GET(request: Request) {
             .select('id, title')
             .eq('master_id', session.user.id);
 
-        console.log("Master products:", masterProducts);
-        
         if (productsError) {
             console.error('Error fetching master products:', productsError);
             return NextResponse.json({ error: 'Ошибка получения товаров' }, { status: 500 });
         }
 
         const productIds = masterProducts?.map(p => p.id) || [];
+        console.log("Master products found:", productIds.length);
         
         if (productIds.length === 0) {
             return NextResponse.json({
                 orders: [],
-                pagination: { total: 0, page, limit, totalPages: 0 }
+                pagination: { total: 0, page: 1, limit: 50, totalPages: 0 }
             });
         }
 
-        // Получаем заказы, содержащие товары мастера
-        let query = supabase
+        // Получаем order_items для товаров мастера
+        const { data: orderItems, error: orderItemsError } = await supabase
             .from('order_items')
-            .select(`
-                id,
-                quantity,
-                price,
-                total,
-                product_title,
-                product_id,
-                order_id,
-                orders!inner (
-                    id,
-                    order_number,
-                    status,
-                    payment_status,
-                    total_amount,
-                    created_at,
-                    shipping_full_name,
-                    shipping_phone,
-                    shipping_city,
-                    shipping_address,
-                    buyer_comment,
-                    buyer_id,
-                    profiles!orders_buyer_id_fkey (
-                        full_name,
-                        email
-                    )
-                )
-            `)
-            .in('product_id', productIds)
-            .order('created_at', { ascending: false, referencedTable: 'orders' })
-            .range(offset, offset + limit - 1);
+            .select('*')
+            .in('product_id', productIds);
 
-        if (status && status !== 'all') {
-            query = query.eq('orders.status', status);
+        if (orderItemsError) {
+            console.error('Error fetching order items:', orderItemsError);
+            return NextResponse.json({ error: 'Ошибка загрузки позиций заказов' }, { status: 500 });
         }
 
-        const { data: orderItems, error } = await query as { 
-            data: OrderItemWithOrder[] | null; 
-            error: PostgrestError | null 
-        };
+        if (!orderItems || orderItems.length === 0) {
+            console.log("No order items found");
+            return NextResponse.json({
+                orders: [],
+                pagination: { total: 0, page: 1, limit: 50, totalPages: 0 }
+            });
+        }
 
-        if (error) {
-            console.error('Error fetching master orders:', error);
+        // Получаем уникальные ID заказов
+        const orderIds = [...new Set(orderItems.map(item => item.order_id))];
+        console.log("Order IDs found:", orderIds.length);
+
+        // Получаем информацию о заказах
+        const { data: orders, error: ordersError } = await supabase
+            .from('orders')
+            .select('*')
+            .in('id', orderIds);
+
+        if (ordersError) {
+            console.error('Error fetching orders:', ordersError);
             return NextResponse.json({ error: 'Ошибка загрузки заказов' }, { status: 500 });
         }
 
-        // Группируем по заказам
-        const ordersMap = new Map<string, MasterOrder>();
-        
-        orderItems?.forEach(item => {
-            const order = item.orders;
-            if (!ordersMap.has(order.id)) {
-                ordersMap.set(order.id, {
-                    id: order.id,
-                    order_number: order.order_number,
-                    status: order.status,
-                    payment_status: order.payment_status,
-                    total_amount: order.total_amount,
-                    created_at: order.created_at,
-                    buyer_name: order.profiles?.full_name || 'Покупатель',
-                    buyer_email: order.profiles?.email || '',
-                    shipping_full_name: order.shipping_full_name,
-                    shipping_phone: order.shipping_phone,
-                    shipping_city: order.shipping_city,
-                    shipping_address: order.shipping_address,
-                    buyer_comment: order.buyer_comment,
-                    items: []
+        if (!orders || orders.length === 0) {
+            return NextResponse.json({
+                orders: [],
+                pagination: { total: 0, page: 1, limit: 50, totalPages: 0 }
+            });
+        }
+
+        // Получаем информацию о покупателях из таблицы users
+        const buyerIds = [...new Set(orders.map(order => order.buyer_id))];
+        console.log("Buyer IDs found:", buyerIds.length);
+
+        const { data: users, error: usersError } = await supabase
+            .from('users')
+            .select('id, email')
+            .in('id', buyerIds);
+
+        const userMap = new Map();
+        if (!usersError && users) {
+            users.forEach(user => {
+                userMap.set(user.id, {
+                    email: user.email
                 });
-            }
-            
-            const currentOrder = ordersMap.get(order.id);
-            if (currentOrder) {
-                currentOrder.items.push({
-                    id: item.id,
-                    product_id: item.product_id,
-                    product_title: item.product_title,
-                    quantity: item.quantity,
-                    price: item.price,
-                    total: item.total
+            });
+        }
+
+        // Получаем имена покупателей из profiles
+        const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('user_id, full_name')
+            .in('user_id', buyerIds);
+
+        const profileMap = new Map();
+        if (!profilesError && profiles) {
+            profiles.forEach(profile => {
+                profileMap.set(profile.user_id, {
+                    full_name: profile.full_name
                 });
-            }
+            });
+        }
+
+        // Создаем карту заказов для быстрого доступа
+        const ordersMap = new Map<string, OrderFromDB>();
+        orders.forEach(order => {
+            ordersMap.set(order.id, order as OrderFromDB);
         });
 
-        const orders = Array.from(ordersMap.values());
+        // Группируем order_items по заказам
+        const itemsByOrder = new Map<string, typeof orderItems>();
+        orderItems.forEach(item => {
+            if (!itemsByOrder.has(item.order_id)) {
+                itemsByOrder.set(item.order_id, []);
+            }
+            itemsByOrder.get(item.order_id)!.push(item);
+        });
+
+        // Формируем результат
+        const resultOrders: MasterOrder[] = [];
+        
+        for (const [orderId, items] of itemsByOrder) {
+            const order = ordersMap.get(orderId);
+            if (!order) continue;
+            
+            const userInfo = userMap.get(order.buyer_id);
+            const profileInfo = profileMap.get(order.buyer_id);
+            
+            resultOrders.push({
+                id: order.id,
+                order_number: order.order_number,
+                status: order.status,
+                payment_status: order.payment_status,
+                total_amount: order.total_amount,
+                created_at: order.created_at,
+                buyer_name: profileInfo?.full_name || 'Покупатель',
+                buyer_email: userInfo?.email || '',
+                shipping_full_name: order.shipping_full_name || '',
+                shipping_phone: order.shipping_phone || '',
+                shipping_city: order.shipping_city || '',
+                shipping_address: order.shipping_address || '',
+                buyer_comment: order.buyer_comment,
+                items: items.map(item => ({
+                    id: item.id,
+                    product_id: item.product_id,
+                    product_title: item.product_title || 'Товар',
+                    quantity: item.quantity,
+                    price: item.price,
+                    total: item.total || item.price * item.quantity
+                }))
+            });
+        }
+
+        // Сортируем по дате создания (новые сверху)
+        resultOrders.sort((a, b) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+
+        console.log(`Returning ${resultOrders.length} orders`);
 
         return NextResponse.json({
-            orders,
+            orders: resultOrders,
             pagination: {
-                total: orders.length,
-                page,
-                limit,
-                totalPages: Math.ceil(orders.length / limit)
+                total: resultOrders.length,
+                page: 1,
+                limit: 50,
+                totalPages: 1
             }
         });
         
     } catch (error) {
-        console.error('Error fetching master orders:', error);
-        return NextResponse.json({ error: 'Ошибка загрузки заказов' }, { status: 500 });
+        console.error('Unexpected error in master orders API:', error);
+        return NextResponse.json({ 
+            error: 'Внутренняя ошибка сервера: ' + (error instanceof Error ? error.message : String(error))
+        }, { status: 500 });
     }
 }
