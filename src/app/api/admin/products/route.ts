@@ -18,7 +18,7 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
         }
 
-        // Получаем товары на модерации и в черновиках
+        // Получаем ВСЕ товары (без фильтрации по статусу)
         const { data: products, error } = await supabase
             .from('products')
             .select(`
@@ -35,7 +35,6 @@ export async function GET(request: Request) {
                 views,
                 master_id
             `)
-            .in('status', ['moderation', 'draft'])
             .order('created_at', { ascending: false });
 
         if (error) {

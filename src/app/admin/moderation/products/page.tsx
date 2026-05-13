@@ -39,7 +39,7 @@ export default function AdminModerationProductsPage() {
     const [actionLoading, setActionLoading] = useState<string | null>(null)
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
     const [showModal, setShowModal] = useState(false)
-    const [filter, setFilter] = useState<'all' | 'moderation' | 'draft'>('all')
+    const [filter, setFilter] = useState<'all' | 'moderation' | 'draft' | 'active'>('all')
 
     useEffect(() => {
         if (status === 'loading') return
@@ -56,20 +56,16 @@ export default function AdminModerationProductsPage() {
         try {
             setLoading(true)
             const response = await fetch('/api/admin/products')
-            if (!response.ok) throw new Error('Failed to load products')
+            
+            if (!response.ok) {
+                throw new Error(`Failed to load products: ${response.status}`)
+            }
             
             const data = await response.json()
-            console.log('API response:', data) // Отладка
+            console.log('API response:', data)
             
-            // Исправлено: API возвращает { success: true, products: [...] }
-            let productsList = []
-            if (data.success && data.products) {
-                productsList = data.products
-            } else if (Array.isArray(data)) {
-                productsList = data
-            } else if (data.products && Array.isArray(data.products)) {
-                productsList = data.products
-            }
+            // API возвращает массив товаров
+            const productsList = Array.isArray(data) ? data : []
             
             setProducts(productsList)
         } catch (error) {
@@ -166,10 +162,76 @@ export default function AdminModerationProductsPage() {
         }
     }
 
+    const getStatusActions = (status: string) => {
+        switch(status) {
+            case 'moderation':
+                return (
+                    <div className="flex flex-wrap gap-3 mt-4">
+                        <button
+                            onClick={() => handleApprove(selectedProduct!.id)}
+                            className="flex-1 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+                        >
+                            ✅ Одобрить
+                        </button>
+                        <button
+                            onClick={() => handleReturnToDraft(selectedProduct!.id)}
+                            className="flex-1 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition"
+                        >
+                            📝 На доработку
+                        </button>
+                        <button
+                            onClick={() => handleReject(selectedProduct!.id)}
+                            className="flex-1 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+                        >
+                            ❌ Отклонить
+                        </button>
+                    </div>
+                )
+            case 'draft':
+                return (
+                    <div className="flex flex-wrap gap-3 mt-4">
+                        <button
+                            onClick={() => handleApprove(selectedProduct!.id)}
+                            className="flex-1 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+                        >
+                            ✅ Одобрить
+                        </button>
+                        <button
+                            onClick={() => handleReject(selectedProduct!.id)}
+                            className="flex-1 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+                        >
+                            ❌ Отклонить
+                        </button>
+                    </div>
+                )
+            case 'active':
+                return (
+                    <div className="flex flex-wrap gap-3 mt-4">
+                        <button
+                            onClick={() => handleReturnToDraft(selectedProduct!.id)}
+                            className="flex-1 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition"
+                        >
+                            📝 Отправить на доработку
+                        </button>
+                    </div>
+                )
+            default:
+                return null
+        }
+    }
+
     const filteredProducts = products.filter(p => {
-        if (filter === 'all') return p.status === 'moderation' || p.status === 'draft'
+        if (filter === 'all') return true
         return p.status === filter
     })
+
+    const stats = {
+        all: products.length,
+        moderation: products.filter(p => p.status === 'moderation').length,
+        draft: products.filter(p => p.status === 'draft').length,
+        active: products.filter(p => p.status === 'active').length,
+        rejected: products.filter(p => p.status === 'rejected').length
+    }
 
     if (loading) {
         return (
@@ -201,9 +263,9 @@ export default function AdminModerationProductsPage() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
-                        Модерация товаров
+                        Управление товарами
                     </h1>
-                    <p className="text-gray-500 text-sm mt-1">Управление товарами на модерации и доработке</p>
+                    <p className="text-gray-500 text-sm mt-1">Все товары платформы</p>
                 </div>
             </div>
 
@@ -212,7 +274,7 @@ export default function AdminModerationProductsPage() {
                 initial={{ y: -20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.1 }}
-                className="flex gap-3"
+                className="flex flex-wrap gap-3"
             >
                 <button
                     onClick={() => setFilter('all')}
@@ -222,7 +284,7 @@ export default function AdminModerationProductsPage() {
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                 >
-                    Все ({products.filter(p => p.status === 'moderation' || p.status === 'draft').length})
+                    Все ({stats.all})
                 </button>
                 <button
                     onClick={() => setFilter('moderation')}
@@ -232,7 +294,7 @@ export default function AdminModerationProductsPage() {
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                 >
-                    На модерации ({products.filter(p => p.status === 'moderation').length})
+                    На модерации ({stats.moderation})
                 </button>
                 <button
                     onClick={() => setFilter('draft')}
@@ -242,7 +304,17 @@ export default function AdminModerationProductsPage() {
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                 >
-                    На доработке ({products.filter(p => p.status === 'draft').length})
+                    На доработке ({stats.draft})
+                </button>
+                <button
+                    onClick={() => setFilter('active')}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                        filter === 'active' 
+                            ? 'bg-gradient-to-r from-firm-orange to-firm-pink text-white shadow-md' 
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                >
+                    Опубликованные ({stats.active})
                 </button>
             </motion.div>
 
@@ -262,7 +334,6 @@ export default function AdminModerationProductsPage() {
                             className="bg-white rounded-2xl shadow-xl p-12 text-center text-gray-500"
                         >
                             <p className="text-lg">Нет товаров для отображения</p>
-                            <p className="text-sm mt-2">Все товары обработаны</p>
                         </motion.div>
                     ) : (
                         filteredProducts.map((product, index) => (
@@ -344,36 +415,65 @@ export default function AdminModerationProductsPage() {
                                                 {product.description}
                                             </p>
 
-                                            {/* Кнопки действий */}
-                                            <div className="flex flex-wrap gap-3 mt-4">
-                                                <motion.button
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    onClick={() => handleApprove(product.id)}
-                                                    disabled={actionLoading === product.id}
-                                                    className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl text-sm font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50"
-                                                >
-                                                    {actionLoading === product.id ? '⏳' : '✅ Одобрить'}
-                                                </motion.button>
-                                                <motion.button
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    onClick={() => handleReturnToDraft(product.id)}
-                                                    disabled={actionLoading === product.id}
-                                                    className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white rounded-xl text-sm font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50"
-                                                >
-                                                    {actionLoading === product.id ? '⏳' : '📝 На доработку'}
-                                                </motion.button>
-                                                <motion.button
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    onClick={() => handleReject(product.id)}
-                                                    disabled={actionLoading === product.id}
-                                                    className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl text-sm font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50"
-                                                >
-                                                    {actionLoading === product.id ? '⏳' : '❌ Отклонить'}
-                                                </motion.button>
-                                            </div>
+                                            {/* Кнопки действий для модерации */}
+                                            {product.status === 'moderation' && (
+                                                <div className="flex flex-wrap gap-3 mt-4">
+                                                    <button
+                                                        onClick={() => handleApprove(product.id)}
+                                                        disabled={actionLoading === product.id}
+                                                        className="px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition disabled:opacity-50"
+                                                    >
+                                                        {actionLoading === product.id ? '⏳' : '✅ Одобрить'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleReturnToDraft(product.id)}
+                                                        disabled={actionLoading === product.id}
+                                                        className="px-4 py-2 bg-yellow-500 text-white rounded-xl text-sm font-medium hover:bg-yellow-600 transition disabled:opacity-50"
+                                                    >
+                                                        {actionLoading === product.id ? '⏳' : '📝 На доработку'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleReject(product.id)}
+                                                        disabled={actionLoading === product.id}
+                                                        className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition disabled:opacity-50"
+                                                    >
+                                                        {actionLoading === product.id ? '⏳' : '❌ Отклонить'}
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {/* Кнопки для черновиков */}
+                                            {product.status === 'draft' && (
+                                                <div className="flex flex-wrap gap-3 mt-4">
+                                                    <button
+                                                        onClick={() => handleApprove(product.id)}
+                                                        disabled={actionLoading === product.id}
+                                                        className="px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition disabled:opacity-50"
+                                                    >
+                                                        {actionLoading === product.id ? '⏳' : '✅ Одобрить'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleReject(product.id)}
+                                                        disabled={actionLoading === product.id}
+                                                        className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition disabled:opacity-50"
+                                                    >
+                                                        {actionLoading === product.id ? '⏳' : '❌ Отклонить'}
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {/* Кнопки для опубликованных товаров */}
+                                            {product.status === 'active' && (
+                                                <div className="flex flex-wrap gap-3 mt-4">
+                                                    <button
+                                                        onClick={() => handleReturnToDraft(product.id)}
+                                                        disabled={actionLoading === product.id}
+                                                        className="px-4 py-2 bg-yellow-500 text-white rounded-xl text-sm font-medium hover:bg-yellow-600 transition disabled:opacity-50"
+                                                    >
+                                                        {actionLoading === product.id ? '⏳' : '📝 Отправить на доработку'}
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -420,15 +520,6 @@ export default function AdminModerationProductsPage() {
                                             />
                                         </div>
                                     )}
-                                    {selectedProduct.images?.slice(0, 3).map((img) => (
-                                        <div key={img.id} className="aspect-square bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl overflow-hidden shadow-md">
-                                            <img
-                                                src={img.image_url}
-                                                alt={selectedProduct.title}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        </div>
-                                    ))}
                                 </div>
 
                                 <div className="space-y-4">
@@ -486,32 +577,7 @@ export default function AdminModerationProductsPage() {
                                     </div>
                                 </div>
 
-                                <div className="flex flex-wrap gap-3 mt-6 pt-4 border-t border-gray-200">
-                                    <motion.button
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        onClick={() => handleApprove(selectedProduct.id)}
-                                        className="flex-1 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-medium hover:shadow-lg transition-all duration-300"
-                                    >
-                                        ✅ Одобрить
-                                    </motion.button>
-                                    <motion.button
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        onClick={() => handleReturnToDraft(selectedProduct.id)}
-                                        className="flex-1 py-3 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white rounded-xl font-medium hover:shadow-lg transition-all duration-300"
-                                    >
-                                        📝 На доработку
-                                    </motion.button>
-                                    <motion.button
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        onClick={() => handleReject(selectedProduct.id)}
-                                        className="flex-1 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl font-medium hover:shadow-lg transition-all duration-300"
-                                    >
-                                        ❌ Отклонить
-                                    </motion.button>
-                                </div>
+                                {getStatusActions(selectedProduct.status)}
                             </div>
                         </motion.div>
                     </motion.div>
