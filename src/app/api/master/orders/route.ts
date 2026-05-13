@@ -62,9 +62,15 @@ export async function GET(request: Request) {
     try {
         const session = await getServerSession(authOptions);
         
+        console.log("Session in master/orders:", session); // Для отладки
+        
         if (!session?.user) {
+            console.log("No session found");
             return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
         }
+
+        console.log("User ID:", session.user.id);
+        console.log("User role:", session.user.role);
 
         // Проверяем, что пользователь - мастер
         const { data: profile, error: profileError } = await supabase
@@ -73,7 +79,16 @@ export async function GET(request: Request) {
             .eq('id', session.user.id)
             .single();
 
-        if (profileError || profile?.role !== 'master') {
+        console.log("Profile data:", profile);
+        console.log("Profile error:", profileError);
+
+        if (profileError) {
+            console.error("Profile fetch error:", profileError);
+            return NextResponse.json({ error: 'Ошибка получения профиля' }, { status: 500 });
+        }
+
+        if (profile?.role !== 'master') {
+            console.log("User is not a master. Role:", profile?.role);
             return NextResponse.json({ error: 'Доступ только для мастеров' }, { status: 403 });
         }
 
@@ -89,6 +104,8 @@ export async function GET(request: Request) {
             .select('id, title')
             .eq('master_id', session.user.id);
 
+        console.log("Master products:", masterProducts);
+        
         if (productsError) {
             console.error('Error fetching master products:', productsError);
             return NextResponse.json({ error: 'Ошибка получения товаров' }, { status: 500 });
@@ -190,19 +207,13 @@ export async function GET(request: Request) {
 
         const orders = Array.from(ordersMap.values());
 
-        // Получаем общее количество (приблизительное)
-        const { count: totalCount } = await supabase
-            .from('order_items')
-            .select('*', { count: 'exact', head: true })
-            .in('product_id', productIds);
-
         return NextResponse.json({
             orders,
             pagination: {
-                total: totalCount || 0,
+                total: orders.length,
                 page,
                 limit,
-                totalPages: Math.ceil((totalCount || 0) / limit)
+                totalPages: Math.ceil(orders.length / limit)
             }
         });
         

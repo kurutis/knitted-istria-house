@@ -6,6 +6,11 @@ export default withAuth(
     const token = req.nextauth.token;
     const pathname = req.nextUrl.pathname;
 
+    // Пропускаем API запросы (они обрабатываются отдельно в API маршрутах)
+    if (pathname.startsWith('/api')) {
+      return NextResponse.next();
+    }
+
     // Админ-панель - только для админов
     if (pathname.startsWith('/admin')) {
       if (!token) {
@@ -56,6 +61,7 @@ export default withAuth(
 
 export const config = {
   matcher: [
+    '/api/:path*', // Добавляем API в matcher, но пропускаем в middleware
     '/admin/:path*',
     '/master/:path*',
     '/profile/:path*',

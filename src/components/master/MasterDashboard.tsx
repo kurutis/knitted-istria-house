@@ -242,10 +242,56 @@ export default function MasterDashboard({
     }
   }, [showAddProductModal]);
 
+  useEffect(() => {
+    const checkMasterStatus = async () => {
+        const response = await fetch('/api/user/profile');
+        const data = await response.json();
+        
+        if (data.profile?.role !== 'master') {
+            toast.error('Вы не зарегистрированы как мастер');
+            router.push('/profile');
+            return;
+        }
+        
+        fetchMasterData();
+        fetchMasterOrders();
+    };
+    
+    checkMasterStatus();
+}, []);
+
   const fetchMasterOrders = async () => {
     try {
-        const response = await fetch('/api/master/orders?status=all');
+        console.log("Fetching master orders...");
+        const response = await fetch('/api/master/orders?status=all', {
+            credentials: 'include', // Важно для отправки cookies
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        console.log("Response status:", response.status);
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error("Error response:", errorData);
+            
+            if (response.status === 401) {
+                toast.error('Пожалуйста, войдите в систему');
+                router.push('/auth/signin');
+                return;
+            }
+            
+            if (response.status === 403) {
+                toast.error('У вас нет прав доступа. Вы зарегистрированы как мастер?');
+                return;
+            }
+            
+            throw new Error(errorData.error || 'Ошибка загрузки заказов');
+        }
+        
         const data: MasterOrdersResponse = await response.json();
+        console.log("Orders data:", data);
         
         if (data.orders) {
             setMasterOrders(data.orders);
