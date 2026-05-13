@@ -191,6 +191,7 @@ export async function GET(request: Request) {
         const page = parseInt(searchParams.get('page') || '1');
         const offset = (page - 1) * limit;
 
+        // Получаем заказы
         const { data: orders, error, count } = await supabase
             .from('orders')
             .select('*', { count: 'exact' })
@@ -203,8 +204,34 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Ошибка загрузки заказов' }, { status: 500 });
         }
 
+        // Для каждого заказа получаем количество товаров
+        const ordersWithItemsCount = await Promise.all(
+            (orders || []).map(async (order) => {
+                const { data: items, error: itemsError } = await supabase
+                    .from('order_items')
+                    .select('quantity')
+                    .eq('order_id', order.id);
+                
+                if (itemsError) {
+                    console.error(`Error fetching items for order ${order.id}:`, itemsError);
+                    return {
+                        ...order,
+                        items_count: 0
+                    };
+                }
+                
+                // Суммируем количество товаров
+                const items_count = items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+                
+                return {
+                    ...order,
+                    items_count
+                };
+            })
+        );
+
         return NextResponse.json({
-            orders: orders || [],
+            orders: ordersWithItemsCount,
             pagination: {
                 total: count || 0,
                 page,
