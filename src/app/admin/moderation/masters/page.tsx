@@ -11,22 +11,23 @@ interface Master {
     user_id: string
     name: string
     email: string
-    phone: string
-    city: string
-    description: string
+    phone: string | null
+    city: string | null
+    description: string | null
     is_verified: boolean
     is_partner: boolean
     created_at: string
     products_count: number
     rating: number
     full_name: string
-    avatar_url: string
+    avatar_url: string | null
 }
 
 export default function AdminModerationMastersPage() {
     const { data: session, status } = useSession()
     const router = useRouter()
-    const [masters, setMasters] = useState<Master[]>([])
+    const [pendingMasters, setPendingMasters] = useState<Master[]>([])
+    const [verifiedMasters, setVerifiedMasters] = useState<Master[]>([])
     const [loading, setLoading] = useState(true)
     const [actionLoading, setActionLoading] = useState<string | null>(null)
     const [selectedMaster, setSelectedMaster] = useState<Master | null>(null)
@@ -51,7 +52,14 @@ export default function AdminModerationMastersPage() {
             if (!response.ok) throw new Error('Failed to load masters')
 
             const data = await response.json()
-            setMasters(data || [])
+            console.log('Loaded masters:', data) // Отладка
+            
+            // Разделяем на ожидающих и верифицированных
+            const pending = (data || []).filter((m: Master) => !m.is_verified)
+            const verified = (data || []).filter((m: Master) => m.is_verified)
+            
+            setPendingMasters(pending)
+            setVerifiedMasters(verified)
         } catch (error) {
             console.error('Ошибка загрузки мастеров:', error)
         } finally {
@@ -72,6 +80,7 @@ export default function AdminModerationMastersPage() {
             await loadMasters()
         } catch (error) {
             console.error('Ошибка при одобрении:', error)
+            alert('Ошибка при одобрении заявки')
         } finally {
             setActionLoading(null)
         }
@@ -90,7 +99,11 @@ export default function AdminModerationMastersPage() {
             const response = await fetch(`/api/admin/masters`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ masterId: selectedMaster.id, action: 'reject', reason: rejectReason })
+                body: JSON.stringify({ 
+                    masterId: selectedMaster.id, 
+                    action: 'reject', 
+                    reason: rejectReason 
+                })
             })
 
             if (!response.ok) throw new Error('Failed to reject')
@@ -100,6 +113,7 @@ export default function AdminModerationMastersPage() {
             setSelectedMaster(null)
         } catch (error) {
             console.error('Ошибка при отклонении:', error)
+            alert('Ошибка при отклонении заявки')
         } finally {
             setActionLoading(null)
         }
@@ -120,15 +134,13 @@ export default function AdminModerationMastersPage() {
             await loadMasters()
         } catch (error) {
             console.error('Ошибка при отзыве верификации:', error)
+            alert('Ошибка при отзыве верификации')
         } finally {
             setActionLoading(null)
         }
     }
 
-    const pendingMasters = masters.filter(m => !m.is_verified)
-    const verifiedMasters = masters.filter(m => m.is_verified)
-
-    if (loading && masters.length === 0) {
+    if (loading && pendingMasters.length === 0 && verifiedMasters.length === 0) {
         return (
             <motion.div
                 initial={{ opacity: 0 }}
@@ -145,6 +157,10 @@ export default function AdminModerationMastersPage() {
                 </div>
             </motion.div>
         )
+    }
+
+    const displayName = (master: Master) => {
+        return master.name || master.full_name || master.email?.split('@')[0] || 'Мастер'
     }
 
     return (
@@ -206,14 +222,22 @@ export default function AdminModerationMastersPage() {
                                                     className="w-16 h-16 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold text-xl overflow-hidden shadow-md flex-shrink-0"
                                                 >
                                                     {master.avatar_url ? (
-                                                        <img src={master.avatar_url} alt={master.name || master.full_name} className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <span>{master.name?.charAt(0) || master.full_name?.charAt(0) || 'M'}</span>
+                                                        <img 
+                                                            src={master.avatar_url} 
+                                                            alt={displayName(master)} 
+                                                            className="w-full h-full object-cover" 
+                                                            onError={(e) => {
+                                                                (e.target as HTMLImageElement).style.display = 'none'
+                                                            }}
+                                                        />
+                                                    ) : null}
+                                                    {!master.avatar_url && (
+                                                        <span>{displayName(master).charAt(0).toUpperCase()}</span>
                                                     )}
                                                 </motion.div>
                                                 <div className="flex-1">
                                                     <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-gray-800">
-                                                        {master.name || master.full_name}
+                                                        {displayName(master)}
                                                     </h3>
                                                     <div className="flex flex-wrap gap-3 mt-1 text-sm text-gray-500">
                                                         <span className="flex items-center gap-1">📧 {master.email}</span>
@@ -279,84 +303,98 @@ export default function AdminModerationMastersPage() {
                     </h2>
                 </div>
 
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
-                            <tr>
-                                <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-gray-700">Мастер</th>
-                                <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-gray-700 hidden md:table-cell">Статистика</th>
-                                <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-gray-700 hidden sm:table-cell">Статус</th>
-                                <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-gray-700">Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <AnimatePresence>
-                                {verifiedMasters.map((master, index) => (
-                                    <motion.tr
-                                        key={master.id}
-                                        initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: 20 }}
-                                        transition={{ delay: index * 0.05 }}
-                                        className="border-b border-gray-100 hover:bg-gradient-to-r hover:from-gray-50 to-transparent transition-all duration-300 group"
-                                    >
-                                        <td className="p-4">
-                                            <div className="flex items-center gap-3">
-                                                <motion.div
-                                                    whileHover={{ scale: 1.1 }}
-                                                    className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden shadow-md"
-                                                >
-                                                    {master.avatar_url ? (
-                                                        <img src={master.avatar_url} alt={master.name || master.full_name} className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <span>{master.name?.charAt(0) || master.full_name?.charAt(0) || 'M'}</span>
-                                                    )}
-                                                </motion.div>
-                                                <div>
-                                                    <div className="font-semibold text-gray-800">{master.name || master.full_name}</div>
-                                                    <div className="text-sm text-gray-500">{master.email}</div>
+                {verifiedMasters.length === 0 ? (
+                    <div className="p-12 text-center text-gray-500">
+                        <p>Нет верифицированных мастеров</p>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                                <tr>
+                                    <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-gray-700">Мастер</th>
+                                    <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-gray-700 hidden md:table-cell">Статистика</th>
+                                    <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-gray-700 hidden sm:table-cell">Статус</th>
+                                    <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-gray-700">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <AnimatePresence>
+                                    {verifiedMasters.map((master, index) => (
+                                        <motion.tr
+                                            key={master.id}
+                                            initial={{ opacity: 0, x: -20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: 20 }}
+                                            transition={{ delay: index * 0.05 }}
+                                            className="border-b border-gray-100 hover:bg-gradient-to-r hover:from-gray-50 to-transparent transition-all duration-300 group"
+                                        >
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-3">
+                                                    <motion.div
+                                                        whileHover={{ scale: 1.1 }}
+                                                        className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden shadow-md"
+                                                    >
+                                                        {master.avatar_url ? (
+                                                            <img 
+                                                                src={master.avatar_url} 
+                                                                alt={displayName(master)} 
+                                                                className="w-full h-full object-cover" 
+                                                                onError={(e) => {
+                                                                    (e.target as HTMLImageElement).style.display = 'none'
+                                                                }}
+                                                            />
+                                                        ) : null}
+                                                        {!master.avatar_url && (
+                                                            <span>{displayName(master).charAt(0).toUpperCase()}</span>
+                                                        )}
+                                                    </motion.div>
+                                                    <div>
+                                                        <div className="font-semibold text-gray-800">{displayName(master)}</div>
+                                                        <div className="text-sm text-gray-500">{master.email}</div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="p-4 hidden md:table-cell">
-                                            <div className="text-sm">
-                                                <div className="text-gray-600">📦 Товаров: {master.products_count || 0}</div>
-                                                <div className="text-gray-600">⭐ Рейтинг: {master.rating || 'Нет'}</div>
-                                            </div>
-                                        </td>
-                                        <td className="p-4 hidden sm:table-cell">
-                                            <div className="flex flex-wrap gap-1">
-                                                <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Верифицирован</span>
-                                                {master.is_partner && (
-                                                    <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">Партнер</span>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="flex flex-wrap gap-2">
-                                                <Link
-                                                    href={`/admin/users/${master.user_id}`}
-                                                    className="px-3 py-1 text-sm bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-lg hover:shadow-lg transition-all duration-300"
-                                                >
-                                                    Профиль
-                                                </Link>
-                                                <motion.button
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    onClick={() => handleRemoveVerification(master.id)}
-                                                    disabled={actionLoading === master.id}
-                                                    className="px-3 py-1 text-sm bg-gradient-to-r from-yellow-500 to-yellow-600 text-white rounded-lg hover:shadow-lg transition-all duration-300 disabled:opacity-50"
-                                                >
-                                                    {actionLoading === master.id ? '⏳' : 'Отозвать'}
-                                                </motion.button>
-                                            </div>
-                                        </td>
-                                    </motion.tr>
-                                ))}
-                            </AnimatePresence>
-                        </tbody>
-                    </table>
-                </div>
+                                            </td>
+                                            <td className="p-4 hidden md:table-cell">
+                                                <div className="text-sm">
+                                                    <div className="text-gray-600">📦 Товаров: {master.products_count || 0}</div>
+                                                    <div className="text-gray-600">⭐ Рейтинг: {master.rating || 'Нет'}</div>
+                                                </div>
+                                            </td>
+                                            <td className="p-4 hidden sm:table-cell">
+                                                <div className="flex flex-wrap gap-1">
+                                                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Верифицирован</span>
+                                                    {master.is_partner && (
+                                                        <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">Партнер</span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="flex flex-wrap gap-2">
+                                                    <Link
+                                                        href={`/admin/users/${master.user_id}`}
+                                                        className="px-3 py-1 text-sm bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-lg hover:shadow-lg transition-all duration-300"
+                                                    >
+                                                        Профиль
+                                                    </Link>
+                                                    <motion.button
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        onClick={() => handleRemoveVerification(master.id)}
+                                                        disabled={actionLoading === master.id}
+                                                        className="px-3 py-1 text-sm bg-gradient-to-r from-yellow-500 to-yellow-600 text-white rounded-lg hover:shadow-lg transition-all duration-300 disabled:opacity-50"
+                                                    >
+                                                        {actionLoading === master.id ? '⏳' : 'Отозвать'}
+                                                    </motion.button>
+                                                </div>
+                                            </td>
+                                        </motion.tr>
+                                    ))}
+                                </AnimatePresence>
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </motion.div>
 
             {/* Модальное окно отклонения */}
@@ -380,7 +418,7 @@ export default function AdminModerationMastersPage() {
                                 Отклонение заявки
                             </h2>
                             <p className="text-gray-600 mb-4">
-                                Вы собираетесь отклонить заявку мастера <strong>{selectedMaster.name || selectedMaster.full_name}</strong>.
+                                Вы собираетесь отклонить заявку мастера <strong>{displayName(selectedMaster)}</strong>.
                             </p>
                             <textarea
                                 value={rejectReason}
