@@ -42,7 +42,7 @@ export default function AdminModerationBlogPage() {
     const [actionLoading, setActionLoading] = useState<string | null>(null)
     const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null)
     const [showModal, setShowModal] = useState(false)
-    const [filter, setFilter] = useState<'all' | 'moderation' | 'draft' | 'published' | 'blocked'>('all');
+    const [filter, setFilter] = useState<'all' | 'moderation' | 'draft' | 'published' | 'blocked'>('all')
 
     useEffect(() => {
         if (status === 'loading') return
@@ -71,38 +71,31 @@ export default function AdminModerationBlogPage() {
     }
 
     const handleApprove = async (postId: string) => {
-    if (!confirm("Одобрить публикацию поста?")) return
+        if (!confirm("Одобрить публикацию поста?")) return
 
-    setActionLoading(postId)
-    try {
-        console.log('Approving post:', postId); // Отладка
-        
-        const response = await fetch('/api/admin/blog', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ postId, action: 'approve' })
-        })
-        
-        const result = await response.json();
-        console.log('Response:', response.status, result); // Отладка
-        
-        if (!response.ok) {
-            throw new Error(result.error || 'Failed to approve');
+        setActionLoading(postId)
+        try {
+            const response = await fetch('/api/admin/blog', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ postId, action: 'approve' })
+            })
+            
+            const result = await response.json()
+            if (!response.ok) throw new Error(result.error || 'Failed to approve')
+
+            await loadPosts()
+            if (showModal) setShowModal(false)
+            alert('Пост успешно одобрен!')
+        } catch (error) {
+            alert('Ошибка при одобрении поста')
+        } finally {
+            setActionLoading(null)
         }
-        
-        await loadPosts()
-        if (showModal) setShowModal(false)
-        alert('Пост успешно одобрен!')
-    } catch (error) {
-        console.error('Ошибка при одобрении поста:', error)
-        alert('Ошибка при одобрении поста: ' + (error as Error).message)
-    } finally {
-        setActionLoading(null)
     }
-}
 
     const handleReject = async (postId: string) => {
-        const reason = prompt('Укажите причину отклонения:')
+        const reason = prompt('Укажите причину возврата на доработку:')
         if (reason === null) return
 
         setActionLoading(postId)
@@ -112,34 +105,15 @@ export default function AdminModerationBlogPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ postId, action: 'reject', reason })
             })
-
-            if (!response.ok) throw new Error('Failed to reject')
+            
+            const result = await response.json()
+            if (!response.ok) throw new Error(result.error || 'Failed to reject')
             
             await loadPosts()
             if (showModal) setShowModal(false)
+            alert('Пост отправлен на доработку!')
         } catch (error) {
-            alert('Ошибка при отклонении поста')
-        } finally {
-            setActionLoading(null)
-        }
-    }
-
-    const handleReturnToDraft = async (postId: string) => {
-        if (!confirm("Отправить пост на доработку автору?")) return
-
-        setActionLoading(postId)
-        try {
-            const response = await fetch('/api/admin/blog', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ postId, action: 'reject', reason: 'Отправлен на доработку' }) // ← измените action на 'reject'
-            })
-            if (!response.ok) throw new Error('Failed to return to draft')
-
-            await loadPosts()
-            if (showModal) setShowModal(false)
-        } catch (error) {
-            alert('Ошибка при возврате поста на доработку')
+            alert('Ошибка при отправке поста на доработку')
         } finally {
             setActionLoading(null)
         }
@@ -156,11 +130,13 @@ export default function AdminModerationBlogPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ postId, action: 'block', reason })
             })
-
-            if (!response.ok) throw new Error('Failed to block')
+            
+            const result = await response.json()
+            if (!response.ok) throw new Error(result.error || 'Failed to block')
             
             await loadPosts()
             if (showModal) setShowModal(false)
+            alert('Пост заблокирован!')
         } catch (error) {
             alert('Ошибка при блокировке поста')
         } finally {
@@ -189,18 +165,110 @@ export default function AdminModerationBlogPage() {
         })
     }
 
+    const getStatusBadge = (status: string) => {
+        switch(status) {
+            case 'moderation':
+                return <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">⏳ На модерации</span>
+            case 'draft':
+                return <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">📝 На доработке</span>
+            case 'published':
+                return <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">✅ Опубликован</span>
+            case 'blocked':
+                return <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">🔒 Заблокирован</span>
+            default:
+                return null
+        }
+    }
+
+    // Функция для отображения кнопок в зависимости от статуса
+    const renderActionButtons = (post: BlogPost) => {
+        switch(post.status) {
+            case 'moderation':
+                return (
+                    <div className="flex flex-wrap gap-3">
+                        <button
+                            onClick={() => handleApprove(post.id)}
+                            disabled={actionLoading === post.id}
+                            className="px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition disabled:opacity-50"
+                        >
+                            {actionLoading === post.id ? '⏳' : '✅ Одобрить'}
+                        </button>
+                        <button
+                            onClick={() => handleReject(post.id)}
+                            disabled={actionLoading === post.id}
+                            className="px-4 py-2 bg-yellow-500 text-white rounded-xl text-sm font-medium hover:bg-yellow-600 transition disabled:opacity-50"
+                        >
+                            {actionLoading === post.id ? '⏳' : '📝 На доработку'}
+                        </button>
+                        <button
+                            onClick={() => handleBlock(post.id)}
+                            disabled={actionLoading === post.id}
+                            className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition disabled:opacity-50"
+                        >
+                            {actionLoading === post.id ? '⏳' : '🔒 Заблокировать'}
+                        </button>
+                    </div>
+                )
+            case 'draft':
+                return (
+                    <div className="flex flex-wrap gap-3">
+                        <button
+                            onClick={() => handleApprove(post.id)}
+                            disabled={actionLoading === post.id}
+                            className="px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition disabled:opacity-50"
+                        >
+                            {actionLoading === post.id ? '⏳' : '✅ Одобрить'}
+                        </button>
+                        <button
+                            onClick={() => handleBlock(post.id)}
+                            disabled={actionLoading === post.id}
+                            className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition disabled:opacity-50"
+                        >
+                            {actionLoading === post.id ? '⏳' : '🔒 Заблокировать'}
+                        </button>
+                    </div>
+                )
+            case 'published':
+                return (
+                    <div className="flex flex-wrap gap-3">
+                        <button
+                            onClick={() => handleBlock(post.id)}
+                            disabled={actionLoading === post.id}
+                            className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition disabled:opacity-50"
+                        >
+                            {actionLoading === post.id ? '⏳' : '🔒 Заблокировать'}
+                        </button>
+                    </div>
+                )
+            case 'blocked':
+                return (
+                    <div className="flex flex-wrap gap-3">
+                        <button
+                            onClick={() => handleApprove(post.id)}
+                            disabled={actionLoading === post.id}
+                            className="px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition disabled:opacity-50"
+                        >
+                            {actionLoading === post.id ? '⏳' : '✅ Разблокировать'}
+                        </button>
+                    </div>
+                )
+            default:
+                return null
+        }
+    }
+
     const stats = {
         all: posts.length,
         moderation: posts.filter(p => p.status === 'moderation').length,
         draft: posts.filter(p => p.status === 'draft').length,
         published: posts.filter(p => p.status === 'published').length,
         blocked: posts.filter(p => p.status === 'blocked').length
-    };
+    }
 
     const filteredPosts = posts.filter(p => {
         if (filter === 'all') return true
         return p.status === filter
-    });
+    })
 
     if (loading) {
         return (
@@ -232,9 +300,9 @@ export default function AdminModerationBlogPage() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
-                        Модерация блога
+                        Управление блогом
                     </h1>
-                    <p className="text-gray-500 text-sm mt-1">Управление постами на модерации и доработке</p>
+                    <p className="text-gray-500 text-sm mt-1">Все посты платформы</p>
                 </div>
             </div>
 
@@ -243,7 +311,7 @@ export default function AdminModerationBlogPage() {
                 initial={{ y: -20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.1 }}
-                className="flex gap-3"
+                className="flex flex-wrap gap-3"
             >
                 <button
                     onClick={() => setFilter('all')}
@@ -253,7 +321,7 @@ export default function AdminModerationBlogPage() {
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                 >
-                    Все ({posts.filter(p => p.status === 'moderation' || p.status === 'draft').length})
+                    Все ({stats.all})
                 </button>
                 <button
                     onClick={() => setFilter('moderation')}
@@ -263,7 +331,7 @@ export default function AdminModerationBlogPage() {
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                 >
-                    На модерации ({posts.filter(p => p.status === 'moderation').length})
+                    На модерации ({stats.moderation})
                 </button>
                 <button
                     onClick={() => setFilter('draft')}
@@ -273,7 +341,27 @@ export default function AdminModerationBlogPage() {
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                 >
-                    На доработке ({posts.filter(p => p.status === 'draft').length})
+                    На доработке ({stats.draft})
+                </button>
+                <button
+                    onClick={() => setFilter('published')}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                        filter === 'published' 
+                            ? 'bg-gradient-to-r from-firm-orange to-firm-pink text-white shadow-md' 
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                >
+                    Опубликованные ({stats.published})
+                </button>
+                <button
+                    onClick={() => setFilter('blocked')}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                        filter === 'blocked' 
+                            ? 'bg-gradient-to-r from-firm-orange to-firm-pink text-white shadow-md' 
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                >
+                    Заблокированные ({stats.blocked})
                 </button>
             </motion.div>
 
@@ -293,7 +381,6 @@ export default function AdminModerationBlogPage() {
                             className="bg-white rounded-2xl shadow-xl p-12 text-center text-gray-500"
                         >
                             <p className="text-lg">Нет постов для отображения</p>
-                            <p className="text-sm mt-2">Все посты обработаны</p>
                         </motion.div>
                     ) : (
                         filteredPosts.map((post, index) => (
@@ -347,7 +434,7 @@ export default function AdminModerationBlogPage() {
                                                 </div>
                                             </div>
 
-                                            {/* Теги */}
+                                            {/* Теги и статус */}
                                             <div className="flex flex-wrap gap-2 mt-3">
                                                 {post.category && (
                                                     <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium">
@@ -359,13 +446,7 @@ export default function AdminModerationBlogPage() {
                                                         #{tag}
                                                     </span>
                                                 ))}
-                                                <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                                                    post.status === 'moderation' 
-                                                        ? 'bg-yellow-100 text-yellow-700' 
-                                                        : 'bg-gray-100 text-gray-700'
-                                                }`}>
-                                                    {post.status === 'moderation' ? '⏳ На модерации' : '📝 На доработке'}
-                                                </span>
+                                                {getStatusBadge(post.status)}
                                             </div>
 
                                             {/* Краткое описание */}
@@ -380,36 +461,8 @@ export default function AdminModerationBlogPage() {
                                                 <span>💬 {post.comments_count || 0} комментариев</span>
                                             </div>
 
-                                            {/* Кнопки действий */}
-                                            <div className="flex flex-wrap gap-3 mt-4">
-                                                <motion.button
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    onClick={() => handleApprove(post.id)}
-                                                    disabled={actionLoading === post.id}
-                                                    className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl text-sm font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50"
-                                                >
-                                                    {actionLoading === post.id ? '⏳' : '✅ Одобрить'}
-                                                </motion.button>
-                                                <motion.button
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    onClick={() => handleReturnToDraft(post.id)}
-                                                    disabled={actionLoading === post.id}
-                                                    className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white rounded-xl text-sm font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50"
-                                                >
-                                                    {actionLoading === post.id ? '⏳' : '📝 На доработку'}
-                                                </motion.button>
-                                                <motion.button
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    onClick={() => handleReject(post.id)}
-                                                    disabled={actionLoading === post.id}
-                                                    className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl text-sm font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50"
-                                                >
-                                                    {actionLoading === post.id ? '⏳' : '❌ Отклонить'}
-                                                </motion.button>
-                                            </div>
+                                            {/* Кнопки действий в зависимости от статуса */}
+                                            {renderActionButtons(post)}
                                         </div>
                                     </div>
                                 </div>
@@ -419,7 +472,7 @@ export default function AdminModerationBlogPage() {
                 </AnimatePresence>
             </motion.div>
 
-            {/* Модальное окно просмотра поста */}
+            {/* Модальное окно просмотра поста - аналогично обновить кнопки */}
             <AnimatePresence>
                 {showModal && selectedPost && (
                     <motion.div
@@ -481,19 +534,6 @@ export default function AdminModerationBlogPage() {
                                         </div>
                                     </div>
                                 )}
-                                {selectedPost.images && selectedPost.images.length > 0 && (
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                                        {selectedPost.images.map((img) => (
-                                            <div key={img.id} className="aspect-square bg-gray-100 rounded-xl overflow-hidden shadow-md">
-                                                <img
-                                                    src={img.image_url}
-                                                    alt={selectedPost.title}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
 
                                 {/* Категория и теги */}
                                 <div className="flex flex-wrap gap-2 mb-6">
@@ -526,33 +566,8 @@ export default function AdminModerationBlogPage() {
                                     </div>
                                 </div>
 
-                                {/* Кнопки действий */}
-                                <div className="flex flex-wrap gap-3 pt-4 border-t">
-                                    <motion.button
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        onClick={() => handleApprove(selectedPost.id)}
-                                        className="flex-1 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-medium hover:shadow-lg transition-all duration-300"
-                                    >
-                                        ✅ Одобрить
-                                    </motion.button>
-                                    <motion.button
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        onClick={() => handleReturnToDraft(selectedPost.id)}
-                                        className="flex-1 py-3 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white rounded-xl font-medium hover:shadow-lg transition-all duration-300"
-                                    >
-                                        📝 На доработку
-                                    </motion.button>
-                                    <motion.button
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        onClick={() => handleReject(selectedPost.id)}
-                                        className="flex-1 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl font-medium hover:shadow-lg transition-all duration-300"
-                                    >
-                                        ❌ Отклонить
-                                    </motion.button>
-                                </div>
+                                {/* Кнопки действий в модальном окне */}
+                                {renderActionButtons(selectedPost)}
                             </div>
                         </motion.div>
                     </motion.div>
