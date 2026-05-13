@@ -71,25 +71,35 @@ export default function AdminModerationBlogPage() {
     }
 
     const handleApprove = async (postId: string) => {
-        if (!confirm("Одобрить публикацию поста?")) return
+    if (!confirm("Одобрить публикацию поста?")) return
 
-        setActionLoading(postId)
-        try {
-            const response = await fetch('/api/admin/blog', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ postId, action: 'approve' })
-            })
-            if (!response.ok) throw new Error('Failed to approve')
-
-            await loadPosts()
-            if (showModal) setShowModal(false)
-        } catch (error) {
-            alert('Ошибка при одобрении поста')
-        } finally {
-            setActionLoading(null)
+    setActionLoading(postId)
+    try {
+        console.log('Approving post:', postId); // Отладка
+        
+        const response = await fetch('/api/admin/blog', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ postId, action: 'approve' })
+        })
+        
+        const result = await response.json();
+        console.log('Response:', response.status, result); // Отладка
+        
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to approve');
         }
+        
+        await loadPosts()
+        if (showModal) setShowModal(false)
+        alert('Пост успешно одобрен!')
+    } catch (error) {
+        console.error('Ошибка при одобрении поста:', error)
+        alert('Ошибка при одобрении поста: ' + (error as Error).message)
+    } finally {
+        setActionLoading(null)
     }
+}
 
     const handleReject = async (postId: string) => {
         const reason = prompt('Укажите причину отклонения:')

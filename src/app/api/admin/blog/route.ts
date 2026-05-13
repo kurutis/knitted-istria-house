@@ -4,6 +4,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 
+interface BlogPostUpdateData {
+    status: string;
+    updated_at: string;
+    published_at?: string;
+    moderation_comment?: string;
+}
+
 export async function GET(request: Request) {
     try {
         const session = await getServerSession(authOptions);
@@ -34,7 +41,6 @@ export async function GET(request: Request) {
         const profileMap = new Map();
         
         if (masterIds.length > 0) {
-            // Получаем пользователей
             const { data: users } = await supabase
                 .from('users')
                 .select('id, email')
@@ -44,7 +50,6 @@ export async function GET(request: Request) {
                 userMap.set(u.id, u);
             });
             
-            // Получаем профили
             const { data: profiles } = await supabase
                 .from('profiles')
                 .select('user_id, full_name, avatar_url')
@@ -52,20 +57,6 @@ export async function GET(request: Request) {
             
             profiles?.forEach(p => {
                 profileMap.set(p.user_id, p);
-            });
-        }
-
-        // Получаем количество комментариев для каждого поста
-        const commentsCountMap = new Map();
-        if (posts.length > 0) {
-            const postIds = posts.map(p => p.id);
-            const { data: comments } = await supabase
-                .from('blog_comments')
-                .select('post_id')
-                .in('post_id', postIds);
-            
-            comments?.forEach(c => {
-                commentsCountMap.set(c.post_id, (commentsCountMap.get(c.post_id) || 0) + 1);
             });
         }
 
@@ -92,7 +83,7 @@ export async function GET(request: Request) {
                 author_email: user?.email || '',
                 author_avatar: profile?.avatar_url || null,
                 images: [],
-                comments_count: commentsCountMap.get(post.id) || 0
+                comments_count: 0
             };
         });
 
@@ -115,6 +106,8 @@ export async function PUT(request: Request) {
         const body = await request.json();
         const { postId, action, reason } = body;
 
+        console.log('Received request:', { postId, action, reason });
+
         if (!postId || !action) {
             return NextResponse.json({ error: 'Не указан ID поста или действие' }, { status: 400 });
         }
@@ -127,62 +120,83 @@ export async function PUT(request: Request) {
             .single();
 
         if (checkError || !existingPost) {
+            console.error('Post not found:', checkError);
             return NextResponse.json({ error: 'Пост не найден' }, { status: 404 });
         }
+
+        console.log('Existing post:', { status: existingPost.status, title: existingPost.title });
 
         const now = new Date().toISOString();
         let newStatus = '';
         let message = '';
-        let notificationTitle = '';
-        let notificationMessage = '';
 
-        // Поддерживаем оба варианта: 'reject' и 'draft'
+        // Обработка действий
         if (action === 'approve') {
-            if (existingPost.status !== 'moderation' && existingPost.status !== 'draft') {
-                return NextResponse.json({ error: 'Пост уже опубликован' }, { status: 400 });
+            if (existingPost.status === 'moderation' || existingPost.status === 'draft') {
+                newStatus = 'published';
+                message = 'Пост успешно одобрен и опубликован';
+            } else {
+                return NextResponse.json({ error: 'Пост уже опубликован или не может быть одобрен' }, { status: 400 });
             }
-            newStatus = 'published';
-            message = 'Пост успешно одобрен и опубликован';
-            notificationTitle = '✅ Пост опубликован';
-            notificationMessage = `Ваш пост "${existingPost.title}" успешно прошел модерацию и опубликован!`;
         } 
         else if (action === 'reject' || action === 'draft') {
-            if (existingPost.status !== 'moderation') {
-                return NextResponse.json({ error: 'Пост уже отклонён' }, { status: 400 });
+            if (existingPost.status === 'moderation') {
+                newStatus = 'draft';
+                message = 'Пост отправлен на доработку';
+            } else {
+                return NextResponse.json({ error: 'Пост уже в черновиках или не может быть отправлен на доработку' }, { status: 400 });
             }
-            newStatus = 'draft';
-            message = 'Пост отправлен на доработку';
-            notificationTitle = '📝 Пост на доработку';
-            notificationMessage = `Ваш пост "${existingPost.title}" отправлен на доработку. Причина: ${reason || 'Не указана'}`;
         }
         else if (action === 'block') {
             newStatus = 'blocked';
             message = 'Пост заблокирован';
-            notificationTitle = '🔒 Пост заблокирован';
-            notificationMessage = `Ваш пост "${existingPost.title}" был заблокирован. Причина: ${reason || 'Нарушение правил'}`;
         }
         else {
             return NextResponse.json({ error: 'Неизвестное действие' }, { status: 400 });
         }
 
+        // Подготовка данных для обновления - используем конкретный тип вместо any
+        const updateData: BlogPostUpdateData = {
+            status: newStatus,
+            updated_at: now
+        };
+
+        if (action === 'approve') {
+            updateData.published_at = now;
+        }
+        if ((action === 'reject' || action === 'draft' || action === 'block') && reason) {
+            updateData.moderation_comment = reason;
+        }
+
+        console.log('Updating post with:', updateData);
+
         // Обновляем статус поста
         const { error: updateError } = await supabase
             .from('blog_posts')
-            .update({
-                status: newStatus,
-                updated_at: now,
-                moderation_comment: (action === 'reject' || action === 'draft' || action === 'block') && reason ? reason : undefined,
-                published_at: action === 'approve' ? now : undefined
-            })
+            .update(updateData)
             .eq('id', postId);
 
         if (updateError) {
             console.error('Error updating post:', updateError);
-            return NextResponse.json({ error: 'Ошибка обновления статуса' }, { status: 500 });
+            return NextResponse.json({ error: 'Ошибка обновления статуса: ' + updateError.message }, { status: 500 });
         }
 
         // Отправляем уведомление автору
         if (existingPost.master_id) {
+            let notificationTitle = '';
+            let notificationMessage = '';
+            
+            if (action === 'approve') {
+                notificationTitle = '✅ Пост опубликован';
+                notificationMessage = `Ваш пост "${existingPost.title}" успешно прошел модерацию и опубликован!`;
+            } else if (action === 'reject' || action === 'draft') {
+                notificationTitle = '📝 Пост на доработку';
+                notificationMessage = `Ваш пост "${existingPost.title}" отправлен на доработку. Причина: ${reason || 'Не указана'}`;
+            } else if (action === 'block') {
+                notificationTitle = '🔒 Пост заблокирован';
+                notificationMessage = `Ваш пост "${existingPost.title}" был заблокирован. Причина: ${reason || 'Нарушение правил'}`;
+            }
+
             await supabase
                 .from('notifications')
                 .insert({
@@ -202,6 +216,8 @@ export async function PUT(request: Request) {
                 });
         }
 
+        console.log('Post updated successfully:', { postId, newStatus });
+
         return NextResponse.json({ 
             success: true, 
             message: message,
@@ -210,6 +226,6 @@ export async function PUT(request: Request) {
         
     } catch (error) {
         console.error('Error in PUT:', error);
-        return NextResponse.json({ error: 'Ошибка обработки запроса' }, { status: 500 });
+        return NextResponse.json({ error: 'Ошибка обработки запроса: ' + String(error) }, { status: 500 });
     }
 }
