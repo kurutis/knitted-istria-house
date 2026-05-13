@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 import { rateLimit, getClientIP } from "@/lib/rate-limit";
 import { logError, logInfo, logApiRequest } from "@/lib/error-logger";
 import { sanitize } from "@/lib/sanitize";
-import { cachedQuery, invalidateCache } from "@/lib/db-optimized";
+import { cachedQuery } from "@/lib/db-optimized";
 
 // Определяем типы
 interface UserProfile {
@@ -129,7 +129,7 @@ export async function GET(request: Request) {
                     .select('*', { count: 'exact', head: true })
                     .eq('status', 'moderation'),
                 
-                // Последние 10 пользователей (не админов)
+                // Последние 10 пользователей
                 supabase
                     .from('users')
                     .select(`
@@ -145,7 +145,6 @@ export async function GET(request: Request) {
                             address
                         )
                     `)
-                    .neq('role', 'admin')
                     .order('created_at', { ascending: false })
                     .limit(10),
                 
@@ -192,17 +191,28 @@ export async function GET(request: Request) {
             // Форматируем последних пользователей
             const recentUsersData = (recentUsersResult.data as UserWithProfile[] | null) || [];
             const recentUsers = recentUsersData.map((user) => {
-                // Получаем профиль (независимо от структуры)
+                // Получаем профиль
                 const profile = getUserProfile(user.profiles);
                 
                 // Получаем имя из профиля или из email
                 const userName = profile?.full_name || user.email?.split('@')[0] || 'Пользователь';
                 
+                // Определяем отображаемую роль
+                let displayRole = 'Покупатель';
+                if (user.role === 'master') {
+                    displayRole = 'Мастер';
+                } else if (user.role === 'admin') {
+                    displayRole = 'Администратор';
+                } else if (user.role === 'buyer') {
+                    displayRole = 'Покупатель';
+                }
+                
                 return {
                     id: user.id,
                     name: sanitize.text(userName),
                     email: user.email,
-                    role: user.role === 'master' ? 'Мастер' : user.role === 'buyer' ? 'Покупатель' : user.role,
+                    role: displayRole,
+                    role_code: user.role,
                     created_at: user.created_at,
                     phone: profile?.phone || null,
                     avatar: profile?.avatar_url || null,
