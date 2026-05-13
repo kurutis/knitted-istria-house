@@ -51,12 +51,14 @@ function generateKey(folder: string, id: string, originalName: string): string {
 
 // Получение публичного URL
 export function getPublicUrl(key: string): string {
-    const bucketName = process.env.S3_BUCKET || 'knitted-istria-house';
-    const region = process.env.S3_REGION || 'ru-7';
-    const publicUrl = `https://${bucketName}.s3.${region}.storage.selcloud.ru`;
-    
+    // Используем СТАРЫЙ рабочий домен
+    const publicUrl = 'https://30bd5b8c-136d-48e3-b7c1-71a168d4fef4.selstorage.ru';
     const cleanKey = key.replace(/^\/+/, '');
-    return `${publicUrl}/${cleanKey}`;
+    const finalUrl = `${publicUrl}/${cleanKey}`;
+    
+    console.log('getPublicUrl:', finalUrl); // Отладка - посмотрим что получается
+    
+    return finalUrl;
 }
 
 // Извлечение ключа из URL
