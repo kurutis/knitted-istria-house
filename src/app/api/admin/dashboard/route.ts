@@ -13,6 +13,8 @@ interface UserProfile {
     full_name: string | null;
     avatar_url: string | null;
     phone: string | null;
+    city: string | null;
+    address: string | null;
 }
 
 interface UserWithProfile {
@@ -20,12 +22,12 @@ interface UserWithProfile {
     email: string;
     role: string;
     created_at: string;
-    profiles: UserProfile[] | null;
+    profiles: UserProfile | UserProfile[] | null;
 }
 
 interface OrderUser {
     email: string;
-    profiles: UserProfile[] | null;
+    profiles: UserProfile | UserProfile[] | null;
 }
 
 interface OrderWithUser {
@@ -44,6 +46,14 @@ interface CategoryStat {
 
 // Rate limiting
 const limiter = rateLimit({ limit: 20, windowMs: 60 * 1000 });
+
+// Функция для получения профиля пользователя (независимо от структуры)
+function getUserProfile(profiles: UserProfile | UserProfile[] | null): UserProfile | null {
+    if (!profiles) return null;
+    if (Array.isArray(profiles) && profiles.length > 0) return profiles[0];
+    if (!Array.isArray(profiles)) return profiles;
+    return null;
+}
 
 export async function GET(request: Request) {
     const startTime = Date.now();
@@ -130,7 +140,9 @@ export async function GET(request: Request) {
                         profiles (
                             full_name,
                             avatar_url,
-                            phone
+                            phone,
+                            city,
+                            address
                         )
                     `)
                     .neq('role', 'admin')
@@ -180,25 +192,21 @@ export async function GET(request: Request) {
             // Форматируем последних пользователей
             const recentUsersData = (recentUsersResult.data as UserWithProfile[] | null) || [];
             const recentUsers = recentUsersData.map((user) => {
-                // Получаем имя из профиля
-                let userName: string | null = null;
-                let userPhone: string | null = null;
-                let userAvatar: string | null = null;
+                // Получаем профиль (независимо от структуры)
+                const profile = getUserProfile(user.profiles);
                 
-                if (user.profiles && Array.isArray(user.profiles) && user.profiles.length > 0) {
-                    userName = user.profiles[0]?.full_name;
-                    userPhone = user.profiles[0]?.phone;
-                    userAvatar = user.profiles[0]?.avatar_url;
-                }
+                // Получаем имя из профиля или из email
+                const userName = profile?.full_name || user.email?.split('@')[0] || 'Пользователь';
                 
                 return {
                     id: user.id,
-                    name: userName || user.email?.split('@')[0] || 'Пользователь',
+                    name: sanitize.text(userName),
                     email: user.email,
                     role: user.role === 'master' ? 'Мастер' : user.role === 'buyer' ? 'Покупатель' : user.role,
                     created_at: user.created_at,
-                    phone: userPhone,
-                    avatar: userAvatar
+                    phone: profile?.phone || null,
+                    avatar: profile?.avatar_url || null,
+                    city: profile?.city || null
                 };
             });
 
@@ -215,11 +223,11 @@ export async function GET(request: Request) {
                     completed: 'Завершён'
                 };
                 
+                // Получаем профиль пользователя
+                const userProfile = getUserProfile(order.users?.profiles as UserProfile | UserProfile[] | null);
+                
                 // Получаем имя покупателя
-                let buyerName: string | null = null;
-                if (order.users && order.users.profiles && Array.isArray(order.users.profiles) && order.users.profiles.length > 0) {
-                    buyerName = order.users.profiles[0]?.full_name;
-                }
+                const buyerName = userProfile?.full_name || order.users?.email?.split('@')[0] || 'Покупатель';
                 
                 return {
                     id: order.id,
@@ -228,7 +236,7 @@ export async function GET(request: Request) {
                     status: statusMap[order.status] || order.status,
                     status_code: order.status,
                     created_at: order.created_at,
-                    buyer_name: buyerName || order.users?.email?.split('@')[0] || 'Покупатель',
+                    buyer_name: sanitize.text(buyerName),
                     buyer_email: order.users?.email
                 };
             });
