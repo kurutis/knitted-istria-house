@@ -3,12 +3,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { rateLimit } from "@/lib/rate-limit";
-import { invalidateCache } from "@/lib/db-optimized";
-import { logError, logInfo } from "@/lib/error-logger";
 import { z } from "zod";
 
-// Схема валидации для создания заказа
 const createOrderSchema = z.object({
     shippingAddress: z.object({
         full_name: z.string().min(2, 'Имя обязательно'),
@@ -22,8 +18,6 @@ const createOrderSchema = z.object({
     comment: z.string().max(500).optional(),
 });
 
-const limiter = rateLimit({ limit: 10, windowMs: 60 * 1000 });
-
 function generateOrderNumber(): string {
     const date = new Date();
     const year = date.getFullYear().toString().slice(-2);
@@ -34,8 +28,6 @@ function generateOrderNumber(): string {
 }
 
 export async function POST(request: Request) {
-    const startTime = Date.now();
-    
     try {
         const session = await getServerSession(authOptions);
         
@@ -43,25 +35,18 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
         }
 
-        const rateLimitResult = limiter(request);
-        if (!rateLimitResult.success) {
-            return NextResponse.json({ 
-                error: 'Слишком много запросов. Попробуйте через минуту.' 
-            }, { status: 429 });
-        }
-
         const body = await request.json();
         const validatedData = createOrderSchema.parse(body);
         const { shippingAddress, promoCode, discount, comment } = validatedData;
 
-        // Получаем корзину пользователя
+        // 1. Получаем корзину пользователя
         const { data: cartItems, error: cartError } = await supabase
             .from('cart')
             .select('product_id, quantity')
             .eq('user_id', session.user.id);
 
         if (cartError) {
-            logError('Error fetching cart for order', cartError);
+            console.error('Cart error:', cartError);
             return NextResponse.json({ error: 'Ошибка получения корзины' }, { status: 500 });
         }
 
@@ -69,61 +54,53 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Корзина пуста' }, { status: 400 });
         }
 
-        // Получаем ID товаров из корзины
+        // 2. Получаем товары
         const productIds = cartItems.map(item => item.product_id);
-        
-        // Получаем данные о товарах
         const { data: products, error: productsError } = await supabase
             .from('products')
-            .select('id, title, price, master_id')
+            .select('id, title, price')
             .in('id', productIds);
 
         if (productsError) {
-            logError('Error fetching products for order', productsError);
-            return NextResponse.json({ error: 'Ошибка получения данных о товарах' }, { status: 500 });
+            console.error('Products error:', productsError);
+            return NextResponse.json({ error: 'Ошибка получения товаров' }, { status: 500 });
         }
 
-        // Создаем Map для быстрого доступа к товарам
+        // Создаем Map для быстрого доступа
         const productsMap = new Map();
-        products?.forEach(product => {
-            productsMap.set(product.id, product);
-        });
+        products?.forEach(p => productsMap.set(p.id, p));
 
-        // Проверяем, что все товары найдены
+        // 3. Рассчитываем суммы
         let subtotal = 0;
-        const orderItemsData = [];
-        
+        const orderItems = [];
+
         for (const item of cartItems) {
             const product = productsMap.get(item.product_id);
-            
             if (!product) {
-                return NextResponse.json({ 
-                    error: `Товар с ID ${item.product_id} не найден` 
-                }, { status: 400 });
+                return NextResponse.json({ error: `Товар не найден: ${item.product_id}` }, { status: 400 });
             }
             
             const price = parseFloat(product.price);
-            const quantity = item.quantity;
-            const total = price * quantity;
+            const total = price * item.quantity;
             subtotal += total;
             
-            orderItemsData.push({
+            orderItems.push({
                 product_id: item.product_id,
                 product_title: product.title,
-                product_price: price,
-                quantity: quantity,
+                price: price,
+                quantity: item.quantity,
                 total: total
             });
         }
 
-        const tax = subtotal * 0.07;
+        const tax = subtotal * 0.07; // 7% налог
         const shipping = subtotal > 5000 ? 0 : 350;
         const totalAmount = subtotal + tax + shipping - discount;
 
         const now = new Date().toISOString();
         const orderNumber = generateOrderNumber();
 
-        // Создаем заказ
+        // 4. Создаем заказ со всеми полями
         const { data: order, error: orderError } = await supabase
             .from('orders')
             .insert({
@@ -136,7 +113,6 @@ export async function POST(request: Request) {
                 total_amount: totalAmount,
                 status: 'new',
                 payment_status: 'pending',
-                promo_code: promoCode || null,
                 buyer_comment: comment || null,
                 shipping_full_name: shippingAddress.full_name,
                 shipping_phone: shippingAddress.phone,
@@ -150,16 +126,16 @@ export async function POST(request: Request) {
             .single();
 
         if (orderError) {
-            logError('Error creating order', orderError);
-            return NextResponse.json({ error: 'Ошибка создания заказа' }, { status: 500 });
+            console.error('Order creation error:', orderError);
+            return NextResponse.json({ error: 'Ошибка создания заказа: ' + orderError.message }, { status: 500 });
         }
 
-        // Создаем позиции заказа
-        const orderItemsInsert = orderItemsData.map(item => ({
+        // 5. Создаем позиции заказа
+        const orderItemsData = orderItems.map(item => ({
             order_id: order.id,
             product_id: item.product_id,
             quantity: item.quantity,
-            price: item.product_price,
+            price: item.price,
             total: item.total,
             product_title: item.product_title,
             created_at: now
@@ -167,44 +143,27 @@ export async function POST(request: Request) {
 
         const { error: itemsError } = await supabase
             .from('order_items')
-            .insert(orderItemsInsert);
+            .insert(orderItemsData);
 
         if (itemsError) {
-            logError('Error creating order items', itemsError);
-            // Откатываем создание заказа
+            console.error('Order items error:', itemsError);
+            // Откат: удаляем созданный заказ
             await supabase.from('orders').delete().eq('id', order.id);
             return NextResponse.json({ error: 'Ошибка создания позиций заказа' }, { status: 500 });
         }
 
-        // Очищаем корзину
-        await supabase
-            .from('cart')
-            .delete()
-            .eq('user_id', session.user.id);
+        // 6. Очищаем корзину
+        await supabase.from('cart').delete().eq('user_id', session.user.id);
 
-        // Инвалидируем кэш
-        invalidateCache(`cart_${session.user.id}`);
-
-        // Создаем уведомление для пользователя
-        await supabase
-            .from('notifications')
-            .insert({
-                user_id: session.user.id,
-                title: '✅ Заказ оформлен',
-                message: `Ваш заказ №${orderNumber} успешно оформлен и передан в обработку.`,
-                type: 'order_created',
-                metadata: { order_id: order.id, order_number: orderNumber },
-                created_at: now,
-                is_read: false
-            });
-
-        logInfo('Order created', {
-            orderId: order.id,
-            userId: session.user.id,
-            orderNumber,
-            totalAmount,
-            itemsCount: orderItemsData.length,
-            duration: Date.now() - startTime
+        // 7. Уведомление
+        await supabase.from('notifications').insert({
+            user_id: session.user.id,
+            title: '✅ Заказ оформлен',
+            message: `Ваш заказ №${orderNumber} успешно оформлен на сумму ${totalAmount.toLocaleString()} ₽`,
+            type: 'order_created',
+            metadata: { order_id: order.id, order_number: orderNumber },
+            created_at: now,
+            is_read: false
         });
 
         return NextResponse.json({
@@ -215,16 +174,15 @@ export async function POST(request: Request) {
                 total_amount: totalAmount,
                 status: 'new',
                 payment_status: 'pending'
-            },
-            message: 'Заказ успешно оформлен'
+            }
         }, { status: 201 });
         
     } catch (error) {
         if (error instanceof z.ZodError) {
             return NextResponse.json({ error: error.issues[0]?.message }, { status: 400 });
         }
-        logError('Error creating order', error);
-        return NextResponse.json({ error: 'Ошибка оформления заказа' }, { status: 500 });
+        console.error('Order creation error:', error);
+        return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
     }
 }
 
@@ -257,7 +215,7 @@ export async function GET(request: Request) {
             .range(offset, offset + limit - 1);
 
         if (error) {
-            logError('Error fetching orders', error);
+            console.error('Error fetching orders:', error);
             return NextResponse.json({ error: 'Ошибка загрузки заказов' }, { status: 500 });
         }
 
@@ -298,7 +256,7 @@ export async function GET(request: Request) {
         }, { status: 200 });
         
     } catch (error) {
-        logError('Error fetching orders', error);
+        console.error('Error fetching orders:', error);
         return NextResponse.json({ error: 'Ошибка загрузки заказов' }, { status: 500 });
     }
 }
