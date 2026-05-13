@@ -8,52 +8,8 @@ import { logError, logInfo, logApiRequest } from "@/lib/error-logger";
 import { sanitize } from "@/lib/sanitize";
 import { cachedQuery } from "@/lib/db-optimized";
 
-// Определяем типы
-interface UserProfile {
-    full_name: string | null;
-    avatar_url: string | null;
-    phone: string | null;
-    city: string | null;
-    address: string | null;
-}
-
-interface UserWithProfile {
-    id: string;
-    email: string;
-    role: string;
-    created_at: string;
-    profiles: UserProfile | UserProfile[] | null;
-}
-
-interface OrderUser {
-    email: string;
-    profiles: UserProfile | UserProfile[] | null;
-}
-
-interface OrderWithUser {
-    id: string;
-    order_number: string;
-    total_amount: number;
-    status: string;
-    created_at: string;
-    buyer_id: string;
-    users: OrderUser | null;
-}
-
-interface CategoryStat {
-    category: string | null;
-}
-
 // Rate limiting
 const limiter = rateLimit({ limit: 20, windowMs: 60 * 1000 });
-
-// Функция для получения профиля пользователя (независимо от структуры)
-function getUserProfile(profiles: UserProfile | UserProfile[] | null): UserProfile | null {
-    if (!profiles) return null;
-    if (Array.isArray(profiles) && profiles.length > 0) return profiles[0];
-    if (!Array.isArray(profiles)) return profiles;
-    return null;
-}
 
 export async function GET(request: Request) {
     const startTime = Date.now();
@@ -69,7 +25,6 @@ export async function GET(request: Request) {
             )
         }
 
-        // Rate limiting
         const rateLimitResult = limiter(request);
         if (!rateLimitResult.success) {
             return NextResponse.json({ 
@@ -77,7 +32,6 @@ export async function GET(request: Request) {
             }, { status: 429 });
         }
 
-        // Кэшируем статистику на 30 секунд
         const cacheKey = 'admin_dashboard_stats';
         
         const stats = await cachedQuery(cacheKey, async () => {
@@ -89,8 +43,6 @@ export async function GET(request: Request) {
                 ordersCountResult,
                 pendingMastersResult,
                 pendingProductsResult,
-                recentUsersResult,
-                recentOrdersResult,
                 totalRevenueResult,
                 monthlyStatsResult,
                 previousMonthStatsResult
@@ -129,45 +81,6 @@ export async function GET(request: Request) {
                     .select('*', { count: 'exact', head: true })
                     .eq('status', 'moderation'),
                 
-                // Последние 10 пользователей
-                supabase
-                    .from('users')
-                    .select(`
-                        id,
-                        email,
-                        role,
-                        created_at,
-                        profiles (
-                            full_name,
-                            avatar_url,
-                            phone,
-                            city,
-                            address
-                        )
-                    `)
-                    .order('created_at', { ascending: false })
-                    .limit(10),
-                
-                // Последние 10 заказов
-                supabase
-                    .from('orders')
-                    .select(`
-                        id,
-                        order_number,
-                        total_amount,
-                        status,
-                        created_at,
-                        buyer_id,
-                        users!inner (
-                            email,
-                            profiles (
-                                full_name
-                            )
-                        )
-                    `)
-                    .order('created_at', { ascending: false })
-                    .limit(10),
-                
                 // Общая выручка
                 supabase
                     .from('orders')
@@ -180,7 +93,7 @@ export async function GET(request: Request) {
                     .select('total_amount, created_at')
                     .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
                 
-                // Статистика за предыдущий месяц (для сравнения)
+                // Статистика за предыдущий месяц
                 supabase
                     .from('orders')
                     .select('total_amount, created_at')
@@ -188,24 +101,34 @@ export async function GET(request: Request) {
                     .lt('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
             ]);
 
-            // Форматируем последних пользователей
-            const recentUsersData = (recentUsersResult.data as UserWithProfile[] | null) || [];
-            const recentUsers = recentUsersData.map((user) => {
-                // Получаем профиль
-                const profile = getUserProfile(user.profiles);
-                
-                // Получаем имя из профиля или из email
+            // Получаем последних пользователей с их профилями (отдельные запросы)
+            const { data: users } = await supabase
+                .from('users')
+                .select('id, email, role, created_at')
+                .order('created_at', { ascending: false })
+                .limit(10);
+
+            // Получаем профили для этих пользователей
+            const userIds = users?.map(u => u.id) || [];
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('user_id, full_name, avatar_url, phone, city, address')
+                .in('user_id', userIds);
+
+            // Создаем Map для быстрого доступа
+            const profileMap = new Map();
+            profiles?.forEach(p => {
+                profileMap.set(p.user_id, p);
+            });
+
+            // Форматируем пользователей
+            const recentUsers = users?.map(user => {
+                const profile = profileMap.get(user.id);
                 const userName = profile?.full_name || user.email?.split('@')[0] || 'Пользователь';
                 
-                // Определяем отображаемую роль
                 let displayRole = 'Покупатель';
-                if (user.role === 'master') {
-                    displayRole = 'Мастер';
-                } else if (user.role === 'admin') {
-                    displayRole = 'Администратор';
-                } else if (user.role === 'buyer') {
-                    displayRole = 'Покупатель';
-                }
+                if (user.role === 'master') displayRole = 'Мастер';
+                else if (user.role === 'admin') displayRole = 'Администратор';
                 
                 return {
                     id: user.id,
@@ -218,26 +141,59 @@ export async function GET(request: Request) {
                     avatar: profile?.avatar_url || null,
                     city: profile?.city || null
                 };
+            }) || [];
+
+            // Получаем последние заказы с информацией о покупателях
+            const { data: orders } = await supabase
+                .from('orders')
+                .select(`
+                    id,
+                    order_number,
+                    total_amount,
+                    status,
+                    created_at,
+                    buyer_id
+                `)
+                .order('created_at', { ascending: false })
+                .limit(10);
+
+            // Получаем покупателей для заказов
+            const buyerIds = orders?.map(o => o.buyer_id) || [];
+            const { data: buyers } = await supabase
+                .from('users')
+                .select('id, email')
+                .in('id', buyerIds);
+            
+            // Получаем профили покупателей
+            const { data: buyerProfiles } = await supabase
+                .from('profiles')
+                .select('user_id, full_name')
+                .in('user_id', buyerIds);
+
+            const buyerMap = new Map();
+            buyers?.forEach(b => {
+                buyerMap.set(b.id, { email: b.email });
+            });
+            
+            const buyerProfileMap = new Map();
+            buyerProfiles?.forEach(p => {
+                buyerProfileMap.set(p.user_id, p);
             });
 
-            // Форматируем последние заказы
-            const recentOrdersData = (recentOrdersResult.data as OrderWithUser[] | null) || [];
-            const recentOrders = recentOrdersData.map((order) => {
-                const statusMap: Record<string, string> = {
-                    new: 'Новый',
-                    confirmed: 'Подтверждён',
-                    processing: 'В обработке',
-                    shipped: 'Отправлен',
-                    delivered: 'Доставлен',
-                    cancelled: 'Отменён',
-                    completed: 'Завершён'
-                };
-                
-                // Получаем профиль пользователя
-                const userProfile = getUserProfile(order.users?.profiles as UserProfile | UserProfile[] | null);
-                
-                // Получаем имя покупателя
-                const buyerName = userProfile?.full_name || order.users?.email?.split('@')[0] || 'Покупатель';
+            const statusMap: Record<string, string> = {
+                new: 'Новый',
+                confirmed: 'Подтверждён',
+                processing: 'В обработке',
+                shipped: 'Отправлен',
+                delivered: 'Доставлен',
+                cancelled: 'Отменён',
+                completed: 'Завершён'
+            };
+
+            const recentOrders = orders?.map(order => {
+                const buyer = buyerMap.get(order.buyer_id);
+                const buyerProfile = buyerProfileMap.get(order.buyer_id);
+                const buyerName = buyerProfile?.full_name || buyer?.email?.split('@')[0] || 'Покупатель';
                 
                 return {
                     id: order.id,
@@ -247,31 +203,28 @@ export async function GET(request: Request) {
                     status_code: order.status,
                     created_at: order.created_at,
                     buyer_name: sanitize.text(buyerName),
-                    buyer_email: order.users?.email
+                    buyer_email: buyer?.email
                 };
-            });
+            }) || [];
 
-            // Вычисляем общую выручку
+            // Вычисляем выручку
             const revenueData = totalRevenueResult.data as { total_amount: number }[] | null;
             const totalRevenue = revenueData?.reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0;
 
-            // Вычисляем статистику за месяц
             const monthlyData = monthlyStatsResult.data as { total_amount: number }[] | null;
             const monthlyRevenue = monthlyData?.reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0;
             const monthlyOrdersCount = monthlyData?.length || 0;
 
-            // Вычисляем статистику за предыдущий месяц
             const previousData = previousMonthStatsResult.data as { total_amount: number }[] | null;
             const previousRevenue = previousData?.reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0;
             const previousOrdersCount = previousData?.length || 0;
 
-            // Функция для вычисления процента изменений
             const calculateGrowth = (current: number, previous: number): number => {
                 if (previous === 0) return current > 0 ? 100 : 0;
                 return Math.round(((current - previous) / previous) * 100);
             };
 
-            // Статистика по категориям товаров (топ 5)
+            // Топ категории
             const { data: categoryStats } = await supabase
                 .from('products')
                 .select('category')
@@ -279,7 +232,7 @@ export async function GET(request: Request) {
                 .not('category', 'is', null);
             
             const categoryMap = new Map<string, number>();
-            (categoryStats as CategoryStat[] | null)?.forEach(p => {
+            categoryStats?.forEach(p => {
                 if (p.category) {
                     categoryMap.set(p.category, (categoryMap.get(p.category) || 0) + 1);
                 }
@@ -316,27 +269,10 @@ export async function GET(request: Request) {
 
         logApiRequest('GET', '/api/admin/dashboard', 200, Date.now() - startTime, session.user.id);
 
-        return NextResponse.json(stats, { 
-            status: 200,
-            headers: { 
-                'Cache-Control': 'private, max-age=30',
-                'X-Content-Type-Options': 'nosniff',
-                'X-RateLimit-Limit': rateLimitResult.limit?.toString() || '20',
-                'X-RateLimit-Remaining': rateLimitResult.remaining?.toString() || '20'
-            }
-        });
+        return NextResponse.json(stats, { status: 200 });
         
     } catch(error) {
         logError('Dashboard API error', error);
-        
-        const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
-        
-        return NextResponse.json(
-            { 
-                error: 'Ошибка загрузки статистики. Попробуйте позже.',
-                details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
-            }, 
-            { status: 500 }
-        );
+        return NextResponse.json({ error: 'Ошибка загрузки статистики' }, { status: 500 });
     }
 }
