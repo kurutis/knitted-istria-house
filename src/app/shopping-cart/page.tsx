@@ -87,10 +87,12 @@ export default function ShoppingCartPage() {
             const response = await fetch('/api/user/profile')
             if (response.ok) {
                 const data = await response.json()
+                // Исправлено: API возвращает profile внутри объекта
                 const profile = data.profile || data
+                
                 setShippingAddress(prev => ({
                     ...prev,
-                    full_name: profile.full_name || session?.user?.name || '',
+                    full_name: profile.fullname || profile.full_name || session?.user?.name || '',
                     phone: profile.phone || '',
                     city: profile.city || '',
                     address: profile.address || ''
@@ -159,19 +161,19 @@ export default function ShoppingCartPage() {
 
     const handlePlaceOrder = async () => {
         // Валидация
-        if (!shippingAddress.full_name) {
+        if (!shippingAddress.full_name.trim()) {
             alert('Укажите ФИО')
             return
         }
-        if (!shippingAddress.phone) {
+        if (!shippingAddress.phone.trim()) {
             alert('Укажите телефон')
             return
         }
-        if (!shippingAddress.city) {
+        if (!shippingAddress.city.trim()) {
             alert('Укажите город')
             return
         }
-        if (!shippingAddress.address) {
+        if (!shippingAddress.address.trim()) {
             alert('Укажите адрес доставки')
             return
         }
@@ -243,7 +245,6 @@ export default function ShoppingCartPage() {
             <div className="text-center mb-8">
                 <h1 className="font-['Montserrat_Alternates'] font-bold text-3xl mb-6">Оформление заказа</h1>
                 
-                {/* Шаги */}
                 <div className="flex items-center justify-center gap-4">
                     {[
                         { num: 1, title: 'Корзина' },
@@ -253,10 +254,9 @@ export default function ShoppingCartPage() {
                         <div key={s.num} className="flex items-center">
                             <button
                                 onClick={() => setStep(s.num)}
-                                disabled={s.num === 1 && cart.items.length === 0}
                                 className={`flex items-center gap-2 ${
                                     step >= s.num ? 'text-firm-orange' : 'text-gray-400'
-                                } ${s.num === 1 && cart.items.length === 0 ? 'cursor-not-allowed opacity-50' : ''}`}
+                                }`}
                             >
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${
                                     step > s.num
@@ -280,7 +280,6 @@ export default function ShoppingCartPage() {
             </div>
 
             <div className="flex flex-col lg:flex-row gap-8">
-                {/* Левая колонка - содержимое шага */}
                 <div className="flex-1">
                     {/* Шаг 1: Корзина */}
                     {step === 1 && (
@@ -572,7 +571,7 @@ export default function ShoppingCartPage() {
                             <button
                                 onClick={handlePlaceOrder}
                                 disabled={orderLoading}
-                                className="w-full py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-lg hover:shadow-lg transition font-['Montserrat_Alternates'] font-semibold disabled:opacity-50"
+                                className="w-full py-3 bg-linear-to-r from-firm-orange to-firm-pink text-white rounded-lg hover:shadow-lg transition font-['Montserrat_Alternates'] font-semibold disabled:opacity-50"
                             >
                                 {orderLoading ? '⏳ Оформление...' : '✅ Подтвердить заказ'}
                             </button>
