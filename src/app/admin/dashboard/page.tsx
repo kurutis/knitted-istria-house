@@ -137,6 +137,7 @@ export default function AdminDashboardPage() {
             
             const data = await response.json()
             setStats(data)
+            console.log('Recent users roles:', data.recentUsers?.map((u: { email: unknown; role: unknown; role_code: unknown }) => ({ email: u.email, role: u.role, role_code: u.role_code })));
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка'
             setError(errorMessage)
@@ -196,6 +197,7 @@ export default function AdminDashboardPage() {
     }
 
     if (!stats) return null
+    
 
     const statCards = [
         { 
