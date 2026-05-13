@@ -51,7 +51,10 @@ function generateKey(folder: string, id: string, originalName: string): string {
 
 // Получение публичного URL
 export function getPublicUrl(key: string): string {
-    const publicUrl = process.env.S3_PUBLIC_URL || 'https://30bd5b8c-136d-48e3-b7c1-71a168d4fef4.selstorage.ru';
+    const bucketName = process.env.S3_BUCKET || 'knitted-istria-house';
+    const region = process.env.S3_REGION || 'ru-7';
+    const publicUrl = `https://${bucketName}.s3.${region}.storage.selcloud.ru`;
+    
     const cleanKey = key.replace(/^\/+/, '');
     return `${publicUrl}/${cleanKey}`;
 }
@@ -146,7 +149,7 @@ export async function uploadToS3(
             Body: buffer,
             ContentType: contentType,
             CacheControl: 'public, max-age=31536000',
-            ACL: 'public-read',  // ← ДОБАВЛЕНО! Это ключевая строка для публичного доступа
+            // ACL: 'public-read',  // ← УБРАТЬ! Не поддерживается в Selectel
             Metadata: {
                 originalName: encodeURIComponent(file.name),
                 uploadedAt: new Date().toISOString(),
