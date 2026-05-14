@@ -3,12 +3,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { rateLimit, getClientIP } from "@/lib/rate-limit";
-import { logError, logInfo, logApiRequest } from "@/lib/error-logger";
+import { logError, logApiRequest } from "@/lib/error-logger";
 import { sanitize } from "@/lib/sanitize";
 import { cachedQuery } from "@/lib/db-optimized";
 import { z } from "zod";
 
-// Исправленная схема - все параметры опциональные
+// Схема валидации
 const querySchema = z.object({
     status: z.enum(['open', 'in_progress', 'closed', 'all']).optional().default('all'),
     priority: z.enum(['low', 'medium', 'high', 'all']).optional().default('all'),
@@ -18,8 +18,13 @@ const querySchema = z.object({
 });
 
 const limiter = rateLimit({ limit: 30, windowMs: 60 * 1000 });
-
 const priorityOrder = { high: 1, medium: 2, low: 3 };
+
+function cleanParam(value: string | null): string | undefined {
+    if (!value) return undefined;
+    if (value === 'null' || value === 'undefined' || value === '') return undefined;
+    return value;
+}
 
 export async function GET(request: Request) {
     const startTime = Date.now();
@@ -39,20 +44,13 @@ export async function GET(request: Request) {
 
         const { searchParams } = new URL(request.url);
         
-        // Получаем параметры с проверкой на null
-        const statusParam = searchParams.get('status');
-        const priorityParam = searchParams.get('priority');
-        const searchParam = searchParams.get('search');
-        const limitParam = searchParams.get('limit');
-        const pageParam = searchParams.get('page');
-        
-        // Валидируем
+        // Очищаем параметры перед валидацией
         const validatedParams = querySchema.parse({
-            status: statusParam === 'null' || statusParam === '' || !statusParam ? undefined : statusParam,
-            priority: priorityParam === 'null' || priorityParam === '' || !priorityParam ? undefined : priorityParam,
-            search: searchParam === 'null' || searchParam === '' ? undefined : searchParam,
-            limit: limitParam === 'null' || limitParam === '' ? undefined : limitParam,
-            page: pageParam === 'null' || pageParam === '' ? undefined : pageParam
+            status: cleanParam(searchParams.get('status')),
+            priority: cleanParam(searchParams.get('priority')),
+            search: cleanParam(searchParams.get('search')),
+            limit: cleanParam(searchParams.get('limit')),
+            page: cleanParam(searchParams.get('page'))
         });
         
         const { status, priority, search, limit, page } = validatedParams;
