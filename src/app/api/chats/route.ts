@@ -36,7 +36,7 @@ export async function GET(request: Request) {
                 .from('chat_participants')
                 .select(`
                     chat_id,
-                    chats!inner (
+                    chats!left (
                         id,
                         type,
                         created_at,
