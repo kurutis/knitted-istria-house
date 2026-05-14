@@ -1,4 +1,3 @@
-// src/app/api/admin/support/tickets/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -58,34 +57,10 @@ export async function GET(request: Request) {
         const cacheKey = `admin_tickets_${status}_${priority}_${search || 'none'}_${page}_${limit}`;
         
         const result = await cachedQuery(cacheKey, async () => {
+            // 1. Получаем тикеты без JOIN
             let query = supabase
                 .from('support_tickets')
-                .select(`
-                    id,
-                    chat_id,
-                    user_id,
-                    subject,
-                    status,
-                    priority,
-                    category,
-                    created_at,
-                    updated_at,
-                    closed_at,
-                    closed_reason,
-                    started_at,
-                    started_by,
-                    users!inner (
-                        id,
-                        email,
-                        is_active,
-                        profiles!left (
-                            full_name,
-                            avatar_url,
-                            phone,
-                            city
-                        )
-                    )
-                `, { count: 'exact' });
+                .select('*', { count: 'exact' });
 
             if (status && status !== 'all') {
                 query = query.eq('status', status);
@@ -105,38 +80,44 @@ export async function GET(request: Request) {
                 throw new Error('DATABASE_ERROR');
             }
 
-            // Если тикетов нет - возвращаем пустой результат
             if (!tickets || tickets.length === 0) {
                 return {
                     tickets: [],
-                    pagination: {
-                        total: 0,
-                        page,
-                        limit,
-                        totalPages: 0,
-                        hasMore: false
-                    },
-                    stats: {
-                        total: 0,
-                        filtered: 0,
-                        by_status: { open: 0, in_progress: 0, closed: 0 },
-                        by_priority: { high: 0, medium: 0, low: 0 }
-                    },
+                    pagination: { total: 0, page, limit, totalPages: 0, hasMore: false },
+                    stats: { total: 0, filtered: 0, by_status: { open: 0, in_progress: 0, closed: 0 }, by_priority: { high: 0, medium: 0, low: 0 } },
                     lastUpdated: new Date().toISOString()
                 };
             }
 
-            const ticketIds = tickets.map(t => t.id);
-            const lastMessageMap = new Map();
-            const unreadCountMap = new Map();
+            // 2. Получаем информацию о пользователях
+            const userIds = [...new Set(tickets.map(t => t.user_id))];
+            
+            const { data: users } = await supabase
+                .from('users')
+                .select('id, email')
+                .in('id', userIds);
 
-            // Получаем последние сообщения
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('user_id, full_name, avatar_url, phone, city')
+                .in('user_id', userIds);
+
+            const userMap = new Map();
+            users?.forEach(u => userMap.set(u.id, { email: u.email }));
+            
+            const profileMap = new Map();
+            profiles?.forEach(p => profileMap.set(p.user_id, { full_name: p.full_name, avatar_url: p.avatar_url, phone: p.phone, city: p.city }));
+
+            // 3. Получаем последние сообщения
+            const chatIds = tickets.map(t => t.chat_id);
+            
             const { data: lastMessages } = await supabase
                 .from('messages')
                 .select('chat_id, content, created_at, sender_id')
-                .in('chat_id', tickets.map(t => t.chat_id))
+                .in('chat_id', chatIds)
                 .order('created_at', { ascending: false });
 
+            const lastMessageMap = new Map();
             lastMessages?.forEach(msg => {
                 if (!lastMessageMap.has(msg.chat_id)) {
                     lastMessageMap.set(msg.chat_id, {
@@ -147,21 +128,24 @@ export async function GET(request: Request) {
                 }
             });
 
-            // Получаем количество непрочитанных
+            // 4. Получаем количество непрочитанных
             const { data: unreadMessages } = await supabase
                 .from('messages')
                 .select('chat_id')
-                .in('chat_id', tickets.map(t => t.chat_id))
+                .in('chat_id', chatIds)
                 .eq('is_read', false)
                 .neq('sender_id', session.user.id);
 
+            const unreadCountMap = new Map();
             unreadMessages?.forEach(msg => {
                 unreadCountMap.set(msg.chat_id, (unreadCountMap.get(msg.chat_id) || 0) + 1);
             });
 
+            // 5. Форматируем результат
             const formattedTickets = tickets.map(ticket => {
                 const lastMessage = lastMessageMap.get(ticket.chat_id);
-                const profile = ticket.users?.[0]?.profiles?.[0];
+                const userInfo = userMap.get(ticket.user_id);
+                const profileInfo = profileMap.get(ticket.user_id);
                 
                 return {
                     id: ticket.id,
@@ -176,17 +160,18 @@ export async function GET(request: Request) {
                     closed_at: ticket.closed_at,
                     closed_reason: ticket.closed_reason,
                     started_at: ticket.started_at,
-                    user_name: sanitize.text(profile?.full_name || ticket.users?.[0]?.email),
-                    user_email: sanitize.email(ticket.users?.[0]?.email || ''),
-                    user_avatar: profile?.avatar_url,
-                    user_phone: profile?.phone || '',
-                    user_city: profile?.city || '',
+                    user_name: sanitize.text(profileInfo?.full_name || userInfo?.email || 'Пользователь'),
+                    user_email: sanitize.email(userInfo?.email || ''),
+                    user_avatar: profileInfo?.avatar_url || null,
+                    user_phone: profileInfo?.phone || '',
+                    user_city: profileInfo?.city || '',
                     last_message: lastMessage?.content || 'Нет сообщений',
                     last_message_time: lastMessage?.created_at,
                     unread_count: unreadCountMap.get(ticket.chat_id) || 0
                 };
             });
 
+            // 6. Сортировка
             formattedTickets.sort((a, b) => {
                 const priorityDiff = (priorityOrder[a.priority as keyof typeof priorityOrder] || 2) - 
                                     (priorityOrder[b.priority as keyof typeof priorityOrder] || 2);
@@ -198,6 +183,7 @@ export async function GET(request: Request) {
                 return timeB - timeA;
             });
 
+            // 7. Поиск
             let filteredTickets = formattedTickets;
             if (search && search.trim()) {
                 const query = search.toLowerCase();
@@ -243,24 +229,11 @@ export async function GET(request: Request) {
         console.error('Error in tickets API:', error);
         logError('Error fetching support tickets', error);
         
-        // Возвращаем пустой результат вместо ошибки 500
         return NextResponse.json({
             tickets: [],
-            pagination: {
-                total: 0,
-                page: 1,
-                limit: 20,
-                totalPages: 0,
-                hasMore: false
-            },
-            stats: {
-                total: 0,
-                filtered: 0,
-                by_status: { open: 0, in_progress: 0, closed: 0 },
-                by_priority: { high: 0, medium: 0, low: 0 }
-            },
-            lastUpdated: new Date().toISOString(),
-            _error: error instanceof Error ? error.message : 'Unknown error'
+            pagination: { total: 0, page: 1, limit: 20, totalPages: 0, hasMore: false },
+            stats: { total: 0, filtered: 0, by_status: { open: 0, in_progress: 0, closed: 0 }, by_priority: { high: 0, medium: 0, low: 0 } },
+            lastUpdated: new Date().toISOString()
         }, { status: 200 });
     }
 }
