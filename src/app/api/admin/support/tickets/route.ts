@@ -48,11 +48,11 @@ export async function GET(request: Request) {
         
         // Валидируем
         const validatedParams = querySchema.parse({
-            status: statusParam === 'null' ? undefined : statusParam,
-            priority: priorityParam === 'null' ? undefined : priorityParam,
-            search: searchParam === 'null' ? undefined : searchParam,
-            limit: limitParam === 'null' ? undefined : limitParam,
-            page: pageParam === 'null' ? undefined : pageParam
+            status: statusParam === 'null' || statusParam === '' || !statusParam ? undefined : statusParam,
+            priority: priorityParam === 'null' || priorityParam === '' || !priorityParam ? undefined : priorityParam,
+            search: searchParam === 'null' || searchParam === '' ? undefined : searchParam,
+            limit: limitParam === 'null' || limitParam === '' ? undefined : limitParam,
+            page: pageParam === 'null' || pageParam === '' ? undefined : pageParam
         });
         
         const { status, priority, search, limit, page } = validatedParams;
