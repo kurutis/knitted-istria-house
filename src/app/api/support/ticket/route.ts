@@ -1,3 +1,4 @@
+// src/app/api/support/ticket/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -73,6 +74,7 @@ export async function POST(request: Request) {
 
         const now = new Date().toISOString();
 
+        // 1. Создаем чат
         const { data: chat, error: chatError } = await supabase
             .from('chats')
             .insert({ 
@@ -88,14 +90,12 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Ошибка создания чата поддержки' }, { status: 500 });
         }
 
+        // 2. Добавляем пользователя в участники чата - ТОЛЬКО существующие поля
         const { error: participantError } = await supabase
             .from('chat_participants')
             .insert({ 
                 chat_id: chat.id, 
-                user_id: session.user.id,
-                joined_at: now,
-                last_read_at: now,
-                unread_count: 0
+                user_id: session.user.id
             });
 
         if (participantError) {
@@ -104,6 +104,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Ошибка добавления участника' }, { status: 500 });
         }
 
+        // 3. Находим администратора
         const { data: admin } = await supabase
             .from('users')
             .select('id')
@@ -116,15 +117,14 @@ export async function POST(request: Request) {
         let adminId = null;
         let adminAdded = false;
 
+        // 4. Добавляем админа в участники чата - ТОЛЬКО существующие поля
         if (admin) {
             adminId = admin.id;
             const { error: addAdminError } = await supabase
                 .from('chat_participants')
                 .insert({ 
                     chat_id: chat.id, 
-                    user_id: admin.id,
-                    joined_at: now,
-                    role: 'admin'
+                    user_id: admin.id
                 });
             
             if (!addAdminError) {
@@ -132,6 +132,7 @@ export async function POST(request: Request) {
             }
         }
 
+        // 5. Создаем тикет
         const { data: ticket, error: ticketError } = await supabase
             .from('support_tickets')
             .insert({
@@ -151,6 +152,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Ошибка создания тикета' }, { status: 500 });
         }
 
+        // 6. Отправляем приветственное сообщение
         let welcomeMessageSent = false;
         
         if (adminId) {
