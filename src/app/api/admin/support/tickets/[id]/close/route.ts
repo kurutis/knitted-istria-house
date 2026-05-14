@@ -7,7 +7,6 @@ import { logError, logInfo, logApiRequest } from "@/lib/error-logger";
 import { sanitize } from "@/lib/sanitize";
 import { invalidateCache } from "@/lib/db-optimized";
 import { z } from "zod";
-import { notifyTicketUpdate } from "@/lib/websocket-server";
 
 const closeTicketSchema = z.object({
     reason: z.string().max(500, 'Причина не может превышать 500 символов').optional(),
@@ -118,13 +117,6 @@ export async function POST(
                 created_at: now,
                 is_read: false
             });
-
-        await notifyTicketUpdate(id, {
-            status: 'closed',
-            last_message: '',
-            last_message_time: now,
-            updated_at: now
-        });
 
         logApiRequest('POST', `/api/admin/support/tickets/${id}/close`, 200, Date.now() - startTime, session.user.id);
         logInfo(`Admin closed ticket`, { 

@@ -7,7 +7,6 @@ import { logError, logInfo, logApiRequest } from "@/lib/error-logger";
 import { sanitize } from "@/lib/sanitize";
 import { invalidateCache } from "@/lib/db-optimized";
 import { z } from "zod";
-import { notifyNewMessage, notifyTicketUpdate } from "@/lib/websocket-server";
 
 const sendMessageSchema = z.object({
     content: z.string().max(5000, 'Сообщение не может превышать 5000 символов').optional(),
@@ -241,11 +240,10 @@ export async function POST(
             })
             .eq('id', ticket.chat_id);
 
-        await supabase
-            .from('chat_participants')
-            .update({ unread_count: supabase.rpc('increment', { row_id: 'unread_count', amount: 1 }) })
-            .eq('chat_id', ticket.chat_id)
-            .neq('user_id', session.user.id);
+        await supabase.rpc('increment_unread_count', {
+            p_chat_id: ticket.chat_id,
+            p_exclude_user_id: session.user.id
+        });
 
         let ticketStatus = ticket.status;
         if (ticket.status === 'open') {
@@ -287,26 +285,6 @@ export async function POST(
         invalidateCache(`support_ticket_${id}`);
         invalidateCache(new RegExp(`user_chats_${ticket.user_id}`));
 
-        // WebSocket уведомления
-        await notifyNewMessage(ticket.chat_id, {
-                id: newMessage.id,
-                chat_id: newMessage.chat_id,
-                sender_id: newMessage.sender_id,
-                content: newMessage.content,
-                attachments: newMessage.attachments,
-                created_at: newMessage.created_at,
-                sender_name: session.user.name || session.user.email || 'Администратор',
-                sender_avatar: session.user.image || null,
-                sender_role: 'admin',
-            });
-        
-        await notifyTicketUpdate(id, {
-            status: ticketStatus,
-            last_message: sanitizedContent.substring(0, 100),
-            last_message_time: now,
-            updated_at: now
-        });
-
         logApiRequest('POST', `/api/admin/support/tickets/${id}/messages`, 201, Date.now() - startTime, session.user.id);
 
         return NextResponse.json({
@@ -316,8 +294,8 @@ export async function POST(
             content: newMessage.content,
             attachments: attachments,
             created_at: newMessage.created_at,
-            sender_name: session.user.name || session.user.email,
-            sender_avatar: session.user.image,
+            sender_name: session.user.name || session.user.email || 'Администратор',
+            sender_avatar: session.user.image || null,
             sender_role: 'admin'
         }, { status: 201 });
         

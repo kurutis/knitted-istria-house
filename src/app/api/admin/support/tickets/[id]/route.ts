@@ -81,13 +81,11 @@ export async function GET(
 
             const profile = ticketData.users?.[0]?.profiles?.[0];
             
-            // Получаем количество сообщений
             const { count: messagesCount } = await supabase
                 .from('messages')
                 .select('id', { count: 'exact', head: true })
                 .eq('chat_id', ticketData.chat_id);
 
-            // Получаем количество непрочитанных
             const { count: unreadCount } = await supabase
                 .from('messages')
                 .select('id', { count: 'exact', head: true })

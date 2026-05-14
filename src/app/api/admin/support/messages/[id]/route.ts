@@ -7,7 +7,6 @@ import { logError, logInfo, logApiRequest } from "@/lib/error-logger";
 import { sanitize } from "@/lib/sanitize";
 import { invalidateCache } from "@/lib/db-optimized";
 import { z } from "zod";
-import { notifyMessageEdit, notifyMessageDelete } from "@/lib/websocket-server";
 
 const updateMessageSchema = z.object({
     content: z.string().min(1, 'Сообщение не может быть пустым').max(5000, 'Сообщение не может превышать 5000 символов'),
@@ -118,18 +117,6 @@ export async function PUT(
                 created_at: new Date().toISOString()
             });
 
-        await notifyMessageEdit(message.chat_id, {
-            id: updatedMessage.id,
-            chat_id: updatedMessage.chat_id,
-            sender_id: updatedMessage.sender_id,
-            content: updatedMessage.content,
-            attachments: updatedMessage.attachments || [],
-            created_at: updatedMessage.created_at,
-            sender_name: session.user.name || session.user.email || 'Администратор',
-            sender_avatar: session.user.image || null,
-            sender_role: 'admin',
-        });
-
         logApiRequest('PUT', `/api/admin/support/messages/${id}`, 200, Date.now() - startTime, session.user.id);
 
         const formattedMessage = {
@@ -230,8 +217,6 @@ export async function DELETE(
                 },
                 created_at: new Date().toISOString()
             });
-
-        await notifyMessageDelete(message.chat_id, id, session.user.id);
 
         logApiRequest('DELETE', `/api/admin/support/messages/${id}`, 200, Date.now() - startTime, session.user.id);
 

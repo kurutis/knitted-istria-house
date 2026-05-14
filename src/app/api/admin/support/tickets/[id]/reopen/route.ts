@@ -5,7 +5,6 @@ import { supabase } from "@/lib/supabase";
 import { rateLimit, getClientIP } from "@/lib/rate-limit";
 import { logError, logInfo, logApiRequest } from "@/lib/error-logger";
 import { invalidateCache } from "@/lib/db-optimized";
-import { notifyTicketUpdate } from "@/lib/websocket-server";
 
 const limiter = rateLimit({ limit: 20, windowMs: 60 * 1000 });
 
@@ -100,13 +99,6 @@ export async function POST(
                 created_at: now,
                 is_read: false
             });
-
-        await notifyTicketUpdate(id, {
-            status: 'open',
-            last_message: '',
-            last_message_time: now,
-            updated_at: now
-        });
 
         logApiRequest('POST', `/api/admin/support/tickets/${id}/reopen`, 200, Date.now() - startTime, session.user.id);
         logInfo(`Admin reopened ticket`, { ticketId: id, adminId: session.user.id });

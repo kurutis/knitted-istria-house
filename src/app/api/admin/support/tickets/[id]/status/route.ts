@@ -7,7 +7,6 @@ import { logError, logInfo, logApiRequest } from "@/lib/error-logger";
 import { sanitize } from "@/lib/sanitize";
 import { invalidateCache } from "@/lib/db-optimized";
 import { z } from "zod";
-import { notifyTicketUpdate } from "@/lib/websocket-server";
 
 const updateStatusSchema = z.object({
     status: z.enum(['open', 'in_progress', 'closed']),
@@ -190,13 +189,6 @@ export async function PUT(
                     is_read: false
                 });
         }
-
-        await notifyTicketUpdate(id, {
-            status: status,
-            last_message: '',
-            last_message_time: now,
-            updated_at: now
-        });
 
         logApiRequest('PUT', `/api/admin/support/tickets/${id}/status`, 200, Date.now() - startTime, session.user.id);
 

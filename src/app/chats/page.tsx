@@ -1,9 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef, useCallback } from "react"; // <-- добавили useCallback
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import toast from "react-hot-toast";
 
 interface Chat {
@@ -41,54 +40,13 @@ export default function ChatsPage() {
   const [attachments, setAttachments] = useState<File[]>([]);
   const [attachmentPreviews, setAttachmentPreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshingMessages, setRefreshingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [creatingTicket, setCreatingTicket] = useState(false);
-  const [wsConnected, setWsConnected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const wsRef = useRef<WebSocket | null>(null);
 
-  // WebSocket подключение - объявляем ДО использования в useEffect
-  const connectWebSocket = useCallback(() => {
-    if (!session?.user) return;
-    
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/api/ws/support?userId=${session.user.id}`;
-    const ws = new WebSocket(wsUrl);
-    
-    ws.onopen = () => {
-      console.log('WebSocket connected');
-      setWsConnected(true);
-    };
-    
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      
-      if (data.type === 'new_message' && selectedChat?.id === data.chat_id) {
-        setMessages(prev => [...prev, data.message]);
-        if (data.message.sender_id !== session.user.id && selectedChat) {
-          markAsRead(selectedChat.id);
-        }
-      } else if (data.type === 'ticket_updated' && selectedChat?.type === 'support') {
-        fetchChats();
-      }
-    };
-    
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      setWsConnected(false);
-    };
-    
-    ws.onclose = () => {
-      console.log('WebSocket disconnected');
-      setWsConnected(false);
-      setTimeout(connectWebSocket, 5000);
-    };
-    
-    wsRef.current = ws;
-  }, [session, selectedChat]);
-
-  // Эффекты
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/auth/signin?callbackUrl=/chats");
@@ -112,18 +70,6 @@ export default function ChatsPage() {
     scrollToBottom();
   }, [messages]);
 
-  useEffect(() => {
-    if (session?.user) {
-      connectWebSocket();
-    }
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
-  }, [session, connectWebSocket]);
-
-  // Функции API
   const fetchChats = async () => {
     try {
       const response = await fetch("/api/chats");
@@ -135,6 +81,22 @@ export default function ChatsPage() {
       toast.error("Ошибка загрузки чатов");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const refreshChats = async () => {
+    try {
+      setRefreshing(true);
+      const response = await fetch("/api/chats");
+      if (!response.ok) throw new Error("Ошибка загрузки");
+      const data = await response.json();
+      setChats(data.chats || []);
+      toast.success("Чаты обновлены");
+    } catch (error) {
+      console.error("Error refreshing chats:", error);
+      toast.error("Ошибка обновления");
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -150,12 +112,30 @@ export default function ChatsPage() {
     }
   };
 
+  const refreshMessages = async () => {
+    if (!selectedChat) return;
+    
+    try {
+      setRefreshingMessages(true);
+      const response = await fetch(`/api/chats/${selectedChat.id}/messages`);
+      if (!response.ok) throw new Error("Ошибка загрузки");
+      const data = await response.json();
+      setMessages(data.messages || []);
+      toast.success("Сообщения обновлены");
+    } catch (error) {
+      console.error("Error refreshing messages:", error);
+      toast.error("Ошибка обновления");
+    } finally {
+      setRefreshingMessages(false);
+    }
+  };
+
   const markAsRead = async (chatId: string) => {
     try {
       await fetch(`/api/chats/${chatId}/read`, { method: "POST" });
-      setChats(prev => prev.map(chat => 
-        chat.id === chatId ? { ...chat, unread_count: 0 } : chat
-      ));
+      setChats((prev) =>
+        prev.map((chat) => (chat.id === chatId ? { ...chat, unread_count: 0 } : chat))
+      );
     } catch (error) {
       console.error("Error marking as read:", error);
     }
@@ -163,12 +143,12 @@ export default function ChatsPage() {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    
+
     if (attachments.length + files.length > 5) {
       toast.error("Можно загрузить не более 5 файлов за раз");
       return;
     }
-    
+
     const validFiles = files.filter((file) => {
       if (file.size > 20 * 1024 * 1024) {
         toast.error(`Файл ${file.name} превышает 20MB`);
@@ -180,9 +160,9 @@ export default function ChatsPage() {
       }
       return true;
     });
-    
+
     setAttachments((prev) => [...prev, ...validFiles]);
-    
+
     validFiles.forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -199,7 +179,7 @@ export default function ChatsPage() {
 
   const sendMessage = async () => {
     if ((!messageText.trim() && attachments.length === 0) || !selectedChat) return;
-    
+
     setSending(true);
     try {
       const formData = new FormData();
@@ -207,12 +187,12 @@ export default function ChatsPage() {
       attachments.forEach((file) => {
         formData.append("attachments", file);
       });
-      
+
       const response = await fetch(`/api/chats/${selectedChat.id}/messages`, {
         method: "POST",
         body: formData,
       });
-      
+
       if (response.ok) {
         const newMessage = await response.json();
         setMessages((prev) => [...prev, newMessage]);
@@ -239,7 +219,7 @@ export default function ChatsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
-      
+
       if (response.ok) {
         const newChat = await response.json();
         setChats((prev) => [newChat, ...prev]);
@@ -265,7 +245,7 @@ export default function ChatsPage() {
     const date = new Date(dateString);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
-    
+
     if (diff < 24 * 60 * 60 * 1000) {
       return date.toLocaleTimeString("ru-RU", {
         hour: "2-digit",
@@ -283,9 +263,7 @@ export default function ChatsPage() {
       <div className="mt-5 flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 font-['Montserrat_Alternates'] text-gray-600">
-            Загрузка...
-          </p>
+          <p className="mt-4 font-['Montserrat_Alternates'] text-gray-600">Загрузка...</p>
         </div>
       </div>
     );
@@ -296,22 +274,34 @@ export default function ChatsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
-      <h1 className="font-['Montserrat_Alternates'] font-semibold text-3xl mb-6">
-        Сообщения
-        {wsConnected && (
-          <span className="ml-3 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-            ● В реальном времени
-          </span>
-        )}
-      </h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="font-['Montserrat_Alternates'] font-semibold text-3xl">Сообщения</h1>
+        <button
+          onClick={refreshChats}
+          disabled={refreshing}
+          className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition disabled:opacity-50 flex items-center gap-2"
+        >
+          {refreshing ? (
+            <>
+              <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
+              Обновление...
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Обновить чаты
+            </>
+          )}
+        </button>
+      </div>
 
       <div className="flex gap-6 h-[70vh]">
         {/* Список чатов */}
         <div className="w-1/3 bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
           <div className="p-4 border-b border-gray-200 bg-gray-50">
-            <h2 className="font-['Montserrat_Alternates'] font-semibold text-lg">
-              Чаты
-            </h2>
+            <h2 className="font-['Montserrat_Alternates'] font-semibold text-lg">Чаты</h2>
           </div>
 
           <div className="flex-1 overflow-y-auto">
@@ -329,8 +319,7 @@ export default function ChatsPage() {
                   <div className="flex justify-between items-center">
                     <p className="font-semibold">Поддержка</p>
                     <span className="text-xs text-gray-400">
-                      {supportChat.last_message_time &&
-                        formatMessageTime(supportChat.last_message_time)}
+                      {supportChat.last_message_time && formatMessageTime(supportChat.last_message_time)}
                     </span>
                   </div>
                   <p className="text-sm text-gray-500 truncate">
@@ -339,9 +328,7 @@ export default function ChatsPage() {
                 </div>
                 {supportChat.unread_count > 0 && (
                   <div className="w-5 h-5 bg-firm-orange rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs">
-                      {supportChat.unread_count}
-                    </span>
+                    <span className="text-white text-xs">{supportChat.unread_count}</span>
                   </div>
                 )}
               </button>
@@ -358,11 +345,7 @@ export default function ChatsPage() {
                 <div className="relative">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden">
                     {chat.participant_avatar ? (
-                      <img
-                        src={chat.participant_avatar}
-                        alt={chat.participant_name}
-                        className="w-full h-full object-cover"
-                      />
+                      <img src={chat.participant_avatar} alt={chat.participant_name} className="w-full h-full object-cover" />
                     ) : (
                       chat.participant_name?.charAt(0).toUpperCase()
                     )}
@@ -371,19 +354,13 @@ export default function ChatsPage() {
                 <div className="flex-1 text-left">
                   <div className="flex justify-between items-center">
                     <p className="font-semibold">{chat.participant_name}</p>
-                    <span className="text-xs text-gray-400">
-                      {formatMessageTime(chat.last_message_time)}
-                    </span>
+                    <span className="text-xs text-gray-400">{formatMessageTime(chat.last_message_time)}</span>
                   </div>
-                  <p className="text-sm text-gray-500 truncate">
-                    {chat.last_message}
-                  </p>
+                  <p className="text-sm text-gray-500 truncate">{chat.last_message}</p>
                 </div>
                 {chat.unread_count > 0 && (
                   <div className="w-5 h-5 bg-firm-orange rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs">
-                      {chat.unread_count}
-                    </span>
+                    <span className="text-white text-xs">{chat.unread_count}</span>
                   </div>
                 )}
               </button>
@@ -404,7 +381,7 @@ export default function ChatsPage() {
           </div>
         </div>
 
-        {/* Область сообщений - без изменений, оставляем как было */}
+        {/* Область сообщений */}
         <div className="flex-1 bg-white rounded-lg shadow-md flex flex-col">
           {selectedChat ? (
             <>
@@ -415,11 +392,7 @@ export default function ChatsPage() {
                       {selectedChat.type === "support" ? (
                         "📞"
                       ) : selectedChat.participant_avatar ? (
-                        <img
-                          src={selectedChat.participant_avatar}
-                          alt={selectedChat.participant_name}
-                          className="w-full h-full object-cover"
-                        />
+                        <img src={selectedChat.participant_avatar} alt={selectedChat.participant_name} className="w-full h-full object-cover" />
                       ) : (
                         selectedChat.participant_name?.charAt(0).toUpperCase()
                       )}
@@ -427,22 +400,21 @@ export default function ChatsPage() {
                   </div>
                   <div>
                     <p className="font-['Montserrat_Alternates'] font-semibold">
-                      {selectedChat.type === "support"
-                        ? "Служба поддержки"
-                        : selectedChat.participant_name}
+                      {selectedChat.type === "support" ? "Служба поддержки" : selectedChat.participant_name}
                     </p>
                   </div>
                 </div>
-
-                {selectedChat.type === "support" && !supportChat && (
-                  <button
-                    onClick={startNewSupportTicket}
-                    disabled={creatingTicket}
-                    className="px-3 py-1 text-sm bg-firm-orange text-white rounded-lg hover:bg-opacity-90"
-                  >
-                    Открыть тикет
-                  </button>
-                )}
+                <button
+                  onClick={refreshMessages}
+                  disabled={refreshingMessages}
+                  className="px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition disabled:opacity-50 flex items-center gap-1"
+                >
+                  {refreshingMessages ? (
+                    <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    "🔄 Обновить"
+                  )}
+                </button>
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -450,12 +422,8 @@ export default function ChatsPage() {
                   <div className="text-center py-12">
                     {selectedChat.type === "support" ? (
                       <div className="bg-gray-50 rounded-lg p-6">
-                        <p className="text-gray-600 mb-2">
-                          👋 Добро пожаловать в службу поддержки!
-                        </p>
-                        <p className="text-gray-500 text-sm">
-                          Напишите ваше сообщение, и мы поможем вам.
-                        </p>
+                        <p className="text-gray-600 mb-2">👋 Добро пожаловать в службу поддержки!</p>
+                        <p className="text-gray-500 text-sm">Напишите ваше сообщение, и мы поможем вам.</p>
                       </div>
                     ) : (
                       <p className="text-gray-400">Напишите первое сообщение</p>
@@ -465,7 +433,7 @@ export default function ChatsPage() {
                   messages.map((message, index) => {
                     const isMine = message.sender_id === session?.user?.id;
                     const showAvatar = !isMine && (index === 0 || messages[index - 1]?.sender_id !== message.sender_id);
-                    
+
                     return (
                       <div key={message.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
                         <div className={`flex gap-2 max-w-[70%] ${isMine ? "flex-row-reverse" : ""}`}>
@@ -483,7 +451,7 @@ export default function ChatsPage() {
                           <div>
                             <div className={`rounded-lg p-3 ${isMine ? "bg-firm-orange text-white" : "bg-gray-100 text-gray-700"}`}>
                               <p className="break-words">{message.content}</p>
-                              
+
                               {message.attachments && message.attachments.length > 0 && (
                                 <div className="mt-2 flex flex-wrap gap-2">
                                   {message.attachments.map((att, idx) =>
@@ -496,28 +464,17 @@ export default function ChatsPage() {
                                         onClick={() => window.open(att.url, "_blank")}
                                       />
                                     ) : (
-                                      <video
-                                        key={idx}
-                                        src={att.url}
-                                        controls
-                                        className="max-w-[200px] max-h-[150px] rounded-lg"
-                                      />
+                                      <video key={idx} src={att.url} controls className="max-w-[200px] max-h-[150px] rounded-lg" />
                                     )
                                   )}
                                 </div>
                               )}
 
-                              {message.is_edited && (
-                                <span className="text-xs opacity-70 mt-1 block">
-                                  (изменено)
-                                </span>
-                              )}
+                              {message.is_edited && <span className="text-xs opacity-70 mt-1 block">(изменено)</span>}
                             </div>
 
                             <div className={`flex items-center gap-2 mt-1 ${isMine ? "justify-end" : ""}`}>
-                              <p className="text-xs text-gray-400">
-                                {formatMessageTime(message.created_at)}
-                              </p>
+                              <p className="text-xs text-gray-400">{formatMessageTime(message.created_at)}</p>
                             </div>
                           </div>
                         </div>
@@ -552,14 +509,7 @@ export default function ChatsPage() {
                   >
                     📎
                   </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*,video/*"
-                    multiple
-                    onChange={handleFileSelect}
-                    className="hidden"
-                  />
+                  <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple onChange={handleFileSelect} className="hidden" />
                   <textarea
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
