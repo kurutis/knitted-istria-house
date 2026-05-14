@@ -109,32 +109,37 @@ export async function GET(
 
         const imagesList: ProductImage[] = images || [];
 
-        // Получаем данные мастера
-        const { data: master, error: masterError } = await supabase
-            .from('masters')
-            .select('user_id')
-            .eq('id', product.master_id)
-            .maybeSingle();
-
+        // ИСПРАВЛЕНО: Получаем данные мастера напрямую из таблицы users и profiles
+        // master_id в products ссылается на user_id из users
         let masterName = 'Мастер';
         let masterAvatar: string | null = null;
         let masterCity = '';
 
-        if (master && !masterError) {
-            const { data: profile, error: profileError } = await supabase
-                .from('profiles')
-                .select('full_name, avatar_url, city')
-                .eq('user_id', master.user_id)
+        // Получаем профиль мастера по user_id (который равен product.master_id)
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('full_name, avatar_url, city')
+            .eq('user_id', product.master_id)
+            .maybeSingle();
+        
+        if (profile && !profileError) {
+            masterName = profile.full_name || 'Мастер';
+            masterAvatar = profile.avatar_url;
+            masterCity = profile.city || '';
+        } else {
+            // Если профиля нет, пробуем получить email из таблицы users
+            const { data: user, error: userError } = await supabase
+                .from('users')
+                .select('email')
+                .eq('id', product.master_id)
                 .maybeSingle();
             
-            if (profile && !profileError) {
-                masterName = profile.full_name || 'Мастер';
-                masterAvatar = profile.avatar_url;
-                masterCity = profile.city || '';
+            if (user && !userError) {
+                masterName = user.email?.split('@')[0] || 'Мастер';
             }
         }
 
-        // Получаем отзывы
+        // Получаем отзывы (у вас таблица reviews, а не product_reviews)
         const { data: reviews, error: reviewsError } = await supabase
             .from('reviews')
             .select(`
@@ -142,9 +147,10 @@ export async function GET(
                 rating,
                 comment,
                 created_at,
-                user_id
+                author_id
             `)
-            .eq('product_id', id)
+            .eq('target_type', 'product')
+            .eq('target_id', id)
             .order('created_at', { ascending: false });
 
         let reviewsList: Review[] = [];
@@ -152,19 +158,19 @@ export async function GET(
 
         if (reviews && !reviewsError && reviews.length > 0) {
             // Получаем имена авторов отзывов
-            const userIds = [...new Set(reviews.map(r => r.user_id))];
-            const { data: profiles } = await supabase
+            const userIds = [...new Set(reviews.map(r => r.author_id))];
+            const { data: userProfiles } = await supabase
                 .from('profiles')
                 .select('user_id, full_name, avatar_url')
                 .in('user_id', userIds);
             
             const profileMap = new Map();
-            profiles?.forEach(p => {
+            userProfiles?.forEach(p => {
                 profileMap.set(p.user_id, p);
             });
             
             reviewsList = reviews.map(r => {
-                const profile = profileMap.get(r.user_id);
+                const profile = profileMap.get(r.author_id);
                 return {
                     id: r.id,
                     rating: r.rating,
@@ -183,7 +189,7 @@ export async function GET(
 
         // Получаем ID пряжи для товара
         const { data: productYarnIds, error: yarnsError } = await supabase
-            .from('product_yarns')
+            .from('product_yarn')
             .select('yarn_id')
             .eq('product_id', id);
 
@@ -192,9 +198,8 @@ export async function GET(
         if (productYarnIds && !yarnsError && productYarnIds.length > 0) {
             const yarnIds = productYarnIds.map(item => item.yarn_id);
             
-            // Получаем данные пряжи по ID
             const { data: yarns, error: yarnsDataError } = await supabase
-                .from('yarns')
+                .from('yarn_catalog')
                 .select('id, name, article, brand, color, composition')
                 .in('id', yarnIds);
             
@@ -272,7 +277,6 @@ export async function PATCH(
         });
         const { quantity } = validatedData;
 
-        // Проверяем, существует ли товар
         const { data: product, error: productError } = await supabase
             .from('products')
             .select('id, title, status')
