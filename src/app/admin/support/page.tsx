@@ -90,7 +90,6 @@ export default function AdminSupportPage() {
         setLoading(true);
         const params = new URLSearchParams();
         
-        // Исправлено: проверяем, что параметры имеют допустимые значения
         if (filterStatus && filterStatus !== 'all') {
             params.append('status', filterStatus);
         }
@@ -98,11 +97,8 @@ export default function AdminSupportPage() {
             params.append('search', searchQuery.trim());
         }
         
-        // Добавляем limit и page всегда
-        params.append('limit', '20');
-        params.append('page', '1');
-        
-        const response = await fetch(`/api/admin/support/tickets?${params.toString()}`);
+        const url = `/api/admin/support/tickets${params.toString() ? `?${params.toString()}` : ''}`;
+        const response = await fetch(url);
         const data = await response.json();
         
         if (response.ok) {
