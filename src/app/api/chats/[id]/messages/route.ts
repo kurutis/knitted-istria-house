@@ -10,7 +10,16 @@ import { uploadToS3, getPublicUrl } from "@/lib/s3-storage";
 import { z } from "zod";
 
 const querySchema = z.object({
-    limit: z.coerce.number().int().min(1).max(100).default(50),
+    limit: z.preprocess(
+        (val) => {
+            if (typeof val === 'string') {
+                const parsed = parseInt(val);
+                return isNaN(parsed) ? undefined : parsed;
+            }
+            return val;
+        },
+        z.number().int().min(1).max(100).optional().default(50)
+    ),
     before: z.string().datetime().optional(),
     after: z.string().datetime().optional()
 });
@@ -39,20 +48,17 @@ async function uploadAttachment(file: File, chatId: string, userId: string): Pro
     try {
         if (!file || file.size === 0) return null;
         
-        // Проверка размера (максимум 10MB)
         if (file.size > 10 * 1024 * 1024) {
             console.error('File too large:', file.size);
             return null;
         }
         
-        // Проверка типа файла
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
         if (!allowedTypes.includes(file.type)) {
             console.error('Invalid file type:', file.type);
             return null;
         }
         
-        // Загружаем через S3 клиент
         const folder = `chats/${chatId}`;
         const fileUrl = await uploadToS3(file, folder, userId);
         
@@ -71,6 +77,7 @@ async function uploadAttachment(file: File, chatId: string, userId: string): Pro
         return null;
     }
 }
+
 
 export async function GET(
     request: Request,
@@ -104,11 +111,24 @@ export async function GET(
         }
 
         const { searchParams } = new URL(request.url);
-        const validatedParams = querySchema.parse({
+
+        console.log('Messages GET params:', {
             limit: searchParams.get('limit'),
             before: searchParams.get('before'),
             after: searchParams.get('after')
         });
+
+        let validatedParams;
+        try {
+            validatedParams = querySchema.parse({
+                limit: searchParams.get('limit'),
+                before: searchParams.get('before'),
+                after: searchParams.get('after')
+            });
+        } catch (validationError) {
+            console.error('Validation error:', validationError);
+            validatedParams = { limit: 50, before: undefined, after: undefined };
+        }
         
         const { limit, before, after } = validatedParams;
 
@@ -189,11 +209,12 @@ export async function GET(
             }
         }, { status: 200 });
         
-    } catch (error) {
+     } catch (error) {
         if (error instanceof z.ZodError) {
+            console.error('Zod validation error:', error.issues);
             return NextResponse.json({ 
                 error: 'Неверные параметры запроса',
-                details: error.issues.map(e => e.message),
+                details: error.issues.map((issue: z.ZodIssue) => `${issue.path.join('.')}: ${issue.message}`),
                 messages: []
             }, { status: 400 });
         }
