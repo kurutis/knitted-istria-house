@@ -2,19 +2,11 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit, getClientIP } from "@/lib/rate-limit";
+import { logError, logInfo, logApiRequest } from "@/lib/error-logger";
+import { sanitize } from "@/lib/sanitize";
 import { cachedQuery, invalidateCache } from "@/lib/db-optimized";
-import { logError, logInfo } from "@/lib/error-logger";
 import { z } from "zod";
-
-// Схема валидации
-const messageSchema = z.object({
-    content: z.string().max(5000, 'Сообщение не может превышать 5000 символов').optional(),
-    attachments: z.array(z.object({
-        type: z.enum(['image', 'video', 'file']),
-        url: z.string().url()
-    })).max(10, 'Максимум 10 вложений').optional()
-});
 
 const querySchema = z.object({
     limit: z.coerce.number().int().min(1).max(100).default(50),
@@ -22,11 +14,49 @@ const querySchema = z.object({
     after: z.string().datetime().optional()
 });
 
-// Rate limiting для чатов (менее строгий для GET, строже для POST)
-const getLimiter = rateLimit({ limit: 120, windowMs: 60 * 1000 }); // 120 запросов/минуту
-const postLimiter = rateLimit({ limit: 30, windowMs: 60 * 1000 }); // 30 сообщений/минуту
+const getLimiter = rateLimit({ limit: 120, windowMs: 60 * 1000 });
+const postLimiter = rateLimit({ limit: 30, windowMs: 60 * 1000 });
 
-// GET - получить сообщения чата
+function isValidUUID(uuid: string): boolean {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+}
+
+async function checkChatAccess(chatId: string, userId: string): Promise<boolean> {
+    const { data: participant, error } = await supabase
+        .from('chat_participants')
+        .select('chat_id')
+        .eq('chat_id', chatId)
+        .eq('user_id', userId)
+        .maybeSingle();
+
+    return !error && !!participant;
+}
+
+async function uploadFile(file: File, chatId: string, userId: string): Promise<{ type: string; url: string } | null> {
+    try {
+        if (file.size > 10 * 1024 * 1024) return null;
+        
+        const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const fileName = `chats/${chatId}/${userId}/${Date.now()}-${safeFileName}`;
+        
+        const { error } = await supabase.storage
+            .from('chat-attachments')
+            .upload(fileName, file);
+            
+        if (error) return null;
+        
+        const { data: { publicUrl } } = supabase.storage
+            .from('chat-attachments')
+            .getPublicUrl(fileName);
+            
+        const fileType = file.type.startsWith('image/') ? 'image' : 'video';
+        return { type: fileType, url: publicUrl };
+    } catch {
+        return null;
+    }
+}
+
 export async function GET(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -39,8 +69,6 @@ export async function GET(
             return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
         }
 
-        // Rate limiting
-        const ip = request.headers.get('x-forwarded-for') || 'unknown';
         const rateLimitResult = getLimiter(request);
         if (!rateLimitResult.success) {
             return NextResponse.json({ 
@@ -51,12 +79,15 @@ export async function GET(
 
         const { id } = await params;
         
-        // Валидация UUID
         if (!isValidUUID(id)) {
             return NextResponse.json({ error: 'Неверный формат ID чата' }, { status: 400 });
         }
 
-        // Парсим query параметры
+        const hasAccess = await checkChatAccess(id, session.user.id);
+        if (!hasAccess) {
+            return NextResponse.json({ error: 'Доступ запрещен' }, { status: 403 });
+        }
+
         const { searchParams } = new URL(request.url);
         const validatedParams = querySchema.parse({
             limit: searchParams.get('limit'),
@@ -66,13 +97,6 @@ export async function GET(
         
         const { limit, before, after } = validatedParams;
 
-        // Проверяем доступ к чату (кэшируем)
-        const hasAccess = await checkChatAccess(id, session.user.id);
-        if (!hasAccess) {
-            return NextResponse.json({ error: 'Доступ запрещен' }, { status: 403 });
-        }
-
-        // Кэшируем сообщения на короткое время (5 секунд для чата)
         const cacheKey = `chat_messages_${id}_${limit}_${before || ''}_${after || ''}`;
         
         const messages = await cachedQuery(cacheKey, async () => {
@@ -97,9 +121,9 @@ export async function GET(
                         )
                     )
                 `)
-                .eq('chat_id', id);
+                .eq('chat_id', id)
+                .eq('is_deleted', false);
 
-            // Пагинация по времени
             if (before) {
                 query = query.lt('created_at', before);
             }
@@ -120,30 +144,26 @@ export async function GET(
                 return [];
             }
 
-            // Форматируем и сортируем в хронологическом порядке
             const formattedMessages = messagesData.map(msg => ({
                 id: msg.id,
                 chat_id: msg.chat_id,
                 sender_id: msg.sender_id,
-                content: msg.content,
+                content: sanitize.text(msg.content || ''),
                 is_read: msg.is_read,
                 is_edited: msg.is_edited,
                 attachments: msg.attachments || [],
                 created_at: msg.created_at,
                 updated_at: msg.updated_at,
-                sender_name: msg.users?.[0]?.profiles?.[0]?.full_name || msg.users?.[0]?.email,
+                sender_name: sanitize.text(msg.users?.[0]?.profiles?.[0]?.full_name || msg.users?.[0]?.email),
                 sender_avatar: msg.users?.[0]?.profiles?.[0]?.avatar_url
             }));
 
             return formattedMessages.sort((a, b) => 
                 new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
             );
-        });
+        }, 5);
 
-        // Отмечаем сообщения как прочитанные (асинхронно)
-        markMessagesAsRead(id, session.user.id).catch(err => 
-            logError('Failed to mark messages as read', err, 'warning')
-        );
+        logApiRequest('GET', `/api/chats/${id}/messages`, 200, Date.now() - startTime, session.user.id);
 
         return NextResponse.json({
             success: true,
@@ -171,19 +191,18 @@ export async function GET(
     }
 }
 
-// POST - отправить сообщение
 export async function POST(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const startTime = Date.now();
+    
     try {
         const session = await getServerSession(authOptions);
         if (!session?.user) {
             return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
         }
 
-        // Rate limiting
-        const ip = request.headers.get('x-forwarded-for') || 'unknown';
         const rateLimitResult = postLimiter(request);
         if (!rateLimitResult.success) {
             return NextResponse.json({ 
@@ -197,42 +216,34 @@ export async function POST(
             return NextResponse.json({ error: 'Неверный формат ID чата' }, { status: 400 });
         }
 
-        // Проверяем доступ к чату
         const hasAccess = await checkChatAccess(id, session.user.id);
         if (!hasAccess) {
             return NextResponse.json({ error: 'Доступ запрещен' }, { status: 403 });
         }
 
-        // Обрабатываем входящие данные (поддерживаем как FormData, так и JSON)
         let content = '';
-        let attachments: { type: string; url: string }[] = [];
-
+        let attachments = [];
         const contentType = request.headers.get('content-type') || '';
-        
+
         if (contentType.includes('multipart/form-data')) {
             const formData = await request.formData();
             content = (formData.get('content') as string) || '';
             const files = formData.getAll('attachments') as File[];
             
-            // Ограничиваем количество файлов
-            const filesToUpload = files.slice(0, 10);
+            const filesToUpload = files.slice(0, 5);
             
-            // Загружаем файлы параллельно
-            const uploadPromises = filesToUpload.map(file => 
-                uploadFileToStorage(file, id, session.user.id)
-            );
-            
-            const uploadResults = await Promise.all(uploadPromises);
-            attachments = uploadResults.filter(result => result !== null) as { type: string; url: string }[];
-            
+            for (const file of filesToUpload) {
+                if (file.size > 0) {
+                    const uploaded = await uploadFile(file, id, session.user.id);
+                    if (uploaded) attachments.push(uploaded);
+                }
+            }
         } else {
             const body = await request.json();
-            const validatedData = messageSchema.parse(body);
-            content = validatedData.content || '';
-            attachments = validatedData.attachments || [];
+            content = body.content || '';
+            attachments = body.attachments || [];
         }
 
-        // Валидация содержимого
         const trimmedContent = content?.trim() || '';
         if (!trimmedContent && attachments.length === 0) {
             return NextResponse.json({ 
@@ -246,7 +257,8 @@ export async function POST(
             }, { status: 400 });
         }
 
-        // Создаем сообщение
+        const now = new Date().toISOString();
+
         const { data: newMessage, error: messageError } = await supabase
             .from('messages')
             .insert({
@@ -256,7 +268,8 @@ export async function POST(
                 attachments: attachments,
                 is_read: false,
                 is_edited: false,
-                created_at: new Date().toISOString()
+                created_at: now,
+                is_deleted: false
             })
             .select()
             .single();
@@ -268,19 +281,23 @@ export async function POST(
             }, { status: 500 });
         }
 
-        // Обновляем время последнего сообщения в чате
         await supabase
             .from('chats')
             .update({ 
-                last_message_at: new Date().toISOString(),
-                last_message_preview: trimmedContent.substring(0, 100)
+                last_message_at: now,
+                last_message_preview: trimmedContent.substring(0, 100) || 'Вложение',
+                updated_at: now
             })
             .eq('id', id);
 
-        // Инвалидируем кэш сообщений
+        await supabase.rpc('increment_unread_count', {
+            p_chat_id: id,
+            p_exclude_user_id: session.user.id
+        });
+
         invalidateCache(new RegExp(`chat_messages_${id}`));
+        invalidateCache(new RegExp(`user_chats_${session.user.id}`));
         
-        // Логируем отправку
         logInfo('Message sent', {
             chatId: id,
             userId: session.user.id,
@@ -288,138 +305,23 @@ export async function POST(
             hasAttachments: attachments.length > 0
         });
 
+        logApiRequest('POST', `/api/chats/${id}/messages`, 201, Date.now() - startTime, session.user.id);
+
         return NextResponse.json({
-            success: true,
-            message: {
-                id: newMessage.id,
-                chat_id: newMessage.chat_id,
-                sender_id: newMessage.sender_id,
-                content: newMessage.content,
-                is_read: newMessage.is_read,
-                is_edited: newMessage.is_edited,
-                attachments: newMessage.attachments,
-                created_at: newMessage.created_at,
-                sender_name: session.user.name || session.user.email,
-                sender_avatar: session.user.image
-            }
+            id: newMessage.id,
+            chat_id: newMessage.chat_id,
+            sender_id: newMessage.sender_id,
+            content: newMessage.content,
+            attachments: newMessage.attachments,
+            created_at: newMessage.created_at,
+            sender_name: session.user.name || session.user.email,
+            sender_avatar: session.user.image
         }, { status: 201 });
         
     } catch (error) {
-        if (error instanceof z.ZodError) {
-            return NextResponse.json({ 
-                error: error.issues[0].message 
-            }, { status: 400 });
-        }
-        
         logError('Error sending message', error);
         return NextResponse.json({ 
             error: 'Ошибка отправки сообщения' 
         }, { status: 500 });
     }
-}
-
-// Вспомогательная функция для проверки доступа к чату (с кэшем)
-async function checkChatAccess(chatId: string, userId: string): Promise<boolean> {
-    const cacheKey = `chat_access_${chatId}_${userId}`;
-    
-    try {
-        const hasAccess = await cachedQuery(cacheKey, async () => {
-            const { data: participant, error } = await supabase
-                .from('chat_participants')
-                .select('chat_id')
-                .eq('chat_id', chatId)
-                .eq('user_id', userId)
-                .maybeSingle();
-
-            if (error || !participant) {
-                return false;
-            }
-            
-            return true;
-        });
-        
-        return hasAccess;
-    } catch (error) {
-        return false;
-    }
-}
-
-// Вспомогательная функция для отметки сообщений как прочитанных
-async function markMessagesAsRead(chatId: string, userId: string) {
-    try {
-        const { error } = await supabase
-            .from('messages')
-            .update({ 
-                is_read: true,
-                read_at: new Date().toISOString()
-            })
-            .eq('chat_id', chatId)
-            .neq('sender_id', userId)
-            .eq('is_read', false);
-
-        if (error) {
-            logError('Error marking messages as read', error, 'warning');
-        }
-    } catch (error) {
-        // Не критичная ошибка
-    }
-}
-
-// Вспомогательная функция для загрузки файлов
-async function uploadFileToStorage(
-    file: File, 
-    chatId: string, 
-    userId: string
-): Promise<{ type: string; url: string } | null> {
-    try {
-        // Валидация размера файла (10MB)
-        if (file.size > 10 * 1024 * 1024) {
-            logError('File too large', { size: file.size }, 'warning');
-            return null;
-        }
-
-        // Валидация типа файла
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4'];
-        if (!allowedTypes.includes(file.type)) {
-            logError('Invalid file type', { type: file.type }, 'warning');
-            return null;
-        }
-
-        const fileExt = file.name.split('.').pop();
-        const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const fileName = `${chatId}/${userId}/${Date.now()}-${safeFileName}`;
-        
-        const { error: uploadError } = await supabase.storage
-            .from('chats')
-            .upload(fileName, file, {
-                cacheControl: '3600',
-                upsert: false
-            });
-
-        if (uploadError) {
-            logError('Error uploading file', uploadError);
-            return null;
-        }
-
-        const { data: { publicUrl } } = supabase.storage
-            .from('chats')
-            .getPublicUrl(fileName);
-        
-        const fileType = file.type.startsWith('image/') ? 'image' : 'video';
-        
-        return {
-            type: fileType,
-            url: publicUrl
-        };
-        
-    } catch (error) {
-        logError('Error in file upload', error);
-        return null;
-    }
-}
-
-// Вспомогательная функция для валидации UUID
-function isValidUUID(uuid: string): boolean {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(uuid);
 }

@@ -601,7 +601,7 @@ const updateOrderStatus = async (orderId: string, newStatus: string, tracking?: 
             </div>
             <div className="flex items-center gap-4">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Link href="/master/chats" className="relative block">
+                <Link href="/chats" className="relative block">
                   <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
                     <svg
                       className="w-6 h-6 text-white"
@@ -707,7 +707,7 @@ const updateOrderStatus = async (orderId: string, newStatus: string, tracking?: 
                       </div>
                       <div className="p-3 bg-gray-50 text-center">
                         <Link
-                          href="/master/notifications"
+                          href="/notifications"
                           className="text-sm text-firm-orange hover:underline"
                         >
                           Все уведомления

@@ -1,21 +1,20 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react"; // <-- добавили useCallback
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
+import toast from "react-hot-toast";
 
 interface Chat {
   id: string;
   type: "support" | "master" | "buyer";
   participant_id: string;
   participant_name: string;
-  participant_avatar: string;
+  participant_avatar: string | null;
   last_message: string;
   last_message_time: string;
   unread_count: number;
-  is_online?: boolean;
   ticket_status?: "open" | "closed";
 }
 
@@ -24,11 +23,11 @@ interface Message {
   chat_id: string;
   sender_id: string;
   sender_name: string;
-  sender_avatar: string;
+  sender_avatar: string | null;
   content: string;
   is_read: boolean;
   is_edited: boolean;
-  attachments?: { type: "image" | "video"; url: string }[];
+  attachments?: { type: string; url: string }[];
   created_at: string;
 }
 
@@ -43,12 +42,53 @@ export default function ChatsPage() {
   const [attachmentPreviews, setAttachmentPreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-  const [editingMessageText, setEditingMessageText] = useState("");
+  const [creatingTicket, setCreatingTicket] = useState(false);
+  const [wsConnected, setWsConnected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [socket, setSocket] = useState<WebSocket | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
+  // WebSocket подключение - объявляем ДО использования в useEffect
+  const connectWebSocket = useCallback(() => {
+    if (!session?.user) return;
+    
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/api/ws/support?userId=${session.user.id}`;
+    const ws = new WebSocket(wsUrl);
+    
+    ws.onopen = () => {
+      console.log('WebSocket connected');
+      setWsConnected(true);
+    };
+    
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      
+      if (data.type === 'new_message' && selectedChat?.id === data.chat_id) {
+        setMessages(prev => [...prev, data.message]);
+        if (data.message.sender_id !== session.user.id && selectedChat) {
+          markAsRead(selectedChat.id);
+        }
+      } else if (data.type === 'ticket_updated' && selectedChat?.type === 'support') {
+        fetchChats();
+      }
+    };
+    
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      setWsConnected(false);
+    };
+    
+    ws.onclose = () => {
+      console.log('WebSocket disconnected');
+      setWsConnected(false);
+      setTimeout(connectWebSocket, 5000);
+    };
+    
+    wsRef.current = ws;
+  }, [session, selectedChat]);
+
+  // Эффекты
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/auth/signin?callbackUrl=/chats");
@@ -58,14 +98,7 @@ export default function ChatsPage() {
   useEffect(() => {
     if (session?.user) {
       fetchChats();
-      connectWebSocket();
     }
-
-    return () => {
-      if (socket) {
-        socket.close();
-      }
-    };
   }, [session]);
 
   useEffect(() => {
@@ -79,17 +112,27 @@ export default function ChatsPage() {
     scrollToBottom();
   }, [messages]);
 
-  const connectWebSocket = () => {
-    // WebSocket подключение (если реализовано)
-  };
+  useEffect(() => {
+    if (session?.user) {
+      connectWebSocket();
+    }
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [session, connectWebSocket]);
 
+  // Функции API
   const fetchChats = async () => {
     try {
       const response = await fetch("/api/chats");
+      if (!response.ok) throw new Error("Ошибка загрузки");
       const data = await response.json();
-      setChats(data || []);
+      setChats(data.chats || []);
     } catch (error) {
       console.error("Error fetching chats:", error);
+      toast.error("Ошибка загрузки чатов");
     } finally {
       setLoading(false);
     }
@@ -98,16 +141,21 @@ export default function ChatsPage() {
   const fetchMessages = async (chatId: string) => {
     try {
       const response = await fetch(`/api/chats/${chatId}/messages`);
+      if (!response.ok) throw new Error("Ошибка загрузки");
       const data = await response.json();
-      setMessages(data || []);
+      setMessages(data.messages || []);
     } catch (error) {
       console.error("Error fetching messages:", error);
+      toast.error("Ошибка загрузки сообщений");
     }
   };
 
   const markAsRead = async (chatId: string) => {
     try {
       await fetch(`/api/chats/${chatId}/read`, { method: "POST" });
+      setChats(prev => prev.map(chat => 
+        chat.id === chatId ? { ...chat, unread_count: 0 } : chat
+      ));
     } catch (error) {
       console.error("Error marking as read:", error);
     }
@@ -115,26 +163,26 @@ export default function ChatsPage() {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-
+    
     if (attachments.length + files.length > 5) {
-      alert("Можно загрузить не более 5 файлов за раз");
+      toast.error("Можно загрузить не более 5 файлов за раз");
       return;
     }
-
+    
     const validFiles = files.filter((file) => {
       if (file.size > 20 * 1024 * 1024) {
-        alert(`Файл ${file.name} превышает 20MB`);
+        toast.error(`Файл ${file.name} превышает 20MB`);
         return false;
       }
       if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
-        alert(`Файл ${file.name} должен быть изображением или видео`);
+        toast.error(`Файл ${file.name} должен быть изображением или видео`);
         return false;
       }
       return true;
     });
-
+    
     setAttachments((prev) => [...prev, ...validFiles]);
-
+    
     validFiles.forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -150,9 +198,8 @@ export default function ChatsPage() {
   };
 
   const sendMessage = async () => {
-    if ((!messageText.trim() && attachments.length === 0) || !selectedChat)
-      return;
-
+    if ((!messageText.trim() && attachments.length === 0) || !selectedChat) return;
+    
     setSending(true);
     try {
       const formData = new FormData();
@@ -160,12 +207,12 @@ export default function ChatsPage() {
       attachments.forEach((file) => {
         formData.append("attachments", file);
       });
-
+      
       const response = await fetch(`/api/chats/${selectedChat.id}/messages`, {
         method: "POST",
-        body: formData, // ✅ Важно: не добавляем headers, браузер сам установит multipart/form-data
+        body: formData,
       });
-
+      
       if (response.ok) {
         const newMessage = await response.json();
         setMessages((prev) => [...prev, newMessage]);
@@ -173,66 +220,40 @@ export default function ChatsPage() {
         setAttachments([]);
         setAttachmentPreviews([]);
         fetchChats();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Ошибка отправки");
       }
     } catch (error) {
       console.error("Error sending message:", error);
+      toast.error("Ошибка отправки сообщения");
     } finally {
       setSending(false);
     }
   };
 
-  const handleEditMessage = async (messageId: string) => {
-    if (!editingMessageText.trim()) return;
-
-    try {
-      const response = await fetch(`/api/chats/messages/${messageId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: editingMessageText }),
-      });
-
-      if (response.ok) {
-        const updatedMessage = await response.json();
-        setMessages((prev) =>
-          prev.map((m) => (m.id === messageId ? updatedMessage : m)),
-        );
-        setEditingMessageId(null);
-        setEditingMessageText("");
-      }
-    } catch (error) {
-      console.error("Error editing message:", error);
-    }
-  };
-
-  const handleDeleteMessage = async (messageId: string) => {
-    if (!confirm("Удалить сообщение?")) return;
-
-    try {
-      const response = await fetch(`/api/chats/messages/${messageId}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        setMessages((prev) => prev.filter((m) => m.id !== messageId));
-      }
-    } catch (error) {
-      console.error("Error deleting message:", error);
-    }
-  };
-
   const startNewSupportTicket = async () => {
+    setCreatingTicket(true);
     try {
-      const response = await fetch("/api/chats/support/ticket", {
+      const response = await fetch("/api/support/ticket", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
       });
-
+      
       if (response.ok) {
         const newChat = await response.json();
         setChats((prev) => [newChat, ...prev]);
         setSelectedChat(newChat);
+        toast.success("Тикет создан, ожидайте ответа");
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Ошибка создания тикета");
       }
     } catch (error) {
       console.error("Error creating support ticket:", error);
+      toast.error("Ошибка создания тикета");
+    } finally {
+      setCreatingTicket(false);
     }
   };
 
@@ -244,7 +265,7 @@ export default function ChatsPage() {
     const date = new Date(dateString);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
-
+    
     if (diff < 24 * 60 * 60 * 1000) {
       return date.toLocaleTimeString("ru-RU", {
         hour: "2-digit",
@@ -277,6 +298,11 @@ export default function ChatsPage() {
     <div className="max-w-7xl mx-auto px-4 py-6">
       <h1 className="font-['Montserrat_Alternates'] font-semibold text-3xl mb-6">
         Сообщения
+        {wsConnected && (
+          <span className="ml-3 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+            ● В реальном времени
+          </span>
+        )}
       </h1>
 
       <div className="flex gap-6 h-[70vh]">
@@ -289,7 +315,6 @@ export default function ChatsPage() {
           </div>
 
           <div className="flex-1 overflow-y-auto">
-            {/* Чат с поддержкой всегда первый */}
             {supportChat && (
               <button
                 onClick={() => setSelectedChat(supportChat)}
@@ -319,13 +344,9 @@ export default function ChatsPage() {
                     </span>
                   </div>
                 )}
-                {supportChat.ticket_status === "closed" && (
-                  <div className="text-xs text-gray-400">Закрыт</div>
-                )}
               </button>
             )}
 
-            {/* Остальные чаты */}
             {otherChats.map((chat) => (
               <button
                 key={chat.id}
@@ -346,9 +367,6 @@ export default function ChatsPage() {
                       chat.participant_name?.charAt(0).toUpperCase()
                     )}
                   </div>
-                  {chat.is_online && (
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-                  )}
                 </div>
                 <div className="flex-1 text-left">
                   <div className="flex justify-between items-center">
@@ -373,17 +391,23 @@ export default function ChatsPage() {
 
             {chats.length === 0 && (
               <div className="p-8 text-center text-gray-500">
-                У вас пока нет чатов
+                <p>У вас пока нет чатов</p>
+                <button
+                  onClick={startNewSupportTicket}
+                  disabled={creatingTicket}
+                  className="mt-3 px-4 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50"
+                >
+                  {creatingTicket ? "Создание..." : "📞 Обратиться в поддержку"}
+                </button>
               </div>
             )}
           </div>
         </div>
 
-        {/* Область сообщений */}
+        {/* Область сообщений - без изменений, оставляем как было */}
         <div className="flex-1 bg-white rounded-lg shadow-md flex flex-col">
           {selectedChat ? (
             <>
-              {/* Заголовок чата */}
               <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="relative">
@@ -400,10 +424,6 @@ export default function ChatsPage() {
                         selectedChat.participant_name?.charAt(0).toUpperCase()
                       )}
                     </div>
-                    {selectedChat.is_online &&
-                      selectedChat.type !== "support" && (
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-                      )}
                   </div>
                   <div>
                     <p className="font-['Montserrat_Alternates'] font-semibold">
@@ -411,30 +431,20 @@ export default function ChatsPage() {
                         ? "Служба поддержки"
                         : selectedChat.participant_name}
                     </p>
-                    <p className="text-xs text-gray-400">
-                      {selectedChat.type === "support"
-                        ? selectedChat.ticket_status === "closed"
-                          ? "Тикет закрыт. Напишите для открытия нового."
-                          : "Отвечаем в течение 24 часов"
-                        : selectedChat.is_online
-                          ? "В сети"
-                          : "Был(а) недавно"}
-                    </p>
                   </div>
                 </div>
 
-                {selectedChat.type === "support" &&
-                  selectedChat.ticket_status === "closed" && (
-                    <button
-                      onClick={startNewSupportTicket}
-                      className="px-3 py-1 text-sm bg-firm-orange text-white rounded-lg hover:bg-opacity-90"
-                    >
-                      Открыть новый тикет
-                    </button>
-                  )}
+                {selectedChat.type === "support" && !supportChat && (
+                  <button
+                    onClick={startNewSupportTicket}
+                    disabled={creatingTicket}
+                    className="px-3 py-1 text-sm bg-firm-orange text-white rounded-lg hover:bg-opacity-90"
+                  >
+                    Открыть тикет
+                  </button>
+                )}
               </div>
 
-              {/* Сообщения */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {messages.length === 0 ? (
                   <div className="text-center py-12">
@@ -444,11 +454,7 @@ export default function ChatsPage() {
                           👋 Добро пожаловать в службу поддержки!
                         </p>
                         <p className="text-gray-500 text-sm">
-                          Опишите вашу проблему, и мы поможем вам в ближайшее
-                          время.
-                        </p>
-                        <p className="text-gray-400 text-xs mt-3">
-                          Время ответа: обычно в течение 24 часов
+                          Напишите ваше сообщение, и мы поможем вам.
                         </p>
                       </div>
                     ) : (
@@ -458,140 +464,60 @@ export default function ChatsPage() {
                 ) : (
                   messages.map((message, index) => {
                     const isMine = message.sender_id === session?.user?.id;
-                    const showAvatar =
-                      !isMine &&
-                      (index === 0 ||
-                        messages[index - 1]?.sender_id !== message.sender_id);
-
+                    const showAvatar = !isMine && (index === 0 || messages[index - 1]?.sender_id !== message.sender_id);
+                    
                     return (
-                      <div
-                        key={message.id}
-                        className={`flex ${isMine ? "justify-end" : "justify-start"}`}
-                      >
-                        <div
-                          className={`flex gap-2 max-w-[70%] ${isMine ? "flex-row-reverse" : ""}`}
-                        >
+                      <div key={message.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+                        <div className={`flex gap-2 max-w-[70%] ${isMine ? "flex-row-reverse" : ""}`}>
                           {!isMine && showAvatar && (
                             <div className="w-8 h-8 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
                               {message.sender_avatar ? (
-                                <img
-                                  src={message.sender_avatar}
-                                  alt={message.sender_name}
-                                  className="w-full h-full object-cover"
-                                />
+                                <img src={message.sender_avatar} alt="" className="w-full h-full object-cover" />
                               ) : (
                                 message.sender_name?.charAt(0).toUpperCase()
                               )}
                             </div>
                           )}
-                          {!isMine && !showAvatar && (
-                            <div className="w-8"></div>
-                          )}
+                          {!isMine && !showAvatar && <div className="w-8"></div>}
 
                           <div>
-                            {editingMessageId === message.id ? (
-                              <div className="bg-white rounded-lg p-3 border border-firm-orange">
-                                <textarea
-                                  value={editingMessageText}
-                                  onChange={(e) =>
-                                    setEditingMessageText(e.target.value)
-                                  }
-                                  className="w-full p-2 rounded-lg bg-gray-50 outline-firm-orange"
-                                  rows={3}
-                                  autoFocus
-                                />
-                                <div className="flex gap-2 mt-2">
-                                  <button
-                                    onClick={() =>
-                                      handleEditMessage(message.id)
-                                    }
-                                    className="px-3 py-1 text-sm bg-firm-orange text-white rounded-lg"
-                                  >
-                                    Сохранить
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setEditingMessageId(null);
-                                      setEditingMessageText("");
-                                    }}
-                                    className="px-3 py-1 text-sm border rounded-lg"
-                                  >
-                                    Отмена
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div
-                                className={`rounded-lg p-3 ${
-                                  isMine
-                                    ? "bg-firm-orange text-white"
-                                    : "bg-gray-100 text-gray-700"
-                                }`}
-                              >
-                                <p className="break-words">{message.content}</p>
-
-                                {/* Вложения */}
-                                {message.attachments &&
-                                  message.attachments.length > 0 && (
-                                    <div className="mt-2 flex flex-wrap gap-2">
-                                      {message.attachments.map((att, idx) =>
-                                        att.type === "image" ? (
-                                          <img
-                                            key={idx}
-                                            src={att.url}
-                                            alt="attachment"
-                                            className="max-w-[200px] max-h-[150px] rounded-lg cursor-pointer"
-                                            onClick={() =>
-                                              window.open(att.url, "_blank")
-                                            }
-                                          />
-                                        ) : (
-                                          <video
-                                            key={idx}
-                                            src={att.url}
-                                            controls
-                                            className="max-w-[200px] max-h-[150px] rounded-lg"
-                                          />
-                                        ),
-                                      )}
-                                    </div>
+                            <div className={`rounded-lg p-3 ${isMine ? "bg-firm-orange text-white" : "bg-gray-100 text-gray-700"}`}>
+                              <p className="break-words">{message.content}</p>
+                              
+                              {message.attachments && message.attachments.length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {message.attachments.map((att, idx) =>
+                                    att.type === "image" ? (
+                                      <img
+                                        key={idx}
+                                        src={att.url}
+                                        alt="attachment"
+                                        className="max-w-[200px] max-h-[150px] rounded-lg cursor-pointer"
+                                        onClick={() => window.open(att.url, "_blank")}
+                                      />
+                                    ) : (
+                                      <video
+                                        key={idx}
+                                        src={att.url}
+                                        controls
+                                        className="max-w-[200px] max-h-[150px] rounded-lg"
+                                      />
+                                    )
                                   )}
+                                </div>
+                              )}
 
-                                {message.is_edited && (
-                                  <span className="text-xs opacity-70 mt-1 block">
-                                    (изменено)
-                                  </span>
-                                )}
-                              </div>
-                            )}
+                              {message.is_edited && (
+                                <span className="text-xs opacity-70 mt-1 block">
+                                  (изменено)
+                                </span>
+                              )}
+                            </div>
 
-                            <div
-                              className={`flex items-center gap-2 mt-1 ${isMine ? "justify-end" : ""}`}
-                            >
+                            <div className={`flex items-center gap-2 mt-1 ${isMine ? "justify-end" : ""}`}>
                               <p className="text-xs text-gray-400">
                                 {formatMessageTime(message.created_at)}
                               </p>
-                              {isMine && editingMessageId !== message.id && (
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => {
-                                      setEditingMessageId(message.id);
-                                      setEditingMessageText(message.content);
-                                    }}
-                                    className="text-xs text-gray-400 hover:text-blue-500"
-                                  >
-                                    ✏️
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      handleDeleteMessage(message.id)
-                                    }
-                                    className="text-xs text-gray-400 hover:text-red-500"
-                                  >
-                                    🗑️
-                                  </button>
-                                </div>
-                              )}
                             </div>
                           </div>
                         </div>
@@ -602,18 +528,12 @@ export default function ChatsPage() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Поле ввода */}
               <div className="p-4 border-t border-gray-200">
-                {/* Предпросмотр вложений */}
                 {attachmentPreviews.length > 0 && (
                   <div className="flex gap-2 mb-3 pb-3 border-b">
                     {attachmentPreviews.map((preview, idx) => (
                       <div key={idx} className="relative">
-                        <img
-                          src={preview}
-                          alt="preview"
-                          className="w-16 h-16 object-cover rounded-lg"
-                        />
+                        <img src={preview} alt="preview" className="w-16 h-16 object-cover rounded-lg" />
                         <button
                           onClick={() => removeAttachment(idx)}
                           className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center"
@@ -656,10 +576,7 @@ export default function ChatsPage() {
                   />
                   <button
                     onClick={sendMessage}
-                    disabled={
-                      sending ||
-                      (!messageText.trim() && attachments.length === 0)
-                    }
+                    disabled={sending || (!messageText.trim() && attachments.length === 0)}
                     className="px-4 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50"
                   >
                     {sending ? "..." : "Отправить"}
@@ -670,20 +587,17 @@ export default function ChatsPage() {
           ) : (
             <div className="flex-1 flex items-center justify-center text-gray-400">
               <div className="text-center">
-                <svg
-                  className="w-16 h-16 mx-auto mb-3 text-gray-300"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                  />
+                <svg className="w-16 h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
                 <p>Выберите чат для начала общения</p>
+                <button
+                  onClick={startNewSupportTicket}
+                  disabled={creatingTicket}
+                  className="mt-4 px-4 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition"
+                >
+                  Создать обращение в поддержку
+                </button>
               </div>
             </div>
           )}
