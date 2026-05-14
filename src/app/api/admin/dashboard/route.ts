@@ -11,6 +11,15 @@ import { cachedQuery } from "@/lib/db-optimized";
 // Rate limiting
 const limiter = rateLimit({ limit: 20, windowMs: 60 * 1000 });
 
+// Правильный маппинг статусов заказов (соответствует базе данных)
+const ORDER_STATUS_MAP: Record<string, string> = {
+    'new': 'Новый',
+    'processing': 'В обработке',
+    'shipped': 'Отправлен',
+    'delivered': 'Доставлен',
+    'cancelled': 'Отменён'
+};
+
 export async function GET(request: Request) {
     const startTime = Date.now();
     
@@ -80,7 +89,7 @@ export async function GET(request: Request) {
                     .select('*', { count: 'exact', head: true })
                     .eq('status', 'moderation'),
                 
-                // Общая выручка
+                // Общая выручка (только доставленные заказы)
                 supabase
                     .from('orders')
                     .select('total_amount')
@@ -148,7 +157,7 @@ export async function GET(request: Request) {
                 };
             }) || [];
 
-            // Получаем последние заказы
+            // Получаем последние заказы с правильным маппингом статусов
             const { data: orders } = await supabase
                 .from('orders')
                 .select(`
@@ -163,6 +172,8 @@ export async function GET(request: Request) {
                 .limit(10);
 
             const buyerIds = orders?.map(o => o.buyer_id) || [];
+            
+            // Получаем информацию о покупателях
             const { data: buyers } = await supabase
                 .from('users')
                 .select('id, email')
@@ -183,16 +194,7 @@ export async function GET(request: Request) {
                 buyerProfileMap.set(p.user_id, p);
             });
 
-            const statusMap: Record<string, string> = {
-                new: 'Новый',
-                confirmed: 'Подтверждён',
-                processing: 'В обработке',
-                shipped: 'Отправлен',
-                delivered: 'Доставлен',
-                cancelled: 'Отменён',
-                completed: 'Завершён'
-            };
-
+            // Формируем список заказов с правильными статусами
             const recentOrders = orders?.map(order => {
                 const buyer = buyerMap.get(order.buyer_id);
                 const buyerProfile = buyerProfileMap.get(order.buyer_id);
@@ -202,7 +204,7 @@ export async function GET(request: Request) {
                     id: order.id,
                     order_number: order.order_number,
                     total_amount: order.total_amount,
-                    status: statusMap[order.status] || order.status,
+                    status: ORDER_STATUS_MAP[order.status] || order.status,
                     status_code: order.status,
                     created_at: order.created_at,
                     buyer_name: sanitize.text(buyerName),
