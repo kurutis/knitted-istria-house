@@ -87,21 +87,34 @@ export default function AdminSupportPage() {
 
   const loadTickets = async () => {
     try {
-      setLoading(true);
-      const params = new URLSearchParams();
-      if (filterStatus !== "all") params.append("status", filterStatus);
-      if (searchQuery) params.append("search", searchQuery);
-
-      const response = await fetch(`/api/admin/support/tickets?${params}`);
-      const data = await response.json();
-      setTickets(data.tickets || []);
+        setLoading(true);
+        const params = new URLSearchParams();
+        
+        // Только добавляем параметры, если они не 'all' и не пустые
+        if (filterStatus && filterStatus !== 'all') {
+            params.append('status', filterStatus);
+        }
+        if (searchQuery && searchQuery.trim()) {
+            params.append('search', searchQuery.trim());
+        }
+        
+        const url = `/api/admin/support/tickets${params.toString() ? `?${params.toString()}` : ''}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (response.ok) {
+            setTickets(data.tickets || []);
+        } else {
+            console.error('API error:', data);
+            toast.error(data.error || 'Ошибка загрузки обращений');
+        }
     } catch (error) {
-      console.error("Error loading tickets:", error);
-      toast.error("Ошибка загрузки обращений");
+        console.error("Error loading tickets:", error);
+        toast.error("Ошибка загрузки обращений");
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+};
 
   const refreshTickets = async () => {
     try {

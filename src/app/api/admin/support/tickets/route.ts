@@ -8,12 +8,13 @@ import { sanitize } from "@/lib/sanitize";
 import { cachedQuery } from "@/lib/db-optimized";
 import { z } from "zod";
 
+// Исправленная схема - все параметры опциональные
 const querySchema = z.object({
-    status: z.enum(['open', 'in_progress', 'closed', 'all']).default('all'),
-    priority: z.enum(['low', 'medium', 'high', 'all']).default('all'),
+    status: z.enum(['open', 'in_progress', 'closed', 'all']).optional().default('all'),
+    priority: z.enum(['low', 'medium', 'high', 'all']).optional().default('all'),
     search: z.string().max(100).optional(),
-    limit: z.coerce.number().int().min(1).max(100).default(20),
-    page: z.coerce.number().int().min(1).default(1)
+    limit: z.coerce.number().int().min(1).max(100).optional().default(20),
+    page: z.coerce.number().int().min(1).optional().default(1)
 });
 
 const limiter = rateLimit({ limit: 30, windowMs: 60 * 1000 });
@@ -37,12 +38,21 @@ export async function GET(request: Request) {
         }
 
         const { searchParams } = new URL(request.url);
+        
+        // Получаем параметры с проверкой на null
+        const statusParam = searchParams.get('status');
+        const priorityParam = searchParams.get('priority');
+        const searchParam = searchParams.get('search');
+        const limitParam = searchParams.get('limit');
+        const pageParam = searchParams.get('page');
+        
+        // Валидируем
         const validatedParams = querySchema.parse({
-            status: searchParams.get('status'),
-            priority: searchParams.get('priority'),
-            search: searchParams.get('search'),
-            limit: searchParams.get('limit'),
-            page: searchParams.get('page')
+            status: statusParam === 'null' ? undefined : statusParam,
+            priority: priorityParam === 'null' ? undefined : priorityParam,
+            search: searchParam === 'null' ? undefined : searchParam,
+            limit: limitParam === 'null' ? undefined : limitParam,
+            page: pageParam === 'null' ? undefined : pageParam
         });
         
         const { status, priority, search, limit, page } = validatedParams;
@@ -80,11 +90,11 @@ export async function GET(request: Request) {
                     )
                 `, { count: 'exact' });
 
-            if (status !== 'all') {
+            if (status && status !== 'all') {
                 query = query.eq('status', status);
             }
 
-            if (priority !== 'all') {
+            if (priority && priority !== 'all') {
                 query = query.eq('priority', priority);
             }
 
@@ -224,7 +234,11 @@ export async function GET(request: Request) {
         
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return NextResponse.json({ error: error.issues[0]?.message || 'Ошибка валидации' }, { status: 400 });
+            console.error('Validation error:', error.issues);
+            return NextResponse.json({ 
+                error: 'Неверные параметры запроса',
+                details: error.issues.map((issue: z.ZodIssue) => `${issue.path.join('.')}: ${issue.message}`)
+            }, { status: 400 });
         }
         logError('Error fetching support tickets', error);
         return NextResponse.json({ error: 'Ошибка загрузки тикетов' }, { status: 500 });
