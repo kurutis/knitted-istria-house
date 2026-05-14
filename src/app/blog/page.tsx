@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { debounce } from "lodash";
 import { motion, AnimatePresence } from "framer-motion";
+import toast from "react-hot-toast";
 import BlogPostCard from "@/components/blog/BlogPostCard";
 import AddPostModal from "@/components/modals/AddPostModal";
 
@@ -200,7 +201,6 @@ export default function BlogPage() {
           master_id: post.master_id,
           master_name: post.master_name || "Мастер",
           master_avatar: post.master_avatar || "",
-          master_city: post.master_city || "",
           is_liked: post.is_liked || false,
           comments: [],
           images:
@@ -378,17 +378,17 @@ export default function BlogPage() {
     const files = Array.from(e.target.files || []);
 
     if (postImages.length + files.length > 10) {
-      alert("Можно загрузить не более 10 фотографий");
+      toast.error("Можно загрузить не более 10 фотографий");
       return;
     }
 
     const validFiles = files.filter((file) => {
       if (file.size > 10 * 1024 * 1024) {
-        alert(`Файл ${file.name} превышает 10MB`);
+        toast.error(`Файл ${file.name} превышает 10MB`);
         return false;
       }
       if (!file.type.startsWith("image/")) {
-        alert(`Файл ${file.name} не является изображением`);
+        toast.error(`Файл ${file.name} не является изображением`);
         return false;
       }
       return true;
@@ -414,12 +414,12 @@ export default function BlogPage() {
     e.preventDefault();
 
     if (!postForm.title) {
-      alert("Введите заголовок поста");
+      toast.error("Введите заголовок поста");
       return;
     }
 
     if (!postForm.content) {
-      alert("Введите содержание поста");
+      toast.error("Введите содержание поста");
       return;
     }
 
@@ -451,10 +451,10 @@ export default function BlogPage() {
       setShowAddPostModal(false);
       resetPostForm();
       await fetchData();
-      alert("Пост успешно создан!");
+      toast.success("Пост успешно создан!");
     } catch (error) {
       console.error("Ошибка при создании поста:", error);
-      alert("Ошибка при создании поста");
+      toast.error("Ошибка при создании поста");
     } finally {
       setSaving(false);
     }
@@ -619,7 +619,6 @@ export default function BlogPage() {
           ) : (
             <div className="space-y-5">
               {displayPosts.map((post) => {
-                // Преобразуем SearchPost в формат, совместимый с BlogPostCard
                 const normalizedPost = {
                   id: post.id,
                   title: post.title,

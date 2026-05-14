@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import toast from "react-hot-toast";
 
 interface EditClassModalProps {
   isOpen: boolean;
@@ -70,15 +71,15 @@ export default function EditClassModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title) {
-      alert("Введите название мастер-класса");
+      toast.error("Введите название мастер-класса");
       return;
     }
     if (!formData.description) {
-      alert("Введите описание мастер-класса");
+      toast.error("Введите описание мастер-класса");
       return;
     }
     if (!formData.date_time) {
-      alert("Укажите дату и время проведения");
+      toast.error("Укажите дату и время проведения");
       return;
     }
 
@@ -103,12 +104,12 @@ export default function EditClassModal({
 
       if (!response.ok) throw new Error("Failed to update master class");
 
-      alert("Мастер-класс успешно обновлен");
+      toast.success("Мастер-класс успешно обновлен");
       onSuccess();
       onClose();
     } catch (error) {
       console.error(error);
-      alert("Ошибка при обновлении мастер-класса");
+      toast.error("Ошибка при обновлении мастер-класса");
     } finally {
       setSaving(false);
     }

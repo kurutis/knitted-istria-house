@@ -1,8 +1,8 @@
-// components/admin/AddYarnModal.tsx
 "use client";
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
+import toast from "react-hot-toast";
 
 interface AddYarnModalProps {
     isOpen: boolean;
@@ -51,10 +51,10 @@ export default function AddYarnModal({ isOpen, onClose, onSuccess }: AddYarnModa
             resetForm();
             onSuccess();
             onClose();
-            alert('Пряжа успешно добавлена');
+            toast.success('Пряжа успешно добавлена');
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Ошибка при создании пряжи';
-            alert(errorMessage);
+            toast.error(errorMessage);
         } finally {
             setSaving(false);
         }

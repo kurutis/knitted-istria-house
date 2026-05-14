@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import toast from "react-hot-toast";
 
 interface Article {
   id: number;
@@ -57,15 +58,18 @@ export default function KnowledgeBasePage() {
     loadArticles();
   }, [selectedCategory, searchQuery]);
 
-  const loadData = async () => {await Promise.all([loadCategories(), loadArticles()])};
+  const loadData = async () => {
+    await Promise.all([loadCategories(), loadArticles()]);
+  };
 
   const loadCategories = async () => {
     try {
       const response = await fetch("/api/admin/support/knowledge-base/categories");
       const data = await response.json();
-      setCategories(data);
+      setCategories(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error loading categories:", error);
+      toast.error("Ошибка загрузки категорий");
     } finally {
       setLoading(false);
     }
@@ -79,9 +83,10 @@ export default function KnowledgeBasePage() {
 
       const response = await fetch(`/api/admin/support/knowledge-base/articles?${params}`);
       const data = await response.json();
-      setArticles(data);
+      setArticles(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error loading articles:", error);
+      toast.error("Ошибка загрузки статей");
     }
   };
 
@@ -92,19 +97,24 @@ export default function KnowledgeBasePage() {
     try {
       const tagsArray = articleForm.tags.split(",").map((tag) => tag.trim()).filter((tag) => tag);
       const url = editingArticle ? `/api/admin/support/knowledge-base/articles/${editingArticle.id}` : "/api/admin/support/knowledge-base/articles";
-      const response = await fetch(url, {method: editingArticle ? "PUT" : "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({...articleForm, tags: tagsArray})});
+      const response = await fetch(url, {
+        method: editingArticle ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({...articleForm, tags: tagsArray})
+      });
 
       if (response.ok) {
         setShowArticleModal(false);
         resetArticleForm();
         loadArticles();
-        alert(editingArticle ? "Статья обновлена" : "Статья создана");
+        toast.success(editingArticle ? "Статья обновлена" : "Статья создана");
       } else {
         const error = await response.json();
-        alert(error.error || "Ошибка сохранения");
+        toast.error(error.error || "Ошибка сохранения");
       }
     } catch (error) {
-      alert("Ошибка при сохранении");
+      console.error(error);
+      toast.error("Ошибка при сохранении");
     } finally {
       setSaving(false);
     }
@@ -115,19 +125,24 @@ export default function KnowledgeBasePage() {
     setSaving(true);
 
     try {
-      const response = await fetch("/api/admin/support/knowledge-base/categories", {method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(categoryForm)});
+      const response = await fetch("/api/admin/support/knowledge-base/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(categoryForm)
+      });
 
       if (response.ok) {
         setShowCategoryModal(false);
         setCategoryForm({ name: "", slug: "", description: "" });
         loadCategories();
-        alert("Категория создана");
+        toast.success("Категория создана");
       } else {
         const error = await response.json();
-        alert(error.error || "Ошибка создания категории");
+        toast.error(error.error || "Ошибка создания категории");
       }
     } catch (error) {
-      alert("Ошибка при создании категории");
+      console.error(error);
+      toast.error("Ошибка при создании категории");
     } finally {
       setSaving(false);
     }
@@ -137,14 +152,18 @@ export default function KnowledgeBasePage() {
     if (!confirm("Удалить статью?")) return;
 
     try {
-      const response = await fetch(`/api/admin/support/knowledge-base/articles/${id}`, {method: "DELETE"});
+      const response = await fetch(`/api/admin/support/knowledge-base/articles/${id}`, { method: "DELETE" });
 
       if (response.ok) {
         loadArticles();
-        alert("Статья удалена");
+        toast.success("Статья удалена");
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Ошибка удаления");
       }
     } catch (error) {
-      alert("Ошибка удаления");
+      console.error(error);
+      toast.error("Ошибка удаления");
     }
   };
 
@@ -152,41 +171,57 @@ export default function KnowledgeBasePage() {
     if (!confirm('Удалить категорию? Все статьи в ней будут перемещены в "Общее".')) return;
 
     try {
-      const response = await fetch(`/api/admin/support/knowledge-base/categories/${id}`, {method: "DELETE"});
+      const response = await fetch(`/api/admin/support/knowledge-base/categories/${id}`, { method: "DELETE" });
 
       if (response.ok) {
         loadCategories();
         if (selectedCategory !== "all") loadArticles();
-        alert("Категория удалена");
+        toast.success("Категория удалена");
       } else {
         const error = await response.json();
-        alert(error.error || "Ошибка удаления");
+        toast.error(error.error || "Ошибка удаления");
       }
     } catch (error) {
-      alert("Ошибка удаления");
+      console.error(error);
+      toast.error("Ошибка удаления");
     }
   };
 
   const resetArticleForm = () => {
-    setArticleForm({title: "",  content: "", category: "", tags: "", is_published: true});
+    setArticleForm({title: "", content: "", category: "", tags: "", is_published: true});
     setEditingArticle(null);
   };
 
   const editArticle = (article: Article) => {
     setEditingArticle(article);
-    setArticleForm({title: article.title, content: article.content, category: article.category, tags: article.tags.join(", "), is_published: article.is_published});
+    setArticleForm({
+      title: article.title,
+      content: article.content,
+      category: article.category,
+      tags: article.tags.join(", "),
+      is_published: article.is_published
+    });
     setShowArticleModal(true);
   };
 
   const togglePublish = async (id: number, currentStatus: boolean) => {
     try {
-      const response = await fetch(`/api/admin/support/knowledge-base/articles/${id}/publish`, {method: "PUT", headers: {"Content-Type": "application/json"}, body: JSON.stringify({ is_published: !currentStatus })});
+      const response = await fetch(`/api/admin/support/knowledge-base/articles/${id}/publish`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_published: !currentStatus })
+      });
 
       if (response.ok) {
         loadArticles();
+        toast.success(currentStatus ? "Статья снята с публикации" : "Статья опубликована");
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Ошибка изменения статуса");
       }
     } catch (error) {
-      alert("Ошибка изменения статуса");
+      console.error(error);
+      toast.error("Ошибка изменения статуса");
     }
   };
 
@@ -211,19 +246,43 @@ export default function KnowledgeBasePage() {
           <p className="text-gray-500 mt-1">Управление статьями поддержки</p>
         </div>
         <div className="flex gap-3">
-          <button onClick={() => setShowCategoryModal(true)} className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">+ Новая категория</button>
-          <button onClick={() => {resetArticleForm(); setShowArticleModal(true)}} className="px-4 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition">+ Новая статья</button>
+          <button
+            onClick={() => setShowCategoryModal(true)}
+            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+          >
+            + Новая категория
+          </button>
+          <button
+            onClick={() => { resetArticleForm(); setShowArticleModal(true); }}
+            className="px-4 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition"
+          >
+            + Новая статья
+          </button>
         </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-4">
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
-            <input type="text" placeholder="Поиск статей..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-firm-orange" />
+            <input
+              type="text"
+              placeholder="Поиск статей..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-firm-orange"
+            />
           </div>
-          <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-firm-orange">
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-firm-orange"
+          >
             <option value="all">Все категории</option>
-            {categories.map((cat) => (<option key={cat.id} value={cat.slug}>{cat.name} ({cat.article_count})</option>))}
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.slug}>
+                {cat.name} ({cat.article_count})
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -237,11 +296,17 @@ export default function KnowledgeBasePage() {
                 <p className="text-sm text-gray-500 mt-1">{category.description}</p>
                 <p className="text-xs text-gray-400 mt-2">{category.article_count} статей</p>
               </div>
-              <button onClick={() => deleteCategory(category.id)} className="text-red-500 hover:text-red-700 text-sm">🗑️</button>
+              <button
+                onClick={() => deleteCategory(category.id)}
+                className="text-red-500 hover:text-red-700 text-sm"
+              >
+                🗑️
+              </button>
             </div>
           </div>
         ))}
       </div>
+
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -259,7 +324,9 @@ export default function KnowledgeBasePage() {
             <tbody>
               {articles.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center p-8 text-gray-500">Нет статей. Создайте первую статью!</td>
+                  <td colSpan={7} className="text-center p-8 text-gray-500">
+                    Нет статей. Создайте первую статью!
+                  </td>
                 </tr>
               ) : (
                 articles.map((article) => (
@@ -267,14 +334,24 @@ export default function KnowledgeBasePage() {
                     <td className="p-4">
                       <div>
                         <p className="font-medium">{article.title}</p>
-                        <p className="text-xs text-gray-400 mt-1">{new Date(article.created_at).toLocaleDateString("ru-RU")}</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {new Date(article.created_at).toLocaleDateString("ru-RU")}
+                        </p>
                       </div>
                     </td>
-                    <td className="p-4"><span className="px-2 py-1 bg-gray-100 rounded-full text-xs">{article.category}</span></td>
+                    <td className="p-4">
+                      <span className="px-2 py-1 bg-gray-100 rounded-full text-xs">{article.category}</span>
+                    </td>
                     <td className="p-4">
                       <div className="flex flex-wrap gap-1">
-                        {article.tags.slice(0, 3).map((tag) => (<span key={tag} className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-xs">{tag}</span>))}
-                        {article.tags.length > 3 && ( <span className="text-xs text-gray-400">+{article.tags.length - 3}</span>)}
+                        {article.tags.slice(0, 3).map((tag) => (
+                          <span key={tag} className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-xs">
+                            {tag}
+                          </span>
+                        ))}
+                        {article.tags.length > 3 && (
+                          <span className="text-xs text-gray-400">+{article.tags.length - 3}</span>
+                        )}
                       </div>
                     </td>
                     <td className="p-4 text-sm">{article.views}</td>
@@ -284,12 +361,35 @@ export default function KnowledgeBasePage() {
                         <span className="text-red-600">👎 {article.not_helpful_count}</span>
                       </div>
                     </td>
-                    <td className="p-4"><button onClick={() => togglePublish(article.id, article.is_published)}  className={`px-2 py-1 rounded-full text-xs ${article.is_published ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}>{article.is_published ? "Опубликовано" : "Черновик"}</button></td>
+                    <td className="p-4">
+                      <button
+                        onClick={() => togglePublish(article.id, article.is_published)}
+                        className={`px-2 py-1 rounded-full text-xs ${article.is_published ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}
+                      >
+                        {article.is_published ? "Опубликовано" : "Черновик"}
+                      </button>
+                    </td>
                     <td className="p-4">
                       <div className="flex gap-2">
-                        <button onClick={() => editArticle(article)} className="text-blue-500 hover:text-blue-700">✏️</button>
-                        <button onClick={() => deleteArticle(article.id)} className="text-red-500 hover:text-red-700">🗑️</button>
-                        <Link href={`/support/knowledge-base/${article.id}`} target="_blank" className="text-gray-500 hover:text-gray-700">👁️</Link>
+                        <button
+                          onClick={() => editArticle(article)}
+                          className="text-blue-500 hover:text-blue-700"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => deleteArticle(article.id)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          🗑️
+                        </button>
+                        <Link
+                          href={`/support/knowledge-base/${article.id}`}
+                          target="_blank"
+                          className="text-gray-500 hover:text-gray-700"
+                        >
+                          👁️
+                        </Link>
                       </div>
                     </td>
                   </tr>
@@ -300,43 +400,94 @@ export default function KnowledgeBasePage() {
         </div>
       </div>
 
+      {/* Модальное окно для статьи */}
       {showArticleModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">{editingArticle ? "Редактировать статью" : "Новая статья"}</h2>
-                <button onClick={() => {setShowArticleModal(false); resetArticleForm();}} className="text-gray-500 hover:text-gray-700 text-xl"> ✕</button>
+                <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">
+                  {editingArticle ? "Редактировать статью" : "Новая статья"}
+                </h2>
+                <button
+                  onClick={() => { setShowArticleModal(false); resetArticleForm(); }}
+                  className="text-gray-500 hover:text-gray-700 text-xl"
+                >
+                  ✕
+                </button>
               </div>
               <form onSubmit={handleArticleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-gray-700 mb-1">Название *</label>
-                  <input type="text" value={articleForm.title} onChange={(e) => setArticleForm({ ...articleForm, title: e.target.value })} required className="w-full p-2 rounded-lg bg-gray-100 outline-firm-orange" />
+                  <input
+                    type="text"
+                    value={articleForm.title}
+                    onChange={(e) => setArticleForm({ ...articleForm, title: e.target.value })}
+                    required
+                    className="w-full p-2 rounded-lg bg-gray-100 outline-firm-orange"
+                  />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-gray-700 mb-1">Категория *</label>
-                    <select value={articleForm.category} onChange={(e) => setArticleForm({...articleForm, category: e.target.value,  })} required className="w-full p-2 rounded-lg bg-gray-100 outline-firm-orange">
+                    <select
+                      value={articleForm.category}
+                      onChange={(e) => setArticleForm({ ...articleForm, category: e.target.value })}
+                      required
+                      className="w-full p-2 rounded-lg bg-gray-100 outline-firm-orange"
+                    >
                       <option value="">Выберите категорию</option>
-                      {categories.map((cat) => (<option key={cat.id} value={cat.slug}>{cat.name}</option>))}
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.slug}>{cat.name}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
                     <label className="block text-gray-700 mb-1">Теги (через запятую)</label>
-                    <input type="text"  value={articleForm.tags} onChange={(e) => setArticleForm({ ...articleForm, tags: e.target.value })} placeholder="например: оплата, доставка, возврат" className="w-full p-2 rounded-lg bg-gray-100 outline-firm-orange" />
+                    <input
+                      type="text"
+                      value={articleForm.tags}
+                      onChange={(e) => setArticleForm({ ...articleForm, tags: e.target.value })}
+                      placeholder="например: оплата, доставка, возврат"
+                      className="w-full p-2 rounded-lg bg-gray-100 outline-firm-orange"
+                    />
                   </div>
                 </div>
                 <div>
                   <label className="block text-gray-700 mb-1">Содержание *</label>
-                  <textarea value={articleForm.content} onChange={(e) => setArticleForm({...articleForm, content: e.target.value})} required rows={12} className="w-full p-2 rounded-lg bg-gray-100 outline-firm-orange font-mono text-sm" placeholder="Подробное описание решения проблемы..." />
+                  <textarea
+                    value={articleForm.content}
+                    onChange={(e) => setArticleForm({ ...articleForm, content: e.target.value })}
+                    required
+                    rows={12}
+                    className="w-full p-2 rounded-lg bg-gray-100 outline-firm-orange font-mono text-sm"
+                    placeholder="Подробное описание решения проблемы..."
+                  />
                 </div>
                 <div className="flex items-center gap-3">
-                  <input type="checkbox" checked={articleForm.is_published} onChange={(e) => setArticleForm({...articleForm, is_published: e.target.checked})} className="w-5 h-5 accent-firm-orange" />
+                  <input
+                    type="checkbox"
+                    checked={articleForm.is_published}
+                    onChange={(e) => setArticleForm({ ...articleForm, is_published: e.target.checked })}
+                    className="w-5 h-5 accent-firm-orange"
+                  />
                   <label className="text-gray-700">Опубликовать сразу</label>
                 </div>
                 <div className="flex gap-3 pt-4">
-                  <button type="submit" disabled={saving} className="flex-1 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50">{saving ? "Сохранение..." : editingArticle ? "Обновить" : "Создать"}</button>
-                  <button type="button" onClick={() => {setShowArticleModal(false); resetArticleForm()}} className="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition">Отмена</button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="flex-1 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50"
+                  >
+                    {saving ? "Сохранение..." : editingArticle ? "Обновить" : "Создать"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowArticleModal(false); resetArticleForm(); }}
+                    className="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
+                  >
+                    Отмена
+                  </button>
                 </div>
               </form>
             </div>
@@ -344,30 +495,71 @@ export default function KnowledgeBasePage() {
         </div>
       )}
 
+      {/* Модальное окно для категории */}
       {showCategoryModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">Новая категория</h2>
-                <button onClick={() => setShowCategoryModal(false)} className="text-gray-500 hover:text-gray-700 text-xl">✕</button>
+                <button
+                  onClick={() => setShowCategoryModal(false)}
+                  className="text-gray-500 hover:text-gray-700 text-xl"
+                >
+                  ✕
+                </button>
               </div>
               <form onSubmit={handleCategorySubmit} className="space-y-4">
                 <div>
                   <label className="block text-gray-700 mb-1">Название *</label>
-                  <input type="text" value={categoryForm.name} onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })} required className="w-full p-2 rounded-lg bg-gray-100 outline-firm-orange" />
+                  <input
+                    type="text"
+                    value={categoryForm.name}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                    required
+                    className="w-full p-2 rounded-lg bg-gray-100 outline-firm-orange"
+                  />
                 </div>
                 <div>
-                  <label className="block text-gray-700 mb-1">Slug (URL) *<span className="text-xs text-gray-500 ml-2"> на английском</span></label>
-                  <input type="text" value={categoryForm.slug} onChange={(e) => setCategoryForm({...categoryForm, slug: e.target.value.toLowerCase().replace(/\s/g, "-"),})} required className="w-full p-2 rounded-lg bg-gray-100 outline-firm-orange" placeholder="naprimer: payment" />
+                  <label className="block text-gray-700 mb-1">
+                    Slug (URL) * <span className="text-xs text-gray-500 ml-2">на английском</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={categoryForm.slug}
+                    onChange={(e) => setCategoryForm({
+                      ...categoryForm,
+                      slug: e.target.value.toLowerCase().replace(/\s/g, "-")
+                    })}
+                    required
+                    className="w-full p-2 rounded-lg bg-gray-100 outline-firm-orange"
+                    placeholder="naprimer: payment"
+                  />
                 </div>
                 <div>
                   <label className="block text-gray-700 mb-1">Описание</label>
-                  <textarea value={categoryForm.description} onChange={(e) => setCategoryForm({...categoryForm, description: e.target.value, }) } rows={3} className="w-full p-2 rounded-lg bg-gray-100 outline-firm-orange" />
+                  <textarea
+                    value={categoryForm.description}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                    rows={3}
+                    className="w-full p-2 rounded-lg bg-gray-100 outline-firm-orange"
+                  />
                 </div>
                 <div className="flex gap-3 pt-4">
-                  <button type="submit" disabled={saving} className="flex-1 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50">{saving ? "Создание..." : "Создать"}</button>
-                  <button type="button" onClick={() => setShowCategoryModal(false)} className="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition">Отмена</button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="flex-1 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50"
+                  >
+                    {saving ? "Создание..." : "Создать"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCategoryModal(false)}
+                    className="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
+                  >
+                    Отмена
+                  </button>
                 </div>
               </form>
             </div>

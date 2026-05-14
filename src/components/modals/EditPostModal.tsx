@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import toast from "react-hot-toast";
 
 interface EditPostModalProps {
   isOpen: boolean;
@@ -62,11 +63,11 @@ export default function EditPostModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title) {
-      alert("Введите заголовок поста");
+      toast.error("Введите заголовок поста");
       return;
     }
     if (!formData.content) {
-      alert("Введите содержание поста");
+      toast.error("Введите содержание поста");
       return;
     }
 
@@ -86,12 +87,12 @@ export default function EditPostModal({
 
       if (!response.ok) throw new Error("Failed to update post");
 
-      alert("Пост успешно обновлен");
+      toast.success("Пост успешно обновлен");
       onSuccess();
       onClose();
     } catch (error) {
       console.error(error);
-      alert("Ошибка при обновлении поста");
+      toast.error("Ошибка при обновлении поста");
     } finally {
       setSaving(false);
     }

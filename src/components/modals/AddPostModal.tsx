@@ -1,9 +1,9 @@
-// components/modals/AddPostModal.tsx
 "use client";
 
 import React, { useState, useRef } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import toast from "react-hot-toast";
 
 interface AddPostModalProps {
   isOpen: boolean;
@@ -45,16 +45,16 @@ export default function AddPostModal({ isOpen, onClose, onSuccess, session }: Ad
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (postImages.length + files.length > 10) {
-      alert("Можно загрузить не более 10 фотографий");
+      toast.error("Можно загрузить не более 10 фотографий");
       return;
     }
     const validFiles = files.filter(file => {
       if (file.size > 10 * 1024 * 1024) {
-        alert(`Файл ${file.name} превышает 10MB`);
+        toast.error(`Файл ${file.name} превышает 10MB`);
         return false;
       }
       if (!file.type.startsWith("image/")) {
-        alert(`Файл ${file.name} не является изображением`);
+        toast.error(`Файл ${file.name} не является изображением`);
         return false;
       }
       return true;
@@ -74,8 +74,14 @@ export default function AddPostModal({ isOpen, onClose, onSuccess, session }: Ad
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!postForm.title) { alert("Введите заголовок поста"); return; }
-    if (!postForm.content) { alert("Введите содержание поста"); return; }
+    if (!postForm.title) { 
+      toast.error("Введите заголовок поста"); 
+      return; 
+    }
+    if (!postForm.content) { 
+      toast.error("Введите содержание поста"); 
+      return; 
+    }
     setSaving(true);
     try {
       const formData = new FormData();
@@ -87,13 +93,13 @@ export default function AddPostModal({ isOpen, onClose, onSuccess, session }: Ad
       postImages.forEach(image => formData.append("images", image));
       const response = await fetch("/api/master/blog", { method: "POST", body: formData });
       if (!response.ok) throw new Error("Failed to create post");
-      alert("Пост успешно создан!");
+      toast.success("Пост успешно создан!");
       onSuccess();
       onClose();
       resetForm();
     } catch (error) {
       console.error(error);
-      alert("Ошибка при создании поста");
+      toast.error("Ошибка при создании поста");
     } finally {
       setSaving(false);
     }

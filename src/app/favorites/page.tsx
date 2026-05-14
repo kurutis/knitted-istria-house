@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
+import toast from "react-hot-toast"
 
 interface FavoriteProduct {
     id: string
@@ -44,19 +45,18 @@ export default function FavoritesPage() {
             
             const data = await response.json()
             
-            console.log('Favorites API response:', data) // Для отладки
+            console.log('Favorites API response:', data)
             
-            // API возвращает { success, favorites, pagination, stats }
             if (data && data.success && Array.isArray(data.favorites)) {
                 setFavorites(data.favorites)
             } else if (Array.isArray(data)) {
-                // Если вдруг вернулся массив
                 setFavorites(data)
             } else {
                 setFavorites([])
             }
         } catch (error) {
             console.error('Ошибка загрузки избранного:', error)
+            toast.error('Ошибка загрузки избранного')
             setFavorites([])
         } finally {
             setLoading(false)
@@ -74,13 +74,14 @@ export default function FavoritesPage() {
             
             if (response.ok) {
                 setFavorites(prev => prev.filter(item => item.id !== productId))
+                toast.success('Товар удален из избранного')
             } else {
                 const error = await response.json()
-                alert(error.error || 'Ошибка при удалении из избранного')
+                toast.error(error.error || 'Ошибка при удалении из избранного')
             }
         } catch (error) {
             console.error('Error removing from favorites:', error)
-            alert('Ошибка при удалении из избранного')
+            toast.error('Ошибка при удалении из избранного')
         } finally {
             setRemovingId(null)
         }

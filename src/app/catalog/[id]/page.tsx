@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
+import toast from "react-hot-toast";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 interface Product {
   id: string;
@@ -83,6 +85,21 @@ export default function ProductPage() {
     care_instructions: "",
   });
   const [categories, setCategories] = useState<Category[]>([]);
+  
+  // Состояние для модального окна подтверждения удаления
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type?: 'danger' | 'warning' | 'info';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'danger'
+  });
 
   useEffect(() => {
     if (id) {
@@ -172,7 +189,6 @@ export default function ProductPage() {
     try {
       const response = await fetch("/api/user/favorites");
       const data = await response.json();
-      // API возвращает { success, favorites, ... }
       const favoritesList = data.favorites || (Array.isArray(data) ? data : []);
       const isFav = favoritesList.some(
         (item: { id: string }) => item.id === id,
@@ -198,9 +214,11 @@ export default function ProductPage() {
       });
       if (response.ok) {
         setIsInCart(true);
+        toast.success("Товар добавлен в корзину");
       }
     } catch (error) {
       console.error("Error adding to cart:", error);
+      toast.error("Ошибка при добавлении в корзину");
     } finally {
       setUpdatingCart(false);
     }
@@ -215,9 +233,11 @@ export default function ProductPage() {
       if (response.ok) {
         setIsInCart(false);
         setQuantity(1);
+        toast.success("Товар удален из корзины");
       }
     } catch (error) {
       console.error("Error removing from cart:", error);
+      toast.error("Ошибка при удалении из корзины");
     } finally {
       setUpdatingCart(false);
     }
@@ -230,7 +250,6 @@ export default function ProductPage() {
     setUpdatingCart(true);
     try {
       const response = await fetch("/api/cart", {
-        // ← ИСПРАВЛЕНО
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ productId: id, quantity: newQuantity }),
@@ -238,9 +257,11 @@ export default function ProductPage() {
 
       if (!response.ok) {
         console.error("Failed to update quantity");
+        toast.error("Ошибка при обновлении количества");
       }
     } catch (error) {
       console.error("Error updating quantity:", error);
+      toast.error("Ошибка при обновлении количества");
     } finally {
       setUpdatingCart(false);
     }
@@ -266,9 +287,11 @@ export default function ProductPage() {
 
       if (response.ok) {
         setIsFavorite(!isFavorite);
+        toast.success(isFavorite ? "Удалено из избранного" : "Добавлено в избранное");
       }
     } catch (error) {
       console.error("Error toggling favorite:", error);
+      toast.error("Ошибка при изменении избранного");
     }
   };
 
@@ -289,9 +312,13 @@ export default function ProductPage() {
         setReviewRating(5);
         setReviewComment("");
         setActiveTab("reviews");
+        toast.success("Отзыв успешно добавлен");
+      } else {
+        toast.error("Ошибка при добавлении отзыва");
       }
     } catch (error) {
       console.error("Error submitting review:", error);
+      toast.error("Ошибка при добавлении отзыва");
     } finally {
       setSubmittingReview(false);
     }
@@ -320,38 +347,48 @@ export default function ProductPage() {
       if (response.ok) {
         await fetchProduct();
         setShowEditModal(false);
-        alert("Товар успешно обновлен");
+        toast.success("Товар успешно обновлен");
       } else {
         const error = await response.json();
-        alert(error.error || "Ошибка при обновлении");
+        toast.error(error.error || "Ошибка при обновлении");
       }
     } catch (error) {
       console.error("Error updating product:", error);
-      alert("Ошибка при обновлении товара");
+      toast.error("Ошибка при обновлении товара");
     } finally {
       setEditing(false);
     }
   };
 
   const handleDeleteProduct = async () => {
-    setEditing(true);
-    try {
-      const response = await fetch(`/api/master/products/${id}`, {
-        method: "DELETE",
-      });
+    setConfirmModal({
+      isOpen: true,
+      title: 'Удаление товара',
+      message: 'Вы уверены, что хотите удалить этот товар? Это действие нельзя отменить.',
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        setEditing(true);
+        try {
+          const response = await fetch(`/api/master/products/${id}`, {
+            method: "DELETE",
+          });
 
-      if (response.ok) {
-        router.push("/master/dashboard");
-      } else {
-        const error = await response.json();
-        alert(error.error || "Ошибка при удалении");
+          if (response.ok) {
+            toast.success("Товар удален");
+            router.push("/master/dashboard");
+          } else {
+            const error = await response.json();
+            toast.error(error.error || "Ошибка при удалении");
+          }
+        } catch (error) {
+          console.error("Error deleting product:", error);
+          toast.error("Ошибка при удалении товара");
+        } finally {
+          setEditing(false);
+        }
       }
-    } catch (error) {
-      console.error("Error deleting product:", error);
-      alert("Ошибка при удалении товара");
-    } finally {
-      setEditing(false);
-    }
+    });
   };
 
   const isAuthor =
@@ -1133,6 +1170,16 @@ export default function ProductPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Кастомное модальное окно подтверждения удаления */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
     </>
   );
 }

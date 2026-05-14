@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, JSX } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import toast from "react-hot-toast";
 
 interface CategoryItem {
   id: number;
@@ -58,16 +59,16 @@ export default function AddProductModal({
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (images.length + files.length > 10) {
-      alert("Можно загрузить не более 10 фотографий");
+      toast.error("Можно загрузить не более 10 фотографий");
       return;
     }
     const validFiles = files.filter(file => {
       if (file.size > 10 * 1024 * 1024) {
-        alert(`Файл ${file.name} превышает 10MB`);
+        toast.error(`Файл ${file.name} превышает 10MB`);
         return false;
       }
       if (!file.type.startsWith("image/")) {
-        alert(`Файл ${file.name} не является изображением`);
+        toast.error(`Файл ${file.name} не является изображением`);
         return false;
       }
       return true;
@@ -88,7 +89,6 @@ export default function AddProductModal({
   };
 
   const renderCategoryOptions = (cats: CategoryItem[], level = 0): JSX.Element[] => {
-    // Добавляем проверку, что cats - массив
     if (!cats || !Array.isArray(cats)) {
       return [];
     }
@@ -111,7 +111,7 @@ export default function AddProductModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (images.length === 0) {
-      alert("Добавьте хотя бы одну фотографию товара");
+      toast.error("Добавьте хотя бы одну фотографию товара");
       return;
     }
     setSaving(true);
@@ -133,13 +133,13 @@ export default function AddProductModal({
       images.forEach(image => formData.append("images", image));
       const response = await fetch("/api/master/products", { method: "POST", body: formData });
       if (!response.ok) throw new Error("Failed to create product");
-      alert("Товар успешно создан и отправлен на модерацию");
+      toast.success("Товар успешно создан и отправлен на модерацию");
       onSuccess();
       onClose();
       resetForm();
     } catch (error) {
       console.error(error);
-      alert("Ошибка при создании товара");
+      toast.error("Ошибка при создании товара");
     } finally {
       setSaving(false);
     }
@@ -154,10 +154,8 @@ export default function AddProductModal({
     setImagePreviews([]);
   };
 
-  // Добавляем проверку перед рендером
   if (!isOpen) return null;
   
-  // Проверяем, что categories - массив
   const safeCategories = Array.isArray(categories) ? categories : [];
 
   return (

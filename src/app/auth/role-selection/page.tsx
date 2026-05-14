@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import React, { useEffect, useState } from "react"
+import toast from "react-hot-toast"
 
 export default function RoleSelectionPage(){
     const {data: session, update} = useSession()
@@ -38,9 +39,11 @@ export default function RoleSelectionPage(){
 
             await update({...session, user:{...session?.user, ...formData, roleSelected: true}})
             
+            toast.success('Регистрация успешно завершена!')
             router.push('/')
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Произошла ошибка')
+            toast.error(err instanceof Error ? err.message : 'Произошла ошибка')
         }finally{
             setLoading(false)
         }

@@ -4,6 +4,8 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import toast from "react-hot-toast"
+import ConfirmModal from "@/components/ui/ConfirmModal"
 
 interface Subcategory {
     id: number
@@ -41,6 +43,21 @@ export default function AdminCategoriesPage() {
     const [saving, setSaving] = useState(false)
     const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set())
     const fileInputRef = useRef<HTMLInputElement>(null)
+    
+    // Состояние для модального окна подтверждения
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        type?: 'danger' | 'warning' | 'info';
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => {},
+        type: 'danger'
+    })
 
     useEffect(() => {
         if (status === 'loading') return
@@ -65,7 +82,7 @@ export default function AdminCategoriesPage() {
             setCategories(data || [])
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Ошибка загрузки категорий'
-            alert(errorMessage)
+            toast.error(errorMessage)
         } finally {
             setLoading(false)
         }
@@ -81,7 +98,7 @@ export default function AdminCategoriesPage() {
             }
             reader.readAsDataURL(file)
         } else {
-            alert('Пожалуйста, выберите SVG файл')
+            toast.error('Пожалуйста, выберите SVG файл')
         }
     }
 
@@ -113,11 +130,11 @@ export default function AdminCategoriesPage() {
             setShowAddModal(false)
             resetForm()
             await loadCategories()
-            alert('Категория успешно добавлена')
+            toast.success('Категория успешно добавлена')
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Ошибка при создании категории'
-            alert(errorMessage)
-        }  finally {
+            toast.error(errorMessage)
+        } finally {
             setSaving(false)
         }
     }
@@ -150,10 +167,10 @@ export default function AdminCategoriesPage() {
             setShowSubcategoryModal(false)
             resetForm()
             await loadCategories()
-            alert('Подкатегория успешно добавлена')
+            toast.success('Подкатегория успешно добавлена')
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Ошибка при создании подкатегории'
-            alert(errorMessage)
+            toast.error(errorMessage)
         } finally {
             setSaving(false)
         }
@@ -194,32 +211,39 @@ export default function AdminCategoriesPage() {
             setSelectedCategory(null)
             resetForm()
             await loadCategories()
-            alert('Категория успешно обновлена')
+            toast.success('Категория успешно обновлена')
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Ошибка при обновлении категории'
-            alert(errorMessage)
+            toast.error(errorMessage)
         } finally {
             setSaving(false)
         }
     }
 
     const handleDeleteCategory = async (category: Category) => {
-        if (!confirm(`Удалить категорию "${category.name}" со всеми подкатегориями?`)) return
-        
-        try {
-            const response = await fetch(`/api/admin/categories?id=${category.id}`, { method: 'DELETE' })
-            
-            if (!response.ok) {
-                const errorData = await response.json() as { error?: string }
-                throw new Error(errorData.error || 'Failed to delete')
+        setConfirmModal({
+            isOpen: true,
+            title: 'Удаление категории',
+            message: `Вы уверены, что хотите удалить категорию "${category.name}" со всеми подкатегориями? Это действие нельзя отменить.`,
+            type: 'danger',
+            onConfirm: async () => {
+                setConfirmModal(prev => ({ ...prev, isOpen: false }))
+                try {
+                    const response = await fetch(`/api/admin/categories?id=${category.id}`, { method: 'DELETE' })
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json() as { error?: string }
+                        throw new Error(errorData.error || 'Failed to delete')
+                    }
+                    
+                    await loadCategories()
+                    toast.success('Категория удалена')
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : 'Ошибка при удалении категории'
+                    toast.error(errorMessage)
+                }
             }
-            
-            await loadCategories()
-            alert('Категория удалена')
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Ошибка при удалении категории'
-            alert(errorMessage)
-        }
+        })
     }
 
     const openEditModal = (category: Category) => {
@@ -369,275 +393,287 @@ export default function AdminCategoriesPage() {
     }
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="space-y-6 p-4 sm:p-6"
-        >
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
-                        Категории товаров
-                    </h1>
-                    <p className="text-gray-500 text-sm mt-1">Управление основными категориями и подкатегориями</p>
-                </div>
-                <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowAddModal(true)}
-                    className="px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 flex items-center gap-2"
-                >
-                    + Добавить категорию
-                </motion.button>
-            </div>
-
-            <div className="space-y-3">
-                {categories.length === 0 ? (
-                    <div className="bg-white rounded-2xl shadow-xl p-12 text-center text-gray-500">
-                        <p className="text-lg">Нет добавленных категорий</p>
-                        <p className="text-sm mt-2">
-                            Нажмите кнопку &quot;Добавить категорию&quot; чтобы начать
-                        </p>
+        <>
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="space-y-6 p-4 sm:p-6"
+            >
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
+                            Категории товаров
+                        </h1>
+                        <p className="text-gray-500 text-sm mt-1">Управление основными категориями и подкатегориями</p>
                     </div>
-                ) : (
-                    categories.map(category => renderCategoryTree(category, 0))
-                )}
-            </div>
-
-            {/* Модальное окно добавления категории */}
-            <AnimatePresence>
-                {showAddModal && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-                        onClick={() => setShowAddModal(false)}
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setShowAddModal(true)}
+                        className="px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 flex items-center gap-2"
                     >
+                        + Добавить категорию
+                    </motion.button>
+                </div>
+
+                <div className="space-y-3">
+                    {categories.length === 0 ? (
+                        <div className="bg-white rounded-2xl shadow-xl p-12 text-center text-gray-500">
+                            <p className="text-lg">Нет добавленных категорий</p>
+                            <p className="text-sm mt-2">
+                                Нажмите кнопку &quot;Добавить категорию&quot; чтобы начать
+                            </p>
+                        </div>
+                    ) : (
+                        categories.map(category => renderCategoryTree(category, 0))
+                    )}
+                </div>
+
+                {/* Модальное окно добавления категории */}
+                <AnimatePresence>
+                    {showAddModal && (
                         <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-white rounded-2xl max-w-md w-full shadow-2xl"
-                            onClick={(e) => e.stopPropagation()}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                            onClick={() => setShowAddModal(false)}
                         >
-                            <div className="p-6">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl">Добавить категорию</h2>
-                                    <button onClick={() => setShowAddModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl transition-colors">✕</button>
-                                </div>
-                                <form onSubmit={handleAddCategory} className="space-y-4">
-                                    <div>
-                                        <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Название *</label>
-                                        <input type="text" name="name" value={formData.name} onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))} required className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" placeholder="Свитера, Шапки, Шарфы..." />
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.9, opacity: 0 }}
+                                className="bg-white rounded-2xl max-w-md w-full shadow-2xl"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="p-6">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl">Добавить категорию</h2>
+                                        <button onClick={() => setShowAddModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl transition-colors">✕</button>
                                     </div>
-                                    <div>
-                                        <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">SVG Иконка</label>
-                                        <div className="flex items-center gap-4">
-                                            {iconPreview && (
-                                                <img src={iconPreview} alt="icon preview" className="w-12 h-12 object-contain border rounded-lg p-1" />
-                                            )}
-                                            <button
-                                                type="button"
-                                                onClick={() => fileInputRef.current?.click()}
-                                                className="px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-300"
-                                            >
-                                                Выбрать SVG
-                                            </button>
-                                            <input
-                                                ref={fileInputRef}
-                                                type="file"
-                                                accept=".svg,image/svg+xml"
-                                                onChange={handleIconChange}
-                                                className="hidden"
-                                            />
-                                            {iconPreview && (
+                                    <form onSubmit={handleAddCategory} className="space-y-4">
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Название *</label>
+                                            <input type="text" name="name" value={formData.name} onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))} required className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" placeholder="Свитера, Шапки, Шарфы..." />
+                                        </div>
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">SVG Иконка</label>
+                                            <div className="flex items-center gap-4">
+                                                {iconPreview && (
+                                                    <img src={iconPreview} alt="icon preview" className="w-12 h-12 object-contain border rounded-lg p-1" />
+                                                )}
                                                 <button
                                                     type="button"
-                                                    onClick={() => { setIconPreview(null); setIconFile(null) }}
-                                                    className="text-red-500 hover:text-red-600"
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    className="px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-300"
                                                 >
-                                                    Удалить
+                                                    Выбрать SVG
                                                 </button>
-                                            )}
+                                                <input
+                                                    ref={fileInputRef}
+                                                    type="file"
+                                                    accept=".svg,image/svg+xml"
+                                                    onChange={handleIconChange}
+                                                    className="hidden"
+                                                />
+                                                {iconPreview && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => { setIconPreview(null); setIconFile(null) }}
+                                                        className="text-red-500 hover:text-red-600"
+                                                    >
+                                                        Удалить
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-gray-400 mt-1">Рекомендуемый размер: 32x32px, формат SVG</p>
                                         </div>
-                                        <p className="text-xs text-gray-400 mt-1">Рекомендуемый размер: 32x32px, формат SVG</p>
-                                    </div>
-                                    <div>
-                                        <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Описание</label>
-                                        <textarea name="description" value={formData.description} onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} rows={3} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" placeholder="Описание категории..." />
-                                    </div>
-                                    <div className="flex gap-3 pt-4">
-                                        <button type="submit" disabled={saving} className="flex-1 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 font-medium">
-                                            {saving ? 'Сохранение...' : 'Добавить'}
-                                        </button>
-                                        <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-300">
-                                            Отмена
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* Модальное окно добавления подкатегории */}
-            <AnimatePresence>
-                {showSubcategoryModal && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-                        onClick={() => setShowSubcategoryModal(false)}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-white rounded-2xl max-w-md w-full shadow-2xl"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="p-6">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl">Добавить подкатегорию</h2>
-                                    <button onClick={() => setShowSubcategoryModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl transition-colors">✕</button>
-                                </div>
-                                <form onSubmit={handleAddSubcategory} className="space-y-4">
-                                    <div>
-                                        <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Название *</label>
-                                        <input type="text" name="name" value={formData.name} onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))} required className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" placeholder="Например: Свитера оверсайз, Детские свитера..." />
-                                    </div>
-                                    <div>
-                                        <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">SVG Иконка</label>
-                                        <div className="flex items-center gap-4">
-                                            {iconPreview && (
-                                                <img src={iconPreview} alt="icon preview" className="w-12 h-12 object-contain border rounded-lg p-1" />
-                                            )}
-                                            <button
-                                                type="button"
-                                                onClick={() => fileInputRef.current?.click()}
-                                                className="px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-300"
-                                            >
-                                                Выбрать SVG
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Описание</label>
+                                            <textarea name="description" value={formData.description} onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} rows={3} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" placeholder="Описание категории..." />
+                                        </div>
+                                        <div className="flex gap-3 pt-4">
+                                            <button type="submit" disabled={saving} className="flex-1 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 font-medium">
+                                                {saving ? 'Сохранение...' : 'Добавить'}
                                             </button>
-                                            <input
-                                                ref={fileInputRef}
-                                                type="file"
-                                                accept=".svg,image/svg+xml"
-                                                onChange={handleIconChange}
-                                                className="hidden"
-                                            />
-                                            {iconPreview && (
+                                            <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-300">
+                                                Отмена
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Модальное окно добавления подкатегории */}
+                <AnimatePresence>
+                    {showSubcategoryModal && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                            onClick={() => setShowSubcategoryModal(false)}
+                        >
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.9, opacity: 0 }}
+                                className="bg-white rounded-2xl max-w-md w-full shadow-2xl"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="p-6">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl">Добавить подкатегорию</h2>
+                                        <button onClick={() => setShowSubcategoryModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl transition-colors">✕</button>
+                                    </div>
+                                    <form onSubmit={handleAddSubcategory} className="space-y-4">
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Название *</label>
+                                            <input type="text" name="name" value={formData.name} onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))} required className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" placeholder="Например: Свитера оверсайз, Детские свитера..." />
+                                        </div>
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">SVG Иконка</label>
+                                            <div className="flex items-center gap-4">
+                                                {iconPreview && (
+                                                    <img src={iconPreview} alt="icon preview" className="w-12 h-12 object-contain border rounded-lg p-1" />
+                                                )}
                                                 <button
                                                     type="button"
-                                                    onClick={() => { setIconPreview(null); setIconFile(null) }}
-                                                    className="text-red-500 hover:text-red-600"
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    className="px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-300"
                                                 >
-                                                    Удалить
+                                                    Выбрать SVG
                                                 </button>
-                                            )}
+                                                <input
+                                                    ref={fileInputRef}
+                                                    type="file"
+                                                    accept=".svg,image/svg+xml"
+                                                    onChange={handleIconChange}
+                                                    className="hidden"
+                                                />
+                                                {iconPreview && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => { setIconPreview(null); setIconFile(null) }}
+                                                        className="text-red-500 hover:text-red-600"
+                                                    >
+                                                        Удалить
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-gray-400 mt-1">Рекомендуемый размер: 32x32px, формат SVG</p>
                                         </div>
-                                        <p className="text-xs text-gray-400 mt-1">Рекомендуемый размер: 32x32px, формат SVG</p>
-                                    </div>
-                                    <div>
-                                        <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Описание</label>
-                                        <textarea name="description" value={formData.description} onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} rows={3} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" placeholder="Описание подкатегории..." />
-                                    </div>
-                                    <div className="flex gap-3 pt-4">
-                                        <button type="submit" disabled={saving} className="flex-1 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 font-medium">
-                                            {saving ? 'Сохранение...' : 'Добавить'}
-                                        </button>
-                                        <button type="button" onClick={() => setShowSubcategoryModal(false)} className="flex-1 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-300">
-                                            Отмена
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* Модальное окно редактирования категории */}
-            <AnimatePresence>
-                {showEditModal && selectedCategory && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-                        onClick={() => setShowEditModal(false)}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-white rounded-2xl max-w-md w-full shadow-2xl"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="p-6">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl">Редактировать категорию</h2>
-                                    <button onClick={() => setShowEditModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl transition-colors">✕</button>
-                                </div>
-                                <form onSubmit={handleEditCategory} className="space-y-4">
-                                    <div>
-                                        <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Название *</label>
-                                        <input type="text" name="name" value={formData.name} onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))} required className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">SVG Иконка</label>
-                                        <div className="flex items-center gap-4">
-                                            {iconPreview && (
-                                                <img src={iconPreview} alt="icon preview" className="w-12 h-12 object-contain border rounded-lg p-1" />
-                                            )}
-                                            <button
-                                                type="button"
-                                                onClick={() => fileInputRef.current?.click()}
-                                                className="px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-300"
-                                            >
-                                                {selectedCategory.icon_url ? 'Заменить SVG' : 'Выбрать SVG'}
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Описание</label>
+                                            <textarea name="description" value={formData.description} onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} rows={3} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" placeholder="Описание подкатегории..." />
+                                        </div>
+                                        <div className="flex gap-3 pt-4">
+                                            <button type="submit" disabled={saving} className="flex-1 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 font-medium">
+                                                {saving ? 'Сохранение...' : 'Добавить'}
                                             </button>
-                                            <input
-                                                ref={fileInputRef}
-                                                type="file"
-                                                accept=".svg,image/svg+xml"
-                                                onChange={handleIconChange}
-                                                className="hidden"
-                                            />
-                                            {(iconPreview || selectedCategory.icon_url) && (
+                                            <button type="button" onClick={() => setShowSubcategoryModal(false)} className="flex-1 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-300">
+                                                Отмена
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Модальное окно редактирования категории */}
+                <AnimatePresence>
+                    {showEditModal && selectedCategory && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                            onClick={() => setShowEditModal(false)}
+                        >
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.9, opacity: 0 }}
+                                className="bg-white rounded-2xl max-w-md w-full shadow-2xl"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="p-6">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl">Редактировать категорию</h2>
+                                        <button onClick={() => setShowEditModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl transition-colors">✕</button>
+                                    </div>
+                                    <form onSubmit={handleEditCategory} className="space-y-4">
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Название *</label>
+                                            <input type="text" name="name" value={formData.name} onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))} required className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">SVG Иконка</label>
+                                            <div className="flex items-center gap-4">
+                                                {iconPreview && (
+                                                    <img src={iconPreview} alt="icon preview" className="w-12 h-12 object-contain border rounded-lg p-1" />
+                                                )}
                                                 <button
                                                     type="button"
-                                                    onClick={() => { setIconPreview(null); setIconFile(null) }}
-                                                    className="text-red-500 hover:text-red-600"
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    className="px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-300"
                                                 >
-                                                    Удалить
+                                                    {selectedCategory.icon_url ? 'Заменить SVG' : 'Выбрать SVG'}
                                                 </button>
-                                            )}
+                                                <input
+                                                    ref={fileInputRef}
+                                                    type="file"
+                                                    accept=".svg,image/svg+xml"
+                                                    onChange={handleIconChange}
+                                                    className="hidden"
+                                                />
+                                                {(iconPreview || selectedCategory.icon_url) && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => { setIconPreview(null); setIconFile(null) }}
+                                                        className="text-red-500 hover:text-red-600"
+                                                    >
+                                                        Удалить
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-gray-400 mt-1">Рекомендуемый размер: 32x32px, формат SVG</p>
                                         </div>
-                                        <p className="text-xs text-gray-400 mt-1">Рекомендуемый размер: 32x32px, формат SVG</p>
-                                    </div>
-                                    <div>
-                                        <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Описание</label>
-                                        <textarea name="description" value={formData.description} onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} rows={3} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
-                                    </div>
-                                    <div className="flex gap-3 pt-4">
-                                        <button type="submit" disabled={saving} className="flex-1 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 font-medium">
-                                            {saving ? 'Сохранение...' : 'Сохранить'}
-                                        </button>
-                                        <button type="button" onClick={() => setShowEditModal(false)} className="flex-1 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-300">
-                                            Отмена
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
+                                        <div>
+                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Описание</label>
+                                            <textarea name="description" value={formData.description} onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} rows={3} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
+                                        </div>
+                                        <div className="flex gap-3 pt-4">
+                                            <button type="submit" disabled={saving} className="flex-1 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 font-medium">
+                                                {saving ? 'Сохранение...' : 'Сохранить'}
+                                            </button>
+                                            <button type="button" onClick={() => setShowEditModal(false)} className="flex-1 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-300">
+                                                Отмена
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </motion.div>
                         </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </motion.div>
+                    )}
+                </AnimatePresence>
+            </motion.div>
+
+            {/* Кастомное модальное окно подтверждения */}
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                type={confirmModal.type}
+                onConfirm={confirmModal.onConfirm}
+                onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+            />
+        </>
     )
 }

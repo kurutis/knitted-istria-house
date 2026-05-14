@@ -1,8 +1,8 @@
-// components/modals/EditProductModal.tsx
 "use client";
 
 import React, { useState, useEffect, JSX } from "react";
 import { motion } from "framer-motion";
+import toast from "react-hot-toast";
 
 interface CategoryItem {
   id: number;
@@ -96,9 +96,8 @@ export default function EditProductModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Проверяем, что категория выбрана
     if (!formData.category) {
-      alert("Пожалуйста, выберите категорию товара");
+      toast.error("Пожалуйста, выберите категорию товара");
       return;
     }
     
@@ -126,12 +125,12 @@ export default function EditProductModal({
         throw new Error(errorData.error || "Ошибка при обновлении");
       }
       
-      alert("Товар успешно обновлен");
+      toast.success("Товар успешно обновлен");
       onSuccess();
       onClose();
     } catch (error) {
       console.error(error);
-      alert(error instanceof Error ? error.message : "Ошибка при обновлении товара");
+      toast.error(error instanceof Error ? error.message : "Ошибка при обновлении товара");
     } finally {
       setSaving(false);
     }

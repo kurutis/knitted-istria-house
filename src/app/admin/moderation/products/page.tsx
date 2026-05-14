@@ -3,9 +3,10 @@
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import Image from "next/image"
-import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
+import toast from "react-hot-toast"
+import ConfirmModal from "@/components/ui/ConfirmModal"
+import PromptModal from "@/components/ui/PromptModal"
 
 interface ProductImage {
     id: string
@@ -40,6 +41,33 @@ export default function AdminModerationProductsPage() {
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
     const [showModal, setShowModal] = useState(false)
     const [filter, setFilter] = useState<'all' | 'moderation' | 'draft' | 'active'>('all')
+    
+    // Состояния для модальных окон
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        type?: 'danger' | 'warning' | 'info';
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => {},
+        type: 'warning'
+    })
+    
+    const [promptModal, setPromptModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: (value: string) => void;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => {}
+    })
 
     useEffect(() => {
         if (status === 'loading') return
@@ -64,82 +92,106 @@ export default function AdminModerationProductsPage() {
             const data = await response.json()
             console.log('API response:', data)
             
-            // API возвращает массив товаров
             const productsList = Array.isArray(data) ? data : []
-            
             setProducts(productsList)
         } catch (error) {
             console.error('Ошибка загрузки товаров:', error)
+            toast.error('Ошибка загрузки товаров')
         } finally {
             setLoading(false)
         }
     }
 
     const handleApprove = async (productId: string) => {
-        if (!confirm("Одобрить товар для публикации?")) return
-        
-        setActionLoading(productId)
-        try {
-            const response = await fetch('/api/admin/products', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ productId, action: 'approve' })
-            })
-            
-            if (!response.ok) throw new Error('Failed to approve')
-            
-            await loadProducts()
-            if (showModal) setShowModal(false)
-        } catch (error) {
-            alert('Ошибка при одобрении товара')
-        } finally {
-            setActionLoading(null)
-        }
+        setConfirmModal({
+            isOpen: true,
+            title: 'Одобрение товара',
+            message: 'Вы уверены, что хотите одобрить этот товар? Он будет опубликован на сайте.',
+            type: 'warning',
+            onConfirm: async () => {
+                setConfirmModal(prev => ({ ...prev, isOpen: false }))
+                setActionLoading(productId)
+                try {
+                    const response = await fetch('/api/admin/products', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ productId, action: 'approve' })
+                    })
+                    
+                    if (!response.ok) throw new Error('Failed to approve')
+                    
+                    await loadProducts()
+                    if (showModal) setShowModal(false)
+                    toast.success('Товар успешно одобрен!')
+                } catch (error) {
+                    console.error(error)
+                    toast.error('Ошибка при одобрении товара')
+                } finally {
+                    setActionLoading(null)
+                }
+            }
+        })
     }
 
     const handleReject = async (productId: string) => {
-        const reason = prompt('Укажите причину отклонения:')
-        if (reason === null) return
-        
-        setActionLoading(productId)
-        try {
-            const response = await fetch('/api/admin/products', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ productId, action: 'reject', reason })
-            })
-            
-            if (!response.ok) throw new Error('Failed to reject')
-            
-            await loadProducts()
-            if (showModal) setShowModal(false)
-        } catch (error) {
-            alert('Ошибка при отклонении товара')
-        } finally {
-            setActionLoading(null)
-        }
+        setPromptModal({
+            isOpen: true,
+            title: 'Отклонение товара',
+            message: 'Укажите причину отклонения товара:',
+            onConfirm: async (reason) => {
+                setPromptModal(prev => ({ ...prev, isOpen: false }))
+                setActionLoading(productId)
+                try {
+                    const response = await fetch('/api/admin/products', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ productId, action: 'reject', reason })
+                    })
+                    
+                    if (!response.ok) throw new Error('Failed to reject')
+                    
+                    await loadProducts()
+                    if (showModal) setShowModal(false)
+                    toast.success('Товар отклонён')
+                } catch (error) {
+                    console.error(error)
+                    toast.error('Ошибка при отклонении товара')
+                } finally {
+                    setActionLoading(null)
+                }
+            }
+        })
     }
 
     const handleReturnToDraft = async (productId: string) => {
-        if (!confirm("Отправить товар на доработку мастеру?")) return
-        
-        setActionLoading(productId)
-        try {
-            const response = await fetch('/api/admin/products', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ productId, action: 'draft' })
-            })
-            
-            if (!response.ok) throw new Error('Failed to return to draft')
-            
-            await loadProducts()
-            if (showModal) setShowModal(false)
-        } catch (error) {
-            alert('Ошибка при возврате товара на доработку')
-        } finally {
-            setActionLoading(null)
-        }
+        setConfirmModal({
+            isOpen: true,
+            title: 'Отправка на доработку',
+            message: 'Вы уверены, что хотите отправить товар на доработку мастеру?',
+            type: 'warning',
+            onConfirm: async () => {
+                setConfirmModal(prev => ({ ...prev, isOpen: false }))
+                setActionLoading(productId)
+                try {
+                    const response = await fetch('/api/admin/products', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ productId, action: 'draft' })
+                    })
+                    
+                    if (!response.ok) throw new Error('Failed to return to draft')
+                    
+                    await loadProducts()
+                    if (showModal) setShowModal(false)
+                    toast.success('Товар отправлен на доработку')
+                } catch (error) {
+                    console.error(error)
+                    toast.error('Ошибка при возврате товара на доработку')
+                } finally {
+                    setActionLoading(null)
+                }
+            }
+        })
     }
 
     const openModal = (product: Product) => {
@@ -253,336 +305,356 @@ export default function AdminModerationProductsPage() {
     }
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="space-y-6 p-4 sm:p-6"
-        >
-            {/* Заголовок */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
-                        Управление товарами
-                    </h1>
-                    <p className="text-gray-500 text-sm mt-1">Все товары платформы</p>
+        <>
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="space-y-6 p-4 sm:p-6"
+            >
+                {/* Заголовок */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
+                            Управление товарами
+                        </h1>
+                        <p className="text-gray-500 text-sm mt-1">Все товары платформы</p>
+                    </div>
                 </div>
-            </div>
 
-            {/* Фильтры */}
-            <motion.div
-                initial={{ y: -20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.1 }}
-                className="flex flex-wrap gap-3"
-            >
-                <button
-                    onClick={() => setFilter('all')}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
-                        filter === 'all' 
-                            ? 'bg-gradient-to-r from-firm-orange to-firm-pink text-white shadow-md' 
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
+                {/* Фильтры */}
+                <motion.div
+                    initial={{ y: -20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                    className="flex flex-wrap gap-3"
                 >
-                    Все ({stats.all})
-                </button>
-                <button
-                    onClick={() => setFilter('moderation')}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
-                        filter === 'moderation' 
-                            ? 'bg-gradient-to-r from-firm-orange to-firm-pink text-white shadow-md' 
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                >
-                    На модерации ({stats.moderation})
-                </button>
-                <button
-                    onClick={() => setFilter('draft')}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
-                        filter === 'draft' 
-                            ? 'bg-gradient-to-r from-firm-orange to-firm-pink text-white shadow-md' 
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                >
-                    На доработке ({stats.draft})
-                </button>
-                <button
-                    onClick={() => setFilter('active')}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
-                        filter === 'active' 
-                            ? 'bg-gradient-to-r from-firm-orange to-firm-pink text-white shadow-md' 
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                >
-                    Опубликованные ({stats.active})
-                </button>
-            </motion.div>
+                    <button
+                        onClick={() => setFilter('all')}
+                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                            filter === 'all' 
+                                ? 'bg-gradient-to-r from-firm-orange to-firm-pink text-white shadow-md' 
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                    >
+                        Все ({stats.all})
+                    </button>
+                    <button
+                        onClick={() => setFilter('moderation')}
+                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                            filter === 'moderation' 
+                                ? 'bg-gradient-to-r from-firm-orange to-firm-pink text-white shadow-md' 
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                    >
+                        На модерации ({stats.moderation})
+                    </button>
+                    <button
+                        onClick={() => setFilter('draft')}
+                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                            filter === 'draft' 
+                                ? 'bg-gradient-to-r from-firm-orange to-firm-pink text-white shadow-md' 
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                    >
+                        На доработке ({stats.draft})
+                    </button>
+                    <button
+                        onClick={() => setFilter('active')}
+                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                            filter === 'active' 
+                                ? 'bg-gradient-to-r from-firm-orange to-firm-pink text-white shadow-md' 
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                    >
+                        Опубликованные ({stats.active})
+                    </button>
+                </motion.div>
 
-            {/* Список товаров */}
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 }}
-                className="space-y-4"
-            >
+                {/* Список товаров */}
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="space-y-4"
+                >
+                    <AnimatePresence>
+                        {filteredProducts.length === 0 ? (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="bg-white rounded-2xl shadow-xl p-12 text-center text-gray-500"
+                            >
+                                <p className="text-lg">Нет товаров для отображения</p>
+                            </motion.div>
+                        ) : (
+                            filteredProducts.map((product, index) => (
+                                <motion.div
+                                    key={product.id}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: 20 }}
+                                    transition={{ delay: index * 0.05 }}
+                                    whileHover={{ y: -2 }}
+                                    className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden"
+                                >
+                                    <div className="p-6">
+                                        <div className="flex flex-col md:flex-row gap-6">
+                                            {/* Изображение */}
+                                            <div 
+                                                className="w-32 h-32 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer shadow-md hover:shadow-lg transition-all duration-300"
+                                                onClick={() => openModal(product)}
+                                            >
+                                                {product.main_image_url ? (
+                                                    <img
+                                                        src={product.main_image_url}
+                                                        alt={product.title}
+                                                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-3xl">
+                                                        🧶
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="flex-1">
+                                                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                                                    <div className="flex-1">
+                                                        <h3 
+                                                            className="font-['Montserrat_Alternates'] font-semibold text-xl cursor-pointer hover:text-firm-orange transition-colors"
+                                                            onClick={() => openModal(product)}
+                                                        >
+                                                            {product.title}
+                                                        </h3>
+                                                        <div className="flex flex-wrap gap-3 mt-2 text-sm text-gray-500">
+                                                            <span className="flex items-center gap-1">👤 {product.master_name}</span>
+                                                            <span className="flex items-center gap-1">📧 {product.master_email}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="font-['Montserrat_Alternates'] font-bold text-2xl text-firm-orange">
+                                                            {product.price.toLocaleString()} ₽
+                                                        </p>
+                                                        <p className="text-xs text-gray-400 mt-1">
+                                                            📅 {new Date(product.created_at).toLocaleDateString('ru-RU')}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Теги */}
+                                                <div className="flex flex-wrap gap-2 mt-3">
+                                                    {product.category && (
+                                                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium">
+                                                            📁 {product.category}
+                                                        </span>
+                                                    )}
+                                                    {product.technique && (
+                                                        <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-lg text-xs font-medium">
+                                                            🪡 {product.technique}
+                                                        </span>
+                                                    )}
+                                                    {product.size && product.size !== 'Не применимо' && (
+                                                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-medium">
+                                                            📏 {product.size}
+                                                        </span>
+                                                    )}
+                                                    {getStatusBadge(product.status)}
+                                                </div>
+
+                                                {/* Описание */}
+                                                <p className="text-gray-600 mt-3 line-clamp-2 text-sm">
+                                                    {product.description}
+                                                </p>
+
+                                                {/* Кнопки действий для модерации */}
+                                                {product.status === 'moderation' && (
+                                                    <div className="flex flex-wrap gap-3 mt-4">
+                                                        <button
+                                                            onClick={() => handleApprove(product.id)}
+                                                            disabled={actionLoading === product.id}
+                                                            className="px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition disabled:opacity-50"
+                                                        >
+                                                            {actionLoading === product.id ? '⏳' : '✅ Одобрить'}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleReturnToDraft(product.id)}
+                                                            disabled={actionLoading === product.id}
+                                                            className="px-4 py-2 bg-yellow-500 text-white rounded-xl text-sm font-medium hover:bg-yellow-600 transition disabled:opacity-50"
+                                                        >
+                                                            {actionLoading === product.id ? '⏳' : '📝 На доработку'}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleReject(product.id)}
+                                                            disabled={actionLoading === product.id}
+                                                            className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition disabled:opacity-50"
+                                                        >
+                                                            {actionLoading === product.id ? '⏳' : '❌ Отклонить'}
+                                                        </button>
+                                                    </div>
+                                                )}
+
+                                                {/* Кнопки для черновиков */}
+                                                {product.status === 'draft' && (
+                                                    <div className="flex flex-wrap gap-3 mt-4">
+                                                        <button
+                                                            onClick={() => handleApprove(product.id)}
+                                                            disabled={actionLoading === product.id}
+                                                            className="px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition disabled:opacity-50"
+                                                        >
+                                                            {actionLoading === product.id ? '⏳' : '✅ Одобрить'}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleReject(product.id)}
+                                                            disabled={actionLoading === product.id}
+                                                            className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition disabled:opacity-50"
+                                                        >
+                                                            {actionLoading === product.id ? '⏳' : '❌ Отклонить'}
+                                                        </button>
+                                                    </div>
+                                                )}
+
+                                                {/* Кнопки для опубликованных товаров */}
+                                                {product.status === 'active' && (
+                                                    <div className="flex flex-wrap gap-3 mt-4">
+                                                        <button
+                                                            onClick={() => handleReturnToDraft(product.id)}
+                                                            disabled={actionLoading === product.id}
+                                                            className="px-4 py-2 bg-yellow-500 text-white rounded-xl text-sm font-medium hover:bg-yellow-600 transition disabled:opacity-50"
+                                                        >
+                                                            {actionLoading === product.id ? '⏳' : '📝 Отправить на доработку'}
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))
+                        )}
+                    </AnimatePresence>
+                </motion.div>
+
+                {/* Модальное окно просмотра товара */}
                 <AnimatePresence>
-                    {filteredProducts.length === 0 ? (
+                    {showModal && selectedProduct && (
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="bg-white rounded-2xl shadow-xl p-12 text-center text-gray-500"
+                            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                            onClick={() => setShowModal(false)}
                         >
-                            <p className="text-lg">Нет товаров для отображения</p>
-                        </motion.div>
-                    ) : (
-                        filteredProducts.map((product, index) => (
                             <motion.div
-                                key={product.id}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: 20 }}
-                                transition={{ delay: index * 0.05 }}
-                                whileHover={{ y: -2 }}
-                                className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden"
+                                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                                className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+                                onClick={(e) => e.stopPropagation()}
                             >
+                                <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
+                                    <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
+                                        {selectedProduct.title}
+                                    </h2>
+                                    <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl transition-colors">✕</button>
+                                </div>
+
                                 <div className="p-6">
-                                    <div className="flex flex-col md:flex-row gap-6">
-                                        {/* Изображение */}
-                                        <div 
-                                            className="w-32 h-32 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer shadow-md hover:shadow-lg transition-all duration-300"
-                                            onClick={() => openModal(product)}
-                                        >
-                                            {product.main_image_url ? (
+                                    {/* Изображения */}
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                                        {selectedProduct.main_image_url && (
+                                            <div className="aspect-square bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl overflow-hidden shadow-md">
                                                 <img
-                                                    src={product.main_image_url}
-                                                    alt={product.title}
-                                                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                                                    src={selectedProduct.main_image_url}
+                                                    alt={selectedProduct.title}
+                                                    className="w-full h-full object-cover"
                                                 />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-gray-400 text-3xl">
-                                                    🧶
-                                                </div>
-                                            )}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="bg-gray-50 rounded-xl p-4">
+                                                <p className="text-gray-500 text-sm mb-1">👤 Мастер</p>
+                                                <p className="font-medium">{selectedProduct.master_name}</p>
+                                                <p className="text-sm text-gray-500">{selectedProduct.master_email}</p>
+                                            </div>
+                                            <div className="bg-gray-50 rounded-xl p-4">
+                                                <p className="text-gray-500 text-sm mb-1">💰 Цена</p>
+                                                <p className="font-['Montserrat_Alternates'] font-bold text-2xl text-firm-orange">
+                                                    {selectedProduct.price.toLocaleString()} ₽
+                                                </p>
+                                            </div>
                                         </div>
 
-                                        <div className="flex-1">
-                                            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                                                <div className="flex-1">
-                                                    <h3 
-                                                        className="font-['Montserrat_Alternates'] font-semibold text-xl cursor-pointer hover:text-firm-orange transition-colors"
-                                                        onClick={() => openModal(product)}
-                                                    >
-                                                        {product.title}
-                                                    </h3>
-                                                    <div className="flex flex-wrap gap-3 mt-2 text-sm text-gray-500">
-                                                        <span className="flex items-center gap-1">👤 {product.master_name}</span>
-                                                        <span className="flex items-center gap-1">📧 {product.master_email}</span>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="font-['Montserrat_Alternates'] font-bold text-2xl text-firm-orange">
-                                                        {product.price.toLocaleString()} ₽
-                                                    </p>
-                                                    <p className="text-xs text-gray-400 mt-1">
-                                                        📅 {new Date(product.created_at).toLocaleDateString('ru-RU')}
-                                                    </p>
-                                                </div>
+                                        {selectedProduct.category && (
+                                            <div className="bg-gray-50 rounded-xl p-4">
+                                                <p className="text-gray-500 text-sm mb-1">📁 Категория</p>
+                                                <p>{selectedProduct.category}</p>
                                             </div>
+                                        )}
 
-                                            {/* Теги */}
-                                            <div className="flex flex-wrap gap-2 mt-3">
-                                                {product.category && (
-                                                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium">
-                                                        📁 {product.category}
-                                                    </span>
-                                                )}
-                                                {product.technique && (
-                                                    <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-lg text-xs font-medium">
-                                                        🪡 {product.technique}
-                                                    </span>
-                                                )}
-                                                {product.size && product.size !== 'Не применимо' && (
-                                                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-medium">
-                                                        📏 {product.size}
-                                                    </span>
-                                                )}
-                                                {getStatusBadge(product.status)}
+                                        {selectedProduct.technique && (
+                                            <div className="bg-gray-50 rounded-xl p-4">
+                                                <p className="text-gray-500 text-sm mb-1">🪡 Техника вязания</p>
+                                                <p>{selectedProduct.technique}</p>
                                             </div>
+                                        )}
 
-                                            {/* Описание */}
-                                            <p className="text-gray-600 mt-3 line-clamp-2 text-sm">
-                                                {product.description}
-                                            </p>
+                                        {selectedProduct.size && selectedProduct.size !== 'Не применимо' && (
+                                            <div className="bg-gray-50 rounded-xl p-4">
+                                                <p className="text-gray-500 text-sm mb-1">📏 Размер</p>
+                                                <p>{selectedProduct.size}</p>
+                                            </div>
+                                        )}
 
-                                            {/* Кнопки действий для модерации */}
-                                            {product.status === 'moderation' && (
-                                                <div className="flex flex-wrap gap-3 mt-4">
-                                                    <button
-                                                        onClick={() => handleApprove(product.id)}
-                                                        disabled={actionLoading === product.id}
-                                                        className="px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition disabled:opacity-50"
-                                                    >
-                                                        {actionLoading === product.id ? '⏳' : '✅ Одобрить'}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleReturnToDraft(product.id)}
-                                                        disabled={actionLoading === product.id}
-                                                        className="px-4 py-2 bg-yellow-500 text-white rounded-xl text-sm font-medium hover:bg-yellow-600 transition disabled:opacity-50"
-                                                    >
-                                                        {actionLoading === product.id ? '⏳' : '📝 На доработку'}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleReject(product.id)}
-                                                        disabled={actionLoading === product.id}
-                                                        className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition disabled:opacity-50"
-                                                    >
-                                                        {actionLoading === product.id ? '⏳' : '❌ Отклонить'}
-                                                    </button>
-                                                </div>
-                                            )}
+                                        {selectedProduct.description && (
+                                            <div className="bg-gray-50 rounded-xl p-4">
+                                                <p className="text-gray-500 text-sm mb-1">📝 Описание</p>
+                                                <p className="whitespace-pre-line text-gray-700">{selectedProduct.description}</p>
+                                            </div>
+                                        )}
 
-                                            {/* Кнопки для черновиков */}
-                                            {product.status === 'draft' && (
-                                                <div className="flex flex-wrap gap-3 mt-4">
-                                                    <button
-                                                        onClick={() => handleApprove(product.id)}
-                                                        disabled={actionLoading === product.id}
-                                                        className="px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition disabled:opacity-50"
-                                                    >
-                                                        {actionLoading === product.id ? '⏳' : '✅ Одобрить'}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleReject(product.id)}
-                                                        disabled={actionLoading === product.id}
-                                                        className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition disabled:opacity-50"
-                                                    >
-                                                        {actionLoading === product.id ? '⏳' : '❌ Отклонить'}
-                                                    </button>
-                                                </div>
-                                            )}
-
-                                            {/* Кнопки для опубликованных товаров */}
-                                            {product.status === 'active' && (
-                                                <div className="flex flex-wrap gap-3 mt-4">
-                                                    <button
-                                                        onClick={() => handleReturnToDraft(product.id)}
-                                                        disabled={actionLoading === product.id}
-                                                        className="px-4 py-2 bg-yellow-500 text-white rounded-xl text-sm font-medium hover:bg-yellow-600 transition disabled:opacity-50"
-                                                    >
-                                                        {actionLoading === product.id ? '⏳' : '📝 Отправить на доработку'}
-                                                    </button>
-                                                </div>
-                                            )}
+                                        <div className="bg-gray-50 rounded-xl p-4">
+                                            <p className="text-gray-500 text-sm mb-1">📅 Дата создания</p>
+                                            <p>{new Date(selectedProduct.created_at).toLocaleDateString('ru-RU', {
+                                                day: '2-digit',
+                                                month: '2-digit',
+                                                year: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            })}</p>
                                         </div>
                                     </div>
+
+                                    {getStatusActions(selectedProduct.status)}
                                 </div>
                             </motion.div>
-                        ))
+                        </motion.div>
                     )}
                 </AnimatePresence>
             </motion.div>
 
-            {/* Модальное окно просмотра товара */}
-            <AnimatePresence>
-                {showModal && selectedProduct && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-                        onClick={() => setShowModal(false)}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                            className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
-                                <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
-                                    {selectedProduct.title}
-                                </h2>
-                                <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl transition-colors">✕</button>
-                            </div>
+            {/* Кастомные модальные окна */}
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                type={confirmModal.type}
+                onConfirm={confirmModal.onConfirm}
+                onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+            />
 
-                            <div className="p-6">
-                                {/* Изображения */}
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                                    {selectedProduct.main_image_url && (
-                                        <div className="aspect-square bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl overflow-hidden shadow-md">
-                                            <img
-                                                src={selectedProduct.main_image_url}
-                                                alt={selectedProduct.title}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="bg-gray-50 rounded-xl p-4">
-                                            <p className="text-gray-500 text-sm mb-1">👤 Мастер</p>
-                                            <p className="font-medium">{selectedProduct.master_name}</p>
-                                            <p className="text-sm text-gray-500">{selectedProduct.master_email}</p>
-                                        </div>
-                                        <div className="bg-gray-50 rounded-xl p-4">
-                                            <p className="text-gray-500 text-sm mb-1">💰 Цена</p>
-                                            <p className="font-['Montserrat_Alternates'] font-bold text-2xl text-firm-orange">
-                                                {selectedProduct.price.toLocaleString()} ₽
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {selectedProduct.category && (
-                                        <div className="bg-gray-50 rounded-xl p-4">
-                                            <p className="text-gray-500 text-sm mb-1">📁 Категория</p>
-                                            <p>{selectedProduct.category}</p>
-                                        </div>
-                                    )}
-
-                                    {selectedProduct.technique && (
-                                        <div className="bg-gray-50 rounded-xl p-4">
-                                            <p className="text-gray-500 text-sm mb-1">🪡 Техника вязания</p>
-                                            <p>{selectedProduct.technique}</p>
-                                        </div>
-                                    )}
-
-                                    {selectedProduct.size && selectedProduct.size !== 'Не применимо' && (
-                                        <div className="bg-gray-50 rounded-xl p-4">
-                                            <p className="text-gray-500 text-sm mb-1">📏 Размер</p>
-                                            <p>{selectedProduct.size}</p>
-                                        </div>
-                                    )}
-
-                                    {selectedProduct.description && (
-                                        <div className="bg-gray-50 rounded-xl p-4">
-                                            <p className="text-gray-500 text-sm mb-1">📝 Описание</p>
-                                            <p className="whitespace-pre-line text-gray-700">{selectedProduct.description}</p>
-                                        </div>
-                                    )}
-
-                                    <div className="bg-gray-50 rounded-xl p-4">
-                                        <p className="text-gray-500 text-sm mb-1">📅 Дата создания</p>
-                                        <p>{new Date(selectedProduct.created_at).toLocaleDateString('ru-RU', {
-                                            day: '2-digit',
-                                            month: '2-digit',
-                                            year: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                        })}</p>
-                                    </div>
-                                </div>
-
-                                {getStatusActions(selectedProduct.status)}
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </motion.div>
+            <PromptModal
+                isOpen={promptModal.isOpen}
+                title={promptModal.title}
+                message={promptModal.message}
+                onConfirm={promptModal.onConfirm}
+                onCancel={() => setPromptModal(prev => ({ ...prev, isOpen: false }))}
+            />
+        </>
     )
 }

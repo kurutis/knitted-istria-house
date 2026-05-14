@@ -1,8 +1,8 @@
-// components/admin/CreateUserModal.tsx
 "use client";
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
+import toast from "react-hot-toast";
 
 interface CreateUserModalProps {
     isOpen: boolean;
@@ -44,10 +44,10 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }: CreateUs
             resetForm();
             onSuccess();
             onClose();
-            alert('Пользователь успешно создан');
+            toast.success('Пользователь успешно создан');
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Ошибка при создании пользователя';
-            alert(errorMessage);
+            toast.error(errorMessage);
         } finally {
             setSaving(false);
         }

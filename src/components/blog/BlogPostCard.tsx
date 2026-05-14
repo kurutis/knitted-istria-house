@@ -4,9 +4,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import MediaGallery from "@/components/blog/MediaGallery";
 import { AnimatedButton } from "@/components/ui/AnimatedButton";
 import { useSession } from "next-auth/react";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export interface BlogPostCardProps {
   post: {
@@ -72,14 +74,12 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
   const { data: session } = useSession();
 
   useEffect(() => {
-    // Если передан avatarUrl, используем его
     if (initialAvatarUrl) {
       setAvatarUrl(initialAvatarUrl);
       setLoading(false);
       return;
     }
 
-    // Если нет userId, ничего не загружаем
     if (!userId) {
       setLoading(false);
       return;
@@ -87,11 +87,9 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
 
     const loadUserProfile = async () => {
       try {
-        // Загружаем профиль конкретного пользователя по userId
         const response = await fetch(`/api/user/profile?userId=${userId}`);
         if (response.ok) {
           const data = await response.json();
-          // Обрабатываем разные форматы ответа
           const profile = data.profile || data;
           if (profile.avatar_url) {
             setAvatarUrl(profile.avatar_url);
@@ -102,7 +100,6 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
             setDisplayName(name);
           }
         } else {
-          // Если не нашли в user/profile, пробуем master/profile
           const masterResponse = await fetch(`/api/master/profile?userId=${userId}`);
           if (masterResponse.ok) {
             const masterData = await masterResponse.json();
@@ -125,7 +122,6 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
       }
     };
 
-    // НЕ загружаем текущего пользователя! Загружаем того, чей userId передан
     loadUserProfile();
   }, [userId, initialAvatarUrl, name]);
 
@@ -297,6 +293,21 @@ export default function BlogPostCard({
   const [editingCommentText, setEditingCommentText] = useState("");
   const [updatingComment, setUpdatingComment] = useState(false);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+  
+  // Состояние для модального окна подтверждения
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type?: 'danger' | 'warning' | 'info';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'warning'
+  });
 
   useEffect(() => {
     if (externalShowComments !== undefined) {
@@ -398,11 +409,11 @@ export default function BlogPostCard({
       } else {
         const error = await response.json();
         console.error("Error adding comment:", error);
-        alert(error.error || "Ошибка при добавлении комментария");
+        toast.error(error.error || "Ошибка при добавлении комментария");
       }
     } catch (error) {
       console.error("Error in comment:", error);
-      alert("Ошибка при добавлении комментария");
+      toast.error("Ошибка при добавлении комментария");
     } finally {
       setCommentLoading(false);
     }
@@ -435,40 +446,49 @@ export default function BlogPostCard({
         ));
         setEditingCommentId(null);
         setEditingCommentText("");
+        toast.success("Комментарий обновлен");
       } else {
         const error = await response.json();
-        alert(error.error || "Ошибка при обновлении комментария");
+        toast.error(error.error || "Ошибка при обновлении комментария");
       }
     } catch (error) {
       console.error("Error updating comment:", error);
-      alert("Ошибка при обновлении комментария");
+      toast.error("Ошибка при обновлении комментария");
     } finally {
       setUpdatingComment(false);
     }
   };
 
   const handleDeleteComment = async (commentId: string) => {
-    if (!confirm("Удалить комментарий?")) return;
+    setConfirmModal({
+      isOpen: true,
+      title: 'Удаление комментария',
+      message: 'Вы уверены, что хотите удалить этот комментарий?',
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        setDeletingCommentId(commentId);
+        try {
+          const response = await fetch(`/api/blog/comments/${commentId}`, {
+            method: "DELETE",
+          });
 
-    setDeletingCommentId(commentId);
-    try {
-      const response = await fetch(`/api/blog/comments/${commentId}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        setComments(comments.filter(comment => comment.id !== commentId));
-        setCommentsCount(commentsCount - 1);
-      } else {
-        const error = await response.json();
-        alert(error.error || "Ошибка при удалении комментария");
+          if (response.ok) {
+            setComments(comments.filter(comment => comment.id !== commentId));
+            setCommentsCount(commentsCount - 1);
+            toast.success("Комментарий удален");
+          } else {
+            const error = await response.json();
+            toast.error(error.error || "Ошибка при удалении комментария");
+          }
+        } catch (error) {
+          console.error("Error deleting comment:", error);
+          toast.error("Ошибка при удалении комментария");
+        } finally {
+          setDeletingCommentId(null);
+        }
       }
-    } catch (error) {
-      console.error("Error deleting comment:", error);
-      alert("Ошибка при удалении комментария");
-    } finally {
-      setDeletingCommentId(null);
-    }
+    });
   };
 
   const getGalleryImages = () => {
@@ -710,47 +730,59 @@ export default function BlogPostCard({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ backgroundColor: "#f9fafb" }}
-      className="p-6 transition-all duration-300 bg-white rounded-2xl shadow-xl hover:shadow-2xl overflow-hidden"
-    >
-      <div className="max-w-3xl mx-auto">
-        <Link href={`/masters/${post.master_id}`} className="flex items-center gap-3 group mb-4">
-          <UserAvatar 
-            userId={post.master_id}
-            name={post.author_name}
-            avatarUrl={post.author_avatar}
-            size={48}
-          />
-          <div>
-            <p className="font-semibold group-hover:text-firm-orange transition-colors">{post.author_name}</p>
-            <p className="text-xs text-gray-400">{formatDate(post.created_at)}</p>
-          </div>
-        </Link>
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        whileHover={{ backgroundColor: "#f9fafb" }}
+        className="p-6 transition-all duration-300 bg-white rounded-2xl shadow-xl hover:shadow-2xl overflow-hidden"
+      >
+        <div className="max-w-3xl mx-auto">
+          <Link href={`/masters/${post.master_id}`} className="flex items-center gap-3 group mb-4">
+            <UserAvatar 
+              userId={post.master_id}
+              name={post.author_name}
+              avatarUrl={post.author_avatar}
+              size={48}
+            />
+            <div>
+              <p className="font-semibold group-hover:text-firm-orange transition-colors">{post.author_name}</p>
+              <p className="text-xs text-gray-400">{formatDate(post.created_at)}</p>
+            </div>
+          </Link>
 
-        <h3 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-3 hover:text-firm-orange transition-colors">
-          <Link href={`/blog/${post.id}`}>{post.title}</Link>
-        </h3>
+          <h3 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-3 hover:text-firm-orange transition-colors">
+            <Link href={`/blog/${post.id}`}>{post.title}</Link>
+          </h3>
 
-        {renderPostImages()}
+          {renderPostImages()}
 
-        <p className="text-gray-600 mt-4 line-clamp-3">
-          {post.excerpt || post.content?.substring(0, 300)}...
-        </p>
+          <p className="text-gray-600 mt-4 line-clamp-3">
+            {post.excerpt || post.content?.substring(0, 300)}...
+          </p>
 
-        <Link href={`/blog/${post.id}`} className="text-firm-orange hover:underline text-sm mt-3 inline-flex items-center gap-1 group">
-          Читать полностью
-          <span className="inline-block">→</span>
-        </Link>
+          <Link href={`/blog/${post.id}`} className="text-firm-orange hover:underline text-sm mt-3 inline-flex items-center gap-1 group">
+            Читать полностью
+            <span className="inline-block">→</span>
+          </Link>
 
-        {renderActions()}
+          {renderActions()}
 
-        <AnimatePresence>
-          {renderComments()}
-        </AnimatePresence>
-      </div>
-    </motion.div>
+          <AnimatePresence>
+            {renderComments()}
+          </AnimatePresence>
+        </div>
+      </motion.div>
+
+      {/* Кастомное модальное окно подтверждения */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
+    </>
   );
 }

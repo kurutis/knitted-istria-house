@@ -1,9 +1,9 @@
-// components/modals/AddClassModal.tsx
 "use client";
 
 import React, { useState, useRef } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import toast from "react-hot-toast";
 
 interface AddClassModalProps {
   isOpen: boolean;
@@ -37,16 +37,16 @@ export default function AddClassModal({ isOpen, onClose, onSuccess }: AddClassMo
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (classImages.length + files.length > 10) {
-      alert("Можно загрузить не более 10 фотографий");
+      toast.error("Можно загрузить не более 10 фотографий");
       return;
     }
     const validFiles = files.filter(file => {
       if (file.size > 10 * 1024 * 1024) {
-        alert(`Файл ${file.name} превышает 10MB`);
+        toast.error(`Файл ${file.name} превышает 10MB`);
         return false;
       }
       if (!file.type.startsWith("image/")) {
-        alert(`Файл ${file.name} не является изображением`);
+        toast.error(`Файл ${file.name} не является изображением`);
         return false;
       }
       return true;
@@ -66,9 +66,18 @@ export default function AddClassModal({ isOpen, onClose, onSuccess }: AddClassMo
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!classForm.title) { alert("Введите название мастер-класса"); return; }
-    if (!classForm.description) { alert("Введите описание мастер-класса"); return; }
-    if (!classForm.date_time) { alert("Укажите дату и время проведения"); return; }
+    if (!classForm.title) { 
+      toast.error("Введите название мастер-класса"); 
+      return; 
+    }
+    if (!classForm.description) { 
+      toast.error("Введите описание мастер-класса"); 
+      return; 
+    }
+    if (!classForm.date_time) { 
+      toast.error("Укажите дату и время проведения"); 
+      return; 
+    }
     setSaving(true);
     try {
       const formData = new FormData();
@@ -85,13 +94,13 @@ export default function AddClassModal({ isOpen, onClose, onSuccess }: AddClassMo
       if (classImages.length > 0) formData.append("image", classImages[0]);
       const response = await fetch("/api/master/master-classes", { method: "POST", body: formData });
       if (!response.ok) throw new Error("Failed to create master class");
-      alert("Мастер-класс успешно создан!");
+      toast.success("Мастер-класс успешно создан!");
       onSuccess();
       onClose();
       resetForm();
     } catch (error) {
       console.error(error);
-      alert("Ошибка при создании мастер-класса");
+      toast.error("Ошибка при создании мастер-класса");
     } finally {
       setSaving(false);
     }

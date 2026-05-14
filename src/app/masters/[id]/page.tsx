@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
+import toast from 'react-hot-toast'
 import ProductCard from '@/components/catalog/ProductCard'
 
 interface Master {
@@ -88,6 +89,7 @@ export default function MasterPage() {
             setMaster(data)
         } catch (error) {
             console.error('Error fetching master:', error)
+            toast.error('Ошибка загрузки профиля мастера')
         }
     }
 
@@ -143,9 +145,11 @@ export default function MasterPage() {
                 const data = await response.json()
                 setIsFollowing(data.is_following)
                 setMaster(prev => prev ? { ...prev, followers_count: data.followers_count } : prev)
+                toast.success(isFollowing ? 'Вы отписались от мастера' : 'Вы подписались на мастера')
             }
         } catch (error) {
             console.error('Error toggling follow:', error)
+            toast.error('Ошибка при подписке')
         } finally {
             setFollowLoading(false)
         }
@@ -166,15 +170,16 @@ export default function MasterPage() {
             })
 
             if (response.ok) {
-                alert('Запрос отправлен! Мастер свяжется с вами в течение 48 часов.')
+                toast.success('Запрос отправлен! Мастер свяжется с вами в течение 48 часов.')
                 setShowCustomModal(false)
                 setCustomRequest({ name: '', email: '', description: '', budget: '' })
             } else {
-                alert('Ошибка при отправке запроса')
+                const error = await response.json()
+                toast.error(error.error || 'Ошибка при отправке запроса')
             }
         } catch (error) {
             console.error('Error sending request:', error)
-            alert('Ошибка при отправке запроса')
+            toast.error('Ошибка при отправке запроса')
         }
     }
 
