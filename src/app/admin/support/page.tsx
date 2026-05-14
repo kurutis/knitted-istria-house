@@ -48,11 +48,13 @@ export default function AdminSupportPage() {
   const [attachmentPreviews, setAttachmentPreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshingMessages, setRefreshingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingMessageText, setEditingMessageText] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -77,6 +79,10 @@ export default function AdminSupportPage() {
     if (selectedTicket) {
       loadMessages();
       markAsRead();
+      // На мобильных устройствах закрываем меню при выборе тикета
+      if (window.innerWidth < 768) {
+        setIsMobileMenuOpen(false);
+      }
     }
   }, [selectedTicket]);
 
@@ -87,33 +93,33 @@ export default function AdminSupportPage() {
 
   const loadTickets = async () => {
     try {
-        setLoading(true);
-        const params = new URLSearchParams();
-        
-        if (filterStatus && filterStatus !== 'all') {
-            params.append('status', filterStatus);
-        }
-        if (searchQuery && searchQuery.trim()) {
-            params.append('search', searchQuery.trim());
-        }
-        
-        const url = `/api/admin/support/tickets${params.toString() ? `?${params.toString()}` : ''}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        
-        if (response.ok) {
-            setTickets(data.tickets || []);
-        } else {
-            console.error('API error:', data);
-            toast.error(data.error || 'Ошибка загрузки обращений');
-        }
+      setLoading(true);
+      const params = new URLSearchParams();
+      
+      if (filterStatus && filterStatus !== 'all') {
+        params.append('status', filterStatus);
+      }
+      if (searchQuery && searchQuery.trim()) {
+        params.append('search', searchQuery.trim());
+      }
+      
+      const url = `/api/admin/support/tickets${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      if (response.ok) {
+        setTickets(data.tickets || []);
+      } else {
+        console.error('API error:', data);
+        toast.error(data.error || 'Ошибка загрузки обращений');
+      }
     } catch (error) {
-        console.error("Error loading tickets:", error);
-        toast.error("Ошибка загрузки обращений");
+      console.error("Error loading tickets:", error);
+      toast.error("Ошибка загрузки обращений");
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-};
+  };
 
   const refreshTickets = async () => {
     try {
@@ -140,24 +146,30 @@ export default function AdminSupportPage() {
     try {
       const response = await fetch(`/api/admin/support/tickets/${selectedTicket.id}/messages`);
       const data = await response.json();
-      setMessages(data);
+      const messagesArray = data.messages || data;
+      setMessages(Array.isArray(messagesArray) ? messagesArray : []);
     } catch (error) {
       console.error("Error loading messages:", error);
       toast.error("Ошибка загрузки сообщений");
+      setMessages([]);
     }
   };
 
   const refreshMessages = async () => {
     if (!selectedTicket) return;
-
+    
     try {
+      setRefreshingMessages(true);
       const response = await fetch(`/api/admin/support/tickets/${selectedTicket.id}/messages`);
       const data = await response.json();
-      setMessages(data);
+      const messagesArray = data.messages || data;
+      setMessages(Array.isArray(messagesArray) ? messagesArray : []);
       toast.success("Сообщения обновлены");
     } catch (error) {
       console.error("Error refreshing messages:", error);
       toast.error("Ошибка обновления");
+    } finally {
+      setRefreshingMessages(false);
     }
   };
 
@@ -418,16 +430,17 @@ export default function AdminSupportPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="font-['Montserrat_Alternates'] font-semibold text-3xl">
+    <div className="space-y-4 sm:space-y-6 p-3 sm:p-6">
+      {/* Заголовок и фильтры */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl">
           Поддержка пользователей
         </h1>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <button
             onClick={refreshTickets}
             disabled={refreshing}
-            className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition disabled:opacity-50 flex items-center gap-2"
+            className="px-3 sm:px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base"
           >
             {refreshing ? (
               <>
@@ -443,22 +456,22 @@ export default function AdminSupportPage() {
               </>
             )}
           </button>
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-initial">
             <input
               type="text"
-              placeholder="Поиск по обращениям..."
+              placeholder="Поиск..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="px-4 py-2 pl-9 border border-gray-300 rounded-lg focus:outline-none focus:border-firm-orange"
+              className="w-full px-4 py-2 pl-9 border border-gray-300 rounded-lg focus:outline-none focus:border-firm-orange text-sm sm:text-base"
             />
             <span className="absolute left-3 top-2.5 text-gray-400">🔍</span>
           </div>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-firm-orange"
+            className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-firm-orange text-sm sm:text-base"
           >
-            <option value="all">Все обращения</option>
+            <option value="all">Все</option>
             <option value="open">Открытые</option>
             <option value="in_progress">В работе</option>
             <option value="closed">Закрытые</option>
@@ -466,9 +479,22 @@ export default function AdminSupportPage() {
         </div>
       </div>
 
-      <div className="flex gap-6 h-[75vh]">
-        {/* Список тикетов */}
-        <div className="w-96 bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+      {/* Основной контент - на мобильных устройствах переключается */}
+      <div className="flex flex-col md:flex-row gap-4 md:gap-6 h-auto md:h-[75vh]">
+        {/* Кнопка показа списка на мобильных */}
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="md:hidden w-full p-3 bg-gray-100 rounded-lg flex items-center justify-between"
+        >
+          <span className="font-semibold">Список обращений ({tickets.length})</span>
+          <span>{isMobileMenuOpen ? "▲" : "▼"}</span>
+        </button>
+
+        {/* Список тикетов - на мобильных скрывается/показывается */}
+        <div className={`
+          ${isMobileMenuOpen ? 'block' : 'hidden'} 
+          md:block md:w-96 w-full bg-white rounded-lg shadow-md overflow-hidden flex flex-col
+        `}>
           <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
             <h2 className="font-['Montserrat_Alternates'] font-semibold text-lg">
               Обращения ({tickets.length})
@@ -483,7 +509,7 @@ export default function AdminSupportPage() {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto max-h-[50vh] md:max-h-none">
             {tickets.length === 0 ? (
               <div className="p-8 text-center text-gray-500">Нет обращений</div>
             ) : (
@@ -491,12 +517,12 @@ export default function AdminSupportPage() {
                 <button
                   key={ticket.id}
                   onClick={() => setSelectedTicket(ticket)}
-                  className={`w-full p-4 text-left hover:bg-gray-50 transition border-b border-gray-100 ${
+                  className={`w-full p-3 sm:p-4 text-left hover:bg-gray-50 transition border-b border-gray-100 ${
                     selectedTicket?.id === ticket.id ? "bg-orange-50" : ""
                   }`}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden">
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden text-sm">
                       {ticket.user_avatar ? (
                         <img src={ticket.user_avatar} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -504,23 +530,29 @@ export default function AdminSupportPage() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start">
-                        <p className="font-semibold truncate">{ticket.user_name || ticket.user_email}</p>
-                        <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
+                      <div className="flex justify-between items-start gap-2">
+                        <p className="font-semibold truncate text-sm sm:text-base">
+                          {ticket.user_name || ticket.user_email}
+                        </p>
+                        <span className="text-xs text-gray-400 flex-shrink-0">
                           {formatMessageTime(ticket.last_message_time || ticket.created_at)}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600 truncate mb-1">{ticket.subject || "Без темы"}</p>
-                      <p className="text-xs text-gray-500 truncate">{ticket.last_message}</p>
-                      <div className="flex gap-2 mt-2">
-                        <span className={`px-2 py-0.5 rounded-full text-xs ${getStatusColor(ticket.status)}`}>
+                      <p className="text-xs sm:text-sm text-gray-600 truncate mb-1">
+                        {ticket.subject || "Без темы"}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate hidden sm:block">
+                        {ticket.last_message}
+                      </p>
+                      <div className="flex flex-wrap gap-1 sm:gap-2 mt-2">
+                        <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-xs ${getStatusColor(ticket.status)}`}>
                           {getStatusText(ticket.status)}
                         </span>
-                        <span className={`px-2 py-0.5 rounded-full text-xs ${getPriorityColor(ticket.priority)}`}>
+                        <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-xs ${getPriorityColor(ticket.priority)}`}>
                           {getPriorityText(ticket.priority)}
                         </span>
                         {ticket.unread_count > 0 && (
-                          <span className="px-2 py-0.5 rounded-full text-xs bg-firm-orange text-white">
+                          <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-xs bg-firm-orange text-white">
                             {ticket.unread_count} нов.
                           </span>
                         )}
@@ -534,44 +566,50 @@ export default function AdminSupportPage() {
         </div>
 
         {/* Область сообщений */}
-        <div className="flex-1 bg-white rounded-lg shadow-md flex flex-col">
+        <div className="flex-1 bg-white rounded-lg shadow-md flex flex-col h-[60vh] md:h-auto">
           {selectedTicket ? (
             <>
-              <div className="p-4 border-b border-gray-200 bg-gray-50">
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden">
-                      {selectedTicket.user_avatar ? (
-                        <img src={selectedTicket.user_avatar} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        selectedTicket.user_name?.charAt(0).toUpperCase() || "U"
-                      )}
+              {/* Заголовок чата - адаптивный */}
+              <div className="p-3 sm:p-4 border-b border-gray-200 bg-gray-50">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden text-sm">
+                        {selectedTicket.user_avatar ? (
+                          <img src={selectedTicket.user_avatar} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          selectedTicket.user_name?.charAt(0).toUpperCase() || "U"
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-['Montserrat_Alternates'] font-semibold text-sm sm:text-base">
+                          {selectedTicket.user_name || selectedTicket.user_email}
+                        </p>
+                        <p className="text-xs text-gray-400 hidden sm:block">
+                          ID: {selectedTicket.user_id?.slice(0, 8)}...
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-['Montserrat_Alternates'] font-semibold">
-                        {selectedTicket.user_name || selectedTicket.user_email}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        ID: {selectedTicket.user_id} • Создано:{" "}
-                        {new Date(selectedTicket.created_at).toLocaleString("ru-RU")}
-                      </p>
-                      {selectedTicket.subject && (
-                        <p className="text-sm text-gray-600 mt-1">Тема: {selectedTicket.subject}</p>
-                      )}
-                    </div>
+                    <button
+                      onClick={() => setIsMobileMenuOpen(true)}
+                      className="md:hidden p-2 text-gray-500"
+                    >
+                      ← Список
+                    </button>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 w-full sm:w-auto justify-end">
                     <button
                       onClick={refreshMessages}
+                      disabled={refreshingMessages}
                       className="p-2 text-gray-400 hover:text-gray-600 transition rounded-lg"
                       title="Обновить сообщения"
                     >
-                      🔄
+                      {refreshingMessages ? "⏳" : "🔄"}
                     </button>
                     <select
                       value={selectedTicket.status}
                       onChange={(e) => updateTicketStatus(e.target.value)}
-                      className="px-3 py-1 text-sm border rounded-lg focus:outline-none focus:border-firm-orange"
+                      className="px-2 sm:px-3 py-1 text-xs sm:text-sm border rounded-lg focus:outline-none focus:border-firm-orange"
                     >
                       <option value="open">Открыт</option>
                       <option value="in_progress">В работе</option>
@@ -580,22 +618,30 @@ export default function AdminSupportPage() {
                     <select
                       value={selectedTicket.priority}
                       onChange={(e) => updateTicketPriority(e.target.value)}
-                      className="px-3 py-1 text-sm border rounded-lg focus:outline-none focus:border-firm-orange"
+                      className="px-2 sm:px-3 py-1 text-xs sm:text-sm border rounded-lg focus:outline-none focus:border-firm-orange"
                     >
-                      <option value="low">Низкий приоритет</option>
-                      <option value="medium">Средний приоритет</option>
-                      <option value="high">Высокий приоритет</option>
+                      <option value="low">Низкий</option>
+                      <option value="medium">Средний</option>
+                      <option value="high">Высокий</option>
                     </select>
                   </div>
                 </div>
+                {selectedTicket.subject && (
+                  <p className="text-xs sm:text-sm text-gray-600 mt-2">Тема: {selectedTicket.subject}</p>
+                )}
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {/* Сообщения */}
+              <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3">
                 {messages.length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="bg-gray-50 rounded-lg p-6">
-                      <p className="text-gray-600 mb-2">👋 Начните общение с пользователем</p>
-                      <p className="text-gray-500 text-sm">Ответьте на обращение в поле ниже</p>
+                  <div className="text-center py-8 sm:py-12">
+                    <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
+                      <p className="text-gray-600 mb-2 text-sm sm:text-base">
+                        👋 Начните общение с пользователем
+                      </p>
+                      <p className="text-gray-500 text-xs sm:text-sm">
+                        Ответьте на обращение в поле ниже
+                      </p>
                     </div>
                   </div>
                 ) : (
@@ -610,9 +656,9 @@ export default function AdminSupportPage() {
                         key={message.id}
                         className={`flex ${isAdmin ? "justify-end" : "justify-start"}`}
                       >
-                        <div className={`flex gap-2 max-w-[70%] ${isAdmin ? "flex-row-reverse" : ""}`}>
+                        <div className={`flex gap-1 sm:gap-2 max-w-[85%] sm:max-w-[70%] ${isAdmin ? "flex-row-reverse" : ""}`}>
                           {!isAdmin && showAvatar && (
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
+                            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
                               {message.sender_avatar ? (
                                 <img src={message.sender_avatar} alt="" className="w-full h-full object-cover" />
                               ) : (
@@ -620,22 +666,22 @@ export default function AdminSupportPage() {
                               )}
                             </div>
                           )}
-                          {!isAdmin && !showAvatar && <div className="w-8"></div>}
+                          {!isAdmin && !showAvatar && <div className="w-6 sm:w-8"></div>}
 
-                          <div>
+                          <div className="max-w-[calc(100%-32px)] sm:max-w-none">
                             {editingMessageId === message.id ? (
-                              <div className="bg-white rounded-lg p-3 border border-firm-orange">
+                              <div className="bg-white rounded-lg p-2 sm:p-3 border border-firm-orange">
                                 <textarea
                                   value={editingMessageText}
                                   onChange={(e) => setEditingMessageText(e.target.value)}
-                                  className="w-full p-2 rounded-lg bg-gray-50 outline-firm-orange"
+                                  className="w-full p-2 rounded-lg bg-gray-50 outline-firm-orange text-sm"
                                   rows={3}
                                   autoFocus
                                 />
                                 <div className="flex gap-2 mt-2">
                                   <button
                                     onClick={() => handleEditMessage(message.id)}
-                                    className="px-3 py-1 text-sm bg-firm-orange text-white rounded-lg"
+                                    className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-firm-orange text-white rounded-lg"
                                   >
                                     Сохранить
                                   </button>
@@ -644,7 +690,7 @@ export default function AdminSupportPage() {
                                       setEditingMessageId(null);
                                       setEditingMessageText("");
                                     }}
-                                    className="px-3 py-1 text-sm border rounded-lg"
+                                    className="px-2 sm:px-3 py-1 text-xs sm:text-sm border rounded-lg"
                                   >
                                     Отмена
                                   </button>
@@ -652,7 +698,7 @@ export default function AdminSupportPage() {
                               </div>
                             ) : (
                               <div
-                                className={`rounded-lg p-3 ${isAdmin ? "bg-firm-orange text-white" : "bg-gray-100 text-gray-700"}`}
+                                className={`rounded-lg p-2 sm:p-3 text-sm sm:text-base ${isAdmin ? "bg-firm-orange text-white" : "bg-gray-100 text-gray-700"}`}
                               >
                                 <p className="break-words">{message.content}</p>
 
@@ -664,7 +710,7 @@ export default function AdminSupportPage() {
                                           key={idx}
                                           src={att.url}
                                           alt="attachment"
-                                          className="max-w-[200px] max-h-[150px] rounded-lg cursor-pointer"
+                                          className="max-w-[120px] sm:max-w-[200px] max-h-[100px] sm:max-h-[150px] rounded-lg cursor-pointer"
                                           onClick={() => window.open(att.url, "_blank")}
                                         />
                                       ) : (
@@ -672,7 +718,7 @@ export default function AdminSupportPage() {
                                           key={idx}
                                           src={att.url}
                                           controls
-                                          className="max-w-[200px] max-h-[150px] rounded-lg"
+                                          className="max-w-[120px] sm:max-w-[200px] max-h-[100px] sm:max-h-[150px] rounded-lg"
                                         />
                                       )
                                     )}
@@ -715,12 +761,13 @@ export default function AdminSupportPage() {
                 <div ref={messagesEndRef} />
               </div>
 
-              <div className="p-4 border-t border-gray-200">
+              {/* Поле ввода */}
+              <div className="p-3 sm:p-4 border-t border-gray-200">
                 {attachmentPreviews.length > 0 && (
-                  <div className="flex gap-2 mb-3 pb-3 border-b">
+                  <div className="flex gap-2 mb-3 pb-3 border-b overflow-x-auto">
                     {attachmentPreviews.map((preview, idx) => (
-                      <div key={idx} className="relative">
-                        <img src={preview} alt="preview" className="w-16 h-16 object-cover rounded-lg" />
+                      <div key={idx} className="relative flex-shrink-0">
+                        <img src={preview} alt="preview" className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg" />
                         <button
                           onClick={() => removeAttachment(idx)}
                           className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center"
@@ -734,7 +781,7 @@ export default function AdminSupportPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition"
+                    className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition flex-shrink-0"
                   >
                     📎
                   </button>
@@ -757,13 +804,13 @@ export default function AdminSupportPage() {
                     }}
                     placeholder="Написать сообщение..."
                     rows={1}
-                    className="flex-1 p-2 rounded-lg bg-gray-100 outline-firm-orange resize-none"
-                    style={{ minHeight: "40px", maxHeight: "120px" }}
+                    className="flex-1 p-2 rounded-lg bg-gray-100 outline-firm-orange resize-none text-sm sm:text-base"
+                    style={{ minHeight: "36px", maxHeight: "120px" }}
                   />
                   <button
                     onClick={sendMessage}
                     disabled={sending || (!messageText.trim() && attachments.length === 0)}
-                    className="px-4 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50"
+                    className="px-3 sm:px-4 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50 flex-shrink-0 text-sm sm:text-base"
                   >
                     {sending ? "..." : "Отправить"}
                   </button>
@@ -771,12 +818,12 @@ export default function AdminSupportPage() {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-gray-400">
+            <div className="flex-1 flex items-center justify-center text-gray-400 p-8">
               <div className="text-center">
-                <svg className="w-16 h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.364 5.636L9.172 14.828m0 0l-2.828-2.828m2.828 2.828l2.828 2.828M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <p>Выберите обращение для ответа</p>
+                <p className="text-sm sm:text-base">Выберите обращение для ответа</p>
               </div>
             </div>
           )}
