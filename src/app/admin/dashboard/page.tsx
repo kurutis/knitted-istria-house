@@ -337,7 +337,7 @@ export default function AdminDashboardPage() {
       icon: PaintbrushIcon,
       color: "from-pink-500 to-pink-600",
       trend: 0,
-      link: "/admin/masters",
+      link: "/admin/moderation/masters",
     },
     {
       label: "Товары",
@@ -345,7 +345,7 @@ export default function AdminDashboardPage() {
       icon: PackageIcon,
       color: "from-orange-500 to-orange-600",
       trend: 0,
-      link: "/admin/products",
+      link: "/admin/moderation/products",
     },
     {
       label: "Заказы",
@@ -353,7 +353,7 @@ export default function AdminDashboardPage() {
       icon: ShoppingCartIcon,
       color: "from-purple-500 to-purple-600",
       trend: stats.trends?.orders ?? 0,
-      link: "/admin/orders",
+      link: "/admin/dashboard",
     },
   ];
 
