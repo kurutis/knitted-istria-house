@@ -90,7 +90,7 @@ export default function AdminSupportPage() {
         setLoading(true);
         const params = new URLSearchParams();
         
-        // Только добавляем параметры, если они не 'all' и не пустые
+        // Только добавляем параметры, если они имеют допустимые значения
         if (filterStatus && filterStatus !== 'all') {
             params.append('status', filterStatus);
         }
@@ -98,7 +98,11 @@ export default function AdminSupportPage() {
             params.append('search', searchQuery.trim());
         }
         
-        const url = `/api/admin/support/tickets${params.toString() ? `?${params.toString()}` : ''}`;
+        // Формируем URL только если есть параметры
+        const url = params.toString() 
+            ? `/api/admin/support/tickets?${params.toString()}` 
+            : '/api/admin/support/tickets';
+        
         const response = await fetch(url);
         const data = await response.json();
         
