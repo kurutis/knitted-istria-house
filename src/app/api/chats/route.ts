@@ -30,13 +30,12 @@ export async function GET(request: Request) {
         const cacheKey = `user_chats_${session.user.id}`;
         
         const chats = await cachedQuery(cacheKey, async () => {
-            console.log('Step 1: Fetching participants for user:', session.user.id);
-            
+            // Исправленный синтаксис - без пробелов и с правильным алиасом
             const { data: participants, error: participantsError } = await supabase
                 .from('chat_participants')
                 .select(`
                     chat_id,
-                    chats!left (
+                    chats:chat_id (
                         id,
                         type,
                         created_at,
@@ -45,25 +44,27 @@ export async function GET(request: Request) {
                         last_message_at
                     )
                 `)
-                .eq('user_id', session.user.id)
-                .order('chats(last_message_at)', { ascending: false, nullsFirst: false });
+                .eq('user_id', session.user.id);
 
             if (participantsError) {
-                console.error('Participants error:', participantsError);
                 logError('Error fetching participants', participantsError);
                 throw new Error('DATABASE_ERROR');
             }
-
-            console.log('Step 2: Participants found:', participants?.length);
 
             if (!participants || participants.length === 0) {
                 return [];
             }
 
-            const chatIds = participants.map(p => p.chat_id);
-            console.log('Step 3: Chat IDs:', chatIds);
+            // Фильтруем участников, у которых есть данные чата
+            const validParticipants = participants.filter(p => p.chats && p.chats.length > 0);
             
-            // Получаем последние сообщения
+            if (validParticipants.length === 0) {
+                return [];
+            }
+
+            const chatIds = validParticipants.map(p => p.chat_id);
+            
+            // Получаем последние сообщения для всех чатов одним запросом
             const { data: lastMessages, error: messagesError } = await supabase
                 .from('messages')
                 .select('chat_id, content, created_at, sender_id')
@@ -71,11 +72,8 @@ export async function GET(request: Request) {
                 .order('created_at', { ascending: false });
 
             if (messagesError) {
-                console.error('Messages error:', messagesError);
                 logError('Error fetching last messages', messagesError, 'warning');
             }
-
-            console.log('Step 4: Last messages found:', lastMessages?.length);
 
             const lastMessageMap = new Map();
             lastMessages?.forEach(msg => {
@@ -91,24 +89,21 @@ export async function GET(request: Request) {
             // Получаем количество непрочитанных сообщений
             const { data: unreadData, error: unreadError } = await supabase
                 .from('messages')
-                .select('chat_id', { count: 'exact', head: false })
+                .select('chat_id')
                 .in('chat_id', chatIds)
                 .eq('is_read', false)
                 .neq('sender_id', session.user.id);
 
             if (unreadError) {
-                console.error('Unread error:', unreadError);
                 logError('Error fetching unread counts', unreadError, 'warning');
             }
-
-            console.log('Step 5: Unread data found:', unreadData?.length);
 
             const unreadMap = new Map();
             unreadData?.forEach(msg => {
                 unreadMap.set(msg.chat_id, (unreadMap.get(msg.chat_id) || 0) + 1);
             });
 
-            // Получаем других участников
+            // Получаем других участников для обычных чатов
             const { data: otherParticipants, error: otherError } = await supabase
                 .from('chat_participants')
                 .select(`
@@ -117,7 +112,6 @@ export async function GET(request: Request) {
                     users!inner (
                         id,
                         email,
-                        is_active,
                         role,
                         profiles!left (
                             full_name,
@@ -129,41 +123,32 @@ export async function GET(request: Request) {
                 .neq('user_id', session.user.id);
 
             if (otherError) {
-                console.error('Other participants error:', otherError);
                 logError('Error fetching other participants', otherError, 'warning');
             }
 
-            console.log('Step 6: Other participants found:', otherParticipants?.length);
-
             const participantMap = new Map();
             otherParticipants?.forEach(p => {
-                if (p.users?.[0]?.is_active !== false) {
+                if (p.users?.[0]) {
                     participantMap.set(p.chat_id, {
                         participant_id: p.user_id,
-                        participant_name: p.users?.[0]?.profiles?.[0]?.full_name || p.users?.[0]?.email,
-                        participant_avatar: p.users?.[0]?.profiles?.[0]?.avatar_url,
-                        participant_role: p.users?.[0]?.role
+                        participant_name: p.users[0]?.profiles?.[0]?.full_name || p.users[0]?.email,
+                        participant_avatar: p.users[0]?.profiles?.[0]?.avatar_url,
+                        participant_role: p.users[0]?.role
                     });
                 }
             });
 
             const formattedChats = [];
             
-            for (const participant of participants) {
-                console.log('Step 7: Processing participant chat:', participant.chat_id);
-                
+            for (const participant of validParticipants) {
                 const chat = participant.chats?.[0];
-                if (!chat) {
-                    console.log('No chat found for participant');
-                    continue;
-                }
+                if (!chat) continue;
 
                 const lastMsg = lastMessageMap.get(participant.chat_id);
                 const otherParticipant = participantMap.get(participant.chat_id);
                 const unreadCount = unreadMap.get(participant.chat_id) || 0;
 
-                if (chat?.type === 'support') {
-                    console.log('Processing support chat:', chat.id);
+                if (chat.type === 'support') {
                     const { data: ticket, error: ticketError } = await supabase
                         .from('support_tickets')
                         .select('status')
@@ -171,7 +156,7 @@ export async function GET(request: Request) {
                         .maybeSingle();
 
                     if (ticketError) {
-                        console.error('Ticket error:', ticketError);
+                        logError('Error fetching ticket', ticketError, 'warning');
                     }
 
                     formattedChats.push({
@@ -187,7 +172,6 @@ export async function GET(request: Request) {
                         ticket_status: ticket?.status
                     });
                 } else if (otherParticipant) {
-                    console.log('Processing regular chat:', chat.id);
                     formattedChats.push({
                         id: chat.id,
                         type: otherParticipant.participant_role === 'master' ? 'master' : 'buyer',
@@ -201,8 +185,6 @@ export async function GET(request: Request) {
                     });
                 }
             }
-
-            console.log('Step 8: Formatted chats count:', formattedChats.length);
 
             formattedChats.sort((a, b) => {
                 const timeA = a.last_message_time ? new Date(a.last_message_time).getTime() : 0;
