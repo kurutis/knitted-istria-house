@@ -102,33 +102,33 @@ export default function ChatsPage() {
 
   const fetchMessages = async (chatId: string) => {
     try {
-      const response = await fetch(`/api/chats/${chatId}/messages`);
-      if (!response.ok) throw new Error("Ошибка загрузки");
-      const data = await response.json();
-      setMessages(data.messages || []);
+        const response = await fetch(`/api/chats/${chatId}/messages`);
+        if (!response.ok) throw new Error("Ошибка загрузки");
+        const data = await response.json();
+        setMessages(data.messages || data || []);
     } catch (error) {
-      console.error("Error fetching messages:", error);
-      toast.error("Ошибка загрузки сообщений");
+        console.error("Error fetching messages:", error);
+        toast.error("Ошибка загрузки сообщений");
     }
-  };
+};
 
   const refreshMessages = async () => {
     if (!selectedChat) return;
     
     try {
-      setRefreshingMessages(true);
-      const response = await fetch(`/api/chats/${selectedChat.id}/messages`);
-      if (!response.ok) throw new Error("Ошибка загрузки");
-      const data = await response.json();
-      setMessages(data.messages || []);
-      toast.success("Сообщения обновлены");
+        setRefreshingMessages(true);
+        const response = await fetch(`/api/chats/${selectedChat.id}/messages`);
+        if (!response.ok) throw new Error("Ошибка загрузки");
+        const data = await response.json();
+        setMessages(data.messages || data || []);
+        toast.success("Сообщения обновлены");
     } catch (error) {
-      console.error("Error refreshing messages:", error);
-      toast.error("Ошибка обновления");
+        console.error("Error refreshing messages:", error);
+        toast.error("Ошибка обновления");
     } finally {
-      setRefreshingMessages(false);
+        setRefreshingMessages(false);
     }
-  };
+};
 
   const markAsRead = async (chatId: string) => {
     try {
