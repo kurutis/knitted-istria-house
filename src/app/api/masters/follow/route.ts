@@ -1,15 +1,15 @@
-// app/api/master/follow/route.ts
+// app/api/masters/follow/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit, getClientIP } from "@/lib/rate-limit";
 import { invalidateCache } from "@/lib/db-optimized";
-import { logError, logInfo } from "@/lib/error-logger";
+import { logError, logInfo, logApiRequest } from "@/lib/error-logger";
 
 // Rate limiting
-const postLimiter = rateLimit({ limit: 30, windowMs: 60 * 1000 }); // 30 подписок в минуту
-const deleteLimiter = rateLimit({ limit: 30, windowMs: 60 * 1000 }); // 30 отписок в минуту
+const postLimiter = rateLimit({ limit: 30, windowMs: 60 * 1000 });
+const deleteLimiter = rateLimit({ limit: 30, windowMs: 60 * 1000 });
 
 // Валидация UUID
 function isValidUUID(uuid: string): boolean {
@@ -17,6 +17,7 @@ function isValidUUID(uuid: string): boolean {
     return uuidRegex.test(uuid);
 }
 
+// POST - подписаться на мастера
 export async function POST(request: Request) {
     const startTime = Date.now();
     
@@ -28,9 +29,10 @@ export async function POST(request: Request) {
         }
 
         // Rate limiting
-        const ip = request.headers.get('x-forwarded-for') || 'unknown';
+        const ip = getClientIP(request);
         const rateLimitResult = postLimiter(request);
         if (!rateLimitResult.success) {
+            logInfo('Rate limit exceeded for follow POST', { ip });
             return NextResponse.json({ 
                 error: 'Слишком много запросов. Попробуйте через минуту.' 
             }, { status: 429 });
@@ -60,6 +62,7 @@ export async function POST(request: Request) {
             .maybeSingle();
 
         if (masterError || !master) {
+            logInfo('Master not found for follow', { masterId });
             return NextResponse.json({ error: 'Мастер не найден' }, { status: 404 });
         }
 
@@ -78,8 +81,31 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Невозможно подписаться на забаненного мастера' }, { status: 400 });
         }
 
-        // Добавляем подписку
+        // Проверяем, не подписан ли уже
+        const { data: existing, error: checkError } = await supabase
+            .from('master_followers')
+            .select('id')
+            .eq('master_id', masterId)
+            .eq('follower_id', session.user.id)
+            .maybeSingle();
+
+        if (checkError && checkError.code !== 'PGRST116') {
+            logError('Error checking existing follow', checkError);
+            return NextResponse.json({ error: 'Ошибка проверки подписки' }, { status: 500 });
+        }
+
+        if (existing) {
+            return NextResponse.json({ 
+                success: true,
+                message: 'Вы уже подписаны на этого мастера',
+                is_following: true,
+                followers_count: null
+            }, { status: 200 });
+        }
+
         const now = new Date().toISOString();
+
+        // Добавляем подписку
         const { error: insertError } = await supabase
             .from('master_followers')
             .insert({
@@ -88,15 +114,9 @@ export async function POST(request: Request) {
                 created_at: now
             });
 
-        let isNewFollow = true;
-        
         if (insertError) {
-            if (insertError.code === '23505') { // unique violation - уже подписан
-                isNewFollow = false;
-            } else {
-                logError('Error following master', insertError);
-                return NextResponse.json({ error: 'Ошибка при подписке' }, { status: 500 });
-            }
+            logError('Error following master', insertError);
+            return NextResponse.json({ error: 'Ошибка при подписке: ' + insertError.message }, { status: 500 });
         }
 
         // Получаем обновленное количество подписчиков
@@ -109,45 +129,44 @@ export async function POST(request: Request) {
             logError('Error counting followers', countError, 'warning');
         }
 
-        // Создаем уведомление для мастера (только при новой подписке)
-        if (isNewFollow) {
-            await supabase
-                .from('notifications')
-                .insert({
-                    user_id: masterId,
-                    title: 'Новый подписчик',
-                    message: `${session.user.email || session.user.name} подписался на ваши обновления`,
-                    type: 'follow',
-                    metadata: { 
-                        follower_id: session.user.id,
-                        followed_at: now
-                    },
-                    created_at: now,
-                    is_read: false
-                });
-        }
+        // Создаем уведомление для мастера
+        await supabase
+            .from('notifications')
+            .insert({
+                user_id: masterId,
+                title: 'Новый подписчик',
+                message: `${session.user.email || session.user.name} подписался на ваши обновления`,
+                type: 'follow',
+                metadata: { 
+                    follower_id: session.user.id,
+                    followed_at: now
+                },
+                created_at: now,
+                is_read: false
+            });
 
         // Инвалидируем кэши
         invalidateCache(`follow_status_${masterId}_${session.user.id}`);
+        invalidateCache(`follow_status_${masterId}_anon`);
         invalidateCache(`master_public_profile_${masterId}`);
         invalidateCache(`master_stats_${masterId}`);
         invalidateCache(`master_followers_${masterId}`);
+        invalidateCache(new RegExp(`follow_status_${masterId}_.*`));
 
+        logApiRequest('POST', '/api/masters/follow', 201, Date.now() - startTime, session.user.id);
         logInfo('User followed master', {
             masterId,
             followerId: session.user.id,
-            isNewFollow,
             totalFollowers: count || 0,
             duration: Date.now() - startTime
         });
 
         return NextResponse.json({ 
             success: true,
-            message: isNewFollow ? 'Вы подписались на мастера' : 'Вы уже подписаны на этого мастера',
+            message: 'Вы подписались на мастера',
             is_following: true,
-            followers_count: count || 0,
-            is_new: isNewFollow
-        }, { status: isNewFollow ? 201 : 200 });
+            followers_count: count || 0
+        }, { status: 201 });
         
     } catch (error) {
         logError('Error following master', error);
@@ -155,6 +174,7 @@ export async function POST(request: Request) {
     }
 }
 
+// DELETE - отписаться от мастера
 export async function DELETE(request: Request) {
     const startTime = Date.now();
     
@@ -166,9 +186,10 @@ export async function DELETE(request: Request) {
         }
 
         // Rate limiting
-        const ip = request.headers.get('x-forwarded-for') || 'unknown';
+        const ip = getClientIP(request);
         const rateLimitResult = deleteLimiter(request);
         if (!rateLimitResult.success) {
+            logInfo('Rate limit exceeded for follow DELETE', { ip });
             return NextResponse.json({ 
                 error: 'Слишком много запросов. Попробуйте через минуту.' 
             }, { status: 429 });
@@ -199,10 +220,11 @@ export async function DELETE(request: Request) {
 
         if (!existing) {
             return NextResponse.json({ 
-                error: 'Вы не подписаны на этого мастера',
+                success: true,
+                message: 'Вы не подписаны на этого мастера',
                 is_following: false,
                 followers_count: null
-            }, { status: 400 });
+            }, { status: 200 });
         }
 
         // Удаляем подписку
@@ -229,10 +251,13 @@ export async function DELETE(request: Request) {
 
         // Инвалидируем кэши
         invalidateCache(`follow_status_${masterId}_${session.user.id}`);
+        invalidateCache(`follow_status_${masterId}_anon`);
         invalidateCache(`master_public_profile_${masterId}`);
         invalidateCache(`master_stats_${masterId}`);
         invalidateCache(`master_followers_${masterId}`);
+        invalidateCache(new RegExp(`follow_status_${masterId}_.*`));
 
+        logApiRequest('DELETE', '/api/masters/follow', 200, Date.now() - startTime, session.user.id);
         logInfo('User unfollowed master', {
             masterId,
             followerId: session.user.id,

@@ -191,36 +191,41 @@ export default function MasterPage() {
     }
 
     const handleFollow = async () => {
-        if (!session) {
-            window.location.href = `/auth/signin?callbackUrl=/masters/${id}`
-            return
-        }
-
-        setFollowLoading(true)
-        try {
-            const method = isFollowing ? 'DELETE' : 'POST'
-            const response = await fetch('/api/masters/follow', {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ masterId: id })
-            })
-
-            if (response.ok) {
-                const data = await response.json()
-                setIsFollowing(data.is_following)
-                setMaster(prev => prev ? { ...prev, followers_count: data.followers_count } : prev)
-                toast.success(isFollowing ? 'Вы отписались от мастера' : 'Вы подписались на мастера')
-            } else {
-                const error = await response.json()
-                toast.error(error.error || 'Ошибка при подписке')
-            }
-        } catch (error) {
-            console.error('Error toggling follow:', error)
-            toast.error('Ошибка при подписке')
-        } finally {
-            setFollowLoading(false)
-        }
+    if (!session) {
+        window.location.href = `/auth/signin?callbackUrl=/masters/${id}`
+        return
     }
+
+    setFollowLoading(true)
+    try {
+        const method = isFollowing ? 'DELETE' : 'POST'
+        const response = await fetch('/api/masters/follow', {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ masterId: id })
+        })
+
+        if (response.ok) {
+            const data = await response.json()
+            setIsFollowing(data.is_following)
+            setMaster(prev => prev ? { ...prev, followers_count: data.followers_count } : prev)
+            toast.success(isFollowing ? 'Вы отписались от мастера' : 'Вы подписались на мастера')
+            
+            // Принудительно обновляем статус подписки через 1 секунду
+            setTimeout(() => {
+                checkFollowStatus()
+            }, 1000)
+        } else {
+            const error = await response.json()
+            toast.error(error.error || 'Ошибка при подписке')
+        }
+    } catch (error) {
+        console.error('Error toggling follow:', error)
+        toast.error('Ошибка при подписке')
+    } finally {
+        setFollowLoading(false)
+    }
+}
 
     const handleCustomRequest = async (e: React.FormEvent) => {
         e.preventDefault()
