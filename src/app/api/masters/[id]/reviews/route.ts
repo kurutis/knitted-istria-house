@@ -1,14 +1,11 @@
-// app/api/master/[id]/reviews/route.ts
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit, getClientIP } from "@/lib/rate-limit";
 import { cachedQuery } from "@/lib/db-optimized";
-import { logError, logInfo } from "@/lib/error-logger";
+import { logError, logInfo, logApiRequest } from "@/lib/error-logger";
 
-// Rate limiting
-const limiter = rateLimit({ limit: 60, windowMs: 60 * 1000 }); // 60 запросов в минуту
+const limiter = rateLimit({ limit: 60, windowMs: 60 * 1000 });
 
-// Валидация UUID
 function isValidUUID(uuid: string): boolean {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     return uuidRegex.test(uuid);
@@ -23,7 +20,6 @@ export async function GET(
     try {
         const { id } = await params;
         
-        // Валидация ID мастера
         if (!isValidUUID(id)) {
             return NextResponse.json({ 
                 error: 'Неверный формат ID мастера',
@@ -32,8 +28,7 @@ export async function GET(
             }, { status: 400 });
         }
 
-        // Rate limiting
-        const ip = request.headers.get('x-forwarded-for') || 'unknown';
+        const ip = getClientIP(request);
         const rateLimitResult = limiter(request);
         if (!rateLimitResult.success) {
             return NextResponse.json({ 
@@ -44,14 +39,14 @@ export async function GET(
         }
 
         // Проверяем, существует ли мастер
-        const { data: masterExists, error: masterError } = await supabase
+        const { data: master, error: masterError } = await supabase
             .from('users')
             .select('id, role')
             .eq('id', id)
             .eq('role', 'master')
             .maybeSingle();
 
-        if (masterError || !masterExists) {
+        if (masterError || !master) {
             return NextResponse.json({ 
                 error: 'Мастер не найден',
                 reviews: [],
@@ -59,136 +54,77 @@ export async function GET(
             }, { status: 404 });
         }
 
-        // Параметры пагинации и фильтрации
-        const { searchParams } = new URL(request.url);
-        const rating = searchParams.get('rating');
-        const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
-        const page = parseInt(searchParams.get('page') || '1');
-        const offset = (page - 1) * limit;
-        const withPhotos = searchParams.get('with_photos') === 'true';
-
-        // Кэшируем результат
-        const cacheKey = `master_reviews_${id}_${rating || 'all'}_${page}_${limit}_${withPhotos}`;
+        const cacheKey = `master_reviews_${id}`;
         
         const result = await cachedQuery(cacheKey, async () => {
-            // Получаем отзывы с пагинацией
-            let query = supabase
+            // Получаем отзывы о мастере
+            const { data: reviews, error } = await supabase
                 .from('reviews')
                 .select(`
                     id,
                     rating,
                     comment,
                     created_at,
-                    updated_at,
-                    is_verified_purchase,
-                    images,
-                    users!inner (
-                        id,
-                        email,
-                        profiles!left (
-                            full_name,
-                            avatar_url
-                        )
-                    )
-                `, { count: 'exact' })
+                    author_id
+                `)
                 .eq('target_type', 'master')
-                .eq('target_id', id);
-
-            // Фильтр по рейтингу
-            if (rating && !isNaN(parseInt(rating))) {
-                query = query.eq('rating', parseInt(rating));
-            }
-
-            // Фильтр отзывов с фото
-            if (withPhotos) {
-                query = query.not('images', 'is', null);
-            }
-
-            const { data: reviews, error, count } = await query
-                .order('created_at', { ascending: false })
-                .range(offset, offset + limit - 1);
+                .eq('target_id', id)
+                .order('created_at', { ascending: false });
 
             if (error) {
                 logError('Error fetching master reviews', error);
                 throw new Error('DATABASE_ERROR');
             }
 
-            // Получаем статистику по отзывам
-            const { data: allReviews, error: statsError } = await supabase
-                .from('reviews')
-                .select('rating')
-                .eq('target_type', 'master')
-                .eq('target_id', id);
-
-            if (statsError) {
-                logError('Error fetching review stats', statsError, 'warning');
+            if (!reviews || reviews.length === 0) {
+                return {
+                    reviews: [],
+                    stats: { total_reviews: 0, average_rating: 0 }
+                };
             }
 
-            // Подсчет статистики
+            // Получаем имена авторов
+            const authorIds = [...new Set(reviews.map(r => r.author_id))];
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('user_id, full_name, avatar_url')
+                .in('user_id', authorIds);
+
+            const profileMap = new Map();
+            profiles?.forEach(p => {
+                profileMap.set(p.user_id, p);
+            });
+
+            // Вычисляем средний рейтинг
             let totalRating = 0;
-            let averageRating = 0;
-            const ratingDistribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-            let withPhotoCount = 0;
-
-            if (allReviews && allReviews.length > 0) {
-                totalRating = allReviews.reduce((sum, r) => sum + (r.rating || 0), 0);
-                averageRating = totalRating / allReviews.length;
-                
-                allReviews.forEach(review => {
-                    const r = review.rating || 0;
-                    if (r >= 1 && r <= 5) {
-                        ratingDistribution[r]++;
-                    }
-                });
-            }
-
-            // Подсчет отзывов с фото
-            if (reviews) {
-                withPhotoCount = reviews.filter(r => r.images && Array.isArray(r.images) && r.images.length > 0).length;
-            }
+            reviews.forEach(r => {
+                totalRating += r.rating;
+            });
+            const averageRating = totalRating / reviews.length;
 
             // Форматируем отзывы
-            const formattedReviews = reviews?.map(review => ({
-                id: review.id,
-                rating: review.rating,
-                comment: review.comment,
-                created_at: review.created_at,
-                updated_at: review.updated_at,
-                is_verified_purchase: review.is_verified_purchase || false,
-                images: review.images || [],
-                author: {
-                    id: review.users?.[0]?.id,
-                    name: review.users?.[0]?.profiles?.[0]?.full_name || review.users?.[0]?.email,
-                    avatar: review.users?.[0]?.profiles?.[0]?.avatar_url
-                }
-            })) || [];
+            const formattedReviews = reviews.map(review => {
+                const profile = profileMap.get(review.author_id);
+                return {
+                    id: review.id,
+                    rating: review.rating,
+                    comment: review.comment,
+                    created_at: review.created_at,
+                    author_name: profile?.full_name || 'Пользователь',
+                    author_avatar: profile?.avatar_url || null
+                };
+            });
 
             return {
                 reviews: formattedReviews,
-                pagination: {
-                    total: count || 0,
-                    page,
-                    limit,
-                    totalPages: Math.ceil((count || 0) / limit),
-                    hasMore: offset + limit < (count || 0)
-                },
                 stats: {
-                    total_reviews: allReviews?.length || 0,
-                    average_rating: parseFloat(averageRating.toFixed(1)),
-                    total_rating: totalRating,
-                    rating_distribution: ratingDistribution,
-                    with_photos_count: withPhotoCount
+                    total_reviews: reviews.length,
+                    average_rating: parseFloat(averageRating.toFixed(1))
                 }
             };
-        });
+        }, 300);
 
-        logInfo('Master reviews fetched', {
-            masterId: id,
-            reviewsCount: result.reviews.length,
-            totalReviews: result.stats.total_reviews,
-            averageRating: result.stats.average_rating,
-            duration: Date.now() - startTime
-        });
+        logApiRequest('GET', `/api/masters/${id}/reviews`, 200, Date.now() - startTime);
 
         return NextResponse.json({
             success: true,
@@ -204,8 +140,7 @@ export async function GET(
         return NextResponse.json({ 
             error: 'Ошибка загрузки отзывов',
             reviews: [],
-            pagination: { total: 0, page: 1, limit: 20, totalPages: 0 },
-            stats: { total_reviews: 0, average_rating: 0, rating_distribution: {}, with_photos_count: 0 }
+            stats: { total_reviews: 0, average_rating: 0 }
         }, { status: 500 });
     }
 }
