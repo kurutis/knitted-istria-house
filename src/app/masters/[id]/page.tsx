@@ -86,7 +86,41 @@ export default function MasterPage() {
         try {
             const response = await fetch(`/api/masters/${id}`)
             const data = await response.json()
-            setMaster(data)
+            
+            console.log('API response:', data) // Для отладки
+            
+            // Исправлено: API возвращает { success: true, data: {...} }
+            let masterData
+            if (data.success && data.data) {
+                masterData = data.data
+            } else if (data.data) {
+                masterData = data.data
+            } else {
+                masterData = data
+            }
+            
+            // Преобразуем поля в нужный формат
+            const formattedMaster: Master = {
+                id: masterData.id,
+                name: masterData.name || masterData.full_name || 'Мастер',
+                email: masterData.email || '',
+                phone: masterData.phone || '',
+                city: masterData.city || '',
+                description: masterData.description || '',
+                avatar_url: masterData.avatar_url || masterData.avatar || '',
+                is_verified: masterData.is_verified || false,
+                is_partner: masterData.is_partner || false,
+                rating: masterData.rating || 0,
+                total_sales: masterData.total_sales || 0,
+                member_since: masterData.member_since || masterData.created_at,
+                pieces_created: masterData.pieces_created || masterData.products_count || 0,
+                followers_count: masterData.followers_count || 0,
+                custom_orders_enabled: masterData.custom_orders_enabled || false,
+                is_following: masterData.is_following || false
+            }
+            
+            setMaster(formattedMaster)
+            setIsFollowing(formattedMaster.is_following || false)
         } catch (error) {
             console.error('Error fetching master:', error)
             toast.error('Ошибка загрузки профиля мастера')
@@ -97,7 +131,20 @@ export default function MasterPage() {
         try {
             const response = await fetch(`/api/masters/${id}/products`)
             const data = await response.json()
-            setProducts(data || [])
+            
+            console.log('Products API response:', data)
+            
+            // API возвращает { success: true, products: [], pagination: {} }
+            let productsList: Product[] = []
+            if (data.success && data.products) {
+                productsList = data.products
+            } else if (data.products) {
+                productsList = data.products
+            } else if (Array.isArray(data)) {
+                productsList = data
+            }
+            
+            setProducts(productsList)
         } catch (error) {
             console.error('Error fetching products:', error)
         }
@@ -107,7 +154,19 @@ export default function MasterPage() {
         try {
             const response = await fetch(`/api/masters/${id}/reviews`)
             const data = await response.json()
-            setReviews(data || [])
+            
+            console.log('Reviews API response:', data)
+            
+            let reviewsList: Review[] = []
+            if (data.success && data.reviews) {
+                reviewsList = data.reviews
+            } else if (data.reviews) {
+                reviewsList = data.reviews
+            } else if (Array.isArray(data)) {
+                reviewsList = data
+            }
+            
+            setReviews(reviewsList)
         } catch (error) {
             console.error('Error fetching reviews:', error)
         } finally {
@@ -119,8 +178,13 @@ export default function MasterPage() {
         try {
             const response = await fetch(`/api/masters/${id}/follow-status`)
             const data = await response.json()
-            setIsFollowing(data.is_following)
-            setMaster(prev => prev ? { ...prev, followers_count: data.followers_count } : prev)
+            
+            console.log('Follow status API response:', data)
+            
+            if (data.success) {
+                setIsFollowing(data.is_following || false)
+                setMaster(prev => prev ? { ...prev, followers_count: data.followers_count || 0 } : prev)
+            }
         } catch (error) {
             console.error('Error checking follow status:', error)
         }
@@ -146,6 +210,9 @@ export default function MasterPage() {
                 setIsFollowing(data.is_following)
                 setMaster(prev => prev ? { ...prev, followers_count: data.followers_count } : prev)
                 toast.success(isFollowing ? 'Вы отписались от мастера' : 'Вы подписались на мастера')
+            } else {
+                const error = await response.json()
+                toast.error(error.error || 'Ошибка при подписке')
             }
         } catch (error) {
             console.error('Error toggling follow:', error)
@@ -202,7 +269,14 @@ export default function MasterPage() {
                 <div className="flex-shrink-0">
                     <div className="w-48 h-48 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center overflow-hidden">
                         {master.avatar_url ? (
-                            <img src={master.avatar_url} alt={master.name} className="w-full h-full object-cover" />
+                            <img 
+                                src={master.avatar_url} 
+                                alt={master.name} 
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = 'none'
+                                }}
+                            />
                         ) : (
                             <span className="text-6xl font-['Montserrat_Alternates'] font-bold text-white">
                                 {master.name?.charAt(0).toUpperCase()}
