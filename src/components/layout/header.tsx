@@ -6,6 +6,10 @@ import Image from "next/image";
 import cart from "../../../public/cart.svg";
 import favorite from "../../../public/favorites.svg";
 import profile from "../../../public/profile.svg";
+import blog from "../../../public/blog.svg"
+import catalog from "../../../public/catalog.svg"
+import classes from "../../../public/classes.svg"
+import home from "../../../public/home.svg"
 import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -22,7 +26,7 @@ export default function Header() {
   const [userName, setUserName] = useState<string>("");
   const [avatarError, setAvatarError] = useState(false);
   const [profileLoaded, setProfileLoaded] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0); // Состояние для счетчика уведомлений
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -50,7 +54,6 @@ export default function Header() {
 
     loadUnreadCount();
     
-    // Опционально: обновлять счетчик каждые 30 секунд
     const interval = setInterval(loadUnreadCount, 30000);
     return () => clearInterval(interval);
   }, [isAuthenticated, isBuyer, isMaster]);
@@ -64,7 +67,6 @@ export default function Header() {
       }
 
       try {
-        // Для мастера используем /api/master/profile
         if (isMaster) {
           const response = await fetch("/api/master/profile");
           if (response.ok) {
@@ -84,7 +86,6 @@ export default function Header() {
             }
           }
         } 
-        // Для обычного пользователя (покупатель, админ)
         else {
           const response = await fetch("/api/user/profile");
           if (response.ok) {
@@ -92,7 +93,6 @@ export default function Header() {
             let avatar = null;
             let name = "";
             
-            // Поддерживаем оба формата ответа
             if (data.profile) {
               avatar = data.profile.avatar_url;
               name = data.profile.fullname || data.profile.full_name || "";
@@ -142,102 +142,37 @@ export default function Header() {
 
   return (
     <>
-      {/* Верхняя шапка */}
-      <motion.header
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.5, type: "spring", stiffness: 100 }}
-        className={`fixed top-0 z-40 w-full transition-all duration-500 ${
-          isScrolled ? "bg-main/95 backdrop-blur-md shadow-lg" : "bg-main"
-        }`}
-      >
-        {/* Добавлен padding 10px сверху и снизу */}
+      <motion.header initial={{ y: -100 }} animate={{ y: 0 }} transition={{ duration: 0.5, type: "spring", stiffness: 100 }} className={`fixed top-0 z-40 w-full transition-all duration-500 ${isScrolled ? "bg-main/95 backdrop-blur-md shadow-lg" : "bg-main"}`}>
         <div className="py-2.5 md:py-3">
           <nav className="container mx-auto px-4 sm:px-6 lg:px-8 w-full">
             <div className="flex justify-center lg:justify-between items-center gap-4">
-              {/* Логотип и название */}
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                className="flex gap-2 sm:gap-3 items-center flex-shrink-0"
-              >
-                <Link href="/" className="flex items-center gap-2 sm:gap-3">
-                  <Image
-                    className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-16 lg:h-16"
-                    src={logo}
-                    alt="logo"
-                  />
-                  <div className="font-Montserrat_Alternates font-bold leading-tight">
-                    <span className="text-firm-pink font-semibold font-Montserrat_Alternates text-xs sm:text-sm md:text-base">
-                      Дом{" "}
-                    </span>
-                    <span className="text-firm-orange font-semibold font-Montserrat_Alternates text-xs sm:text-sm md:text-base">
-                      вязанных
-                    </span>
-                    <br />
-                    <span className="text-firm-pink font-semibold font-Montserrat_Alternates text-xs sm:text-sm md:text-base">
-                      историй
-                    </span>
-                  </div>
-                </Link>
+              <motion.div whileHover={{ scale: 1.05 }} transition={{ type: "spring", stiffness: 400, damping: 10 }} className="flex gap-2 sm:gap-3 items-center flex-shrink-0" >
+                <Link href="/" className="flex items-center gap-2 sm:gap-3"><Image className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-16 lg:h-16" src={logo} alt="logo" /> <div className="font-Montserrat_Alternates font-bold leading-tight"><span className="text-firm-pink font-semibold font-Montserrat_Alternates text-xs sm:text-sm md:text-base">Дом{" "}</span><span className="text-firm-orange font-semibold font-Montserrat_Alternates text-xs sm:text-sm md:text-base">вязанных</span><br /><span className="text-firm-pink font-semibold font-Montserrat_Alternates text-xs sm:text-sm md:text-base">историй</span></div></Link>
               </motion.div>
 
-              {/* Десктопное меню */}
               <ul className="hidden lg:flex justify-between w-[600px] xl:gap-10">
                 {navLinks.map((link, index) => (
-                  <motion.li
-                    key={link.href}
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                  >
-                    <Link
-                      className="font-Montserrat_Alternates font-semibold hover:font-bold transition-all duration-300 relative group"
-                      href={link.href}
-                    >
-                      {link.name}
-                      <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-firm-orange transition-all duration-300 group-hover:w-full" />
-                    </Link>
-                  </motion.li>
-                ))}
+                  <motion.li key={link.href} initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}><Link className="font-Montserrat_Alternates font-semibold hover:font-bold transition-all duration-300 relative group" href={link.href} >{link.name} <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-firm-orange transition-all duration-300 group-hover:w-full" /></Link></motion.li>))}
               </ul>
 
-              {/* Правая часть (иконки) */}
               <div className="hidden lg:flex items-center gap-3 sm:gap-4 md:gap-5 lg:gap-6">
                 {isAuthenticated && (isBuyer || isMaster) && (
-                  <motion.div 
-                    whileHover={{ scale: 1.1, rotate: 5 }} 
-                    whileTap={{ scale: 0.95 }}
-                    className="relative"
-                  >
+                  <motion.div whileHover={{ scale: 1.1, rotate: 5 }} whileTap={{ scale: 0.95 }} className="relative">
                     <Link href="/chats">
                       <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white hover:text-firm-orange transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
                     </Link>
-                    {/* Значок уведомлений */}
-                    {unreadCount > 0 && (
-                      <motion.span
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-lg"
-                      >
-                        {unreadCount > 9 ? '9+' : unreadCount}
-                      </motion.span>
-                    )}
+                    {unreadCount > 0 && (<motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-lg">{unreadCount > 9 ? '9+' : unreadCount}</motion.span>)}
                   </motion.div>
                 )}
 
                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                  <Link href="/shopping-cart">
-                    <Image src={cart} alt="shopping cart" className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
-                  </Link>
+                  <Link href="/shopping-cart"><Image src={cart} alt="shopping cart" className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" /></Link>
                 </motion.div>
 
                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                  <Link href="/favorites">
-                    <Image src={favorite} alt="favorites" className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
-                  </Link>
+                  <Link href="/favorites"><Image src={favorite} alt="favorites" className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" /></Link>
                 </motion.div>
 
                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
@@ -246,12 +181,9 @@ export default function Header() {
                   ) : isAuthenticated ? (
                     <Link href="/profile" className="block">
                       {avatarUrl && !avatarError ? (
-                        <img
-                          src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`}
-                          alt="profile"
-                          className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover ring-2 ring-white/50 hover:ring-firm-orange transition-all duration-300"
-                          onError={() => setAvatarError(true)}
-                        />
+                        <div className="relative w-6 h-6 sm:w-7 sm:h-7">
+                          <Image src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`} alt="profile" fill sizes="(max-width: 640px) 1.5rem, (max-width: 768px) 1.75rem, 1.75rem" className="rounded-full object-cover ring-2 ring-white/50 hover:ring-firm-orange transition-all duration-300" onError={() => setAvatarError(true)} />
+                        </div>
                       ) : (
                         <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-xs sm:text-sm font-bold">
                           {getInitials()}
@@ -277,21 +209,17 @@ export default function Header() {
         <div className="flex justify-center">
           <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl px-3 py-2 mx-auto inline-flex">
             <div className="flex items-center gap-5">
-              <Link href="/" className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange">
-                <Image src={logo} alt="Главная" className="w-6 h-6" />
-              </Link>
-              <Link href="/catalog" className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange">
-                <Image src={favorite} alt="Каталог" className="w-5 h-5" />
-              </Link>
-              <Link href="/shopping-cart" className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange">
-                <Image src={cart} alt="Корзина" className="w-5 h-5" />
-              </Link>
+              <Link href="/" className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange"><Image src={logo} alt="Главная" className="w-6 h-6" /></Link>
+              <Link href="/catalog" className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange"><Image src={favorite} alt="Каталог" className="w-5 h-5" /></Link>
+              <Link href="/shopping-cart" className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange"><Image src={cart} alt="Корзина" className="w-5 h-5" /></Link>
               <Link href={isAuthenticated ? "/profile" : "/auth/signin"} className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange">
                 {isLoading ? (
                   <div className="w-6 h-6 rounded-full bg-gray-300 animate-pulse" />
                 ) : isAuthenticated ? (
                   avatarUrl && !avatarError ? (
-                    <img src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`} alt="profile" className="w-6 h-6 rounded-full object-cover" onError={() => setAvatarError(true)} />
+                    <div className="relative w-6 h-6">
+                      <Image src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`} alt="profile" fill sizes="1.5rem" className="rounded-full object-cover" onError={() => setAvatarError(true)} />
+                    </div>
                   ) : (
                     <div className="w-6 h-6 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-sm font-bold">
                       {getInitials()}
@@ -325,33 +253,15 @@ export default function Header() {
                   <button onClick={() => setIsMenuOpen(false)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">✕</button>
                 </div>
                 <div className="space-y-2">
-                  <Link href="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300">
-                    <Image src={logo} alt="Главная" className="w-6 h-6" />
-                    <span className="text-gray-700 font-['Montserrat_Alternates']">Главная</span>
-                  </Link>
-                  <Link href="/catalog" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300">
-                    <Image src={favorite} alt="Каталог" className="w-5 h-5" />
-                    <span className="text-gray-700 font-['Montserrat_Alternates']">Каталог</span>
-                  </Link>
-                  <Link href="/shopping-cart" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300">
-                    <Image src={cart} alt="Корзина" className="w-5 h-5" />
-                    <span className="text-gray-700 font-['Montserrat_Alternates']">Корзина</span>
-                  </Link>
-                  <Link href="/favorites" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300">
-                    <Image src={favorite} alt="Избранное" className="w-5 h-5" />
-                    <span className="text-gray-700 font-['Montserrat_Alternates']">Избранное</span>
-                  </Link>
-                  <Link href="/blog" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300">
-                    <span className="text-xl">📝</span>
-                    <span className="text-gray-700 font-['Montserrat_Alternates']">Блог</span>
-                  </Link>
-                  <Link href="/master-classes" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300">
-                    <span className="text-xl">🎓</span>
-                    <span className="text-gray-700 font-['Montserrat_Alternates']">Мастер-классы</span>
-                  </Link>
+                  <Link href="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"><Image src={home} alt="Главная" className="w-6 h-6" /><span className="text-gray-700 font-['Montserrat_Alternates']">Главная</span></Link>
+                  <Link href="/catalog" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"><Image src={catalog} alt="Каталог" className="w-5 h-5" /><span className="text-gray-700 font-['Montserrat_Alternates']">Каталог</span></Link>
+                  <Link href="/shopping-cart" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"><Image src={cart} alt="Корзина" className="w-5 h-5" /><span className="text-gray-700 font-['Montserrat_Alternates']">Корзина</span></Link>
+                  <Link href="/favorites" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"><Image src={favorite} alt="Избранное" className="w-5 h-5" /><span className="text-gray-700 font-['Montserrat_Alternates']">Избранное</span></Link>
+                  <Link href="/blog" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"><Image src={blog} alt="Блог" className="w-5 h-5" /><span className="text-gray-700 font-['Montserrat_Alternates']">Блог</span></Link>
+                  <Link href="/master-classes" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"><Image src={classes} alt="Мастер-классы" className="w-5 h-5" /><span className="text-gray-700 font-['Montserrat_Alternates']">Мастер-классы</span></Link>
                   {isAuthenticated && (isBuyer || isMaster) && (
                     <Link href="/chats" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300 relative">
-                      <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-6 h-6 text-[#242424]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
                       <span className="text-gray-700">Сообщения</span>
@@ -366,11 +276,11 @@ export default function Header() {
                 {!isAuthenticated && (
                   <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
                     <Link href="/auth/signin" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300">
-                      <span className="text-xl">🔑</span>
+                      <Image src={profile} alt="Войти" className="w-5 h-5" />
                       <span className="text-gray-700">Войти</span>
                     </Link>
                     <Link href="/auth/signup" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300">
-                      <span className="text-xl">✨</span>
+                      <Image src={profile} alt="Войти" className="w-5 h-5" />
                       <span className="text-gray-700">Зарегистрироваться</span>
                     </Link>
                   </div>
@@ -381,8 +291,7 @@ export default function Header() {
         )}
       </AnimatePresence>
 
-      {/* Отступы */}
-      <div className="h-[60px]" /> {/* Увеличен отступ для компенсации padding хедера */}
+      <div className="h-[60px]" />
       <div className="h-16 lg:hidden" />
     </>
   );
