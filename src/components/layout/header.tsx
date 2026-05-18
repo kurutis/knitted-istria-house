@@ -123,7 +123,7 @@ export default function Header() {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5, type: "spring", stiffness: 100 }}
-        className={`pt-5 pb-5 fixed top-0 z-40 w-full transition-all duration-500 ${
+        className={` fixed top-0 z-40 w-full transition-all duration-500 ${
           isScrolled ? "bg-main/95 backdrop-blur-md shadow-lg" : "bg-main"
         } h-[60px] flex items-center`}
       >
@@ -135,7 +135,7 @@ export default function Header() {
               transition={{ type: "spring", stiffness: 400, damping: 10 }}
               className="flex gap-2 sm:gap-3 items-center flex-shrink-0"
             >
-              <Link href="/" className="flex items-center gap-2 sm:gap-3">
+              <Link href="/" className="flex items-center gap-2 sm:gap-3 pt-5 pb-5">
                 <Image
                   className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-16 lg:h-16"
                   src={logo}
