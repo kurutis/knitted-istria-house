@@ -22,6 +22,7 @@ export default function Header() {
   const [userName, setUserName] = useState<string>("");
   const [avatarError, setAvatarError] = useState(false);
   const [profileLoaded, setProfileLoaded] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0); // Состояние для счетчика уведомлений
 
   useEffect(() => {
     const handleScroll = () => {
@@ -30,6 +31,29 @@ export default function Header() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Загружаем количество непрочитанных сообщений
+  useEffect(() => {
+    const loadUnreadCount = async () => {
+      if (!isAuthenticated || !(isBuyer || isMaster)) return;
+
+      try {
+        const response = await fetch("/api/chats/unread-count");
+        if (response.ok) {
+          const data = await response.json();
+          setUnreadCount(data.count || 0);
+        }
+      } catch (error) {
+        console.error("Error loading unread count:", error);
+      }
+    };
+
+    loadUnreadCount();
+    
+    // Опционально: обновлять счетчик каждые 30 секунд
+    const interval = setInterval(loadUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, isBuyer, isMaster]);
 
   // Загружаем профиль пользователя из API
   useEffect(() => {
@@ -123,112 +147,129 @@ export default function Header() {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5, type: "spring", stiffness: 100 }}
-        className={` fixed top-0 z-40 w-full transition-all duration-500 ${
+        className={`fixed top-0 z-40 w-full transition-all duration-500 ${
           isScrolled ? "bg-main/95 backdrop-blur-md shadow-lg" : "bg-main"
-        } h-[60px] flex items-center`}
+        }`}
       >
-        <nav className="container mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="flex justify-center lg:justify-between items-center gap-4">
-            {/* Логотип и название */}
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              className="flex gap-2 sm:gap-3 items-center flex-shrink-0 pt-5 pb-5"
-            >
-              <Link href="/" className="flex items-center gap-2 sm:gap-3">
-                <Image
-                  className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-16 lg:h-16"
-                  src={logo}
-                  alt="logo"
-                />
-                <div className="font-Montserrat_Alternates font-bold leading-tight">
-                  <span className="text-firm-pink font-semibold font-Montserrat_Alternates text-xs sm:text-sm md:text-base">
-                    Дом{" "}
-                  </span>
-                  <span className="text-firm-orange font-semibold font-Montserrat_Alternates text-xs sm:text-sm md:text-base">
-                    вязанных
-                  </span>
-                  <br />
-                  <span className="text-firm-pink font-semibold font-Montserrat_Alternates text-xs sm:text-sm md:text-base">
-                    историй
-                  </span>
-                </div>
-              </Link>
-            </motion.div>
+        {/* Добавлен padding 10px сверху и снизу */}
+        <div className="py-2.5 md:py-3">
+          <nav className="container mx-auto px-4 sm:px-6 lg:px-8 w-full">
+            <div className="flex justify-center lg:justify-between items-center gap-4">
+              {/* Логотип и название */}
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                className="flex gap-2 sm:gap-3 items-center flex-shrink-0"
+              >
+                <Link href="/" className="flex items-center gap-2 sm:gap-3">
+                  <Image
+                    className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-16 lg:h-16"
+                    src={logo}
+                    alt="logo"
+                  />
+                  <div className="font-Montserrat_Alternates font-bold leading-tight">
+                    <span className="text-firm-pink font-semibold font-Montserrat_Alternates text-xs sm:text-sm md:text-base">
+                      Дом{" "}
+                    </span>
+                    <span className="text-firm-orange font-semibold font-Montserrat_Alternates text-xs sm:text-sm md:text-base">
+                      вязанных
+                    </span>
+                    <br />
+                    <span className="text-firm-pink font-semibold font-Montserrat_Alternates text-xs sm:text-sm md:text-base">
+                      историй
+                    </span>
+                  </div>
+                </Link>
+              </motion.div>
 
-            {/* Десктопное меню */}
-            <ul className="hidden lg:flex justify-between w-[600px] xl:gap-10">
-              {navLinks.map((link, index) => (
-                <motion.li
-                  key={link.href}
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <Link
-                    className="font-Montserrat_Alternates font-semibold hover:font-bold transition-all duration-300 relative group"
-                    href={link.href}
+              {/* Десктопное меню */}
+              <ul className="hidden lg:flex justify-between w-[600px] xl:gap-10">
+                {navLinks.map((link, index) => (
+                  <motion.li
+                    key={link.href}
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
                   >
-                    {link.name}
-                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-firm-orange transition-all duration-300 group-hover:w-full" />
-                  </Link>
-                </motion.li>
-              ))}
-            </ul>
+                    <Link
+                      className="font-Montserrat_Alternates font-semibold hover:font-bold transition-all duration-300 relative group"
+                      href={link.href}
+                    >
+                      {link.name}
+                      <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-firm-orange transition-all duration-300 group-hover:w-full" />
+                    </Link>
+                  </motion.li>
+                ))}
+              </ul>
 
-            {/* Правая часть (иконки) */}
-            <div className="hidden lg:flex items-center gap-3 sm:gap-4 md:gap-5 lg:gap-6">
-              {isAuthenticated && (isBuyer || isMaster) && (
-                <motion.div whileHover={{ scale: 1.1, rotate: 5 }} whileTap={{ scale: 0.95 }}>
-                  <Link href="/chats">
-                    <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white hover:text-firm-orange transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
+              {/* Правая часть (иконки) */}
+              <div className="hidden lg:flex items-center gap-3 sm:gap-4 md:gap-5 lg:gap-6">
+                {isAuthenticated && (isBuyer || isMaster) && (
+                  <motion.div 
+                    whileHover={{ scale: 1.1, rotate: 5 }} 
+                    whileTap={{ scale: 0.95 }}
+                    className="relative"
+                  >
+                    <Link href="/chats">
+                      <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white hover:text-firm-orange transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                    </Link>
+                    {/* Значок уведомлений */}
+                    {unreadCount > 0 && (
+                      <motion.span
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-lg"
+                      >
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </motion.span>
+                    )}
+                  </motion.div>
+                )}
+
+                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                  <Link href="/shopping-cart">
+                    <Image src={cart} alt="shopping cart" className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
                   </Link>
                 </motion.div>
-              )}
 
-              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                <Link href="/shopping-cart">
-                  <Image src={cart} alt="shopping cart" className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
-                </Link>
-              </motion.div>
-
-              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                <Link href="/favorites">
-                  <Image src={favorite} alt="favorites" className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
-                </Link>
-              </motion.div>
-
-              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                {isLoading ? (
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gray-300 animate-pulse" />
-                ) : isAuthenticated ? (
-                  <Link href="/profile" className="block">
-                    {avatarUrl && !avatarError ? (
-                      <img
-                        src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`}
-                        alt="profile"
-                        className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover ring-2 ring-white/50 hover:ring-firm-orange transition-all duration-300"
-                        onError={() => setAvatarError(true)}
-                      />
-                    ) : (
-                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-xs sm:text-sm font-bold">
-                        {getInitials()}
-                      </div>
-                    )}
+                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                  <Link href="/favorites">
+                    <Image src={favorite} alt="favorites" className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
                   </Link>
-                ) : (
-                  <Link href="/auth/signin" className="block">
-                    <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white hover:text-firm-orange transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </Link>
-                )}
-              </motion.div>
+                </motion.div>
+
+                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                  {isLoading ? (
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gray-300 animate-pulse" />
+                  ) : isAuthenticated ? (
+                    <Link href="/profile" className="block">
+                      {avatarUrl && !avatarError ? (
+                        <img
+                          src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`}
+                          alt="profile"
+                          className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover ring-2 ring-white/50 hover:ring-firm-orange transition-all duration-300"
+                          onError={() => setAvatarError(true)}
+                        />
+                      ) : (
+                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-xs sm:text-sm font-bold">
+                          {getInitials()}
+                        </div>
+                      )}
+                    </Link>
+                  ) : (
+                    <Link href="/auth/signin" className="block">
+                      <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white hover:text-firm-orange transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </Link>
+                  )}
+                </motion.div>
+              </div>
             </div>
-          </div>
-        </nav>
+          </nav>
+        </div>
       </motion.header>
 
       {/* Мобильная панель */}
@@ -309,11 +350,16 @@ export default function Header() {
                     <span className="text-gray-700 font-['Montserrat_Alternates']">Мастер-классы</span>
                   </Link>
                   {isAuthenticated && (isBuyer || isMaster) && (
-                    <Link href="/chats" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300">
+                    <Link href="/chats" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300 relative">
                       <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
                       <span className="text-gray-700">Сообщения</span>
+                      {unreadCount > 0 && (
+                        <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                      )}
                     </Link>
                   )}
                 </div>
@@ -336,7 +382,7 @@ export default function Header() {
       </AnimatePresence>
 
       {/* Отступы */}
-      <div className="h-8" />
+      <div className="h-[60px]" /> {/* Увеличен отступ для компенсации padding хедера */}
       <div className="h-16 lg:hidden" />
     </>
   );
