@@ -133,9 +133,9 @@ export default function Header() {
             <motion.div
               whileHover={{ scale: 1.05 }}
               transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              className="flex gap-2 sm:gap-3 items-center flex-shrink-0"
+              className="flex gap-2 sm:gap-3 items-center flex-shrink-0 pt-5 pb-5"
             >
-              <Link href="/" className="flex items-center gap-2 sm:gap-3 pt-5 pb-5">
+              <Link href="/" className="flex items-center gap-2 sm:gap-3">
                 <Image
                   className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-16 lg:h-16"
                   src={logo}
