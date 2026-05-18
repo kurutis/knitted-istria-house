@@ -10,6 +10,7 @@ import blog from "../../../public/blog.svg"
 import catalog from "../../../public/catalog.svg"
 import classes from "../../../public/classes.svg"
 import home from "../../../public/home.svg"
+import chats from "../../../public/chat.svg"
 import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -159,9 +160,7 @@ export default function Header() {
                 {isAuthenticated && (isBuyer || isMaster) && (
                   <motion.div whileHover={{ scale: 1.1, rotate: 5 }} whileTap={{ scale: 0.95 }} className="relative">
                     <Link href="/chats">
-                      <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white hover:text-firm-orange transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
+                      <Image src={chats} alt="chats" className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white hover:text-firm-orange transition-colors duration-300" />
                     </Link>
                     {unreadCount > 0 && (<motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-lg">{unreadCount > 9 ? '9+' : unreadCount}</motion.span>)}
                   </motion.div>
@@ -192,9 +191,7 @@ export default function Header() {
                     </Link>
                   ) : (
                     <Link href="/auth/signin" className="block">
-                      <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white hover:text-firm-orange transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
+                      <Image src={profile} alt="profile" className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white hover:text-firm-orange transition-colors duration-300" />
                     </Link>
                   )}
                 </motion.div>
@@ -209,8 +206,21 @@ export default function Header() {
         <div className="flex justify-center">
           <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl px-3 py-2 mx-auto inline-flex">
             <div className="flex items-center gap-5">
-              <Link href="/" className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange"><Image src={logo} alt="Главная" className="w-6 h-6" /></Link>
-              <Link href="/catalog" className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange"><Image src={favorite} alt="Каталог" className="w-5 h-5" /></Link>
+              <Link href="/" className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange"><Image src={home} alt="Главная" className="w-6 h-6" /></Link>
+              <Link href="/catalog" className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange"><Image src={catalog} alt="Каталог" className="w-5 h-5" /></Link>
+              
+              {/* Иконка чатов для мобильной панели */}
+              {isAuthenticated && (isBuyer || isMaster) && (
+                <Link href="/chats" className="relative flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange">
+                  <Image src={chats} alt="Чаты" className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Link>
+              )}
+              
               <Link href="/shopping-cart" className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange"><Image src={cart} alt="Корзина" className="w-5 h-5" /></Link>
               <Link href={isAuthenticated ? "/profile" : "/auth/signin"} className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange">
                 {isLoading ? (
@@ -261,10 +271,8 @@ export default function Header() {
                   <Link href="/master-classes" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"><Image src={classes} alt="Мастер-классы" className="w-5 h-5" /><span className="text-gray-700 font-['Montserrat_Alternates']">Мастер-классы</span></Link>
                   {isAuthenticated && (isBuyer || isMaster) && (
                     <Link href="/chats" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300 relative">
-                      <svg className="w-6 h-6 text-[#242424]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                      <span className="text-gray-700">Сообщения</span>
+                      <Image src={chats} alt="Сообщения" className="w-5 h-5" />
+                      <span className="text-gray-700 font-['Montserrat_Alternates']">Сообщения</span>
                       {unreadCount > 0 && (
                         <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center">
                           {unreadCount > 9 ? '9+' : unreadCount}
@@ -277,11 +285,11 @@ export default function Header() {
                   <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
                     <Link href="/auth/signin" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300">
                       <Image src={profile} alt="Войти" className="w-5 h-5" />
-                      <span className="text-gray-700">Войти</span>
+                      <span className="text-gray-700 font-['Montserrat_Alternates']">Войти</span>
                     </Link>
                     <Link href="/auth/signup" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300">
-                      <Image src={profile} alt="Войти" className="w-5 h-5" />
-                      <span className="text-gray-700">Зарегистрироваться</span>
+                      <Image src={profile} alt="Регистрация" className="w-5 h-5" />
+                      <span className="text-gray-700 font-['Montserrat_Alternates']">Зарегистрироваться</span>
                     </Link>
                   </div>
                 )}
