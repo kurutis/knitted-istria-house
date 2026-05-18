@@ -123,7 +123,7 @@ export default function Header() {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5, type: "spring", stiffness: 100 }}
-        className={`fixed top-0 z-40 w-full transition-all duration-500 ${
+        className={`pt-5 pb-5 fixed top-0 z-40 w-full transition-all duration-500 ${
           isScrolled ? "bg-main/95 backdrop-blur-md shadow-lg" : "bg-main"
         } h-[60px] flex items-center`}
       >
