@@ -160,7 +160,7 @@ export default function Header() {
                 {isAuthenticated && (isBuyer || isMaster) && (
                   <motion.div whileHover={{ scale: 1.1, rotate: 5 }} whileTap={{ scale: 0.95 }} className="relative">
                     <Link href="/chats">
-                      <Image src={chats} alt="chats" className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white hover:text-firm-orange transition-colors duration-300" />
+                      <Image src={chats} alt="chats" className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
                     </Link>
                     {unreadCount > 0 && (<motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-lg">{unreadCount > 9 ? '9+' : unreadCount}</motion.span>)}
                   </motion.div>
@@ -191,7 +191,7 @@ export default function Header() {
                     </Link>
                   ) : (
                     <Link href="/auth/signin" className="block">
-                      <Image src={profile} alt="profile" className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white hover:text-firm-orange transition-colors duration-300" />
+                      <Image src={profile} alt="profile" className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
                     </Link>
                   )}
                 </motion.div>
@@ -201,51 +201,56 @@ export default function Header() {
         </div>
       </motion.header>
 
-      {/* Мобильная панель */}
+      {/* Мобильная панель - только самые важные иконки */}
       <div className="fixed bottom-4 left-0 right-0 z-40 lg:hidden">
         <div className="flex justify-center">
-          <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl px-3 py-2 mx-auto inline-flex">
-            <div className="flex items-center gap-5">
-              <Link href="/" className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange"><Image src={home} alt="Главная" className="w-6 h-6" /></Link>
-              <Link href="/catalog" className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange"><Image src={catalog} alt="Каталог" className="w-5 h-5" /></Link>
+          <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl px-4 py-2 mx-auto inline-flex">
+            <div className="flex items-center gap-6">
+              {/* Главная */}
+              <Link href="/" className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
+                <Image src={home} alt="Главная" className="w-5 h-5" />
+                <span className="text-[10px] font-medium">Главная</span>
+              </Link>
               
-              {/* Иконка чатов для мобильной панели */}
-              {isAuthenticated && (isBuyer || isMaster) && (
-                <Link href="/chats" className="relative flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange">
-                  <Image src={chats} alt="Чаты" className="w-5 h-5" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </Link>
-              )}
+              {/* Каталог */}
+              <Link href="/catalog" className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
+                <Image src={catalog} alt="Каталог" className="w-5 h-5" />
+                <span className="text-[10px] font-medium">Каталог</span>
+              </Link>
               
-              <Link href="/shopping-cart" className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange"><Image src={cart} alt="Корзина" className="w-5 h-5" /></Link>
-              <Link href={isAuthenticated ? "/profile" : "/auth/signin"} className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange">
+              {/* Корзина */}
+              <Link href="/shopping-cart" className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
+                <Image src={cart} alt="Корзина" className="w-5 h-5" />
+                <span className="text-[10px] font-medium">Корзина</span>
+              </Link>
+              
+              {/* Избранное */}
+              <Link href="/favorites" className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
+                <Image src={favorite} alt="Избранное" className="w-5 h-5" />
+                <span className="text-[10px] font-medium">Избранное</span>
+              </Link>
+              
+              {/* Профиль / Вход */}
+              <Link href={isAuthenticated ? "/profile" : "/auth/signin"} className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
                 {isLoading ? (
-                  <div className="w-6 h-6 rounded-full bg-gray-300 animate-pulse" />
+                  <div className="w-5 h-5 rounded-full bg-gray-300 animate-pulse" />
                 ) : isAuthenticated ? (
                   avatarUrl && !avatarError ? (
-                    <div className="relative w-6 h-6">
-                      <Image src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`} alt="profile" fill sizes="1.5rem" className="rounded-full object-cover" onError={() => setAvatarError(true)} />
+                    <div className="relative w-5 h-5">
+                      <Image src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`} alt="profile" fill sizes="1.25rem" className="rounded-full object-cover" onError={() => setAvatarError(true)} />
                     </div>
                   ) : (
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-sm font-bold">
+                    <div className="w-5 h-5 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-[10px] font-bold">
                       {getInitials()}
                     </div>
                   )
                 ) : (
                   <Image src={profile} alt="Профиль" className="w-5 h-5" />
                 )}
+                <span className="text-[10px] font-medium">
+                  {isAuthenticated ? "Профиль" : "Войти"}
+                </span>
               </Link>
-              <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="flex items-center justify-center p-2 rounded-xl transition-all duration-300 text-gray-500 hover:text-firm-orange">
-                <div className="relative w-6 h-6 flex flex-col items-center justify-center gap-1">
-                  <motion.span animate={isMenuOpen ? { rotate: 45, y: 6 } : { rotate: 0, y: 0 }} className="w-5 h-0.5 bg-current rounded-full transition-all duration-300" />
-                  <motion.span animate={isMenuOpen ? { opacity: 0 } : { opacity: 1 }} className="w-5 h-0.5 bg-current rounded-full transition-all duration-300" />
-                  <motion.span animate={isMenuOpen ? { rotate: -45, y: -6 } : { rotate: 0, y: 0 }} className="w-5 h-0.5 bg-current rounded-full transition-all duration-300" />
-                </div>
-              </button>
             </div>
           </div>
         </div>
@@ -263,7 +268,7 @@ export default function Header() {
                   <button onClick={() => setIsMenuOpen(false)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">✕</button>
                 </div>
                 <div className="space-y-2">
-                  <Link href="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"><Image src={home} alt="Главная" className="w-5 h-5" /><span className="text-gray-700 font-['Montserrat_Alternates']">Главная</span></Link>
+                  <Link href="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"><Image src={home} alt="Главная" className="w-6 h-6" /><span className="text-gray-700 font-['Montserrat_Alternates']">Главная</span></Link>
                   <Link href="/catalog" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"><Image src={catalog} alt="Каталог" className="w-5 h-5" /><span className="text-gray-700 font-['Montserrat_Alternates']">Каталог</span></Link>
                   <Link href="/shopping-cart" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"><Image src={cart} alt="Корзина" className="w-5 h-5" /><span className="text-gray-700 font-['Montserrat_Alternates']">Корзина</span></Link>
                   <Link href="/favorites" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300"><Image src={favorite} alt="Избранное" className="w-5 h-5" /><span className="text-gray-700 font-['Montserrat_Alternates']">Избранное</span></Link>
