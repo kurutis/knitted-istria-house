@@ -142,17 +142,22 @@ export default function HeroSlider() {
       <div
         ref={containerRef}
         className="relative w-full overflow-hidden rounded-2xl shadow-2xl"
+        style={{ height: "500px" }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
         <div
-          className="relative transition-transform duration-500 ease-out"
+          className="absolute top-0 left-0 w-full h-full transition-transform duration-500 ease-out"
           style={{ transform: `translateY(-${activeSlideIndex * 100}%)` }}
         >
           {slides.map((slide, i) => (
-            <div key={i} className={`w-full bg-gradient-to-br ${slide.bgColor}`}>
-              <div className="relative h-[500px]">
+            <div
+              key={i}
+              className={`w-full h-full bg-gradient-to-br ${slide.bgColor}`}
+              style={{ height: "500px" }}
+            >
+              <div className="relative w-full h-full">
                 {/* Фоновое изображение */}
                 <div
                   className="absolute inset-0 bg-cover bg-center opacity-30"
@@ -163,36 +168,33 @@ export default function HeroSlider() {
                 
                 {/* Контент */}
                 <div className="relative z-10 flex flex-col items-center justify-center h-full text-center px-6">
-                  <AnimatePresence mode="wait">
+                  <motion.div
+                    key={i}
+                    initial={{ y: 50, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                    className="flex flex-col items-center"
+                  >
+                    <h2 className="font-['Montserrat_Alternates'] text-white font-bold text-3xl sm:text-4xl mb-3">
+                      {slide.title}
+                    </h2>
+                    <h3 className="font-['Montserrat_Alternates'] text-white text-xl mb-3">
+                      {slide.subtitle}
+                    </h3>
+                    <p className="text-white/90 text-base mb-8 max-w-sm">
+                      {slide.description}
+                    </p>
                     <motion.div
-                      key={i}
-                      initial={{ y: 50, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      exit={{ y: -50, opacity: 0 }}
-                      transition={{ duration: 0.5 }}
-                      className="flex flex-col items-center"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                     >
-                      <h2 className="font-['Montserrat_Alternates'] text-white font-bold text-3xl sm:text-4xl mb-3">
-                        {slide.title}
-                      </h2>
-                      <h3 className="font-['Montserrat_Alternates'] text-white text-xl mb-3">
-                        {slide.subtitle}
-                      </h3>
-                      <p className="text-white/90 text-base mb-8 max-w-sm">
-                        {slide.description}
-                      </p>
-                      <motion.div
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <Link href={slide.buttonLink}>
-                          <button className="px-8 py-3 bg-white text-firm-orange rounded-full font-['Montserrat_Alternates'] font-semibold text-base shadow-lg hover:shadow-xl transition-all duration-300">
-                            {slide.buttonText}
-                          </button>
-                        </Link>
-                      </motion.div>
+                      <Link href={slide.buttonLink}>
+                        <button className="px-8 py-3 bg-white text-firm-orange rounded-full font-['Montserrat_Alternates'] font-semibold text-base shadow-lg hover:shadow-xl transition-all duration-300">
+                          {slide.buttonText}
+                        </button>
+                      </Link>
                     </motion.div>
-                  </AnimatePresence>
+                  </motion.div>
                 </div>
               </div>
             </div>
@@ -217,7 +219,7 @@ export default function HeroSlider() {
         {/* Кнопки навигации */}
         <button
           onClick={() => handleManualChange("down")}
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/90 backdrop-blur-sm text-firm-orange rounded-full shadow-lg hover:bg-firm-orange hover:text-white transition-all flex items-center justify-center"
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/90 backdrop-blur-sm text-firm-orange rounded-full shadow-lg hover:bg-firm-orange hover:text-white transition-all flex items-center justify-center"
         >
           <svg
             className="w-5 h-5 rotate-90"
@@ -236,7 +238,7 @@ export default function HeroSlider() {
 
         <button
           onClick={() => handleManualChange("up")}
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/90 backdrop-blur-sm text-firm-orange rounded-full shadow-lg hover:bg-firm-orange hover:text-white transition-all flex items-center justify-center"
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/90 backdrop-blur-sm text-firm-orange rounded-full shadow-lg hover:bg-firm-orange hover:text-white transition-all flex items-center justify-center"
         >
           <svg
             className="w-5 h-5 -rotate-90"
