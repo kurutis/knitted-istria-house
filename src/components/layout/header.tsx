@@ -259,7 +259,7 @@ export default function Header() {
                   </button>
                 </>
               ) : (
-                // Для неавторизованных пользователей - упрощенная версия с акцентом на привлечение
+                // Для неавторизованных пользователей
                 <>
                   {/* Главная */}
                   <Link href="/" className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
@@ -273,23 +273,27 @@ export default function Header() {
                     <span className="text-[10px] font-medium">Каталог</span>
                   </Link>
                   
-                  {/* Корзина */}
-                  <Link href="/shopping-cart" className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
-                    <Image src={cart} alt="Корзина" className="w-5 h-5" />
-                    <span className="text-[10px] font-medium">Корзина</span>
+                  {/* Блог */}
+                  <Link href="/blog" className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
+                    <Image src={blog} alt="Блог" className="w-5 h-5" />
+                    <span className="text-[10px] font-medium">Блог</span>
                   </Link>
                   
-                  {/* Избранное */}
-                  <Link href="/favorites" className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
-                    <Image src={favorite} alt="Избранное" className="w-5 h-5" />
-                    <span className="text-[10px] font-medium">Избранное</span>
+                  {/* Мастер-классы */}
+                  <Link href="/master-classes" className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
+                    <Image src={classes} alt="Мастер-классы" className="w-5 h-5" />
+                    <span className="text-[10px] font-medium">МК</span>
                   </Link>
                   
-                  {/* Вход/Регистрация */}
-                  <Link href="/auth/signin" className="flex flex-col items-center gap-1 transition-all duration-300 text-firm-orange font-semibold">
-                    <Image src={profile} alt="Войти" className="w-5 h-5" />
-                    <span className="text-[10px] font-medium">Войти</span>
-                  </Link>
+                  {/* Кнопка меню */}
+                  <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
+                    <div className="relative w-5 h-5 flex flex-col items-center justify-center gap-1">
+                      <motion.span animate={isMenuOpen ? { rotate: 45, y: 4.5 } : { rotate: 0, y: 0 }} className="w-4 h-0.5 bg-current rounded-full transition-all duration-300" />
+                      <motion.span animate={isMenuOpen ? { opacity: 0 } : { opacity: 1 }} className="w-4 h-0.5 bg-current rounded-full transition-all duration-300" />
+                      <motion.span animate={isMenuOpen ? { rotate: -45, y: -4.5 } : { rotate: 0, y: 0 }} className="w-4 h-0.5 bg-current rounded-full transition-all duration-300" />
+                    </div>
+                    <span className="text-[10px] font-medium">Меню</span>
+                  </button>
                 </>
               )}
             </div>
@@ -326,19 +330,19 @@ export default function Header() {
                       )}
                     </Link>
                   )}
+                  {!isAuthenticated && (
+                    <>
+                      <Link href="/auth/signin" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300">
+                        <Image src={profile} alt="Войти" className="w-5 h-5" />
+                        <span className="text-gray-700 font-['Montserrat_Alternates']">Войти</span>
+                      </Link>
+                      <Link href="/auth/signup" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300">
+                        <Image src={profile} alt="Регистрация" className="w-5 h-5" />
+                        <span className="text-gray-700 font-['Montserrat_Alternates']">Зарегистрироваться</span>
+                      </Link>
+                    </>
+                  )}
                 </div>
-                {!isAuthenticated && (
-                  <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
-                    <Link href="/auth/signin" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300">
-                      <Image src={profile} alt="Войти" className="w-5 h-5" />
-                      <span className="text-gray-700 font-['Montserrat_Alternates']">Войти</span>
-                    </Link>
-                    <Link href="/auth/signup" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-gray-100 transition-all duration-300">
-                      <Image src={profile} alt="Регистрация" className="w-5 h-5" />
-                      <span className="text-gray-700 font-['Montserrat_Alternates']">Зарегистрироваться</span>
-                    </Link>
-                  </div>
-                )}
               </div>
             </motion.div>
           </>
