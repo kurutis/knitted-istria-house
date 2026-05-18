@@ -201,62 +201,103 @@ export default function Header() {
         </div>
       </motion.header>
 
-      {/* Мобильная панель - только самые важные иконки */}
+      {/* Мобильная панель */}
       <div className="fixed bottom-4 left-0 right-0 z-40 lg:hidden">
         <div className="flex justify-center">
           <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl px-4 py-2 mx-auto inline-flex">
-            <div className="flex items-center gap-6">
-              {/* Главная */}
-              <Link href="/" className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
-                <Image src={home} alt="Главная" className="w-5 h-5" />
-                <span className="text-[10px] font-medium">Главная</span>
-              </Link>
-              
-              {/* Каталог */}
-              <Link href="/catalog" className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
-                <Image src={catalog} alt="Каталог" className="w-5 h-5" />
-                <span className="text-[10px] font-medium">Каталог</span>
-              </Link>
-              
-              {/* Корзина */}
-              <Link href="/shopping-cart" className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
-                <Image src={cart} alt="Корзина" className="w-5 h-5" />
-                <span className="text-[10px] font-medium">Корзина</span>
-              </Link>
-              
-              {/* Избранное */}
-              <Link href="/favorites" className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
-                <Image src={favorite} alt="Избранное" className="w-5 h-5" />
-                <span className="text-[10px] font-medium">Избранное</span>
-              </Link>
-              
-              {/* Профиль / Вход */}
-              <Link href={isAuthenticated ? "/profile" : "/auth/signin"} className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
-                {isLoading ? (
-                  <div className="w-5 h-5 rounded-full bg-gray-300 animate-pulse" />
-                ) : isAuthenticated ? (
-                  avatarUrl && !avatarError ? (
-                    <div className="relative w-5 h-5">
-                      <Image src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`} alt="profile" fill sizes="1.25rem" className="rounded-full object-cover" onError={() => setAvatarError(true)} />
+            <div className="flex items-center gap-5">
+              {isAuthenticated ? (
+                // Для авторизованных пользователей
+                <>
+                  {/* Главная */}
+                  <Link href="/" className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
+                    <Image src={home} alt="Главная" className="w-5 h-5" />
+                    <span className="text-[10px] font-medium">Главная</span>
+                  </Link>
+                  
+                  {/* Каталог */}
+                  <Link href="/catalog" className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
+                    <Image src={catalog} alt="Каталог" className="w-5 h-5" />
+                    <span className="text-[10px] font-medium">Каталог</span>
+                  </Link>
+                  
+                  {/* Чаты с уведомлениями */}
+                  <Link href="/chats" className="relative flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
+                    <div className="relative">
+                      <Image src={chats} alt="Чаты" className="w-5 h-5" />
+                      {unreadCount > 0 && (
+                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center font-bold">
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                      )}
                     </div>
-                  ) : (
-                    <div className="w-5 h-5 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-[10px] font-bold">
-                      {getInitials()}
+                    <span className="text-[10px] font-medium">Чаты</span>
+                  </Link>
+                  
+                  {/* Профиль */}
+                  <Link href="/profile" className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
+                    {avatarUrl && !avatarError ? (
+                      <div className="relative w-5 h-5">
+                        <Image src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`} alt="profile" fill sizes="1.25rem" className="rounded-full object-cover" onError={() => setAvatarError(true)} />
+                      </div>
+                    ) : (
+                      <div className="w-5 h-5 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-[10px] font-bold">
+                        {getInitials()}
+                      </div>
+                    )}
+                    <span className="text-[10px] font-medium">Профиль</span>
+                  </Link>
+                  
+                  {/* Кнопка меню */}
+                  <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
+                    <div className="relative w-5 h-5 flex flex-col items-center justify-center gap-1">
+                      <motion.span animate={isMenuOpen ? { rotate: 45, y: 4.5 } : { rotate: 0, y: 0 }} className="w-4 h-0.5 bg-current rounded-full transition-all duration-300" />
+                      <motion.span animate={isMenuOpen ? { opacity: 0 } : { opacity: 1 }} className="w-4 h-0.5 bg-current rounded-full transition-all duration-300" />
+                      <motion.span animate={isMenuOpen ? { rotate: -45, y: -4.5 } : { rotate: 0, y: 0 }} className="w-4 h-0.5 bg-current rounded-full transition-all duration-300" />
                     </div>
-                  )
-                ) : (
-                  <Image src={profile} alt="Профиль" className="w-5 h-5" />
-                )}
-                <span className="text-[10px] font-medium">
-                  {isAuthenticated ? "Профиль" : "Войти"}
-                </span>
-              </Link>
+                    <span className="text-[10px] font-medium">Меню</span>
+                  </button>
+                </>
+              ) : (
+                // Для неавторизованных пользователей - упрощенная версия с акцентом на привлечение
+                <>
+                  {/* Главная */}
+                  <Link href="/" className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
+                    <Image src={home} alt="Главная" className="w-5 h-5" />
+                    <span className="text-[10px] font-medium">Главная</span>
+                  </Link>
+                  
+                  {/* Каталог */}
+                  <Link href="/catalog" className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
+                    <Image src={catalog} alt="Каталог" className="w-5 h-5" />
+                    <span className="text-[10px] font-medium">Каталог</span>
+                  </Link>
+                  
+                  {/* Корзина */}
+                  <Link href="/shopping-cart" className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
+                    <Image src={cart} alt="Корзина" className="w-5 h-5" />
+                    <span className="text-[10px] font-medium">Корзина</span>
+                  </Link>
+                  
+                  {/* Избранное */}
+                  <Link href="/favorites" className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
+                    <Image src={favorite} alt="Избранное" className="w-5 h-5" />
+                    <span className="text-[10px] font-medium">Избранное</span>
+                  </Link>
+                  
+                  {/* Вход/Регистрация */}
+                  <Link href="/auth/signin" className="flex flex-col items-center gap-1 transition-all duration-300 text-firm-orange font-semibold">
+                    <Image src={profile} alt="Войти" className="w-5 h-5" />
+                    <span className="text-[10px] font-medium">Войти</span>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Мобильное меню */}
+      {/* Мобильное меню (полное) */}
       <AnimatePresence>
         {isMenuOpen && (
           <>
@@ -264,7 +305,7 @@ export default function Header() {
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 w-[85%] max-w-sm lg:hidden">
               <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-6">
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg">Меню</h3>
+                  <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg">Полное меню</h3>
                   <button onClick={() => setIsMenuOpen(false)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">✕</button>
                 </div>
                 <div className="space-y-2">
