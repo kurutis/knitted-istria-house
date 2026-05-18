@@ -2,15 +2,17 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function HeroSlider() {
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [containerHeight, setContainerHeight] = useState(600);
+  const [containerHeight, setContainerHeight] = useState(500);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const touchEndY = useRef<number | null>(null);
 
   const slides = [
     {
@@ -65,7 +67,7 @@ export default function HeroSlider() {
   }, []);
 
   useEffect(() => {
-    if (isAutoPlaying) {
+    if (isAutoPlaying && !isMobile) {
       autoPlayRef.current = setInterval(() => {
         setActiveSlideIndex((prev) =>
           prev === slides.length - 1 ? 0 : prev + 1,
@@ -78,7 +80,7 @@ export default function HeroSlider() {
         clearInterval(autoPlayRef.current);
       }
     };
-  }, [isAutoPlaying, slides.length]);
+  }, [isAutoPlaying, slides.length, isMobile]);
 
   const handleManualChange = (direction: "up" | "down") => {
     setIsAutoPlaying(false);
@@ -105,65 +107,99 @@ export default function HeroSlider() {
     }, 3000);
   };
 
-  // Мобильная версия - вертикальный слайдер
+  // Обработчики свайпа для мобильной версии
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStartY.current || !touchEndY.current) return;
+    
+    const diff = touchStartY.current - touchEndY.current;
+    const minSwipeDistance = 50;
+
+    if (Math.abs(diff) > minSwipeDistance) {
+      if (diff > 0) {
+        // Свайп вверх - следующий слайд
+        handleManualChange("up");
+      } else {
+        // Свайп вниз - предыдущий слайд
+        handleManualChange("down");
+      }
+    }
+    
+    touchStartY.current = null;
+    touchEndY.current = null;
+  };
+
+  // Мобильная версия - вертикальный слайдер со свайпом
   if (isMobile) {
     return (
       <div
         ref={containerRef}
         className="relative w-full overflow-hidden rounded-2xl shadow-2xl"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         <div
-          className="relative transition-transform duration-700 ease-out"
+          className="relative transition-transform duration-500 ease-out"
           style={{ transform: `translateY(-${activeSlideIndex * 100}%)` }}
         >
           {slides.map((slide, i) => (
-            <div key={i} className={`w-full bg-gradient-to-r ${slide.bgColor}`}>
+            <div key={i} className={`w-full bg-gradient-to-br ${slide.bgColor}`}>
               <div className="relative h-[500px]">
+                {/* Фоновое изображение */}
                 <div
                   className="absolute inset-0 bg-cover bg-center opacity-30"
                   style={{ backgroundImage: `url(${slide.image})` }}
                 />
+                {/* Градиент поверх изображения */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                
+                {/* Контент */}
                 <div className="relative z-10 flex flex-col items-center justify-center h-full text-center px-6">
-                  <motion.h2
-                    className="font-['Montserrat_Alternates'] text-white font-bold text-2xl sm:text-3xl mb-2"
-                    initial={{ y: 30, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ duration: 0.5 }}
-                  >
-                    {slide.title}
-                  </motion.h2>
-                  <motion.h3
-                    className="font-['Montserrat_Alternates'] text-white text-lg mb-2"
-                    initial={{ y: 30, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ duration: 0.5, delay: 0.1 }}
-                  >
-                    {slide.subtitle}
-                  </motion.h3>
-                  <motion.p
-                    className="text-white text-sm mb-6"
-                    initial={{ y: 30, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
-                  >
-                    {slide.description}
-                  </motion.p>
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Link href={slide.buttonLink}>
-                      <button className="px-5 py-2 bg-white text-firm-orange rounded-lg font-['Montserrat_Alternates'] font-semibold text-sm">
-                        {slide.buttonText}
-                      </button>
-                    </Link>
-                  </motion.div>
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={i}
+                      initial={{ y: 50, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: -50, opacity: 0 }}
+                      transition={{ duration: 0.5 }}
+                      className="flex flex-col items-center"
+                    >
+                      <h2 className="font-['Montserrat_Alternates'] text-white font-bold text-3xl sm:text-4xl mb-3">
+                        {slide.title}
+                      </h2>
+                      <h3 className="font-['Montserrat_Alternates'] text-white text-xl mb-3">
+                        {slide.subtitle}
+                      </h3>
+                      <p className="text-white/90 text-base mb-8 max-w-sm">
+                        {slide.description}
+                      </p>
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Link href={slide.buttonLink}>
+                          <button className="px-8 py-3 bg-white text-firm-orange rounded-full font-['Montserrat_Alternates'] font-semibold text-base shadow-lg hover:shadow-xl transition-all duration-300">
+                            {slide.buttonText}
+                          </button>
+                        </Link>
+                      </motion.div>
+                    </motion.div>
+                  </AnimatePresence>
                 </div>
               </div>
             </div>
           ))}
         </div>
 
+        {/* Индикаторы */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
           {slides.map((_, i) => (
             <button
@@ -171,12 +207,51 @@ export default function HeroSlider() {
               onClick={() => handleIndicatorClick(i)}
               className={`h-1.5 rounded-full transition-all duration-300 ${
                 i === activeSlideIndex
-                  ? "w-5 bg-firm-orange"
+                  ? "w-6 bg-white"
                   : "w-1.5 bg-white/50"
               }`}
             />
           ))}
         </div>
+
+        {/* Кнопки навигации */}
+        <button
+          onClick={() => handleManualChange("down")}
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/90 backdrop-blur-sm text-firm-orange rounded-full shadow-lg hover:bg-firm-orange hover:text-white transition-all flex items-center justify-center"
+        >
+          <svg
+            className="w-5 h-5 rotate-90"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </button>
+
+        <button
+          onClick={() => handleManualChange("up")}
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/90 backdrop-blur-sm text-firm-orange rounded-full shadow-lg hover:bg-firm-orange hover:text-white transition-all flex items-center justify-center"
+        >
+          <svg
+            className="w-5 h-5 -rotate-90"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </button>
       </div>
     );
   }
@@ -196,7 +271,7 @@ export default function HeroSlider() {
         {slides.map((slide, i) => (
           <motion.div
             key={i}
-            className={`h-full w-full flex items-center justify-center text-white bg-gradient-to-r ${slide.bgColor}`}
+            className={`h-full w-full flex items-center justify-center text-white bg-gradient-to-br ${slide.bgColor}`}
             initial={{ opacity: 0 }}
             animate={{ opacity: activeSlideIndex === i ? 1 : 0 }}
             transition={{ duration: 0.5 }}
