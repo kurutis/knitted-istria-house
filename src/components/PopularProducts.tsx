@@ -225,25 +225,27 @@ export default function PopularProducts() {
             </div>
 
             <div className="text-center mt-8 lg:mt-10 px-4">
-                <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ 
-                        type: "tween",
-                        duration: 0.15,
-                        ease: "easeOut"
-                    }}
-                    style={{ 
-                        transform: 'translateZ(0)',
-                        backfaceVisibility: 'hidden'
-                    }}
-                >
-                    <Link href="/catalog">
-                        <button className="font-['Montserrat_Alternates'] font-[450] border-2 border-firm-orange p-2 w-full sm:w-auto sm:px-6 rounded-xl transition-all duration-300 hover:border-4 hover:bg-firm-orange hover:text-white text-sm lg:text-base">
+                <div className="flex justify-center min-h-13">
+                    <Link href="/catalog" className="inline-block">
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            transition={{ 
+                                type: "tween",
+                                duration: 0.15,
+                                ease: "easeOut"
+                            }}
+                            className="font-['Montserrat_Alternates'] font-[450] border-2 border-firm-orange p-2 px-6 rounded-xl transition-all duration-300 hover:border-4 hover:bg-firm-orange hover:text-white text-sm lg:text-base whitespace-nowrap"
+                            style={{ 
+                                transform: 'translateZ(0)',
+                                backfaceVisibility: 'hidden',
+                                WebkitFontSmoothing: 'antialiased'
+                            }}
+                        >
                             Смотреть весь каталог
-                        </button>
+                        </motion.button>
                     </Link>
-                </motion.div>
+                </div>
             </div>
         </motion.div>
     )
