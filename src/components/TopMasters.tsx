@@ -221,7 +221,7 @@ export default function TopMasters() {
                       />
                     </div>
                   ) : (
-                    <div className="w-14 h-14 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-xl font-bold mx-auto">
+                    <div className="w-14 h-14 rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-xl font-bold mx-auto">
                       {third.name?.charAt(0).toUpperCase()}
                     </div>
                   )}
