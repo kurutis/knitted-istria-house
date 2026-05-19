@@ -160,14 +160,16 @@ export default function Header() {
                 {isAuthenticated && (isBuyer || isMaster) && (
                   <motion.div whileHover={{ scale: 1.1, rotate: 5 }} whileTap={{ scale: 0.95 }} className="relative">
                     <Link href="/chats">
-                      <Image src={chats} alt="chats" className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
+                      <Image src={chats} alt="chats" className="sm:w-6 sm:h-6 md:w-7 md:h-7" style={{ width: '24px', height: '24px' }} />
                     </Link>
                     {unreadCount > 0 && (<motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-lg">{unreadCount > 9 ? '9+' : unreadCount}</motion.span>)}
                   </motion.div>
                 )}
 
                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                  <Link href="/shopping-cart"><Image src={cart} alt="shopping cart" className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" /></Link>
+                  <Link href="/shopping-cart">
+                    <Image src={cart} alt="shopping cart" className="sm:w-6 sm:h-6 md:w-7 md:h-7" style={{ width: '24px', height: '24px' }} />
+                  </Link>
                 </motion.div>
 
                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
