@@ -28,7 +28,6 @@ export default function PopularProducts() {
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState<'popular' | 'new'>('popular')
     const [columns, setColumns] = useState(4)
-    const [isSwitching, setIsSwitching] = useState(false)
 
     useEffect(() => {
         const updateColumns = () => {
@@ -65,13 +64,10 @@ export default function PopularProducts() {
 
     const handleTabChange = (tab: 'popular' | 'new') => {
         if (tab === activeTab) return
-        setIsSwitching(true)
         setActiveTab(tab)
-        // Даем время на анимацию исчезновения старых товаров
-        setTimeout(() => setIsSwitching(false), 300)
     }
 
-    if (products.length === 0) return null
+    if (products.length === 0 && !loading) return null
 
     const gridCols = {
         2: 'grid-cols-2',
@@ -94,7 +90,17 @@ export default function PopularProducts() {
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ duration: 0.5 }}
                 >
-                    {activeTab === 'popular' ? 'Популярные изделия' : 'Новинки'}
+                    <AnimatePresence mode="wait">
+                        <motion.span
+                            key={activeTab}
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            {activeTab === 'popular' ? 'Популярные изделия' : 'Новинки'}
+                        </motion.span>
+                    </AnimatePresence>
                 </motion.h2>
                 
                 <motion.p 
@@ -103,13 +109,23 @@ export default function PopularProducts() {
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.2, duration: 0.5 }}
                 >
-                    {activeTab === 'popular' 
-                        ? 'Самые просматриваемые и любимые вещи наших покупателей' 
-                        : 'Свежие поступления от мастеров'
-                    }
+                    <AnimatePresence mode="wait">
+                        <motion.span
+                            key={activeTab}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                        >
+                            {activeTab === 'popular' 
+                                ? 'Самые просматриваемые и любимые вещи наших покупателей' 
+                                : 'Свежие поступления от мастеров'
+                            }
+                        </motion.span>
+                    </AnimatePresence>
                 </motion.p>
                 <motion.div 
-                    className="w-20 h-1 bg-linear-to-r from-firm-orange to-firm-pink mx-auto mt-3 rounded-full"
+                    className="w-20 h-1 bg-gradient-to-r from-firm-orange to-firm-pink mx-auto mt-3 rounded-full"
                     initial={{ width: 0 }}
                     animate={{ width: 80 }}
                     transition={{ duration: 0.6, delay: 0.3 }}
@@ -122,58 +138,56 @@ export default function PopularProducts() {
                     onClick={() => handleTabChange('popular')}
                     className={`relative px-4 lg:px-6 py-1.5 lg:py-2 rounded-full font-['Montserrat_Alternates'] text-sm lg:text-base transition-colors duration-300 ${
                         activeTab === 'popular'
-                            ? 'text-white'
+                            ? 'bg-firm-orange text-white shadow-md'
                             : 'bg-white text-gray-600 hover:bg-gray-100'
                     }`}
-                    style={{
-                        background: activeTab === 'popular' ? 'var(--firm-orange)' : undefined
-                    }}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
+                    transition={{ 
+                        type: "tween",
+                        duration: 0.15,
+                        ease: "easeOut"
+                    }}
+                    style={{ 
+                        transform: 'translateZ(0)',
+                        backfaceVisibility: 'hidden',
+                        WebkitFontSmoothing: 'antialiased'
+                    }}
                 >
-                    {activeTab === 'popular' && (
-                        <motion.div
-                            layoutId="activeTab"
-                            className="absolute inset-0 rounded-full bg-firm-orange"
-                            transition={{ type: "spring", duration: 0.5 }}
-                            style={{ zIndex: -1 }}
-                        />
-                    )}
-                    <span className="relative z-10">Популярные</span>
+                    Популярные
                 </motion.button>
                 
                 <motion.button
                     onClick={() => handleTabChange('new')}
                     className={`relative px-4 lg:px-6 py-1.5 lg:py-2 rounded-full font-['Montserrat_Alternates'] text-sm lg:text-base transition-colors duration-300 ${
                         activeTab === 'new'
-                            ? 'text-white'
+                            ? 'bg-firm-pink text-white shadow-md'
                             : 'bg-white text-gray-600 hover:bg-gray-100'
                     }`}
-                    style={{
-                        background: activeTab === 'new' ? 'var(--firm-pink)' : undefined
-                    }}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
+                    transition={{ 
+                        type: "tween",
+                        duration: 0.15,
+                        ease: "easeOut"
+                    }}
+                    style={{ 
+                        transform: 'translateZ(0)',
+                        backfaceVisibility: 'hidden',
+                        WebkitFontSmoothing: 'antialiased'
+                    }}
                 >
-                    {activeTab === 'new' && (
-                        <motion.div
-                            layoutId="activeTab"
-                            className="absolute inset-0 rounded-full bg-firm-pink"
-                            transition={{ type: "spring", duration: 0.5 }}
-                            style={{ zIndex: -1 }}
-                        />
-                    )}
-                    <span className="relative z-10">Новинки</span>
+                    Новинки
                 </motion.button>
             </div>
 
-            {/* Сетка товаров с плавной анимацией */}
-            <div className="min-h-100">
+            {/* Сетка товаров */}
+            <div className="min-h-[400px]">
                 <AnimatePresence mode="wait">
-                    {loading && isSwitching ? (
+                    {loading ? (
                         <motion.div 
                             key="loader"
-                            className="flex justify-center items-center h-100"
+                            className="flex justify-center items-center h-[400px]"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
@@ -214,6 +228,15 @@ export default function PopularProducts() {
                 <motion.div
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
+                    transition={{ 
+                        type: "tween",
+                        duration: 0.15,
+                        ease: "easeOut"
+                    }}
+                    style={{ 
+                        transform: 'translateZ(0)',
+                        backfaceVisibility: 'hidden'
+                    }}
                 >
                     <Link href="/catalog">
                         <button className="font-['Montserrat_Alternates'] font-[450] border-2 border-firm-orange p-2 w-full sm:w-auto sm:px-6 rounded-xl transition-all duration-300 hover:border-4 hover:bg-firm-orange hover:text-white text-sm lg:text-base">
