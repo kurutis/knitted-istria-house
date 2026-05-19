@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
 import MediaGallery from "@/components/blog/MediaGallery";
 import { AnimatedButton } from "@/components/ui/AnimatedButton";
@@ -143,13 +143,16 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
 
   if (avatarUrl && !avatarError) {
     return (
-      <img
-        src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`}
-        alt={displayName || "Avatar"}
-        className="rounded-full object-cover"
-        style={{ width: size, height: size }}
-        onError={() => setAvatarError(true)}
-      />
+      <div className="relative" style={{ width: size, height: size }}>
+        <Image
+          src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`}
+          alt={displayName || "Avatar"}
+          fill
+          className="rounded-full object-cover"
+          onError={() => setAvatarError(true)}
+          sizes={`${size}px`}
+        />
+      </div>
     );
   }
 
@@ -251,13 +254,16 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
 
   if (avatarUrl && !avatarError) {
     return (
-      <img
-        src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`}
-        alt={userName || "Profile"}
-        className="rounded-full object-cover"
-        style={{ width: size, height: size }}
-        onError={() => setAvatarError(true)}
-      />
+      <div className="relative" style={{ width: size, height: size }}>
+        <Image
+          src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`}
+          alt={userName || "Profile"}
+          fill
+          className="rounded-full object-cover"
+          onError={() => setAvatarError(true)}
+          sizes={`${size}px`}
+        />
+      </div>
     );
   }
 
@@ -294,7 +300,6 @@ export default function BlogPostCard({
   const [updatingComment, setUpdatingComment] = useState(false);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
   
-  // Состояние для модального окна подтверждения
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -491,48 +496,53 @@ export default function BlogPostCard({
     });
   };
 
-  const getGalleryImages = () => {
-    const imageUrls = (post.images || [])
-      .map(img => getImageUrl(img))
-      .filter(Boolean);
+  // Уникальные изображения для галереи
+  const galleryImages = useMemo(() => {
+    const uniqueUrls = new Set<string>();
     
-    if (post.main_image_url && !imageUrls.includes(post.main_image_url)) {
-      return [post.main_image_url, ...imageUrls];
+    if (post.main_image_url) {
+      uniqueUrls.add(post.main_image_url);
     }
     
-    return imageUrls;
-  };
+    if (post.images && Array.isArray(post.images)) {
+      post.images.forEach(img => {
+        const url = getImageUrl(img);
+        if (url) {
+          uniqueUrls.add(url);
+        }
+      });
+    }
+    
+    return Array.from(uniqueUrls).map((url, index) => ({
+      id: `img-${index}`,
+      url: url,
+      image_url: url,
+      sort_order: index
+    }));
+  }, [post.main_image_url, post.images]);
 
   const renderPostImages = () => {
-    const galleryImages = getGalleryImages();
-    
     if (galleryImages.length === 0) return null;
 
     if (variant === "compact") {
       return (
         <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-100 mb-4">
           <Image
-            src={galleryImages[0]}
+            src={galleryImages[0].url}
             alt={post.title}
             fill
             className="object-cover hover:scale-105 transition-transform duration-300"
+            sizes="(max-width: 768px) 100vw, 800px"
           />
         </div>
       );
     }
 
-    const mediaGalleryImages = galleryImages.map((url, index) => ({
-      id: `img-${index}`,
-      url: url,
-      image_url: url,
-      sort_order: index
-    }));
-
     return (
       <div className="mb-6">
         <MediaGallery
-          images={mediaGalleryImages}
-          mainImageUrl={galleryImages[0]}
+          images={galleryImages}
+          mainImageUrl={galleryImages[0]?.url}
           video={null}
           title={post.title}
         />
@@ -541,127 +551,131 @@ export default function BlogPostCard({
   };
 
   const renderComments = () => {
-    if (!showCommentsState) return null;
-    
     return (
-      <motion.div
-        initial={{ opacity: 0, height: 0 }}
-        animate={{ opacity: 1, height: "auto" }}
-        exit={{ opacity: 0, height: 0 }}
-        className="mt-4 pt-4 border-t bg-gray-50 rounded-xl p-4 overflow-hidden"
-      >
-        {session && (
-          <div className="flex gap-3 mb-4">
-            <CurrentUserAvatar size={32} />
-            <div className="flex-1">
-              <textarea
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="Написать комментарий..."
-                rows={2}
-                className="w-full p-3 rounded-xl bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300"
-              />
-              <button
-                onClick={handleCommentSubmit}
-                disabled={commentLoading || !commentText.trim()}
-                className="mt-2 px-5 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl text-sm hover:shadow-lg transition-all duration-300 disabled:opacity-50"
-              >
-                {commentLoading ? "Отправка..." : "Отправить"}
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-3 max-h-96 overflow-y-auto">
-          {comments.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-4">
-              Будьте первым, кто оставит комментарий
-            </p>
-          ) : (
-            comments.map((comment) => (
-              <div key={comment.id} className="flex gap-3 group">
-                <UserAvatar 
-                  userId={comment.author_id}
-                  name={comment.author_name}
-                  avatarUrl={comment.author_avatar}
-                  size={32}
-                />
+      <AnimatePresence mode="wait">
+        {showCommentsState && (
+          <motion.div
+            key="comments"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="mt-4 pt-4 border-t bg-gray-50 rounded-xl p-4 overflow-hidden"
+          >
+            {session && (
+              <div className="flex gap-3 mb-4">
+                <CurrentUserAvatar size={32} />
                 <div className="flex-1">
-                  <div className="bg-white rounded-xl p-3 shadow-sm">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-semibold text-sm">{comment.author_name}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          {formatDate(comment.created_at)}
-                          {comment.is_edited && (
-                            <span className="ml-2 text-gray-400 text-xs">(ред.)</span>
-                          )}
-                        </p>
-                      </div>
-                      
-                      {session?.user?.id === comment.author_id && (
-                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition">
-                          {editingCommentId === comment.id ? (
-                            <>
-                              <button
-                                onClick={() => handleUpdateComment(comment.id)}
-                                disabled={updatingComment}
-                                className="text-xs text-green-600 hover:text-green-700"
-                              >
-                                {updatingComment ? "..." : "💾"}
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setEditingCommentId(null);
-                                  setEditingCommentText("");
-                                }}
-                                className="text-xs text-gray-500 hover:text-gray-700"
-                              >
-                                ✕
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                onClick={() => {
-                                  setEditingCommentId(comment.id);
-                                  setEditingCommentText(comment.content);
-                                }}
-                                className="text-xs text-blue-500 hover:text-blue-700"
-                              >
-                                ✏️
-                              </button>
-                              <button
-                                onClick={() => handleDeleteComment(comment.id)}
-                                disabled={deletingCommentId === comment.id}
-                                className="text-xs text-red-500 hover:text-red-700"
-                              >
-                                🗑️
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {editingCommentId === comment.id ? (
-                      <textarea
-                        value={editingCommentText}
-                        onChange={(e) => setEditingCommentText(e.target.value)}
-                        className="w-full p-2 mt-2 rounded-lg bg-white border border-gray-200 outline-firm-orange text-sm"
-                        rows={3}
-                        autoFocus
-                      />
-                    ) : (
-                      <p className="text-gray-700 text-sm mt-2">{comment.content}</p>
-                    )}
-                  </div>
+                  <textarea
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder="Написать комментарий..."
+                    rows={2}
+                    className="w-full p-3 rounded-xl bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300"
+                  />
+                  <button
+                    onClick={handleCommentSubmit}
+                    disabled={commentLoading || !commentText.trim()}
+                    className="mt-2 px-5 py-2 bg-linear-to-r from-firm-orange to-firm-pink text-white rounded-xl text-sm hover:shadow-lg transition-all duration-300 disabled:opacity-50"
+                  >
+                    {commentLoading ? "Отправка..." : "Отправить"}
+                  </button>
                 </div>
               </div>
-            ))
-          )}
-        </div>
-      </motion.div>
+            )}
+
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {comments.length === 0 ? (
+                <p className="text-gray-400 text-sm text-center py-4">
+                  Будьте первым, кто оставит комментарий
+                </p>
+              ) : (
+                comments.map((comment) => (
+                  <div key={comment.id} className="flex gap-3 group">
+                    <UserAvatar 
+                      userId={comment.author_id}
+                      name={comment.author_name}
+                      avatarUrl={comment.author_avatar}
+                      size={32}
+                    />
+                    <div className="flex-1">
+                      <div className="bg-white rounded-xl p-3 shadow-sm">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-semibold text-sm">{comment.author_name}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              {formatDate(comment.created_at)}
+                              {comment.is_edited && (
+                                <span className="ml-2 text-gray-400 text-xs">(ред.)</span>
+                              )}
+                            </p>
+                          </div>
+                          
+                          {session?.user?.id === comment.author_id && (
+                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition">
+                              {editingCommentId === comment.id ? (
+                                <>
+                                  <button
+                                    onClick={() => handleUpdateComment(comment.id)}
+                                    disabled={updatingComment}
+                                    className="text-xs text-green-600 hover:text-green-700"
+                                  >
+                                    {updatingComment ? "..." : "💾"}
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setEditingCommentId(null);
+                                      setEditingCommentText("");
+                                    }}
+                                    className="text-xs text-gray-500 hover:text-gray-700"
+                                  >
+                                    ✕
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setEditingCommentId(comment.id);
+                                      setEditingCommentText(comment.content);
+                                    }}
+                                    className="text-xs text-blue-500 hover:text-blue-700"
+                                  >
+                                    ✏️
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteComment(comment.id)}
+                                    disabled={deletingCommentId === comment.id}
+                                    className="text-xs text-red-500 hover:text-red-700"
+                                  >
+                                    🗑️
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {editingCommentId === comment.id ? (
+                          <textarea
+                            value={editingCommentText}
+                            onChange={(e) => setEditingCommentText(e.target.value)}
+                            className="w-full p-2 mt-2 rounded-lg bg-white border border-gray-200 outline-firm-orange text-sm"
+                            rows={3}
+                            autoFocus
+                          />
+                        ) : (
+                          <p className="text-gray-700 text-sm mt-2">{comment.content}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     );
   };
 
@@ -768,13 +782,10 @@ export default function BlogPostCard({
 
           {renderActions()}
 
-          <AnimatePresence>
-            {renderComments()}
-          </AnimatePresence>
+          {renderComments()}
         </div>
       </motion.div>
 
-      {/* Кастомное модальное окно подтверждения */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
         title={confirmModal.title}

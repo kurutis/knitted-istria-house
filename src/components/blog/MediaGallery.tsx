@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Image from 'next/image'
 
 interface MediaItem {
     type: 'image' | 'video'
@@ -66,11 +67,16 @@ function MediaGalleryModal({ media, initialIndex, title, onClose }: MediaGallery
                                 autoPlay
                             />
                         ) : (
-                            <img 
-                                src={currentMedia.url} 
-                                alt={`${title} - фото ${currentIndex + 1}`}
-                                className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
-                            />
+                            <div className="relative w-full h-full max-w-[90vw] max-h-[85vh] min-w-75 min-h-50">
+                                <Image
+                                    src={currentMedia.url}
+                                    alt={`${title} - фото ${currentIndex + 1}`}
+                                    fill
+                                    className="object-contain rounded-lg shadow-2xl"
+                                    sizes="(max-width: 768px) 90vw, 80vw"
+                                    priority
+                                />
+                            </div>
                         )}
                     </div>
                     
@@ -125,23 +131,23 @@ export default function MediaGallery({ images, mainImageUrl, video, title }: Med
     const [selectedMediaIndex, setSelectedMediaIndex] = useState<number | null>(null)
 
     const allMedia = useMemo(() => {
-        const imageUrls: string[] = []
+        const imageUrls = new Set<string>()
         
         // Добавляем main_image_url, если есть
         if (mainImageUrl) {
-            imageUrls.push(mainImageUrl)
+            imageUrls.add(mainImageUrl)
         }
         
         // Добавляем изображения из массива images
         if (images && Array.isArray(images)) {
             images.forEach(img => {
                 if (typeof img === 'string') {
-                    imageUrls.push(img)
+                    imageUrls.add(img)
                 } else if (img && typeof img === 'object') {
                     if ('image_url' in img && img.image_url) {
-                        imageUrls.push(img.image_url)
+                        imageUrls.add(img.image_url)
                     } else if ('url' in img && img.url) {
-                        imageUrls.push(img.url)
+                        imageUrls.add(img.url)
                     }
                 }
             })
@@ -149,7 +155,7 @@ export default function MediaGallery({ images, mainImageUrl, video, title }: Med
         
         const media: MediaItem[] = [
             ...(video ? [{ type: 'video' as const, url: video }] : []),
-            ...imageUrls.map(url => ({ type: 'image' as const, url }))
+            ...Array.from(imageUrls).map(url => ({ type: 'image' as const, url }))
         ]
         
         return media
@@ -174,14 +180,15 @@ export default function MediaGallery({ images, mainImageUrl, video, title }: Med
                 <motion.div 
                     whileHover={{ scale: 1.02 }}
                     transition={{ duration: 0.3 }}
-                    className="cursor-pointer overflow-hidden rounded-xl shadow-md"
+                    className="cursor-pointer overflow-hidden rounded-xl shadow-md relative aspect-video"
                     onClick={() => openModal(0)}
                 >
-                    <img 
-                        src={allMedia[0].url} 
+                    <Image
+                        src={allMedia[0].url}
                         alt={title}
-                        className="w-full h-[200px] sm:h-[350px] object-cover transition-transform duration-500 hover:scale-105"
-                        loading="lazy"
+                        fill
+                        className="object-cover transition-transform duration-500 hover:scale-105"
+                        sizes="(max-width: 768px) 100vw, 800px"
                     />
                 </motion.div>
                 {selectedMediaIndex !== null && (
@@ -213,11 +220,12 @@ export default function MediaGallery({ images, mainImageUrl, video, title }: Med
                             className="relative cursor-pointer overflow-hidden rounded-xl shadow-md aspect-square"
                             onClick={() => openModal(idx)}
                         >
-                            <img 
-                                src={media.url} 
+                            <Image
+                                src={media.url}
                                 alt={`${title} ${idx + 1}`}
-                                className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                                loading="lazy"
+                                fill
+                                className="object-cover transition-transform duration-500 hover:scale-105"
+                                sizes="(max-width: 768px) 50vw, 25vw"
                             />
                             {showOverlay && (
                                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
