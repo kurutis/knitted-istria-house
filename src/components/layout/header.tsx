@@ -171,7 +171,7 @@ export default function Header() {
                 </motion.div>
 
                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                  <Link href="/favorites"><Image src={favorite} alt="favorites" className="w-4 h-4 sm:w-6 sm:h-6 md:w-7 md:h-7" /></Link>
+                  <Link href="/favorites"><Image src={favorite} alt="favorites" className="w-3 h-3 sm:w-6 sm:h-6 md:w-7 md:h-7" /></Link>
                 </motion.div>
 
                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
