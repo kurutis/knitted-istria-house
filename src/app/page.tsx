@@ -179,31 +179,31 @@ export default function HomePage() {
       <TopMasters />
 
       <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-20 justify-center mt-5 mb-16 px-4">
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="w-full sm:w-[60%] md:w-[40%] lg:w-[20%]"
-          style={{ transformOrigin: 'center center' }}
-        >
-          <Link href="/catalog" className="w-full">
-            <button className="w-full font-['Montserrat_Alternates'] font-[450] border-2 border-firm-pink p-2 rounded-xl transition-all duration-300 hover:border-4 hover:bg-firm-pink hover:text-white text-sm md:text-base">
-              Найти изделие для себя
-            </button>
-          </Link>
-        </motion.div>
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="w-full sm:w-[60%] md:w-[40%] lg:w-[20%]"
-          style={{ transformOrigin: 'center center' }}
-        >
-          <Link href="/profile?tab=profile" className="w-full">
-            <button className="w-full font-['Montserrat_Alternates'] font-[450] border-2 border-firm-orange p-2 rounded-xl transition-all duration-300 hover:border-4 hover:bg-firm-orange hover:text-white text-sm md:text-base">
-              Стать мастером
-            </button>
-          </Link>
-        </motion.div>
-      </div>
+  <div className="w-full sm:w-[60%] md:w-[40%] lg:w-[20%]">
+    <Link href="/catalog" className="w-full block">
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+        className="w-full font-['Montserrat_Alternates'] font-[450] border-2 border-firm-pink p-2 rounded-xl transition-all duration-300 hover:border-4 hover:bg-firm-pink hover:text-white text-sm md:text-base"
+      >
+        Найти изделие для себя
+      </motion.button>
+    </Link>
+  </div>
+  <div className="w-full sm:w-[60%] md:w-[40%] lg:w-[20%]">
+    <Link href="/profile?tab=profile" className="w-full block">
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+        className="w-full font-['Montserrat_Alternates'] font-[450] border-2 border-firm-orange p-2 rounded-xl transition-all duration-300 hover:border-4 hover:bg-firm-orange hover:text-white text-sm md:text-base"
+      >
+        Стать мастером
+      </motion.button>
+    </Link>
+  </div>
+</div>
 
       <PopularProducts />
 
