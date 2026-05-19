@@ -172,14 +172,12 @@ export default function Header() {
 
                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                   <Link href="/favorites">
-                    <div className="relative w-3 h-3 sm:w-6 sm:h-6 md:w-7 md:h-7">
-                      <Image 
-                        src={favorite} 
-                        alt="favorites" 
-                        fill
-                        className="object-contain"
-                      />
-                    </div>
+                    <Image 
+                      src={favorite} 
+                      alt="favorites" 
+                      className="sm:w-6 sm:h-6 md:w-7 md:h-7"
+                      style={{ width: '16px', height: '16px' }}
+                    />
                   </Link>
                 </motion.div>
 
