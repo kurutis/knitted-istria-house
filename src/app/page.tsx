@@ -179,49 +179,49 @@ export default function HomePage() {
       <TopMasters />
 
       <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-20 justify-center mt-5 mb-16 px-4">
-  <div className="w-full sm:w-[60%] md:w-[40%] lg:w-[20%] min-h-13">
-    <Link href="/catalog" className="w-full block">
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        transition={{ 
-          type: "tween",
-          duration: 0.15,
-          ease: "easeOut"
-        }}
-        className="w-full font-['Montserrat_Alternates'] font-[450] border-2 border-firm-pink p-2 rounded-xl hover:border-4 hover:bg-firm-pink hover:text-white text-sm md:text-base transition-colors duration-300"
-        style={{ 
-          transform: 'translateZ(0)',
-          backfaceVisibility: 'hidden',
-          WebkitFontSmoothing: 'antialiased'
-        }}
-      >
-        Найти изделие для себя
-      </motion.button>
-    </Link>
-  </div>
-  <div className="w-full sm:w-[60%] md:w-[40%] lg:w-[20%] min-h-13">
-    <Link href="/profile?tab=profile" className="w-full block">
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        transition={{ 
-          type: "tween",
-          duration: 0.15,
-          ease: "easeOut"
-        }}
-        className="w-full font-['Montserrat_Alternates'] font-[450] border-2 border-firm-orange p-2 rounded-xl hover:border-4 hover:bg-firm-orange hover:text-white text-sm md:text-base transition-colors duration-300"
-        style={{ 
-          transform: 'translateZ(0)',
-          backfaceVisibility: 'hidden',
-          WebkitFontSmoothing: 'antialiased'
-        }}
-      >
-        Стать мастером
-      </motion.button>
-    </Link>
-  </div>
-</div>
+        <div className="w-full sm:w-[60%] md:w-[40%] lg:w-[20%] min-h-13">
+          <Link href="/catalog" className="w-full block">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{
+                type: "tween",
+                duration: 0.15,
+                ease: "easeOut",
+              }}
+              className="w-full font-['Montserrat_Alternates'] font-[450] border-2 border-firm-pink p-2 rounded-xl hover:border-4 hover:bg-firm-pink hover:text-white text-sm md:text-base transition-colors duration-300"
+              style={{
+                transform: "translateZ(0)",
+                backfaceVisibility: "hidden",
+                WebkitFontSmoothing: "antialiased",
+              }}
+            >
+              Найти изделие для себя
+            </motion.button>
+          </Link>
+        </div>
+        <div className="w-full sm:w-[60%] md:w-[40%] lg:w-[20%] min-h-13">
+          <Link href="/profile?tab=profile" className="w-full block">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{
+                type: "tween",
+                duration: 0.15,
+                ease: "easeOut",
+              }}
+              className="w-full font-['Montserrat_Alternates'] font-[450] border-2 border-firm-orange p-2 rounded-xl hover:border-4 hover:bg-firm-orange hover:text-white text-sm md:text-base transition-colors duration-300"
+              style={{
+                transform: "translateZ(0)",
+                backfaceVisibility: "hidden",
+                WebkitFontSmoothing: "antialiased",
+              }}
+            >
+              Стать мастером
+            </motion.button>
+          </Link>
+        </div>
+      </div>
 
       <PopularProducts />
 
@@ -291,15 +291,15 @@ export default function HomePage() {
                 master_avatar: post.master_avatar,
                 is_liked: post.is_liked,
                 comments: (post.comments || []).map((comment: PostComment) => ({
-                    id: comment.id,
-                    content: comment.content,
-                    created_at: comment.created_at,
-                    updated_at: comment.updated_at || comment.created_at,
-                    is_edited: comment.is_edited || false,
-                    author_id: comment.author_id || '',
-                    author_name: comment.author_name,
-                    author_avatar: comment.author_avatar,
-                    })),
+                  id: comment.id,
+                  content: comment.content,
+                  created_at: comment.created_at,
+                  updated_at: comment.updated_at || comment.created_at,
+                  is_edited: comment.is_edited || false,
+                  author_id: comment.author_id || "",
+                  author_name: comment.author_name,
+                  author_avatar: comment.author_avatar,
+                })),
               };
               return (
                 <BlogPostCard

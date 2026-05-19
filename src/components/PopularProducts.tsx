@@ -28,6 +28,7 @@ export default function PopularProducts() {
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState<'popular' | 'new'>('popular')
     const [columns, setColumns] = useState(4)
+    const [isSwitching, setIsSwitching] = useState(false)
 
     useEffect(() => {
         const updateColumns = () => {
@@ -62,18 +63,12 @@ export default function PopularProducts() {
         }
     }
 
-    if (loading) {
-        return (
-            <div className="py-16">
-                <div className="text-center">
-                    <motion.div 
-                        className="w-8 h-8 border-2 border-gray-200 border-t-firm-orange rounded-full inline-block"
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    />
-                </div>
-            </div>
-        )
+    const handleTabChange = (tab: 'popular' | 'new') => {
+        if (tab === activeTab) return
+        setIsSwitching(true)
+        setActiveTab(tab)
+        // Даем время на анимацию исчезновения старых товаров
+        setTimeout(() => setIsSwitching(false), 300)
     }
 
     if (products.length === 0) return null
@@ -114,7 +109,7 @@ export default function PopularProducts() {
                     }
                 </motion.p>
                 <motion.div 
-                    className="w-20 h-1 bg-gradient-to-r from-firm-orange to-firm-pink mx-auto mt-3 rounded-full"
+                    className="w-20 h-1 bg-linear-to-r from-firm-orange to-firm-pink mx-auto mt-3 rounded-full"
                     initial={{ width: 0 }}
                     animate={{ width: 80 }}
                     transition={{ duration: 0.6, delay: 0.3 }}
@@ -124,54 +119,96 @@ export default function PopularProducts() {
             {/* Вкладки */}
             <div className="flex justify-center gap-2 lg:gap-4 mb-6 lg:mb-8 px-4">
                 <motion.button
-                    onClick={() => setActiveTab('popular')}
-                    className={`px-4 lg:px-6 py-1.5 lg:py-2 rounded-full font-['Montserrat_Alternates'] text-sm lg:text-base transition-all duration-300 ${
+                    onClick={() => handleTabChange('popular')}
+                    className={`relative px-4 lg:px-6 py-1.5 lg:py-2 rounded-full font-['Montserrat_Alternates'] text-sm lg:text-base transition-colors duration-300 ${
                         activeTab === 'popular'
-                            ? 'bg-firm-orange text-white shadow-md'
+                            ? 'text-white'
                             : 'bg-white text-gray-600 hover:bg-gray-100'
                     }`}
+                    style={{
+                        background: activeTab === 'popular' ? 'var(--firm-orange)' : undefined
+                    }}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                 >
-                    Популярные
+                    {activeTab === 'popular' && (
+                        <motion.div
+                            layoutId="activeTab"
+                            className="absolute inset-0 rounded-full bg-firm-orange"
+                            transition={{ type: "spring", duration: 0.5 }}
+                            style={{ zIndex: -1 }}
+                        />
+                    )}
+                    <span className="relative z-10">Популярные</span>
                 </motion.button>
+                
                 <motion.button
-                    onClick={() => setActiveTab('new')}
-                    className={`px-4 lg:px-6 py-1.5 lg:py-2 rounded-full font-['Montserrat_Alternates'] text-sm lg:text-base transition-all duration-300 ${
+                    onClick={() => handleTabChange('new')}
+                    className={`relative px-4 lg:px-6 py-1.5 lg:py-2 rounded-full font-['Montserrat_Alternates'] text-sm lg:text-base transition-colors duration-300 ${
                         activeTab === 'new'
-                            ? 'bg-firm-pink text-white shadow-md'
+                            ? 'text-white'
                             : 'bg-white text-gray-600 hover:bg-gray-100'
                     }`}
+                    style={{
+                        background: activeTab === 'new' ? 'var(--firm-pink)' : undefined
+                    }}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                 >
-                    Новинки
+                    {activeTab === 'new' && (
+                        <motion.div
+                            layoutId="activeTab"
+                            className="absolute inset-0 rounded-full bg-firm-pink"
+                            transition={{ type: "spring", duration: 0.5 }}
+                            style={{ zIndex: -1 }}
+                        />
+                    )}
+                    <span className="relative z-10">Новинки</span>
                 </motion.button>
             </div>
 
-            {/* Сетка товаров */}
-            <AnimatePresence mode="wait">
-                <motion.div 
-                    key={activeTab}
-                    className={`grid ${gridCols[columns as keyof typeof gridCols]} gap-1 lg:gap-2 px-2 lg:px-0`}
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -30 }}
-                    transition={{ duration: 0.4 }}
-                >
-                    {products.map((product, index) => (
-                        <motion.div
-                            key={product.id}
-                            initial={{ opacity: 0, y: 30 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.05, duration: 0.4 }}
-                            whileHover={{ y: -5 }}
+            {/* Сетка товаров с плавной анимацией */}
+            <div className="min-h-100">
+                <AnimatePresence mode="wait">
+                    {loading && isSwitching ? (
+                        <motion.div 
+                            key="loader"
+                            className="flex justify-center items-center h-100"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
                         >
-                            <ProductCard product={product} />
+                            <motion.div 
+                                className="w-8 h-8 border-2 border-gray-200 border-t-firm-orange rounded-full"
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            />
                         </motion.div>
-                    ))}
-                </motion.div>
-            </AnimatePresence>
+                    ) : (
+                        <motion.div 
+                            key={activeTab}
+                            className={`grid ${gridCols[columns as keyof typeof gridCols]} gap-1 lg:gap-2 px-2 lg:px-0`}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            {products.map((product, index) => (
+                                <motion.div
+                                    key={product.id}
+                                    initial={{ opacity: 0, y: 30 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.05, duration: 0.3 }}
+                                    whileHover={{ y: -5 }}
+                                >
+                                    <ProductCard product={product} />
+                                </motion.div>
+                            ))}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
 
             <div className="text-center mt-8 lg:mt-10 px-4">
                 <motion.div

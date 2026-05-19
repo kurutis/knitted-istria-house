@@ -287,14 +287,6 @@ export default function TopMasters() {
             ))}
           </motion.div>
         )}
-
-        <div className="text-center mt-6">
-          <Link href="/masters">
-            <button className="text-sm text-firm-orange font-medium">
-              Все мастера →
-            </button>
-          </Link>
-        </div>
       </motion.div>
     )
   }
