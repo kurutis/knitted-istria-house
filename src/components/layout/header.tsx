@@ -151,7 +151,7 @@ export default function Header() {
                 <Link href="/" className="flex items-center gap-2 sm:gap-3"><Image className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-16 lg:h-16" src={logo} alt="logo" /> <div className="font-Montserrat_Alternates font-bold leading-tight"><span className="text-firm-pink font-semibold font-Montserrat_Alternates text-xs sm:text-sm md:text-base">Дом{" "}</span><span className="text-firm-orange font-semibold font-Montserrat_Alternates text-xs sm:text-sm md:text-base">вязанных</span><br /><span className="text-firm-pink font-semibold font-Montserrat_Alternates text-xs sm:text-sm md:text-base">историй</span></div></Link>
               </motion.div>
 
-              <ul className="hidden lg:flex justify-between w-[600px] xl:gap-10">
+              <ul className="hidden lg:flex justify-between w-150 xl:gap-10">
                 {navLinks.map((link, index) => (
                   <motion.li key={link.href} initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}><Link className="font-Montserrat_Alternates font-semibold hover:font-bold transition-all duration-300 relative group" href={link.href} >{link.name} <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-firm-orange transition-all duration-300 group-hover:w-full" /></Link></motion.li>))}
               </ul>
@@ -171,7 +171,7 @@ export default function Header() {
                 </motion.div>
 
                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                  <Link href="/favorites"><Image src={favorite} alt="favorites" className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" /></Link>
+                  <Link href="/favorites"><Image src={favorite} alt="favorites" className="w-4 h-4 sm:w-6 sm:h-6 md:w-7 md:h-7" /></Link>
                 </motion.div>
 
                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
