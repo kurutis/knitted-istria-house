@@ -176,7 +176,7 @@ export default function Header() {
                       src={favorite} 
                       alt="favorites" 
                       className="sm:w-6 sm:h-6 md:w-7 md:h-7"
-                      style={{ width: '32px', height: '32px' }}
+                      style={{ width: '24px', height: '24px' }}
                     />
                   </Link>
                 </motion.div>
