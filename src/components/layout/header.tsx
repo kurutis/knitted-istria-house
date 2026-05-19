@@ -175,8 +175,8 @@ export default function Header() {
                     <Image 
                       src={favorite} 
                       alt="favorites" 
-                      width={20} 
-                      height={20}
+                      width={15} 
+                      height={15}
                       className="sm:w-6 sm:h-6 md:w-7 md:h-7"
                     />
                   </Link>
