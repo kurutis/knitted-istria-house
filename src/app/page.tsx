@@ -136,25 +136,27 @@ export default function HomePage() {
         )}
 
         <div className="text-center mt-8 md:mt-12 px-4">
-  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-    <Link href="/blog" className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 border-2 border-firm-pink text-firm-pink rounded-xl font-['Montserrat_Alternates'] font-medium hover:bg-firm-pink hover:text-main transition-all duration-300 text-sm md:text-base group">
-      Перейти в блог
-      <svg 
-        className="w-3 h-3 md:w-4 md:h-4 group-hover:text-main transition-colors duration-300 animate-bounce-x" 
-        fill="none" 
-        stroke="currentColor" 
-        viewBox="0 0 24 24"
-      >
-        <path 
-          strokeLinecap="round" 
-          strokeLinejoin="round" 
-          strokeWidth={2} 
-          d="M9 5l7 7-7 7"
-        />
-      </svg>
-    </Link>
-  </motion.div>
-</div>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Link href="/blog" className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 border-2 border-firm-pink rounded-xl font-['Montserrat_Alternates'] font-medium transition-all duration-300 text-sm md:text-base group hover:bg-firm-pink">
+              <span className="text-firm-pink group-hover:text-main transition-colors duration-300">Перейти в блог</span>
+              <svg 
+                className="w-3 h-3 md:w-4 md:h-4 text-firm-pink group-hover:text-main transition-colors duration-300" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <motion.path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M9 5l7 7-7 7"
+                  animate={{ x: [0, 5, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                />
+              </svg>
+            </Link>
+          </motion.div>
+        </div>
       </motion.div>
     </div>
   );
