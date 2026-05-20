@@ -141,7 +141,7 @@ export default function HomePage() {
       href="/blog" 
       className="group inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 border-2 border-firm-pink text-firm-pink rounded-xl font-['Montserrat_Alternates'] font-medium hover:bg-firm-pink hover:text-main transition-all duration-300 text-sm md:text-base"
     >
-      <span>Перейти в блог</span>
+      Перейти в блог
       <motion.svg 
         className="w-3 h-3 md:w-4 md:h-4 text-firm-pink group-hover:text-main" 
         fill="none" 
