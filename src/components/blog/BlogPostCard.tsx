@@ -485,7 +485,7 @@ export default function BlogPostCard({post, showComments: externalShowComments, 
     return (
       <AnimatePresence mode="wait">
         {showCommentsState && (
-          <motion.div key="comments" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3, ease: "easeInOut" }} className="mt-4 pt-4 border-t bg-main rounded-xl p-4 overflow-hidden">
+          <motion.div key="comments" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3, ease: "easeInOut" }} className="mt-4 pt-4 border-t border-firm-gray bg-main rounded-xl p-4 overflow-hidden">
             {session && (
               <div className="flex gap-3 mb-4">
                 <CurrentUserAvatar size={32} />
