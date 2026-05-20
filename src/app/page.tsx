@@ -51,7 +51,7 @@ export default function HomePage() {
   const [recentPosts, setRecentPosts] = useState<BlogPost[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [showComments, setShowComments] = useState<string | null>(null);
-  const [isMobile, setIsMobile] = useState(false); // Добавьте эту строку
+  const [isMobile, setIsMobile] = useState(false); 
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -86,88 +86,9 @@ export default function HomePage() {
     }
   };
 
-  const handleLike = async (postId: string) => {
-    if (!session) {
-      window.location.href = "/auth/signin?callbackUrl=/";
-      return;
-    }
-
-    try {
-      const post = recentPosts.find((p) => p.id === postId);
-      const response = await fetch(`/api/blog/posts/${postId}/like`, {
-        method: post?.is_liked ? "DELETE" : "POST",
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setRecentPosts((prev) =>
-          prev.map((p) =>
-            p.id === postId
-              ? {
-                  ...p,
-                  is_liked: data.is_liked,
-                  likes_count: data.likes_count,
-                }
-              : p,
-          ),
-        );
-      }
-    } catch (error) {
-      console.error("Error toggling like:", error);
-    }
-  };
-
-  const handleComment = async (postId: string, text: string) => {
-    if (!session) {
-      window.location.href = "/auth/signin?callbackUrl=/";
-      return false;
-    }
-
-    if (!text.trim()) return false;
-
-    try {
-      const response = await fetch(`/api/blog/posts/${postId}/comment`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: text }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const newComment = data.comment || data;
-
-        setRecentPosts((prev) =>
-          prev.map((p) =>
-            p.id === postId
-              ? {
-                  ...p,
-                  comments: [newComment, ...(p.comments || [])],
-                  comments_count: (p.comments_count || 0) + 1,
-                }
-              : p,
-          ),
-        );
-        setShowComments(postId);
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error("Error adding comment:", error);
-      return false;
-    }
-  };
 
   if (isMaster) {
-    const adaptedSession = session
-      ? {
-          user: {
-            id: session.user?.id || "",
-            name: session.user?.name || "",
-            email: session.user?.email || "",
-            role: session.user?.role || "master",
-          },
-        }
-      : null;
+    const adaptedSession = session ? {user: {id: session.user?.id || "", name: session.user?.name || "", email: session.user?.email || "", role: session.user?.role || "master"}} : null
     return <MasterDashboard session={adaptedSession} />;
   }
 
@@ -180,160 +101,46 @@ export default function HomePage() {
 
       <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-20 justify-center mt-5 mb-16 px-4">
         <div className="w-full sm:w-[60%] md:w-[40%] lg:w-[20%] min-h-13">
-          <Link href="/catalog" className="w-full block">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{
-                type: "tween",
-                duration: 0.15,
-                ease: "easeOut",
-              }}
-              className="w-full font-['Montserrat_Alternates'] font-[450] border-2 border-firm-pink p-2 rounded-xl hover:border-4 hover:bg-firm-pink hover:text-white text-sm md:text-base transition-colors duration-300"
-              style={{
-                transform: "translateZ(0)",
-                backfaceVisibility: "hidden",
-                WebkitFontSmoothing: "antialiased",
-              }}
-            >
-              Найти изделие для себя
-            </motion.button>
-          </Link>
+          <Link href="/catalog" className="w-full block"><motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{type: "tween", duration: 0.15, ease: "easeOut"}} className="w-full font-['Montserrat_Alternates'] font-[450] border-2 border-firm-pink p-2 rounded-xl hover:border-4 hover:bg-firm-pink hover:text-main text-sm md:text-base transition-colors duration-300" style={{transform: "translateZ(0)", backfaceVisibility: "hidden", WebkitFontSmoothing: "antialiased"}}>Найти изделие для себя</motion.button></Link>
         </div>
         <div className="w-full sm:w-[60%] md:w-[40%] lg:w-[20%] min-h-13">
-          <Link href="/profile?tab=profile" className="w-full block">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{
-                type: "tween",
-                duration: 0.15,
-                ease: "easeOut",
-              }}
-              className="w-full font-['Montserrat_Alternates'] font-[450] border-2 border-firm-orange p-2 rounded-xl hover:border-4 hover:bg-firm-orange hover:text-white text-sm md:text-base transition-colors duration-300"
-              style={{
-                transform: "translateZ(0)",
-                backfaceVisibility: "hidden",
-                WebkitFontSmoothing: "antialiased",
-              }}
-            >
-              Стать мастером
-            </motion.button>
-          </Link>
+          <Link href="/profile?tab=profile" className="w-full block"><motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{type: "tween", duration: 0.15, ease: "easeOut"}} className="w-full font-['Montserrat_Alternates'] font-[450] border-2 border-firm-orange p-2 rounded-xl hover:border-4 hover:bg-firm-orange hover:text-main text-sm md:text-base transition-colors duration-300" style={{transform: "translateZ(0)", backfaceVisibility: "hidden", WebkitFontSmoothing: "antialiased"}}>Стать мастером</motion.button></Link>
         </div>
       </div>
 
       <PopularProducts />
 
-      <motion.div
-        className="py-12 md:py-16"
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.6 }}
-      >
+      <motion.div className="py-12 md:py-16" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.6 }}>
         <div className="text-center mb-8 md:mb-12">
-          <motion.h2
-            className="font-['Montserrat_Alternates'] font-semibold text-2xl md:text-3xl text-gray-800"
-            initial={{ y: -30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            Последние из блога
-          </motion.h2>
+          <motion.h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl md:text-3xl text-text" initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.5 }}>Последние из блога</motion.h2>
 
-          <motion.p
-            className="text-gray-500 mt-2 md:mt-3 text-sm px-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          >
-            Интересные новости от наших мастеров
-          </motion.p>
-          <motion.div
-            className="w-20 h-1 bg-gradient-to-r from-firm-orange to-firm-pink mx-auto mt-3 rounded-full"
-            initial={{ width: 0 }}
-            animate={{ width: 80 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-          />
+          <motion.p className="text-firm-gray mt-2 md:mt-3 text-sm px-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2, duration: 0.5 }}>Интересные новости от наших мастеров</motion.p>
+          <motion.div className="w-20 h-1 bg-linear-to-r from-firm-orange to-firm-pink mx-auto mt-3 rounded-full" initial={{ width: 0 }} animate={{ width: 80 }} transition={{ duration: 0.6, delay: 0.3 }} />
         </div>
 
         {loadingPosts ? (
           <div className="text-center py-12">
-            <motion.div
-              className="w-8 h-8 border-2 border-gray-200 border-t-firm-orange rounded-full inline-block"
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            />
+            <motion.div className="w-8 h-8 border-2 border-firm-gray border-t-firm-orange rounded-full inline-block" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} />
           </div>
         ) : recentPosts.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg mx-4">
-            <p className="text-gray-500">Пока нет постов</p>
+          <div className="text-center py-12 bg-main rounded-lg mx-4">
+            <p className="text-firm-gray">Пока нет постов</p>
           </div>
         ) : (
           <div className="space-y-6 flex flex-col items-center px-4">
             {recentPosts.map((post) => {
-              const normalizedPost = {
-                id: post.id,
-                title: post.title,
-                content: post.content,
-                excerpt: post.excerpt,
-                images: post.images,
-                main_image_url: post.main_image_url,
-                created_at: post.created_at,
-                views_count: post.views_count,
-                likes_count: post.likes_count,
-                comments_count: post.comments_count,
-                author_name: post.master_name,
-                author_avatar: post.master_avatar,
-                master_id: post.master_id,
-                master_name: post.master_name,
-                master_avatar: post.master_avatar,
-                is_liked: post.is_liked,
-                comments: (post.comments || []).map((comment: PostComment) => ({
-                  id: comment.id,
-                  content: comment.content,
-                  created_at: comment.created_at,
-                  updated_at: comment.updated_at || comment.created_at,
-                  is_edited: comment.is_edited || false,
-                  author_id: comment.author_id || "",
-                  author_name: comment.author_name,
-                  author_avatar: comment.author_avatar,
-                })),
-              };
-              return (
-                <BlogPostCard
-                  key={post.id}
-                  post={normalizedPost}
-                  showComments={showComments === post.id}
-                  variant="default"
-                />
-              );
+              const normalizedPost = {id: post.id, title: post.title, content: post.content, excerpt: post.excerpt, images: post.images, main_image_url: post.main_image_url, created_at: post.created_at, views_count: post.views_count, likes_count: post.likes_count, comments_count: post.comments_count, author_name: post.master_name, uthor_avatar: post.master_avatar, master_id: post.master_id, master_name: post.master_name, master_avatar: post.master_avatar, is_liked: post.is_liked, comments: (post.comments || []).map((comment: PostComment) => ({id: comment.id, content: comment.content, created_at: comment.created_at, updated_at: comment.updated_at || comment.created_at, is_edited: comment.is_edited || false, author_id: comment.author_id || "", author_name: comment.author_name, author_avatar: comment.author_avatar}))}
+              return (<BlogPostCard key={post.id} post={normalizedPost} showComments={showComments === post.id}variant="default"/>)
             })}
           </div>
         )}
 
         <div className="text-center mt-8 md:mt-12 px-4">
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-            <Link
-              href="/blog"
-              className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 border-2 border-firm-pink text-firm-pink rounded-xl font-['Montserrat_Alternates'] font-medium hover:bg-firm-pink hover:text-white transition-all duration-300 text-sm md:text-base"
-            >
+            <Link href="/blog" className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 border-2 border-firm-pink text-firm-pink rounded-xl font-['Montserrat_Alternates'] font-medium hover:bg-firm-pink hover:text-main transition-all duration-300 text-sm md:text-base">
               Перейти в блог
-              <motion.svg
-                className="w-3 h-3 md:w-4 md:h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                animate={{ x: [0, 5, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
+              <motion.svg className="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="#f9f9f9" viewBox="0 0 24 24" animate={{ x: [0, 5, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </motion.svg>
             </Link>
           </motion.div>
