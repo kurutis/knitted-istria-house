@@ -137,10 +137,20 @@ export default function HomePage() {
 
         <div className="text-center mt-8 md:mt-12 px-4">
   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-    <Link href="/blog" className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 border-2 border-firm-pink rounded-xl font-['Montserrat_Alternates'] font-medium transition-all duration-300 text-sm md:text-base group hover:bg-firm-pink">
-      <span className="text-firm-pink group-hover:text-white transition-colors duration-300">Перейти в блог</span>
+    <Link 
+      href="/blog" 
+      className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 border-2 border-firm-pink rounded-xl font-['Montserrat_Alternates'] font-medium transition-all duration-300 text-sm md:text-base group hover:bg-firm-pink"
+    >
+      <span className="transition-colors duration-300" style={{ color: '#D97C8E' }}>Перейти в блог</span>
+      <style jsx>{`
+        .group:hover span,
+        .group:hover svg {
+          color: #f9f9f9 !important;
+        }
+      `}</style>
       <svg 
-        className="w-3 h-3 md:w-4 md:h-4 text-firm-pink group-hover:text-white transition-colors duration-300" 
+        className="w-3 h-3 md:w-4 md:h-4 transition-colors duration-300"
+        style={{ color: '#D97C8E' }}
         fill="none" 
         stroke="currentColor" 
         viewBox="0 0 24 24"
