@@ -145,13 +145,11 @@ export default function HomePage() {
         stroke="currentColor" 
         viewBox="0 0 24 24"
       >
-        <motion.path 
+        <path 
           strokeLinecap="round" 
           strokeLinejoin="round" 
           strokeWidth={2} 
           d="M9 5l7 7-7 7"
-          animate={{ x: [0, 5, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
         />
       </svg>
     </Link>
