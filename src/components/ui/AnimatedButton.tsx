@@ -17,12 +17,12 @@ export function AnimatedButton({ icon, count, isActive, onClick, activeColor = '
                 onClick();
             }}
             className={`flex items-center gap-2 transition-all duration-300 cursor-pointer ${
-                isActive ? activeColor : 'text-gray-500'
+                isActive ? activeColor : 'text-firm-gray'
             } hover:${activeColor}`}
             type="button"
         >
             {icon}
-            <span className="text-gray-600 text-sm">{count}</span>
+            <span className="text-firm-gray text-sm">{count}</span>
         </button>
     )
 }

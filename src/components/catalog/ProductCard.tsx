@@ -21,7 +21,7 @@ const FavoriteIcon = ({ className, isFavorite }: { className?: string; isFavorit
 )
 
 const CartIcon = ({ className }: { className?: string }) => (
-    <svg width="35" height="35" viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <svg width="24" height="24" viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
         <path d="M1.29934 15.7362C1.23854 15.4413 1.23387 15.1335 1.28568 14.8361C1.3375 14.5386 1.44444 14.2595 1.59838 14.0198C1.75232 13.7801 1.9492 13.5863 2.17407 13.4529C2.39893 13.3196 2.64585 13.2503 2.89607 13.2502H31.6043C31.8544 13.2503 32.1011 13.3196 32.3258 13.4529C32.5505 13.5861 32.7473 13.7798 32.9012 14.0192C33.0551 14.2586 33.1621 14.5375 33.2141 14.8347C33.266 15.1318 33.2616 15.4395 33.2011 15.7342L30.22 30.2202C30.0419 31.0856 29.6309 31.8538 29.0523 32.4028C28.4737 32.9518 27.7606 33.2501 27.0265 33.2502H7.47392C6.73977 33.2501 6.02672 32.9518 5.4481 32.4028C4.86948 31.8538 4.45849 31.0856 4.28046 30.2202L1.29934 15.7362Z" stroke="#D97C8E" strokeWidth="2.5" strokeLinejoin="round" fill="none" />
         <path d="M12.3116 21.2502V25.2502M22.1883 21.2502V25.2502M7.37329 13.2502L13.9578 1.25024M27.1267 13.2502L20.5422 1.25024" stroke="#D97C8E" strokeWidth="2.5" strokeLinecap="round" />
     </svg>
@@ -159,7 +159,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
     return (
         <Link href={`/catalog/${product.id}`} className="group">
-            <div className="bg-main rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300">
+            <div className="bg-main rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 border border-firm-gray/50">
                 <div className="relative aspect-square bg-main">
                     {product.main_image_url && !imageError ? (
                         <Image src={product.main_image_url} alt={product.title} fill className="object-cover group-hover:scale-105 transition-transform duration-300" sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" onError={() => setImageError(true)} />
@@ -184,7 +184,10 @@ export default function ProductCard({ product }: ProductCardProps) {
                                 <button onClick={(e) => {e.preventDefault(); updateQuantity(quantity + 1)}} disabled={loading}className="w-7 h-7 rounded-full bg-firm-orange text-main flex items-center justify-center hover:bg-opacity-90 transition disabled:opacity-50"> +</button>
                             </div>
                         ) : (
-                            <button onClick={addToCart} disabled={loading} onMouseEnter={() => setIsCartHovered(true)}  onMouseLeave={() => setIsCartHovered(false)} className="relative flex items-center justify-center disabled:opacity-50 bg-main/80 backdrop-blur-sm rounded-full p-1"><CartIcon className={`w-7 h-7 transition-all duration-300 ${isCartHovered ? 'scale-110 rotate-12' : ''}`} /> {loading && (<div className="absolute inset-0 rounded-full animate-ping opacity-75"></div>)}</button>
+                            <button onClick={addToCart} disabled={loading} onMouseEnter={() => setIsCartHovered(true)}  onMouseLeave={() => setIsCartHovered(false)} className="relative flex items-center justify-center disabled:opacity-50 bg-main/80 backdrop-blur-sm rounded-full p-1">
+                                <CartIcon className={`w-6 h-6 transition-all duration-300 ${isCartHovered ? 'scale-110 rotate-12' : ''}`} /> 
+                                {loading && (<div className="absolute inset-0 rounded-full animate-ping opacity-75"></div>)}
+                            </button>
                         )}
                     </div>
                 </div>
