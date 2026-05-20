@@ -96,13 +96,14 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
   avatarUrl?: string | null;
   size?: number;
 }) => {
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [displayName, setDisplayName] = useState<string>(name || "");
   const [avatarError, setAvatarError] = useState(false);
+  const [displayName, setDisplayName] = useState<string>(name || "");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl || null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadUserProfile = async () => {
+      // Если уже есть прямой URL аватара, не загружаем через API
       if (initialAvatarUrl) {
         setAvatarUrl(initialAvatarUrl);
         setLoading(false);
@@ -115,6 +116,7 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
       }
 
       try {
+        // Пробуем загрузить профиль через API пользователя
         const response = await fetch(`/api/user/profile?userId=${userId}`);
         if (response.ok) {
           const data = await response.json();
@@ -143,6 +145,9 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
     if (displayName && displayName.length > 0) {
       return displayName.charAt(0).toUpperCase();
     }
+    if (name && name.length > 0) {
+      return name.charAt(0).toUpperCase();
+    }
     return "U";
   };
 
@@ -160,7 +165,7 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
     return (
       <img
         src={avatarUrl}
-        alt={displayName || "Avatar"}
+        alt={displayName || name || "Avatar"}
         className="rounded-full object-cover"
         style={{ width: size, height: size }}
         onError={() => setAvatarError(true)}
@@ -200,7 +205,9 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
           if (response.ok) {
             const data = await response.json();
             if (data.success && data.profile) {
-              if (data.profile.avatar_url) setAvatarUrl(data.profile.avatar_url);
+              if (data.profile.avatar_url) {
+                setAvatarUrl(data.profile.avatar_url);
+              }
               if (data.profile.fullname && data.profile.fullname.trim()) {
                 setUserName(data.profile.fullname);
               } else {
@@ -225,7 +232,9 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
               name = data.full_name || data.fullname || "";
             }
             
-            if (avatar) setAvatarUrl(avatar);
+            if (avatar) {
+              setAvatarUrl(avatar);
+            }
             
             if (name && name.trim()) {
               setUserName(name);
@@ -253,6 +262,12 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
     if (userName && userName.length > 0) {
       return userName.charAt(0).toUpperCase();
     }
+    if (session?.user?.name) {
+      return session.user.name.charAt(0).toUpperCase();
+    }
+    if (session?.user?.email) {
+      return session.user.email.charAt(0).toUpperCase();
+    }
     return "U";
   };
 
@@ -267,16 +282,13 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
 
   if (avatarUrl && !avatarError) {
     return (
-      <div className="relative" style={{ width: size, height: size }}>
-        <Image
-          src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`}
-          alt={userName || "Profile"}
-          fill
-          className="rounded-full object-cover"
-          onError={() => setAvatarError(true)}
-          sizes={`${size}px`}
-        />
-      </div>
+      <img
+        src={avatarUrl}
+        alt={userName || "Profile"}
+        className="rounded-full object-cover"
+        style={{ width: size, height: size }}
+        onError={() => setAvatarError(true)}
+      />
     );
   }
 
