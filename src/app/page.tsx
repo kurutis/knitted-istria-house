@@ -144,8 +144,7 @@ export default function HomePage() {
       Перейти в блог
       <motion.svg 
         className="w-3 h-3 md:w-4 md:h-4 text-firm-pink group-hover:text-main" 
-        fill="none" 
-        stroke="currentColor" 
+        fill="none"
         viewBox="0 0 24 24"
         animate={{ x: [0, 5, 0] }} 
         transition={{ duration: 1.5, repeat: Infinity }}
