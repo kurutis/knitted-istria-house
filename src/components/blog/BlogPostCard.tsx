@@ -565,33 +565,22 @@ export default function BlogPostCard({post, showComments: externalShowComments, 
   };
 
   const renderActions = () => {
-    if (variant === "compact") {
-      return (
-        <div className="flex items-center gap-4 mt-3 text-sm text-firm-gray">
-          <span>❤️ {likesCount}</span>
-          <span>💬 {commentsCount}</span>
-          <span>👁️ {post.views_count}</span>
-        </div>
-      );
-    }
-
     return (
       <div className="flex items-center gap-6 pt-4 mt-4 border-t border-main">
         <button onClick={handleLike} className="flex items-center gap-1.5 transition-all duration-300 hover:scale-110"><LikeIcon isActive={isLiked} /><span className={`text-sm ${isLiked ? 'text-firm-pink' : 'text-firm-gray'}`}>{likesCount}</span></button>
-
         <button onClick={() => setShowCommentsState(!showCommentsState)}className="flex items-center gap-1.5 transition-all duration-300 hover:scale-110"><CommentIcon isActive={showCommentsState} /><span className={`text-sm ${showCommentsState ? 'text-firm-orange' : 'text-firm-gray'}`}> {commentsCount}</span></button>
 
         {isOwner && (
           <div className="flex gap-2 ml-auto">
-            {onEdit && (<button onClick={() => onEdit(post.id)} className="text-firm-gray hover:text-firm-orange transition">✏️ Редактировать</button> )}
-            {onDelete && (<button onClick={() => onDelete(post.id)} className="text-firm-gray hover:text-firm-red transition">🗑️ Удалить</button>)}
+            {onEdit && (<button onClick={() => onEdit(post.id)} className="text-firm-gray hover:text-firm-orange transition">Редактировать</button> )}
+            {onDelete && (<button onClick={() => onDelete(post.id)} className="text-firm-gray hover:text-firm-red transition">Удалить</button>)}
           </div>
         )}
 
         <div className="flex-1"></div>
         <div className="flex items-center gap-1.5">
           <ViewsIcon />
-          <span className="text-sm text-firm-gray">{post.views_count}</span>
+          <span className="font-[Raleway] text-sm text-firm-gray">{post.views_count}</span>
         </div>
       </div>
     );
@@ -613,9 +602,7 @@ export default function BlogPostCard({post, showComments: externalShowComments, 
 
           {renderPostImages()}
 
-          <p className="text-gray-600 mt-4 line-clamp-3">
-            {post.excerpt || post.content?.substring(0, 300)}...
-          </p>
+          <p className="text-gray-600 mt-4 line-clamp-3">{post.excerpt || post.content?.substring(0, 300)}...</p>
 
           <Link href={`/blog/${post.id}`} className="text-firm-orange hover:underline text-sm mt-3 inline-flex items-center gap-1 group">Читать полностью<span className="inline-block text-firm-orange">→</span></Link>
 
