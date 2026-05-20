@@ -15,6 +15,7 @@ import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
+// Функция для проксирования аватаров
 const getProxiedAvatarUrl = (url: string | null) => {
   if (!url) return null;
   if (url.includes('/api/proxy/avatar') || url.includes('selstorage.ru')) {
@@ -139,6 +140,7 @@ export default function Header() {
     return "U";
   };
 
+  // Проксированный URL аватара
   const proxiedAvatarUrl = getProxiedAvatarUrl(avatarUrl);
 
   const navLinks = [{ href: "/catalog", label: "🧶", name: "Каталог" }, { href: "/blog", label: "📝", name: "Блог" }, { href: "/master-classes", label: "🎓", name: "Мастер-классы" }]
@@ -180,16 +182,12 @@ export default function Header() {
                   ) : isAuthenticated ? (
                     <Link href="/profile" className="block">
                       {proxiedAvatarUrl && !avatarError ? (
-                        <div className="relative w-6 h-6 sm:w-7 sm:h-7">
-                          <Image 
-                            src={proxiedAvatarUrl} 
-                            alt="profile" 
-                            fill 
-                            sizes="(max-width: 640px) 1.5rem, (max-width: 768px) 1.75rem, 1.75rem" 
-                            className="rounded-full object-cover ring-2 ring-white/50 hover:ring-firm-orange transition-all duration-300" 
-                            onError={() => setAvatarError(true)} 
-                          />
-                        </div>
+                        <img
+                          src={proxiedAvatarUrl}
+                          alt="profile"
+                          className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover ring-2 ring-white/50 hover:ring-firm-orange transition-all duration-300"
+                          onError={() => setAvatarError(true)}
+                        />
                       ) : (
                         <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main text-xs sm:text-sm font-bold">{getInitials()}</div>
                       )}
@@ -215,16 +213,12 @@ export default function Header() {
                   <Link href="/chats" className="relative flex flex-col items-center gap-1 transition-all duration-300 text-firm-gray hover:text-firm-orange"><div className="relative"><Image src={chats} alt="Чаты" className="w-5 h-5" /> {unreadCount > 0 && (<span className="absolute -top-2 -right-2 bg-firm-red text-main text-[10px] rounded-full min-w-4 h-4 px-1 flex items-center justify-center font-bold">{unreadCount > 9 ? '9+' : unreadCount}</span>)}</div><span className="text-[10px] font-medium">Чаты</span></Link>
                   <Link href="/profile" className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
                     {proxiedAvatarUrl && !avatarError ? (
-                      <div className="relative w-5 h-5">
-                        <Image 
-                          src={proxiedAvatarUrl} 
-                          alt="profile" 
-                          fill 
-                          sizes="1.25rem" 
-                          className="rounded-full object-cover" 
-                          onError={() => setAvatarError(true)} 
-                        />
-                      </div>
+                      <img
+                        src={proxiedAvatarUrl}
+                        alt="profile"
+                        className="w-5 h-5 rounded-full object-cover"
+                        onError={() => setAvatarError(true)}
+                      />
                     ) : (
                       <div className="w-5 h-5 rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main text-[10px] font-bold">
                         {getInitials()}
