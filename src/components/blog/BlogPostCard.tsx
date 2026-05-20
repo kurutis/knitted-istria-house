@@ -60,6 +60,45 @@ const formatDate = (dateString: string) => {
   return date.toLocaleDateString("ru-RU");
 };
 
+// SVG иконка лайка (сердечко)
+const LikeIcon = ({ isActive }: { isActive: boolean }) => (
+  <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path 
+      d="M23.2002 1.25C27.3399 1.25011 30.7498 4.79098 30.75 9.59082C30.75 12.501 29.5561 15.2315 27.25 18.3066C24.9278 21.4031 21.584 24.7143 17.4414 28.8086L17.4395 28.8105L16 30.2383L14.5605 28.8105L14.5586 28.8086C10.416 24.7143 7.07223 21.4031 4.75 18.3066C2.44386 15.2315 1.25 12.501 1.25 9.59082C1.25022 4.79098 4.6601 1.25011 8.7998 1.25C11.164 1.25 13.487 2.4569 15.0176 4.40039L16 5.64746L16.9824 4.40039C18.513 2.4569 20.836 1.25 23.2002 1.25Z" 
+      stroke={isActive ? "#D97C8E" : "#737682"}
+      strokeWidth="2.5"
+      fill={isActive ? "#D97C8E" : "none"}
+    />
+  </svg>
+);
+
+// SVG иконка комментариев
+const CommentIcon = ({ isActive }: { isActive: boolean }) => (
+  <svg width="24" height="24" viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path 
+      d="M1.29934 15.7362C1.23854 15.4413 1.23387 15.1335 1.28568 14.8361C1.3375 14.5386 1.44444 14.2595 1.59838 14.0198C1.75232 13.7801 1.9492 13.5863 2.17407 13.4529C2.39893 13.3196 2.64585 13.2503 2.89607 13.2502H31.6043C31.8544 13.2503 32.1011 13.3196 32.3258 13.4529C32.5505 13.5861 32.7473 13.7798 32.9012 14.0192C33.0551 14.2586 33.1621 14.5375 33.2141 14.8347C33.266 15.1318 33.2616 15.4395 33.2011 15.7342L30.22 30.2202C30.0419 31.0856 29.6309 31.8538 29.0523 32.4028C28.4737 32.9518 27.7606 33.2501 27.0265 33.2502H7.47392C6.73977 33.2501 6.02672 32.9518 5.4481 32.4028C4.86948 31.8538 4.45849 31.0856 4.28046 30.2202L1.29934 15.7362Z" 
+      stroke={isActive ? "#F4A67F" : "#737682"} 
+      strokeWidth="2.5" 
+      strokeLinejoin="round"
+      fill="none"
+    />
+    <path 
+      d="M12.3116 21.2502V25.2502M22.1883 21.2502V25.2502M7.37329 13.2502L13.9578 1.25024M27.1267 13.2502L20.5422 1.25024" 
+      stroke={isActive ? "#F4A67F" : "#737682"} 
+      strokeWidth="2.5" 
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+// SVG иконка просмотров
+const ViewsIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#737682" strokeWidth="1.5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+  </svg>
+);
+
 // Компонент аватарки для любого пользователя по ID
 const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: { 
   userId?: string; 
@@ -71,7 +110,6 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
   const [displayName, setDisplayName] = useState<string>(name || "");
   const [avatarError, setAvatarError] = useState(false);
   const [loading, setLoading] = useState(true);
-  const { data: session } = useSession();
 
   useEffect(() => {
     if (initialAvatarUrl) {
@@ -87,28 +125,32 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
 
     const loadUserProfile = async () => {
       try {
-        const response = await fetch(`/api/user/profile?userId=${userId}`);
-        if (response.ok) {
-          const data = await response.json();
-          const profile = data.profile || data;
+        // Сначала пробуем загрузить как мастера
+        const masterResponse = await fetch(`/api/master/profile?userId=${userId}`);
+        if (masterResponse.ok) {
+          const masterData = await masterResponse.json();
+          const profile = masterData.profile || masterData;
           if (profile.avatar_url) {
             setAvatarUrl(profile.avatar_url);
           }
-          if (profile.fullname || profile.full_name) {
-            setDisplayName(profile.fullname || profile.full_name);
+          if (profile.fullname) {
+            setDisplayName(profile.fullname);
           } else if (name) {
             setDisplayName(name);
           }
         } else {
-          const masterResponse = await fetch(`/api/master/profile?userId=${userId}`);
-          if (masterResponse.ok) {
-            const masterData = await masterResponse.json();
-            const profile = masterData.profile || masterData;
+          // Если не мастер, пробуем как обычного пользователя
+          const response = await fetch(`/api/user/profile?userId=${userId}`);
+          if (response.ok) {
+            const data = await response.json();
+            const profile = data.profile || data;
             if (profile.avatar_url) {
               setAvatarUrl(profile.avatar_url);
             }
-            if (profile.fullname) {
-              setDisplayName(profile.fullname);
+            if (profile.fullname || profile.full_name) {
+              setDisplayName(profile.fullname || profile.full_name);
+            } else if (name) {
+              setDisplayName(name);
             }
           } else if (name) {
             setDisplayName(name);
@@ -710,29 +752,25 @@ export default function BlogPostCard({
 
     return (
       <div className="flex items-center gap-6 pt-4 mt-4 border-t border-gray-100">
-        <AnimatedButton
-          icon={
-            <svg className="w-6 h-6" viewBox="0 0 24 24" fill={isLiked ? "#D97C8E" : "none"} stroke={isLiked ? "#D97C8E" : "#9CA3AF"} strokeWidth="1.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-            </svg>
-          }
-          count={likesCount}
-          isActive={isLiked}
+        <button
           onClick={handleLike}
-          activeColor="text-firm-pink"
-        />
+          className="flex items-center gap-1.5 transition-all duration-300 hover:scale-110"
+        >
+          <LikeIcon isActive={isLiked} />
+          <span className={`text-sm ${isLiked ? 'text-firm-pink' : 'text-firm-gray'}`}>
+            {likesCount}
+          </span>
+        </button>
 
-        <AnimatedButton
-          icon={
-            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke={showCommentsState ? "#F97316" : "#9CA3AF"} strokeWidth="1.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-            </svg>
-          }
-          count={commentsCount}
-          isActive={showCommentsState}
+        <button
           onClick={() => setShowCommentsState(!showCommentsState)}
-          activeColor="text-firm-orange"
-        />
+          className="flex items-center gap-1.5 transition-all duration-300 hover:scale-110"
+        >
+          <CommentIcon isActive={showCommentsState} />
+          <span className={`text-sm ${showCommentsState ? 'text-firm-orange' : 'text-firm-gray'}`}>
+            {commentsCount}
+          </span>
+        </button>
 
         {isOwner && (
           <div className="flex gap-2 ml-auto">
@@ -750,13 +788,10 @@ export default function BlogPostCard({
         )}
 
         <div className="flex-1"></div>
-        <span className="text-sm text-gray-400 flex items-center gap-1">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-          </svg>
-          {post.views_count}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <ViewsIcon />
+          <span className="text-sm text-firm-gray">{post.views_count}</span>
+        </div>
       </div>
     );
   };
