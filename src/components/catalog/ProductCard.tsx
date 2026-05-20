@@ -159,7 +159,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
     return (
         <Link href={`/catalog/${product.id}`} className="group">
-            <div className="bg-main rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 border border-firm-gray/50">
+            <div className="bg-main rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300">
                 <div className="relative aspect-square bg-main">
                     {product.main_image_url && !imageError ? (
                         <Image src={product.main_image_url} alt={product.title} fill className="object-cover group-hover:scale-105 transition-transform duration-300" sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" onError={() => setImageError(true)} />
