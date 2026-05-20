@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useMemo } from "react";
 import toast from "react-hot-toast";
 import MediaGallery from "@/components/blog/MediaGallery";
-import { AnimatedButton } from "@/components/ui/AnimatedButton";
 import { useSession } from "next-auth/react";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 
@@ -72,22 +71,13 @@ const LikeIcon = ({ isActive }: { isActive: boolean }) => (
   </svg>
 );
 
-// SVG иконка комментариев
+// SVG иконка комментариев (чатов)
 const CommentIcon = ({ isActive }: { isActive: boolean }) => (
-  <svg width="24" height="24" viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path 
-      d="M1.29934 15.7362C1.23854 15.4413 1.23387 15.1335 1.28568 14.8361C1.3375 14.5386 1.44444 14.2595 1.59838 14.0198C1.75232 13.7801 1.9492 13.5863 2.17407 13.4529C2.39893 13.3196 2.64585 13.2503 2.89607 13.2502H31.6043C31.8544 13.2503 32.1011 13.3196 32.3258 13.4529C32.5505 13.5861 32.7473 13.7798 32.9012 14.0192C33.0551 14.2586 33.1621 14.5375 33.2141 14.8347C33.266 15.1318 33.2616 15.4395 33.2011 15.7342L30.22 30.2202C30.0419 31.0856 29.6309 31.8538 29.0523 32.4028C28.4737 32.9518 27.7606 33.2501 27.0265 33.2502H7.47392C6.73977 33.2501 6.02672 32.9518 5.4481 32.4028C4.86948 31.8538 4.45849 31.0856 4.28046 30.2202L1.29934 15.7362Z" 
-      stroke={isActive ? "#F4A67F" : "#737682"} 
-      strokeWidth="2.5" 
-      strokeLinejoin="round"
-      fill="none"
-    />
-    <path 
-      d="M12.3116 21.2502V25.2502M22.1883 21.2502V25.2502M7.37329 13.2502L13.9578 1.25024M27.1267 13.2502L20.5422 1.25024" 
-      stroke={isActive ? "#F4A67F" : "#737682"} 
-      strokeWidth="2.5" 
-      strokeLinecap="round"
-    />
+  <svg width="24" height="24" viewBox="0 0 37 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="2.32349" cy="2.32349" r="2.32349" transform="matrix(1 0 0 -1 9.62622 19.897)" fill={isActive ? "#F4A67F" : "#737682"}/>
+    <circle cx="2.32349" cy="2.32349" r="2.32349" transform="matrix(1 0 0 -1 16.9839 19.897)" fill={isActive ? "#F4A67F" : "#737682"}/>
+    <circle cx="2.32349" cy="2.32349" r="2.32349" transform="matrix(1 0 0 -1 24.729 19.897)" fill={isActive ? "#F4A67F" : "#737682"}/>
+    <path d="M19.6262 32.0648C28.4628 32.0648 35.6262 25.1667 35.6262 16.6574C35.6262 8.14813 28.4628 1.25 19.6262 1.25C10.7897 1.25 3.62622 8.14813 3.62622 16.6574C3.62622 20.4012 5.01285 23.8331 7.31853 26.5029C6.91254 29.643 5.86044 31.0025 3.62622 33.25C6.96012 32.6917 8.71604 32.0376 11.6262 30.0036C13.9796 31.3145 16.7119 32.0648 19.6262 32.0648Z" stroke={isActive ? "#F4A67F" : "#737682"} strokeWidth="2.5"/>
   </svg>
 );
 
@@ -112,20 +102,20 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (initialAvatarUrl) {
-      setAvatarUrl(initialAvatarUrl);
-      setLoading(false);
-      return;
-    }
-
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
-
     const loadUserProfile = async () => {
+      if (initialAvatarUrl) {
+        setAvatarUrl(initialAvatarUrl);
+        setLoading(false);
+        return;
+      }
+
+      if (!userId) {
+        setLoading(false);
+        return;
+      }
+
       try {
-        // Сначала пробуем загрузить как мастера
+        // Пробуем загрузить как мастера
         const masterResponse = await fetch(`/api/master/profile?userId=${userId}`);
         if (masterResponse.ok) {
           const masterData = await masterResponse.json();
@@ -135,26 +125,24 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
           }
           if (profile.fullname) {
             setDisplayName(profile.fullname);
-          } else if (name) {
-            setDisplayName(name);
           }
-        } else {
-          // Если не мастер, пробуем как обычного пользователя
-          const response = await fetch(`/api/user/profile?userId=${userId}`);
-          if (response.ok) {
-            const data = await response.json();
-            const profile = data.profile || data;
-            if (profile.avatar_url) {
-              setAvatarUrl(profile.avatar_url);
-            }
-            if (profile.fullname || profile.full_name) {
-              setDisplayName(profile.fullname || profile.full_name);
-            } else if (name) {
-              setDisplayName(name);
-            }
-          } else if (name) {
-            setDisplayName(name);
+          setLoading(false);
+          return;
+        }
+        
+        // Пробуем загрузить как обычного пользователя
+        const response = await fetch(`/api/user/profile?userId=${userId}`);
+        if (response.ok) {
+          const data = await response.json();
+          const profile = data.profile || data;
+          if (profile.avatar_url) {
+            setAvatarUrl(profile.avatar_url);
           }
+          if (profile.fullname || profile.full_name) {
+            setDisplayName(profile.fullname || profile.full_name);
+          }
+        } else if (name) {
+          setDisplayName(name);
         }
       } catch (error) {
         console.error("Error loading user profile:", error);
@@ -809,7 +797,7 @@ export default function BlogPostCard({
             <UserAvatar 
               userId={post.master_id}
               name={post.author_name}
-              avatarUrl={post.author_avatar}
+              avatarUrl={post.author_avatar || post.master_avatar}
               size={48}
             />
             <div>
