@@ -43,19 +43,6 @@
     --color-text: #242424;
 }
 
-.blog-link {
-  color: #D97C8E;
-}
-
-.blog-link:hover {
-  background-color: #D97C8E;
-  color: #f9f9f9;
-}
-
-.blog-link:hover svg {
-  color: #f9f9f9;
-}
-
 .typography {
   font-size: var(--text-base);
   color: var(--color-gray-700);

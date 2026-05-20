@@ -139,24 +139,20 @@ export default function HomePage() {
   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
     <Link 
       href="/blog" 
-      className="blog-link inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 border-2 hover:text-main border-firm-pink rounded-xl font-['Montserrat_Alternates'] font-medium transition-all duration-300 text-sm md:text-base"
+      className="group inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 border-2 border-firm-pink text-firm-pink rounded-xl font-['Montserrat_Alternates'] font-medium hover:bg-firm-pink hover:text-main transition-all duration-300 text-sm md:text-base"
     >
       <span>Перейти в блог</span>
-      <svg 
-        className="w-3 h-3 md:w-4 md:h-4" 
+      <motion.svg 
+        className="w-3 h-3 md:w-4 md:h-4 text-firm-pink group-hover:text-main" 
         fill="none" 
         stroke="currentColor" 
         viewBox="0 0 24 24"
+        animate={{ x: [0, 5, 0] }} 
+        transition={{ duration: 1.5, repeat: Infinity }}
+        style={{ color: '#D97C8E' }}
       >
-        <motion.path 
-          strokeLinecap="round" 
-          strokeLinejoin="round" 
-          strokeWidth={2} 
-          d="M9 5l7 7-7 7"
-          animate={{ x: [0, 5, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-        />
-      </svg>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+      </motion.svg>
     </Link>
   </motion.div>
 </div>
