@@ -43,6 +43,19 @@
     --color-text: #242424;
 }
 
+@keyframes bounce-x {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+}
+
+.animate-bounce-x {
+  animation: bounce-x 1.5s infinite;
+}
+
 .typography {
   font-size: var(--text-base);
   color: var(--color-gray-700);

@@ -140,7 +140,7 @@ export default function HomePage() {
     <Link href="/blog" className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 border-2 border-firm-pink text-firm-pink rounded-xl font-['Montserrat_Alternates'] font-medium hover:bg-firm-pink hover:text-main transition-all duration-300 text-sm md:text-base group">
       Перейти в блог
       <svg 
-        className="w-3 h-3 md:w-4 md:h-4 group-hover:text-main transition-colors duration-300" 
+        className="w-3 h-3 md:w-4 md:h-4 group-hover:text-main transition-colors duration-300 animate-bounce-x" 
         fill="none" 
         stroke="currentColor" 
         viewBox="0 0 24 24"
