@@ -115,22 +115,6 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
       }
 
       try {
-        // Пробуем загрузить как мастера
-        const masterResponse = await fetch(`/api/master/profile?userId=${userId}`);
-        if (masterResponse.ok) {
-          const masterData = await masterResponse.json();
-          const profile = masterData.profile || masterData;
-          if (profile.avatar_url) {
-            setAvatarUrl(profile.avatar_url);
-          }
-          if (profile.fullname) {
-            setDisplayName(profile.fullname);
-          }
-          setLoading(false);
-          return;
-        }
-        
-        // Пробуем загрузить как обычного пользователя
         const response = await fetch(`/api/user/profile?userId=${userId}`);
         if (response.ok) {
           const data = await response.json();
@@ -171,21 +155,20 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
     );
   }
 
+  // Если есть аватар и нет ошибки - показываем его
   if (avatarUrl && !avatarError) {
     return (
-      <div className="relative" style={{ width: size, height: size }}>
-        <Image
-          src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`}
-          alt={displayName || "Avatar"}
-          fill
-          className="rounded-full object-cover"
-          onError={() => setAvatarError(true)}
-          sizes={`${size}px`}
-        />
-      </div>
+      <img
+        src={avatarUrl}
+        alt={displayName || "Avatar"}
+        className="rounded-full object-cover"
+        style={{ width: size, height: size }}
+        onError={() => setAvatarError(true)}
+      />
     );
   }
 
+  // Fallback - инициалы
   return (
     <div 
       className="rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold"
