@@ -15,6 +15,14 @@ import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
+const getProxiedAvatarUrl = (url: string | null) => {
+  if (!url) return null;
+  if (url.includes('/api/proxy/avatar') || url.includes('selstorage.ru')) {
+    return url;
+  }
+  return `/api/proxy/avatar?url=${encodeURIComponent(url)}`;
+};
+
 export default function Header() {
   const { data: session, status } = useSession();
   const isLoading = status === "loading";
@@ -131,6 +139,8 @@ export default function Header() {
     return "U";
   };
 
+  const proxiedAvatarUrl = getProxiedAvatarUrl(avatarUrl);
+
   const navLinks = [{ href: "/catalog", label: "🧶", name: "Каталог" }, { href: "/blog", label: "📝", name: "Блог" }, { href: "/master-classes", label: "🎓", name: "Мастер-классы" }]
 
   return (
@@ -169,9 +179,16 @@ export default function Header() {
                     <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-forms animate-pulse" />
                   ) : isAuthenticated ? (
                     <Link href="/profile" className="block">
-                      {avatarUrl && !avatarError ? (
+                      {proxiedAvatarUrl && !avatarError ? (
                         <div className="relative w-6 h-6 sm:w-7 sm:h-7">
-                          <Image src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`} alt="profile" fill sizes="(max-width: 640px) 1.5rem, (max-width: 768px) 1.75rem, 1.75rem" className="rounded-full object-cover ring-2 ring-white/50 hover:ring-firm-orange transition-all duration-300" onError={() => setAvatarError(true)} />
+                          <Image 
+                            src={proxiedAvatarUrl} 
+                            alt="profile" 
+                            fill 
+                            sizes="(max-width: 640px) 1.5rem, (max-width: 768px) 1.75rem, 1.75rem" 
+                            className="rounded-full object-cover ring-2 ring-white/50 hover:ring-firm-orange transition-all duration-300" 
+                            onError={() => setAvatarError(true)} 
+                          />
                         </div>
                       ) : (
                         <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main text-xs sm:text-sm font-bold">{getInitials()}</div>
@@ -197,9 +214,16 @@ export default function Header() {
                   <Link href="/catalog" className="flex flex-col items-center gap-1 transition-all duration-300 text-firm-gray hover:text-firm-orange"><Image src={catalog} alt="Каталог" className="w-5 h-5" /><span className="text-[10px] font-medium">Каталог</span></Link>
                   <Link href="/chats" className="relative flex flex-col items-center gap-1 transition-all duration-300 text-firm-gray hover:text-firm-orange"><div className="relative"><Image src={chats} alt="Чаты" className="w-5 h-5" /> {unreadCount > 0 && (<span className="absolute -top-2 -right-2 bg-firm-red text-main text-[10px] rounded-full min-w-4 h-4 px-1 flex items-center justify-center font-bold">{unreadCount > 9 ? '9+' : unreadCount}</span>)}</div><span className="text-[10px] font-medium">Чаты</span></Link>
                   <Link href="/profile" className="flex flex-col items-center gap-1 transition-all duration-300 text-gray-500 hover:text-firm-orange">
-                    {avatarUrl && !avatarError ? (
+                    {proxiedAvatarUrl && !avatarError ? (
                       <div className="relative w-5 h-5">
-                        <Image src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`} alt="profile" fill sizes="1.25rem" className="rounded-full object-cover" onError={() => setAvatarError(true)} />
+                        <Image 
+                          src={proxiedAvatarUrl} 
+                          alt="profile" 
+                          fill 
+                          sizes="1.25rem" 
+                          className="rounded-full object-cover" 
+                          onError={() => setAvatarError(true)} 
+                        />
                       </div>
                     ) : (
                       <div className="w-5 h-5 rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main text-[10px] font-bold">
