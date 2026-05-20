@@ -14,49 +14,16 @@ interface ProductCardProps {
         master_name?: string;
     }
 }
-
-// SVG иконка избранного (сердечко)
 const FavoriteIcon = ({ className, isFavorite }: { className?: string; isFavorite?: boolean }) => (
-    <svg 
-        width="43" 
-        height="39" 
-        viewBox="0 0 43 39" 
-        fill="none" 
-        xmlns="http://www.w3.org/2000/svg"
-        className={className}
-    >
-        <path 
-            d="M30.8125 2C36.2553 2 40.5 6.2282 40.5 11.6875C40.5 15.0356 39.0075 18.2397 35.9707 21.9551C32.9119 25.6973 28.4985 29.7095 22.9873 34.707L22.9854 34.71L21.25 36.2891L19.5146 34.71L19.5127 34.707L17.4971 32.8779C12.9186 28.711 9.20571 25.2295 6.5293 21.9551C3.49247 18.2397 2 15.0356 2 11.6875C2 6.2282 6.24469 2 11.6875 2C14.7804 2 17.7821 3.45026 19.7324 5.72266L21.25 7.49121L22.7676 5.72266C24.7179 3.45026 27.7196 2 30.8125 2Z" 
-            stroke={isFavorite ? "#BC354F" : "#D4D4D4"}
-            strokeWidth="4"
-            fill={isFavorite ? "#BC354F" : "none"}
-        />
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+        <path d="M23.2002 1.25C27.3399 1.25011 30.7498 4.79098 30.75 9.59082C30.75 12.501 29.5561 15.2315 27.25 18.3066C24.9278 21.4031 21.584 24.7143 17.4414 28.8086L17.4395 28.8105L16 30.2383L14.5605 28.8105L14.5586 28.8086C10.416 24.7143 7.07223 21.4031 4.75 18.3066C2.44386 15.2315 1.25 12.501 1.25 9.59082C1.25022 4.79098 4.6601 1.25011 8.7998 1.25C11.164 1.25 13.487 2.4569 15.0176 4.40039L16 5.64746L16.9824 4.40039C18.513 2.4569 20.836 1.25 23.2002 1.25Z" stroke={isFavorite ? "#D97C8E" : "#737682"} strokeWidth="2.5" fill={isFavorite ? "#D97C8E" : "none"} />
     </svg>
 )
 
-// SVG иконка корзины
 const CartIcon = ({ className }: { className?: string }) => (
-    <svg 
-        width="38" 
-        height="32" 
-        viewBox="0 0 38 32" 
-        fill="none" 
-        xmlns="http://www.w3.org/2000/svg"
-        className={className}
-    >
-        <path 
-            d="M2.05121 14.3737C1.9881 14.1218 1.98326 13.8588 2.03703 13.6048C2.09081 13.3508 2.20179 13.1123 2.36155 12.9076C2.52131 12.7029 2.72563 12.5373 2.95899 12.4234C3.19235 12.3095 3.44861 12.2503 3.70829 12.2502H33.5016C33.7611 12.2503 34.0172 12.3095 34.2504 12.4233C34.4836 12.5371 34.6878 12.7026 34.8475 12.9071C35.0072 13.1116 35.1183 13.3498 35.1722 13.6036C35.2261 13.8574 35.2215 14.1202 35.1587 14.372L32.0649 26.7455C31.8802 27.4846 31.4536 28.1408 30.8531 28.6097C30.2527 29.0787 29.5126 29.3335 28.7507 29.3336H8.45916C7.69726 29.3335 6.95726 29.0787 6.35677 28.6097C5.75628 28.1408 5.32976 27.4846 5.145 26.7455L2.05121 14.3737Z" 
-            stroke="#BC354F" 
-            strokeWidth="4" 
-            strokeLinejoin="round"
-            fill="none"
-        />
-        <path 
-            d="M13.48 19.0836V22.5002M23.73 19.0836V22.5002M8.35498 12.2502L15.1883 2.00024M28.855 12.2502L22.0216 2.00024" 
-            stroke="#BC354F" 
-            strokeWidth="4" 
-            strokeLinecap="round"
-        />
+    <svg width="35" height="35" viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+        <path d="M1.29934 15.7362C1.23854 15.4413 1.23387 15.1335 1.28568 14.8361C1.3375 14.5386 1.44444 14.2595 1.59838 14.0198C1.75232 13.7801 1.9492 13.5863 2.17407 13.4529C2.39893 13.3196 2.64585 13.2503 2.89607 13.2502H31.6043C31.8544 13.2503 32.1011 13.3196 32.3258 13.4529C32.5505 13.5861 32.7473 13.7798 32.9012 14.0192C33.0551 14.2586 33.1621 14.5375 33.2141 14.8347C33.266 15.1318 33.2616 15.4395 33.2011 15.7342L30.22 30.2202C30.0419 31.0856 29.6309 31.8538 29.0523 32.4028C28.4737 32.9518 27.7606 33.2501 27.0265 33.2502H7.47392C6.73977 33.2501 6.02672 32.9518 5.4481 32.4028C4.86948 31.8538 4.45849 31.0856 4.28046 30.2202L1.29934 15.7362Z" stroke="#D97C8E" strokeWidth="2.5" strokeLinejoin="round" fill="none" />
+        <path d="M12.3116 21.2502V25.2502M22.1883 21.2502V25.2502M7.37329 13.2502L13.9578 1.25024M27.1267 13.2502L20.5422 1.25024" stroke="#D97C8E" strokeWidth="2.5" strokeLinecap="round" />
     </svg>
 )
 
@@ -68,6 +35,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     const [loading, setLoading] = useState(false)
     const [isHovered, setIsHovered] = useState(false)
     const [isCartHovered, setIsCartHovered] = useState(false)
+    const [imageError, setImageError] = useState(false)
 
     useEffect(() => {
         if (session) {
@@ -95,7 +63,6 @@ export default function ProductCard({ product }: ProductCardProps) {
             const response = await fetch('/api/user/favorites')
             const data = await response.json()
             
-            // Исправлено: API возвращает { success, favorites, ... }
             let favoritesList: { id: string }[] = []
             if (data.favorites && Array.isArray(data.favorites)) {
                 favoritesList = data.favorites
@@ -120,19 +87,10 @@ export default function ProductCard({ product }: ProductCardProps) {
         setLoading(true)
         try {
             const method = isFavorite ? 'DELETE' : 'POST'
-            const url = isFavorite
-                ? `/api/user/favorites?productId=${product.id}`
-                : '/api/user/favorites'
+            const url = isFavorite ? `/api/user/favorites?productId=${product.id}` : '/api/user/favorites'
+            const response = await fetch(url, {method: method, headers: { 'Content-Type': 'application/json' }, body: isFavorite ? undefined : JSON.stringify({ productId: product.id })})
 
-            const response = await fetch(url, {
-                method: method,
-                headers: { 'Content-Type': 'application/json' },
-                body: isFavorite ? undefined : JSON.stringify({ productId: product.id })
-            })
-
-            if (response.ok) {
-                setIsFavorite(!isFavorite)
-            }
+            if (response.ok) {setIsFavorite(!isFavorite)}
         } catch (error) {
             console.error('Error toggling favorite:', error)
         } finally {
@@ -141,72 +99,52 @@ export default function ProductCard({ product }: ProductCardProps) {
     }
 
     const updateQuantity = async (newQuantity: number) => {
-    if (newQuantity < 1) {
-        await removeFromCart()
-        return
-    }
-
-    setLoading(true)
-    try {
-        const response = await fetch('/api/cart', {  // ← ИСПРАВЛЕНО: убрали /${product.id}
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ productId: product.id, quantity: newQuantity })
-        })
-
-        if (response.ok) {
-            setQuantity(newQuantity)
-            setIsInCart(true)
+        if (newQuantity < 1) {
+            await removeFromCart()
+            return
         }
-    } catch (error) {
-        console.error('Error updating quantity:', error)
-    } finally {
-        setLoading(false)
+
+        setLoading(true)
+        try {
+            const response = await fetch('/api/cart', {method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productId: product.id, quantity: newQuantity })})
+
+            if (response.ok) {
+                setQuantity(newQuantity)
+                setIsInCart(true)
+            }
+        } catch (error) {
+            console.error('Error updating quantity:', error)
+        } finally {
+            setLoading(false)
+        }
     }
-}
 
     const addToCart = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (!session) {
-        window.location.href = '/auth/signin?callbackUrl=/catalog';
-        return;
-    }
-
-    setLoading(true);
-    try {
-        console.log('Adding to cart - product:', { 
-            id: product.id, 
-            title: product.title 
-        });
-        
-        const response = await fetch('/api/cart', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ productId: product.id, quantity: 1 })
-        });
-        
-        const data = await response.json();
-        console.log('Response:', response.status, data);
-        
-        if (response.ok) {
-            setIsInCart(true);
-            setQuantity(1);
-        } else {
-            console.error('Error response:', data);
+        e.preventDefault();
+        if (!session) {
+            window.location.href = '/auth/signin?callbackUrl=/catalog';
+            return;
         }
-    } catch (error) {
-        console.error('Error adding to cart:', error);
-    } finally {
-        setLoading(false);
-    }
-};
+
+        setLoading(true);
+        try {
+            const response = await fetch('/api/cart', {method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productId: product.id, quantity: 1 })});
+            
+            if (response.ok) {
+                setIsInCart(true);
+                setQuantity(1);
+            }
+        } catch (error) {
+            console.error('Error adding to cart:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const removeFromCart = async () => {
         setLoading(true)
         try {
-            const response = await fetch(`/api/cart?productId=${product.id}`, {
-                method: 'DELETE'
-            })
+            const response = await fetch(`/api/cart?productId=${product.id}`, {method: 'DELETE'})
 
             if (response.ok) {
                 setIsInCart(false)
@@ -221,93 +159,32 @@ export default function ProductCard({ product }: ProductCardProps) {
 
     return (
         <Link href={`/catalog/${product.id}`} className="group">
-            <div className="bg-white rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300">
-                {/* Изображение */}
-                <div className="relative aspect-square bg-[#f5f5f5]">
-                    {product.main_image_url ? (
-                        <img
-                            src={product.main_image_url}
-                            alt={product.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
+            <div className="bg-main rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300">
+                <div className="relative aspect-square bg-main">
+                    {product.main_image_url && !imageError ? (
+                        <Image src={product.main_image_url} alt={product.title} fill className="object-cover group-hover:scale-105 transition-transform duration-300" sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" onError={() => setImageError(true)} />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                            <span className="text-gray-400 text-sm">Нет фото</span>
+                            <span className="text-firm-gray text-sm">Нет фото</span>
                         </div>
                     )}
-
-                    {/* Кнопка избранного */}
-                    <button
-                        onClick={handleAddToFavorite}
-                        disabled={loading}
-                        onMouseEnter={() => setIsHovered(true)}
-                        onMouseLeave={() => setIsHovered(false)}
-                        className="absolute top-3 right-3 w-10 h-10 rounded-full shadow-md flex items-center justify-center transition-all duration-300 z-10 disabled:opacity-50"
-                    >
-                        <FavoriteIcon 
-                            className={`w-8 h-8 transition-all duration-300 ${
-                                isHovered && !isFavorite ? 'scale-110 rotate-12' : ''
-                            } ${isFavorite ? 'scale-110' : ''}`}
-                            isFavorite={isFavorite}
-                        />
-                    </button>
+                    <button onClick={handleAddToFavorite}  disabled={loading} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 z-10 disabled:opacity-50 bg-main/80 backdrop-blur-sm"><FavoriteIcon className={`w-8 h-8 transition-all duration-300 ${isHovered && !isFavorite ? 'scale-110 rotate-12' : '' } ${isFavorite ? 'scale-110' : ''}`} isFavorite={isFavorite} /></button>
                 </div>
 
-                {/* Информация о товаре */}
                 <div className="p-3">
-                    <h3 className="font-['Montserrat_Alternates'] font-medium text-base mb-0.5 line-clamp-1">
-                        {product.title}
-                    </h3>
-                    <p className="text-xs text-gray-400 mb-2">
-                        {product.master_name}
-                    </p>
+                    <h3 className="font-['Montserrat_Alternates'] font-medium text-base mb-0.5 line-clamp-1">{product.title}</h3>
+                    <p className="text-xs text-firm-gray mb-2">{product.master_name}</p>
                     <div className="flex justify-between items-center">
-                        <span className="font-['Montserrat_Alternates'] font-bold text-lg text-firm-orange">
-                            {product.price.toLocaleString()} ₽
-                        </span>
+                        <span className="font-['Montserrat_Alternates'] font-bold text-lg text-firm-orange">{product.price.toLocaleString()} ₽</span>
                         
-                        {/* Кнопка корзины с SVG иконкой */}
                         {isInCart ? (
-                            <div className="flex items-center gap-2 bg-[#f5f5f5] rounded-lg p-1">
-                                <button
-                                    onClick={(e) => {
-                                        e.preventDefault()
-                                        updateQuantity(quantity - 1)
-                                    }}
-                                    disabled={loading}
-                                    className="w-7 h-7 rounded-full bg-firm-orange text-white flex items-center justify-center hover:bg-opacity-90 transition disabled:opacity-50"
-                                >
-                                    -
-                                </button>
+                            <div className="flex items-center gap-2 bg-main rounded-lg p-1">
+                                <button onClick={(e) => {e.preventDefault(); updateQuantity(quantity - 1)}} disabled={loading} className="w-7 h-7 rounded-full bg-firm-orange text-main flex items-center justify-center hover:bg-opacity-90 transition disabled:opacity-50">-</button>
                                 <span className="w-5 text-center text-sm font-medium">{quantity}</span>
-                                <button
-                                    onClick={(e) => {
-                                        e.preventDefault()
-                                        updateQuantity(quantity + 1)
-                                    }}
-                                    disabled={loading}
-                                    className="w-7 h-7 rounded-full bg-firm-orange text-white flex items-center justify-center hover:bg-opacity-90 transition disabled:opacity-50"
-                                >
-                                    +
-                                </button>
+                                <button onClick={(e) => {e.preventDefault(); updateQuantity(quantity + 1)}} disabled={loading}className="w-7 h-7 rounded-full bg-firm-orange text-main flex items-center justify-center hover:bg-opacity-90 transition disabled:opacity-50"> +</button>
                             </div>
                         ) : (
-                            <button
-                                onClick={addToCart}
-                                disabled={loading}
-                                onMouseEnter={() => setIsCartHovered(true)}
-                                onMouseLeave={() => setIsCartHovered(false)}
-                                className="relative flex items-center justify-center disabled:opacity-50"
-                            >
-                                <CartIcon 
-                                    className={`transition-all w-7 h-7 duration-300 ${
-                                        isCartHovered ? 'scale-110 rotate-12' : ''
-                                    }`}
-                                />
-                                {loading && (
-                                    <div className="absolute inset-0 rounded-full animate-ping opacity-75"></div>
-                                )}
-                            </button>
+                            <button onClick={addToCart} disabled={loading} onMouseEnter={() => setIsCartHovered(true)}  onMouseLeave={() => setIsCartHovered(false)} className="relative flex items-center justify-center disabled:opacity-50 bg-main/80 backdrop-blur-sm rounded-full p-1"><CartIcon className={`w-7 h-7 transition-all duration-300 ${isCartHovered ? 'scale-110 rotate-12' : ''}`} /> {loading && (<div className="absolute inset-0 rounded-full animate-ping opacity-75"></div>)}</button>
                         )}
                     </div>
                 </div>
