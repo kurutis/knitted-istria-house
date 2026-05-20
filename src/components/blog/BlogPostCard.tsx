@@ -103,7 +103,6 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
 
   useEffect(() => {
     const loadUserProfile = async () => {
-      // Если уже есть прямой URL аватара, не загружаем через API
       if (initialAvatarUrl) {
         setAvatarUrl(initialAvatarUrl);
         setLoading(false);
@@ -116,7 +115,6 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
       }
 
       try {
-        // Пробуем загрузить профиль через API пользователя
         const response = await fetch(`/api/user/profile?userId=${userId}`);
         if (response.ok) {
           const data = await response.json();
@@ -141,6 +139,16 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
     loadUserProfile();
   }, [userId, initialAvatarUrl, name]);
 
+  // Всегда проксируем аватар
+  const getProxiedUrl = (url: string) => {
+    if (!url) return '';
+    // Если это уже проксированный URL, не проксируем повторно
+    if (url.includes('/api/proxy/avatar')) {
+      return url;
+    }
+    return `/api/proxy/avatar?url=${encodeURIComponent(url)}`;
+  };
+
   const getInitials = () => {
     if (displayName && displayName.length > 0) {
       return displayName.charAt(0).toUpperCase();
@@ -160,11 +168,11 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
     );
   }
 
-  // Если есть аватар и нет ошибки - показываем его
   if (avatarUrl && !avatarError) {
+    const proxiedUrl = getProxiedUrl(avatarUrl);
     return (
       <img
-        src={avatarUrl}
+        src={proxiedUrl}
         alt={displayName || name || "Avatar"}
         className="rounded-full object-cover"
         style={{ width: size, height: size }}
@@ -173,7 +181,6 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
     );
   }
 
-  // Fallback - инициалы
   return (
     <div 
       className="rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold"
@@ -191,6 +198,14 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
   const [avatarError, setAvatarError] = useState(false);
   const [loading, setLoading] = useState(true);
   const isMaster = session?.user?.role === "master";
+
+  const getProxiedUrl = (url: string) => {
+    if (!url) return '';
+    if (url.includes('/api/proxy/avatar')) {
+      return url;
+    }
+    return `/api/proxy/avatar?url=${encodeURIComponent(url)}`;
+  };
 
   useEffect(() => {
     if (!session?.user) {
@@ -281,9 +296,10 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
   }
 
   if (avatarUrl && !avatarError) {
+    const proxiedUrl = getProxiedUrl(avatarUrl);
     return (
       <img
-        src={avatarUrl}
+        src={proxiedUrl}
         alt={userName || "Profile"}
         className="rounded-full object-cover"
         style={{ width: size, height: size }}
