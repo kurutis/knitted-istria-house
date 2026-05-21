@@ -129,3 +129,77 @@ export async function PUT(
         return NextResponse.json({ error: 'Ошибка обновления комментария' }, { status: 500 });
     }
 }
+
+export async function DELETE(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const session = await getServerSession(authOptions);
+        
+        if (!session?.user) {
+            return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
+        }
+
+        const { id } = await params;
+        
+        if (!id || !isValidUUID(id)) {
+            return NextResponse.json({ error: 'Неверный формат ID комментария' }, { status: 400 });
+        }
+
+        // Проверяем существование комментария и права
+        const { data: comment, error: findError } = await supabase
+            .from('blog_comments')
+            .select('author_id, post_id')
+            .eq('id', id)
+            .single();
+
+        if (findError) {
+            if (findError.code === 'PGRST116') {
+                return NextResponse.json({ error: 'Комментарий не найден' }, { status: 404 });
+            }
+            console.error('Error finding comment:', findError);
+            return NextResponse.json({ error: 'Ошибка проверки комментария' }, { status: 500 });
+        }
+
+        // Проверяем, что пользователь - автор комментария или админ
+        if (comment.author_id !== session.user.id && session.user.role !== 'admin') {
+            return NextResponse.json({ error: 'Доступ запрещен' }, { status: 403 });
+        }
+
+        // Удаляем комментарий
+        const { error: deleteError } = await supabase
+            .from('blog_comments')
+            .delete()
+            .eq('id', id);
+
+        if (deleteError) {
+            console.error('Error deleting comment:', deleteError);
+            return NextResponse.json({ error: 'Ошибка удаления комментария: ' + deleteError.message }, { status: 500 });
+        }
+
+        // Обновляем счетчик комментариев в посте
+        const { data: post } = await supabase
+            .from('blog_posts')
+            .select('comments_count')
+            .eq('id', comment.post_id)
+            .single();
+
+        if (post) {
+            await supabase
+                .from('blog_posts')
+                .update({ comments_count: Math.max(0, (post.comments_count || 0) - 1) })
+                .eq('id', comment.post_id);
+        }
+
+        // Возвращаем успешный ответ (204 No Content или 200 с JSON)
+        return NextResponse.json({ 
+            success: true, 
+            message: 'Комментарий успешно удален' 
+        }, { status: 200 });
+        
+    } catch (error) {
+        console.error('Error deleting comment:', error);
+        return NextResponse.json({ error: 'Ошибка удаления комментария' }, { status: 500 });
+    }
+}
