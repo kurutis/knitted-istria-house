@@ -41,18 +41,9 @@ function MediaGalleryModal({ media, initialIndex, title, onClose }: MediaGallery
 
     return (
         <AnimatePresence>
-            <motion.div 
-                className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={onClose}
-            >
+            <motion.div className="fixed inset-0 bg-main-black/90 z-50 flex items-center justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
                 <div className="relative w-full h-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
-                    <button
-                        onClick={onClose}
-                        className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition"
-                    >
+                    <button onClick={onClose} className="absolute top-4 right-4 z-10 w-10 h-10 bg-main/20 hover:bg-main/30 rounded-full flex items-center justify-center text-main transition">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -60,55 +51,23 @@ function MediaGalleryModal({ media, initialIndex, title, onClose }: MediaGallery
 
                     <div className="relative max-w-[90vw] max-h-[85vh]">
                         {currentMedia?.type === 'video' ? (
-                            <video 
-                                src={currentMedia.url}
-                                className="max-w-full max-h-[85vh] object-contain rounded-lg"
-                                controls
-                                autoPlay
-                            />
+                            <video src={currentMedia.url} className="max-w-full max-h-[85vh] object-contain rounded-lg" controls autoPlay />
                         ) : (
                             <div className="relative w-full h-full max-w-[90vw] max-h-[85vh] min-w-75 min-h-50">
-                                <Image
-                                    src={currentMedia.url}
-                                    alt={`${title} - фото ${currentIndex + 1}`}
-                                    fill
-                                    className="object-contain rounded-lg shadow-2xl"
-                                    sizes="(max-width: 768px) 90vw, 80vw"
-                                    priority
-                                />
+                                <Image src={currentMedia.url} alt={`${title} - фото ${currentIndex + 1}`} fill className="object-contain rounded-lg shadow-2xl" sizes="(max-width: 768px) 90vw, 80vw" priority />
                             </div>
                         )}
                     </div>
                     
                     {media.length > 1 && (
                         <>
-                            <button
-                                onClick={() => setCurrentIndex(prev => (prev - 1 + media.length) % media.length)}
-                                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition"
-                            >
-                                ←
-                            </button>
-                            <button
-                                onClick={() => setCurrentIndex(prev => (prev + 1) % media.length)}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition"
-                            >
-                                →
-                            </button>
+                            <button onClick={() => setCurrentIndex(prev => (prev - 1 + media.length) % media.length)} className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-main/20 hover:bg-main/30 rounded-full flex items-center justify-center text-main transition">←</button>
+                            <button onClick={() => setCurrentIndex(prev => (prev + 1) % media.length)}className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-main/20 hover:bg-main/30 rounded-full flex items-center justify-center text-main transition">→</button>
                         </>
                     )}
                     
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                        {media.map((_, idx) => (
-                            <button
-                                key={idx}
-                                onClick={() => setCurrentIndex(idx)}
-                                className={`h-1.5 rounded-full transition-all ${
-                                    idx === currentIndex 
-                                        ? 'bg-white w-6' 
-                                        : 'bg-white/50 w-1.5'
-                                }`}
-                            />
-                        ))}
+                        {media.map((_, idx) => (<button key={idx} onClick={() => setCurrentIndex(idx)} className={`h-1.5 rounded-full transition-all ${idx === currentIndex ? 'bg-main w-6' : 'bg-main/50 w-1.5'}`} />))}
                     </div>
 
                     <div className="absolute top-4 left-4 bg-black/50 px-2 py-1 rounded text-white text-sm">
@@ -133,12 +92,8 @@ export default function MediaGallery({ images, mainImageUrl, video, title }: Med
     const allMedia = useMemo(() => {
         const imageUrls = new Set<string>()
         
-        // Добавляем main_image_url, если есть
-        if (mainImageUrl) {
-            imageUrls.add(mainImageUrl)
-        }
+        if (mainImageUrl) {imageUrls.add(mainImageUrl)}
         
-        // Добавляем изображения из массива images
         if (images && Array.isArray(images)) {
             images.forEach(img => {
                 if (typeof img === 'string') {
@@ -153,57 +108,30 @@ export default function MediaGallery({ images, mainImageUrl, video, title }: Med
             })
         }
         
-        const media: MediaItem[] = [
-            ...(video ? [{ type: 'video' as const, url: video }] : []),
-            ...Array.from(imageUrls).map(url => ({ type: 'image' as const, url }))
-        ]
+        const media: MediaItem[] = [...(video ? [{ type: 'video' as const, url: video }] : []), ...Array.from(imageUrls).map(url => ({ type: 'image' as const, url }))]
         
         return media
     }, [images, mainImageUrl, video])
 
-    const openModal = (index: number) => {
-        setSelectedMediaIndex(index)
-    }
+    const openModal = (index: number) => {setSelectedMediaIndex(index)}
 
-    const closeModal = () => {
-        setSelectedMediaIndex(null)
-    }
+    const closeModal = () => {setSelectedMediaIndex(null)}
 
     if (allMedia.length === 0) return null
 
     const count = allMedia.length
 
-    // 1 фото
     if (count === 1) {
         return (
             <>
-                <motion.div 
-                    whileHover={{ scale: 1.02 }}
-                    transition={{ duration: 0.3 }}
-                    className="cursor-pointer overflow-hidden rounded-xl shadow-md relative aspect-video"
-                    onClick={() => openModal(0)}
-                >
-                    <Image
-                        src={allMedia[0].url}
-                        alt={title}
-                        fill
-                        className="object-cover transition-transform duration-500 hover:scale-105"
-                        sizes="(max-width: 768px) 100vw, 800px"
-                    />
+                <motion.div whileHover={{ scale: 1.02 }} transition={{ duration: 0.3 }} className="cursor-pointer overflow-hidden rounded-xl shadow-md relative aspect-video" onClick={() => openModal(0)}>
+                    <Image src={allMedia[0].url} alt={title} fill className="object-cover transition-transform duration-500 hover:scale-105" sizes="(max-width: 768px) 100vw, 800px" />
                 </motion.div>
-                {selectedMediaIndex !== null && (
-                    <MediaGalleryModal
-                        media={allMedia}
-                        initialIndex={selectedMediaIndex}
-                        title={title}
-                        onClose={closeModal}
-                    />
-                )}
+                {selectedMediaIndex !== null && (<MediaGalleryModal media={allMedia} initialIndex={selectedMediaIndex} title={title} onClose={closeModal} />)}
             </>
         )
     }
 
-    // 2+ фото
     const remaining = count - 4
     
     return (
@@ -213,23 +141,11 @@ export default function MediaGallery({ images, mainImageUrl, video, title }: Med
                     const showOverlay = idx === 3 && remaining > 0
                     
                     return (
-                        <motion.div 
-                            key={idx}
-                            whileHover={{ scale: 1.02 }}
-                            transition={{ duration: 0.3 }}
-                            className="relative cursor-pointer overflow-hidden rounded-xl shadow-md aspect-square"
-                            onClick={() => openModal(idx)}
-                        >
-                            <Image
-                                src={media.url}
-                                alt={`${title} ${idx + 1}`}
-                                fill
-                                className="object-cover transition-transform duration-500 hover:scale-105"
-                                sizes="(max-width: 768px) 50vw, 25vw"
-                            />
+                        <motion.div key={idx} whileHover={{ scale: 1.02 }} transition={{ duration: 0.3 }} className="relative cursor-pointer overflow-hidden rounded-xl shadow-md aspect-square" onClick={() => openModal(idx)}>
+                            <Image src={media.url} alt={`${title} ${idx + 1}`} fill className="object-cover transition-transform duration-500 hover:scale-105" sizes="(max-width: 768px) 50vw, 25vw" />
                             {showOverlay && (
-                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
-                                    <span className="text-white text-xl font-bold">+{remaining}</span>
+                                <div className="absolute inset-0 bg-main-black/60 flex items-center justify-center backdrop-blur-sm">
+                                    <span className="text-main text-xl font-bold">+{remaining}</span>
                                 </div>
                             )}
                         </motion.div>
@@ -238,14 +154,7 @@ export default function MediaGallery({ images, mainImageUrl, video, title }: Med
             </div>
             
             <AnimatePresence>
-                {selectedMediaIndex !== null && (
-                    <MediaGalleryModal
-                        media={allMedia}
-                        initialIndex={selectedMediaIndex}
-                        title={title}
-                        onClose={closeModal}
-                    />
-                )}
+                {selectedMediaIndex !== null && (<MediaGalleryModal media={allMedia} initialIndex={selectedMediaIndex} title={title} onClose={closeModal} />)}
             </AnimatePresence>
         </>
     )
