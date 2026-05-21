@@ -420,45 +420,45 @@ export default function BlogPostCard({post, showComments: externalShowComments, 
   };
 
   const handleDeleteComment = async (commentId: string) => {
-  setConfirmModal({ 
-    isOpen: true, 
-    title: 'Удаление комментария', 
-    message: 'Вы уверены, что хотите удалить этот комментарий?', 
-    type: 'danger', 
-    onConfirm: async () => {
-      setConfirmModal(prev => ({ ...prev, isOpen: false }));
-      setDeletingCommentId(commentId);
-      try {
-        const response = await fetch(`/api/blog/comments/${commentId}`, {
-          method: "DELETE",
-        });
+    setConfirmModal({ 
+      isOpen: true, 
+      title: 'Удаление комментария', 
+      message: 'Вы уверены, что хотите удалить этот комментарий?', 
+      type: 'danger', 
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        setDeletingCommentId(commentId);
+        try {
+          const response = await fetch(`/api/blog/comments/${commentId}`, {
+            method: "DELETE",
+          });
 
-        if (response.ok) {
-          setComments(comments.filter(comment => comment.id !== commentId));
-          setCommentsCount(commentsCount - 1);
-          toast.success("Комментарий удален");
-        } else {
-          // Только если есть тело ответа, пытаемся его прочитать
-          let errorMessage = "Ошибка при удалении комментария";
-          try {
-            const contentType = response.headers.get("content-type");
-            if (contentType && contentType.includes("application/json")) {
-              const error = await response.json();
-              errorMessage = error.error || errorMessage;
+          if (response.ok) {
+            setComments(comments.filter(comment => comment.id !== commentId));
+            setCommentsCount(commentsCount - 1);
+            toast.success("Комментарий удален");
+          } else {
+            // Только если есть тело ответа, пытаемся его прочитать
+            let errorMessage = "Ошибка при удалении комментария";
+            try {
+              const contentType = response.headers.get("content-type");
+              if (contentType && contentType.includes("application/json")) {
+                const error = await response.json();
+                errorMessage = error.error || errorMessage;
+              }
+            } catch (e) {
             }
-          } catch (e) {
+            toast.error(errorMessage);
           }
-          toast.error(errorMessage);
+        } catch (error) {
+          console.error("Error deleting comment:", error);
+          toast.error("Ошибка при удалении комментария");
+        } finally {
+          setDeletingCommentId(null);
         }
-      } catch (error) {
-        console.error("Error deleting comment:", error);
-        toast.error("Ошибка при удалении комментария");
-      } finally {
-        setDeletingCommentId(null);
       }
-    }
-  });
-};
+    });
+  };
 
   const galleryImages = useMemo(() => {
     const uniqueUrls = new Set<string>();
