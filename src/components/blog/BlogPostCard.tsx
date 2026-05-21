@@ -61,7 +61,7 @@ const formatDate = (dateString: string) => {
 
 const LikeIcon = ({ isActive }: { isActive: boolean }) => (
   <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M23.2002 1.25C27.3399 1.25011 30.7498 4.79098 30.75 9.59082C30.75 12.501 29.5561 15.2315 27.25 18.3066C24.9278 21.4031 21.584 24.7143 17.4414 28.8086L17.4395 28.8105L16 30.2383L14.5605 28.8105L14.5586 28.8086C10.416 24.7143 7.07223 21.4031 4.75 18.3066C2.44386 15.2315 1.25 12.501 1.25 9.59082C1.25022 4.79098 4.6601 1.25011 8.7998 1.25C11.164 1.25 13.487 2.4569 15.0176 4.40039L16 5.64746L16.9824 4.40039C18.513 2.4569 20.836 1.25 23.2002 1.25Z" stroke={isActive ? "#D97C8E" : "#737682"}strokeWidth="2.5" fill={isActive ? "#D97C8E" : "none"} />
+    <path d="M23.2002 1.25C27.3399 1.25011 30.7498 4.79098 30.75 9.59082C30.75 12.501 29.5561 15.2315 27.25 18.3066C24.9278 21.4031 21.584 24.7143 17.4414 28.8086L17.4395 28.8105L16 30.2383L14.5605 28.8105L14.5586 28.8086C10.416 24.7143 7.07223 21.4031 4.75 18.3066C2.44386 15.2315 1.25 12.501 1.25 9.59082C1.25022 4.79098 4.6601 1.25011 8.7998 1.25C11.164 1.25 13.487 2.4569 15.0176 4.40039L16 5.64746L16.9824 4.40039C18.513 2.4569 20.836 1.25 23.2002 1.25Z" stroke={isActive ? "#D97C8E" : "#737682"} strokeWidth="2.5" fill={isActive ? "#D97C8E" : "none"} />
   </svg>
 );
 
@@ -110,8 +110,12 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
         if (response.ok) {
           const data = await response.json();
           const profile = data.profile || data;
-          if (profile.avatar_url) {setAvatarUrl(profile.avatar_url);}
-          if (profile.fullname || profile.full_name) {setDisplayName(profile.fullname || profile.full_name);}
+          if (profile.avatar_url) {
+            setAvatarUrl(profile.avatar_url);
+          }
+          if (profile.fullname || profile.full_name) {
+            setDisplayName(profile.fullname || profile.full_name);
+          }
         } else if (name) {
           setDisplayName(name);
         }
@@ -128,19 +132,13 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
 
   const getProxiedUrl = (url: string) => {
     if (!url) return '';
-    if (url.includes('/api/proxy/avatar')) {
-      return url;
-    }
+    if (url.includes('/api/proxy/avatar')) {return url;}
     return `/api/proxy/avatar?url=${encodeURIComponent(url)}`;
   };
 
   const getInitials = () => {
-    if (displayName && displayName.length > 0) {
-      return displayName.charAt(0).toUpperCase();
-    }
-    if (name && name.length > 0) {
-      return name.charAt(0).toUpperCase();
-    }
+    if (displayName && displayName.length > 0) {return displayName.charAt(0).toUpperCase()}
+    if (name && name.length > 0) {return name.charAt(0).toUpperCase()}
     return "U";
   };
 
@@ -152,12 +150,11 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
 
   if (avatarUrl && !avatarError) {
     const proxiedUrl = getProxiedUrl(avatarUrl);
-    return (
-      <img src={proxiedUrl} alt={displayName || name || "Avatar"} className="rounded-full object-cover" style={{ width: size, height: size }} onError={() => setAvatarError(true)} />);
+    return (<img src={proxiedUrl} alt={displayName || name || "Avatar"} className="rounded-full object-cover" style={{ width: size, height: size }} onError={() => setAvatarError(true)} />);
   }
 
   return (
-    <div className="rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold" style={{ width: size, height: size, fontSize: size * 0.4 }}>
+    <div className="rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold" style={{ width: size, height: size, fontSize: size * 0.4 }}>
       {getInitials()}
     </div>
   );
@@ -173,9 +170,7 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
 
   const getProxiedUrl = (url: string) => {
     if (!url) return '';
-    if (url.includes('/api/proxy/avatar')) {
-      return url;
-    }
+    if (url.includes('/api/proxy/avatar')) {return url}
     return `/api/proxy/avatar?url=${encodeURIComponent(url)}`;
   };
 
@@ -192,7 +187,9 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
           if (response.ok) {
             const data = await response.json();
             if (data.success && data.profile) {
-              if (data.profile.avatar_url) {setAvatarUrl(data.profile.avatar_url);}
+              if (data.profile.avatar_url) {
+                setAvatarUrl(data.profile.avatar_url);
+              }
               if (data.profile.fullname && data.profile.fullname.trim()) {
                 setUserName(data.profile.fullname);
               } else {
@@ -233,7 +230,7 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
       } catch (error) {
         console.error("Error loading profile:", error);
         const email = session.user?.email;
-        if (email) setUserName(email.split('@')[0])
+        if (email) setUserName(email.split('@')[0]);
       } finally {
         setLoading(false);
       }
@@ -244,34 +241,44 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
 
   const getInitials = () => {
     if (loading) return "U";
-    if (userName && userName.length > 0) {return userName.charAt(0).toUpperCase()}
-    if (session?.user?.name) {return session.user.name.charAt(0).toUpperCase()}
-    if (session?.user?.email) {return session.user.email.charAt(0).toUpperCase()}
-    return "U"
+    if (userName && userName.length > 0) {
+      return userName.charAt(0).toUpperCase();
+    }
+    if (session?.user?.name) {
+      return session.user.name.charAt(0).toUpperCase();
+    }
+    if (session?.user?.email) {
+      return session.user.email.charAt(0).toUpperCase();
+    }
+    return "U";
   };
 
   if (loading) {
-    return (<div className="rounded-full bg-gray-200 animate-pulse" style={{ width: size, height: size }} />);
+    return (
+      <div className="rounded-full bg-gray-200 animate-pulse" style={{ width: size, height: size }} />
+    );
   }
 
   if (avatarUrl && !avatarError) {
     const proxiedUrl = getProxiedUrl(avatarUrl);
     return (
-      <img src={proxiedUrl} alt={userName || "Profile"} className="rounded-full object-cover" style={{ width: size, height: size }} onError={() => setAvatarError(true)} />);
+      <img src={proxiedUrl} alt={userName || "Profile"} className="rounded-full object-cover" style={{ width: size, height: size }} onError={() => setAvatarError(true)} />
+    );
   }
 
   return (
-    <div className="rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold" style={{ width: size, height: size, fontSize: size * 0.4 }}>
+    <div className="rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold" style={{ width: size, height: size, fontSize: size * 0.4 }}>
       {getInitials()}
     </div>
   );
 };
 
-export default function BlogPostCard({post, showComments: externalShowComments, isOwner = false, onEdit, onDelete, variant = "default"}: BlogPostCardProps) {
+export default function BlogPostCard({ post, showComments: externalShowComments, isOwner = false, onEdit, onDelete, variant = "default" }: BlogPostCardProps) {
   const { data: session } = useSession();
   const [showCommentsState, setShowCommentsState] = useState(externalShowComments || false);
   const [commentText, setCommentText] = useState("");
   const [commentLoading, setCommentLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   
   const [isLiked, setIsLiked] = useState(post.is_liked || false);
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
@@ -298,16 +305,15 @@ export default function BlogPostCard({post, showComments: externalShowComments, 
   });
 
   useEffect(() => {
-    if (externalShowComments !== undefined) {
-      setShowCommentsState(externalShowComments);
-    }
-  }, [externalShowComments]);
+    const checkMobile = () => {setIsMobile(window.innerWidth < 768)};
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
-  useEffect(() => {
-    if (showCommentsState) {
-      fetchComments();
-    }
-  }, [showCommentsState, post.id]);
+  useEffect(() => {if (externalShowComments !== undefined) {setShowCommentsState(externalShowComments)}}, [externalShowComments]);
+
+  useEffect(() => {if (showCommentsState) {fetchComments()}}, [showCommentsState, post.id]);
 
   const fetchComments = async () => {
     try {
@@ -343,7 +349,7 @@ export default function BlogPostCard({post, showComments: externalShowComments, 
     setLikesCount(newLikesCount);
     
     try {
-      const response = await fetch(`/api/blog/posts/${post.id}/like`, {method: isLiked ? "DELETE" : "POST"});
+      const response = await fetch(`/api/blog/posts/${post.id}/like`, { method: isLiked ? "DELETE" : "POST" });
       
       if (!response.ok) {
         setIsLiked(isLiked);
@@ -401,9 +407,8 @@ export default function BlogPostCard({post, showComments: externalShowComments, 
 
       if (response.ok) {
         const data = await response.json();
-        const updatedComment = data;
         
-        setComments(comments.map(comment => comment.id === commentId  ? {...comment, content: updatedComment.content, updated_at: updatedComment.updated_at, is_edited: true} : comment));
+        setComments(comments.map(comment => comment.id === commentId ? { ...comment, content: data.content, updated_at: data.updated_at, is_edited: true } : comment));
         setEditingCommentId(null);
         setEditingCommentText("");
         toast.success("Комментарий обновлен");
@@ -420,25 +425,22 @@ export default function BlogPostCard({post, showComments: externalShowComments, 
   };
 
   const handleDeleteComment = async (commentId: string) => {
-    setConfirmModal({ 
-      isOpen: true, 
-      title: 'Удаление комментария', 
-      message: 'Вы уверены, что хотите удалить этот комментарий?', 
-      type: 'danger', 
+    setConfirmModal({
+      isOpen: true,
+      title: 'Удаление комментария',
+      message: 'Вы уверены, что хотите удалить этот комментарий?',
+      type: 'danger',
       onConfirm: async () => {
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
         setDeletingCommentId(commentId);
         try {
-          const response = await fetch(`/api/blog/comments/${commentId}`, {
-            method: "DELETE",
-          });
+          const response = await fetch(`/api/blog/comments/${commentId}`, { method: "DELETE" });
 
           if (response.ok) {
             setComments(comments.filter(comment => comment.id !== commentId));
             setCommentsCount(commentsCount - 1);
             toast.success("Комментарий удален");
           } else {
-            // Только если есть тело ответа, пытаемся его прочитать
             let errorMessage = "Ошибка при удалении комментария";
             try {
               const contentType = response.headers.get("content-type");
@@ -446,8 +448,7 @@ export default function BlogPostCard({post, showComments: externalShowComments, 
                 const error = await response.json();
                 errorMessage = error.error || errorMessage;
               }
-            } catch (e) {
-            }
+            } catch (e) {}
             toast.error(errorMessage);
           }
         } catch (error) {
@@ -467,12 +468,12 @@ export default function BlogPostCard({post, showComments: externalShowComments, 
     
     if (post.images && Array.isArray(post.images)) {
       post.images.forEach(img => {
-        const url = getImageUrl(img);
-        if (url) {uniqueUrls.add(url);}
+        const url = getImageUrl(img)
+        if (url) {uniqueUrls.add(url)}
       });
     }
     
-    return Array.from(uniqueUrls).map((url, index) => ({id: `img-${index}`, url: url, image_url: url, sort_order: index }))}, [post.main_image_url, post.images]);
+    return Array.from(uniqueUrls).map((url, index) => ({id: `img-${index}`, url: url, image_url: url, sort_order: index}))}, [post.main_image_url, post.images]);
 
   const renderPostImages = () => {
     if (galleryImages.length === 0) return null;
@@ -501,26 +502,26 @@ export default function BlogPostCard({post, showComments: externalShowComments, 
               <div className="flex gap-3 mb-4">
                 <CurrentUserAvatar size={32} />
                 <div className="flex-1">
-                  <textarea value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Написать комментарий..." rows={2} className="w-full p-3 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all duration-300 font-['Montserrat_Alternates'] text-sm placeholder:text-firm-gray resize-none" />
+                  <textarea value={commentText}  onChange={(e) => setCommentText(e.target.value)} placeholder="Написать комментарий..." rows={2} className="w-full p-3 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all duration-300 text-sm placeholder:text-firm-gray resize-none"/>
                   <div className="flex justify-end mt-2">
                     <button onClick={handleCommentSubmit} disabled={commentLoading || !commentText.trim()} className="flex items-center gap-2 px-5 py-2 bg-linear-to-r from-firm-orange to-firm-pink rounded-xl text-sm font-['Montserrat_Alternates'] font-medium hover:shadow-lg hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:hover:scale-100" style={{ color: 'var(--color-main)' }}>
-                        {commentLoading ? (
-                          <>
-                            <svg className="w-4 h-4 animate-spin" stroke="#f9f9f9" viewBox="0 0 24 24" fill="none">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                            </svg>
-                            <span className="text-main">Отправка...</span>
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#f9f9f9" strokeWidth="2">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                            </svg>
-                          <span className="text-main">Отправить</span>
-                          </> 
-                        )}
-                      </button>
+                      {commentLoading ? (
+                        <>
+                          <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          <span>Отправка...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                          </svg>
+                          <span>Отправить</span>
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -538,31 +539,27 @@ export default function BlogPostCard({post, showComments: externalShowComments, 
                         <div className="flex justify-between items-start">
                           <div>
                             <p className="font-semibold text-sm">{comment.author_name}</p>
-                            <p className="text-xs text-firm-gray mt-0.5">{formatDate(comment.created_at)}{comment.is_edited && (<span className="ml-2 text-firm-gray text-xs">(ред.)</span> )}</p>
+                            <p className="text-xs text-firm-gray mt-0.5">{formatDate(comment.created_at)} {comment.is_edited && (<span className="ml-2 text-firm-gray text-xs">(ред.)</span>)}</p>
                           </div>
                           
                           {session?.user?.id === comment.author_id && (
-                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition">
-                                {editingCommentId === comment.id ? (
-                                  <>
-                                    <button onClick={() => handleUpdateComment(comment.id)} disabled={updatingComment} className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform disabled:opacity-50"><Image src="/save.svg" alt="Сохранить" width={16} height={16} className="text-firm-green" /></button>
-                                    <button onClick={() => {setEditingCommentId(null); setEditingCommentText("")}} className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"><Image src="/delete.svg" alt="Отмена" width={16} height={16} className="text-firm-gray"/></button>
-                                  </>
-                                ) : (
-                                  <>
-                                    <button onClick={() => {setEditingCommentId(comment.id); setEditingCommentText(comment.content)}} className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"><Image src="/edit.svg" alt="Редактировать" width={16} height={16} className="text-firm-green" /></button>
-                                    <button onClick={() => handleDeleteComment(comment.id)} disabled={deletingCommentId === comment.id} className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform disabled:opacity-50"><Image src="/delete.svg" alt="Удалить" width={16} height={16} className="text-firm-red" /></button>
-                                  </>
-                                )}
-                              </div>
-                            )}
+                            <div className={`flex gap-2 ${!isMobile ? 'opacity-0 group-hover:opacity-100' : ''} transition-opacity`}>
+                              {editingCommentId === comment.id ? (
+                                <>
+                                  <button onClick={() => handleUpdateComment(comment.id)} disabled={updatingComment}className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform disabled:opacity-50"><Image src="/save.svg" alt="Сохранить" width={16} height={16} /></button>
+                                  <button onClick={() => {setEditingCommentId(null); setEditingCommentText("")}}className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"><Image src="/delete.svg" alt="Отмена" width={16} height={16} /></button>
+                                </>
+                              ) : (
+                                <>
+                                  <button onClick={() => {setEditingCommentId(comment.id);setEditingCommentText(comment.content)}}className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"><Image src="/edit.svg" alt="Редактировать" width={16} height={16} /></button>
+                                  <button onClick={() => handleDeleteComment(comment.id)} disabled={deletingCommentId === comment.id} className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform disabled:opacity-50"><Image src="/delete.svg" alt="Удалить" width={16} height={16} /></button>
+                                </>
+                              )}
+                            </div>
+                          )}
                         </div>
 
-                        {editingCommentId === comment.id ? (
-                          <textarea value={editingCommentText} onChange={(e) => setEditingCommentText(e.target.value)} className="w-full p-2 mt-2 rounded-lg bg-main border border-gray-200 outline-firm-orange text-sm" rows={3} autoFocus />
-                        ) : (
-                          <p className="text-text text-sm mt-2">{comment.content}</p>
-                        )}
+                        {editingCommentId === comment.id ? (<textarea value={editingCommentText} onChange={(e) => setEditingCommentText(e.target.value)} className="w-full p-2 mt-2 rounded-lg bg-main border border-gray-200 outline-firm-orange text-sm" rows={3} autoFocus />) : (<p className="text-text text-sm mt-2">{comment.content}</p>)}
                       </div>
                     </div>
                   </div>
@@ -579,16 +576,18 @@ export default function BlogPostCard({post, showComments: externalShowComments, 
     return (
       <div className="flex items-center gap-6 pt-4 mt-4 border-t border-main">
         <button onClick={handleLike} className="flex items-center gap-1.5 transition-all duration-300 hover:scale-110"><LikeIcon isActive={isLiked} /><span className={`text-sm ${isLiked ? 'text-firm-pink' : 'text-firm-gray'}`}>{likesCount}</span></button>
-        <button onClick={() => setShowCommentsState(!showCommentsState)}className="flex items-center gap-1.5 transition-all duration-300 hover:scale-110"><CommentIcon isActive={showCommentsState} /><span className={`text-sm ${showCommentsState ? 'text-firm-orange' : 'text-firm-gray'}`}> {commentsCount}</span></button>
+        
+        <button onClick={() => setShowCommentsState(!showCommentsState)} className="flex items-center gap-1.5 transition-all duration-300 hover:scale-110"><CommentIcon isActive={showCommentsState} /><span className={`text-sm ${showCommentsState ? 'text-firm-orange' : 'text-firm-gray'}`}>{commentsCount}</span></button>
 
         {isOwner && (
           <div className="flex gap-2 ml-auto">
-            {onEdit && (<button onClick={() => onEdit(post.id)} className="text-firm-gray hover:text-firm-orange transition">Редактировать</button> )}
+            {onEdit && (<button onClick={() => onEdit(post.id)} className="text-firm-gray hover:text-firm-orange transition">Редактировать</button>)}
             {onDelete && (<button onClick={() => onDelete(post.id)} className="text-firm-gray hover:text-firm-red transition">Удалить</button>)}
           </div>
         )}
 
         <div className="flex-1"></div>
+        
         <div className="flex items-center gap-1.5">
           <ViewsIcon />
           <span className="font-[Raleway] text-sm text-firm-gray">{post.views_count}</span>
@@ -609,7 +608,7 @@ export default function BlogPostCard({post, showComments: externalShowComments, 
             </div>
           </Link>
 
-          <h3 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-3 hover:text-firm-orange transition-colors"><Link href={`/blog/${post.id}`}>{post.title}</Link> </h3>
+          <h3 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-3 hover:text-firm-orange transition-colors"><Link href={`/blog/${post.id}`}>{post.title}</Link></h3>
 
           {renderPostImages()}
 
