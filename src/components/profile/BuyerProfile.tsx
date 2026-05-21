@@ -379,11 +379,7 @@ export default function BuyerProfile({
                       >
                         <Image src={tab.icon} alt={tab.label} width={20} height={20} className="w-5 h-5" />
                         <span className="flex-1">{tab.label}</span>
-                        {tab.count !== undefined && tab.count > 0 && (
-                          <span className={`text-xs px-2 py-1 rounded-full ${activeTab === tab.id ? "bg-main text-firm-orange" : "bg-firm-orange/20 text-firm-orange"}`}>
-                            {tab.count}
-                          </span>
-                        )}
+                        {tab.count !== undefined && tab.count > 0 && (<span className={`text-xs px-2 py-1 rounded-full ${activeTab === tab.id ? "bg-main text-firm-orange" : "bg-firm-orange/20 text-firm-orange"}`}>{tab.count}</span>)}
                       </motion.button>
                     ))}
 
