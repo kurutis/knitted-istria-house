@@ -397,11 +397,7 @@ export default function BlogPostCard({post, showComments: externalShowComments, 
 
     setUpdatingComment(true);
     try {
-      const response = await fetch(`/api/blog/comments/${commentId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: editingCommentText }),
-      });
+      const response = await fetch(`/api/blog/comments/${commentId}`, {method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: editingCommentText })});
 
       if (response.ok) {
         const data = await response.json();
@@ -495,7 +491,7 @@ export default function BlogPostCard({post, showComments: externalShowComments, 
                     <button onClick={handleCommentSubmit} disabled={commentLoading || !commentText.trim()} className="flex items-center gap-2 px-5 py-2 bg-linear-to-r from-firm-orange to-firm-pink rounded-xl text-sm font-['Montserrat_Alternates'] font-medium hover:shadow-lg hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:hover:scale-100" style={{ color: 'var(--color-main)' }}>
                         {commentLoading ? (
                           <>
-                            <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                            <svg className="w-4 h-4 animate-spin" stroke="#f9f9f9" viewBox="0 0 24 24" fill="none">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                             </svg>
@@ -503,7 +499,7 @@ export default function BlogPostCard({post, showComments: externalShowComments, 
                           </>
                         ) : (
                           <>
-                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#f9f9f9" strokeWidth="2">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                             </svg>
                           <span className="text-main">Отправить</span>
@@ -531,18 +527,72 @@ export default function BlogPostCard({post, showComments: externalShowComments, 
                           </div>
                           
                           {session?.user?.id === comment.author_id && (
-                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition">
-                              {editingCommentId === comment.id ? (
-                                <>
-                                  <button onClick={() => handleUpdateComment(comment.id)}disabled={updatingComment} className="text-xs text-firm-green hover:text-green-600">{updatingComment ? "..." : "💾"}</button>
-                                  <button onClick={() => {setEditingCommentId(null); setEditingCommentText("")}} className="text-xs text-firm-gray hover:text-text">✕</button>
-                                </>
-                              ) : (
-                                <>
-                                  <button onClick={() => {setEditingCommentId(comment.id); setEditingCommentText(comment.content)}} className="text-xs text-firm-green hover:text-green-300">✏️</button>
-                                  <button onClick={() => handleDeleteComment(comment.id)} disabled={deletingCommentId === comment.id} className="text-xs text-firm-red hover:text-red-400">🗑️</button>
-                                </>
-                              )}
+  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition">
+      {editingCommentId === comment.id ? (
+        <>
+          <button 
+            onClick={() => handleUpdateComment(comment.id)}
+            disabled={updatingComment} 
+            className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform disabled:opacity-50"
+          >
+            <Image 
+              src="/save.svg" 
+              alt="Сохранить" 
+              width={16} 
+              height={16}
+              className="text-firm-green"
+            />
+          </button>
+          <button 
+            onClick={() => {
+              setEditingCommentId(null);
+              setEditingCommentText("");
+            }} 
+            className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"
+          >
+            <Image 
+              src="/delete.svg" 
+              alt="Отмена" 
+              width={16} 
+              height={16}
+              className="text-firm-gray"
+            />
+          </button>
+        </>
+      ) : (
+        <>
+          <button 
+            onClick={() => {
+              setEditingCommentId(comment.id);
+              setEditingCommentText(comment.content);
+            }} 
+            className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"
+          >
+            <Image 
+              src="/edit.svg" 
+              alt="Редактировать" 
+              width={16} 
+              height={16}
+              className="text-firm-green"
+            />
+          </button>
+          <button 
+            onClick={() => handleDeleteComment(comment.id)} 
+            disabled={deletingCommentId === comment.id} 
+            className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform disabled:opacity-50"
+          >
+            <Image 
+              src="/delete.svg" 
+              alt="Удалить" 
+              width={16} 
+              height={16}
+              className="text-firm-red"
+            />
+          </button>
+        </>
+      )}
+    </div>
+  )}
                             </div>
                           )}
                         </div>
