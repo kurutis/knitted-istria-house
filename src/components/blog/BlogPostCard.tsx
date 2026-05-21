@@ -527,74 +527,20 @@ export default function BlogPostCard({post, showComments: externalShowComments, 
                           </div>
                           
                           {session?.user?.id === comment.author_id && (
-  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition">
-      {editingCommentId === comment.id ? (
-        <>
-          <button 
-            onClick={() => handleUpdateComment(comment.id)}
-            disabled={updatingComment} 
-            className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform disabled:opacity-50"
-          >
-            <Image 
-              src="/save.svg" 
-              alt="Сохранить" 
-              width={16} 
-              height={16}
-              className="text-firm-green"
-            />
-          </button>
-          <button 
-            onClick={() => {
-              setEditingCommentId(null);
-              setEditingCommentText("");
-            }} 
-            className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"
-          >
-            <Image 
-              src="/delete.svg" 
-              alt="Отмена" 
-              width={16} 
-              height={16}
-              className="text-firm-gray"
-            />
-          </button>
-        </>
-      ) : (
-        <>
-          <button 
-            onClick={() => {
-              setEditingCommentId(comment.id);
-              setEditingCommentText(comment.content);
-            }} 
-            className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"
-          >
-            <Image 
-              src="/edit.svg" 
-              alt="Редактировать" 
-              width={16} 
-              height={16}
-              className="text-firm-green"
-            />
-          </button>
-          <button 
-            onClick={() => handleDeleteComment(comment.id)} 
-            disabled={deletingCommentId === comment.id} 
-            className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform disabled:opacity-50"
-          >
-            <Image 
-              src="/delete.svg" 
-              alt="Удалить" 
-              width={16} 
-              height={16}
-              className="text-firm-red"
-            />
-          </button>
-        </>
-      )}
-    </div>
-  )}
-                            </div>
-                          )}
+                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition">
+                                {editingCommentId === comment.id ? (
+                                  <>
+                                    <button onClick={() => handleUpdateComment(comment.id)} disabled={updatingComment} className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform disabled:opacity-50"><Image src="/save.svg" alt="Сохранить" width={16} height={16} className="text-firm-green" /></button>
+                                    <button onClick={() => {setEditingCommentId(null); setEditingCommentText("")}} className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"><Image src="/delete.svg" alt="Отмена" width={16} height={16} className="text-firm-gray"/></button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button onClick={() => {setEditingCommentId(comment.id); setEditingCommentText(comment.content)}} className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"><Image src="/edit.svg" alt="Редактировать" width={16} height={16} className="text-firm-green" /></button>
+                                    <button onClick={() => handleDeleteComment(comment.id)} disabled={deletingCommentId === comment.id} className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform disabled:opacity-50"><Image src="/delete.svg" alt="Удалить" width={16} height={16} className="text-firm-red" /></button>
+                                  </>
+                                )}
+                              </div>
+                            )}
                         </div>
 
                         {editingCommentId === comment.id ? (
