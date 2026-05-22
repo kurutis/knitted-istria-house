@@ -8,6 +8,19 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast, Toaster } from "react-hot-toast";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import { ProfileIcon } from "@/components/icons/ProfileIcon";
+import { ProductsIcon } from "@/components/icons/ProductsIcon";
+import { FavoritesIcon } from "@/components/icons/FavoritesIcon";
+import { SettingsIcon } from "@/components/icons/SettingsIcon";
+import { ExitIcon } from "@/components/icons/ExitIcon";
+import { CatalogPinkIcon } from "@/components/icons/CatalogPinkIcon";
+import { MasterIcon } from "@/components/icons/MasterIcon";
+import { EditIcon } from "@/components/icons/EditIcon";
+import { SaveIcon } from "@/components/icons/SaveIcon";
+import { DeleteIcon } from "@/components/icons/DeleteIcon";
+import { LocateIcon } from "@/components/icons/LocateIcon";
+import { NotificateIcon } from "@/components/icons/NotificateIcon";
+import { PasswordIcon } from "@/components/icons/PasswordIcon";
 
 interface BuyerProfileProps {
   session: {
@@ -317,7 +330,7 @@ export default function BuyerProfile({
                   <p className="text-firm-gray mt-2">Добро пожаловать, {profileData.fullname || session?.user?.name}</p>
                   {profileData.role === "buyer" && (
                     <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="inline-block mt-2 px-3 py-1 bg-linear-to-r from-firm-orange to-firm-pink text-main text-xs rounded-full flex items-center gap-1">
-                      <Image src="/catalog-pink.svg" alt="catalog" width={12} height={12} />
+                      <CatalogPinkIcon color="#f9f9f9" className="w-3 h-3" />
                       <span>Покупатель</span>
                     </motion.span>
                   )}
@@ -357,7 +370,7 @@ export default function BuyerProfile({
                     <p className="text-sm text-firm-gray text-center">{profileData.email || session?.user?.email}</p>
                     {profileData.city && (
                       <p className="text-xs text-firm-gray mt-2 flex items-center gap-1">
-                        <Image src="/locate.svg" alt="city" width={12} height={12} />
+                        <LocateIcon color="#737682" className="w-3 h-3" />
                         {profileData.city}
                       </p>
                     )}
@@ -365,23 +378,31 @@ export default function BuyerProfile({
 
                   <nav className="space-y-2">
                     {[
-                      { id: "profile", icon: "/chel.svg", label: "Мой профиль" },
-                      { id: "orders", icon: "/products.svg", label: "Мои заказы", count: orders.length },
-                      { id: "favorites", icon: "/favorites.svg", label: "Избранное", count: favorites.length },
-                      { id: "settings", icon: "/settings.svg", label: "Настройки" }
-                    ].map((tab) => (
-                      <motion.button
-                        key={tab.id}
-                        whileHover={{ x: 5 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-3 ${activeTab === tab.id ? "bg-linear-to-r from-firm-orange to-firm-pink text-main shadow-lg" : "hover:bg-gray-100 text-text"}`}
-                      >
-                        <Image src={tab.icon} alt={tab.label} width={20} height={20} className="w-5 h-5" />
-                        <span className="flex-1">{tab.label}</span>
-                        {tab.count !== undefined && tab.count > 0 && (<span className={`text-xs px-2 py-1 rounded-full ${activeTab === tab.id ? "bg-main text-firm-orange" : "bg-firm-orange/20 text-firm-orange"}`}>{tab.count}</span>)}
-                      </motion.button>
-                    ))}
+                      { id: "profile", icon: ProfileIcon, label: "Мой профиль" },
+                      { id: "orders", icon: ProductsIcon, label: "Мои заказы", count: orders.length },
+                      { id: "favorites", icon: FavoritesIcon, label: "Избранное", count: favorites.length, iconColor: "#242424" },
+                      { id: "settings", icon: SettingsIcon, label: "Настройки" }
+                    ].map((tab) => {
+                      const IconComponent = tab.icon;
+                      const iconColor = tab.iconColor || "#D97C8E";
+                      return (
+                        <motion.button
+                          key={tab.id}
+                          whileHover={{ x: 5 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => setActiveTab(tab.id)}
+                          className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-3 ${activeTab === tab.id ? "bg-linear-to-r from-firm-orange to-firm-pink text-main shadow-lg" : "hover:bg-gray-100 text-text"}`}
+                        >
+                          <IconComponent color={activeTab === tab.id ? "#f9f9f9" : iconColor} className="w-5 h-5" />
+                          <span className="flex-1">{tab.label}</span>
+                          {tab.count !== undefined && tab.count > 0 && (
+                            <span className={`text-xs px-2 py-1 rounded-full ${activeTab === tab.id ? "bg-main text-firm-orange" : "bg-firm-orange/20 text-firm-orange"}`}>
+                              {tab.count}
+                            </span>
+                          )}
+                        </motion.button>
+                      );
+                    })}
 
                     <div className="border-t border-gray-200 my-2 pt-2"></div>
 
@@ -391,7 +412,7 @@ export default function BuyerProfile({
                       onClick={() => signOut({ callbackUrl: "/" })}
                       className="w-full text-left px-4 py-3 rounded-xl transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-3 text-firm-red hover:bg-red-50"
                     >
-                      <Image src="/exit.svg" alt="exit" width={20} height={20} className="w-5 h-5" />
+                      <ExitIcon color="#D77C7C" className="w-5 h-5" />
                       <span>Выйти</span>
                     </motion.button>
                   </nav>
@@ -413,13 +434,13 @@ export default function BuyerProfile({
                               disabled={becomeMasterLoading}
                               className="px-5 py-2 bg-linear-to-r from-firm-pink to-firm-orange text-main rounded-xl font-['Montserrat_Alternates'] font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center gap-2"
                             >
-                              <Image src="/master.svg" alt="master" width={16} height={16} />
+                              <MasterIcon color="#f9f9f9" className="w-4 h-4" />
                               {becomeMasterLoading ? (<div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" />) : ("Стать мастером")}
                             </motion.button>
                           )}
                           {!isEditing ? (
                             <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setIsEditing(true)} className="px-5 py-2 border-2 border-firm-orange text-firm-orange rounded-xl font-['Montserrat_Alternates'] font-medium hover:bg-firm-orange hover:text-main transition-all duration-300 flex items-center gap-2">
-                              <Image src="/edit.svg" alt="edit" width={16} height={16} />
+                              <EditIcon color="#D97C8E" className="w-4 h-4" />
                               Редактировать
                             </motion.button>
                           ) : (
@@ -446,13 +467,13 @@ export default function BuyerProfile({
                               <input type="text" name="city" value={profileData.city || ""} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all" placeholder="Москва" />
                             </div>
                             <div>
-                              <label className="block text-main mb-2 font-['Montserrat_Alternates'] text-sm font-medium">Адрес доставки</label>
+                              <label className="block text-text mb-2 font-['Montserrat_Alternates'] text-sm font-medium">Адрес доставки</label>
                               <input type="text" name="address" value={profileData.address || ""} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all" placeholder="ул. Примерная, д. 1, кв. 1" />
                             </div>
                           </div>
 
                           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" disabled={saving} className="w-full mt-6 p-3 bg-linear-to-r from-firm-pink to-firm-orange text-main rounded-xl font-['Montserrat_Alternates'] font-semibold hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2">
-                            <Image src="/save.svg" alt="save" width={18} height={18} />
+                            <SaveIcon color="#f9f9f9" className="w-4 h-4" />
                             {saving ? "Сохранение..." : "Сохранить изменения"}
                           </motion.button>
                         </motion.form>
@@ -471,9 +492,9 @@ export default function BuyerProfile({
                             <p className="text-lg font-medium">{profileData.phone || "Не указано"}</p>
                           </div>
                           <div className="bg-main rounded-xl p-4 hover:shadow-md transition-shadow">
-                            <p className="text-firm-gray text-sm font-['Montserrat_Alternates'] mb-1">Город</p>
+                            <p className="text-firm-gray text-sm font-['Montserrat_Alternates'] mb-1 flex items-center gap-1">Город</p>
                             <p className="text-lg font-medium flex items-center gap-2">
-                              <Image src="/locate.svg" alt="city" width={16} height={16} />
+                              <LocateIcon color="#D97C8E" className="w-4 h-4" />
                               {profileData.city || "Не указано"}
                             </p>
                           </div>
@@ -486,18 +507,17 @@ export default function BuyerProfile({
                     </motion.div>
                   )}
 
-                  {/* Orders Tab */}
                   {activeTab === "orders" && (
                     <motion.div key="orders" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-main rounded-2xl shadow-xl p-6 md:p-8">
                       <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-6 bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent flex items-center gap-2">
-                        <Image src="/products.svg" alt="orders" width={24} height={24} />
+                        <ProductsIcon color="#D97C8E" className="w-6 h-6" />
                         Мои заказы
                       </h2>
                       
                       {orders.length === 0 ? (
                         <div className="text-center py-12 bg-main rounded-xl">
                           <div className="mb-4">
-                            <Image src="/products.svg" alt="no orders" width={60} height={60} className="mx-auto opacity-50" />
+                            <ProductsIcon color="#D97C8E" className="w-16 h-16 mx-auto opacity-50" />
                           </div>
                           <p className="text-firm-gray mb-4 font-['Montserrat_Alternates']">У вас пока нет заказов</p>
                           <Link href="/catalog" className="inline-block px-6 py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all">🛍️ Перейти в каталог</Link>
@@ -534,7 +554,7 @@ export default function BuyerProfile({
                     <motion.div key="favorites" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-main rounded-2xl shadow-xl p-6 md:p-8">
                       <div className="flex justify-between items-center mb-6">
                         <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl bg-linear-to-r from-firm-pink to-firm-orange bg-clip-text text-transparent flex items-center gap-2">
-                          <Image src="/favorites.svg" alt="favorites" width={24} height={24} />
+                          <FavoritesIcon color="#D97C8E" className="w-6 h-6" />
                           Избранное
                         </h2>
                         <Link href="/favorites" className="text-sm text-firm-orange hover:underline">Все избранное →</Link>
@@ -543,7 +563,7 @@ export default function BuyerProfile({
                       {favorites.length === 0 ? (
                         <div className="text-center py-12 bg-main rounded-xl">
                           <div className="mb-4">
-                            <Image src="/favorites.svg" alt="no favorites" width={60} height={60} className="mx-auto opacity-50" />
+                            <FavoritesIcon color="#D97C8E" className="w-16 h-16 mx-auto opacity-50" />
                           </div>
                           <p className="text-firm-gray mb-4 font-['Montserrat_Alternates']">В избранном пока нет товаров</p>
                           <Link href="/catalog" className="inline-block px-6 py-3 bg-linear-to-r from-firm-pink to-firm-orange text-main rounded-xl hover:shadow-lg transition-all">🛍️ Перейти в каталог</Link>
@@ -574,7 +594,7 @@ export default function BuyerProfile({
                                     <div className="flex items-center justify-between mt-3">
                                       <span className="font-['Montserrat_Alternates'] font-bold text-lg text-firm-pink">{item.price.toLocaleString()} ₽</span>
                                       <span className="text-xs text-firm-gray flex items-center gap-1">
-                                        <Image src="/favorites.svg" alt="favorite" width={12} height={12} />
+                                        <FavoritesIcon color="#D97C8E" className="w-3 h-3" />
                                         <span>В избранном</span>
                                       </span>
                                     </div>
@@ -582,7 +602,7 @@ export default function BuyerProfile({
                                 </Link>
 
                                 <button onClick={() => handleRemoveFromFavorites(item.id)} className="absolute top-2 right-2 w-8 h-8 bg-main rounded-full shadow-md flex items-center justify-center text-firm-red hover:bg-firm-red hover:text-main transition-all duration-300 opacity-0 group-hover:opacity-100">
-                                  <Image src="/delete.svg" alt="remove" width={14} height={14} />
+                                  <DeleteIcon color="#D97C8E" className="w-4 h-4" />
                                 </button>
                               </motion.div>
                             ),
@@ -601,13 +621,13 @@ export default function BuyerProfile({
                   {activeTab === "settings" && (
                     <motion.div key="settings" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-main rounded-2xl shadow-xl p-6 md:p-8">
                       <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-6 flex items-center gap-2">
-                        <Image src="/settings.svg" alt="settings" width={24} height={24} />
+                        <SettingsIcon color="#D97C8E" className="w-6 h-6" />
                         Настройки
                       </h2>
                       <div className="space-y-6">
                         <div>
                           <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-4 flex items-center gap-2">
-                            <Image src="/password.svg" alt="password" width={20} height={20} />
+                            <PasswordIcon color="#D97C8E" className="w-5 h-5" />
                             Смена пароля
                           </h3>
                           <form className="space-y-4 max-w-md">
@@ -629,7 +649,7 @@ export default function BuyerProfile({
 
                         <div className="border-t border-gray-200 pt-6">
                           <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-4 flex items-center gap-2">
-                            <Image src="/notificate.svg" alt="notifications" width={20} height={20} />
+                            <NotificateIcon color="#D97C8E" className="w-5 h-5" />
                             Уведомления и рассылка
                           </h3>
                           <div className="space-y-3">
@@ -673,7 +693,7 @@ export default function BuyerProfile({
 
                         <div className="border-t border-gray-200 pt-6">
                           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={saveNotificationSettings} disabled={savingNotifications} className="px-6 py-2 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl font-['Montserrat_Alternates'] font-medium hover:shadow-lg transition-all disabled:opacity-50 flex items-center gap-2">
-                            <Image src="/save.svg" alt="save" width={16} height={16} />
+                            <SaveIcon color="#f9f9f9" className="w-4 h-4" />
                             {savingNotifications ? "Сохранение..." : "Сохранить настройки уведомлений"}
                           </motion.button>
                         </div>
