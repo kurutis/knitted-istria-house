@@ -249,18 +249,10 @@ export default function BuyerProfile({
       onConfirm: async () => {
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
         try {
-          const response = await fetch(
-            `/api/user/favorites?productId=${itemId}`,
-            {
-              method: "DELETE",
-            },
-          );
+          const response = await fetch(`/api/user/favorites?productId=${itemId}`, {method: "DELETE"});
           if (response.ok) {
             setFavorites(prev => prev.filter((fav: { id: string }) => fav.id !== itemId));
-            setStats((prev) => ({
-              ...prev,
-              favoriteCount: prev.favoriteCount - 1,
-            }));
+            setStats((prev) => ({...prev, favoriteCount: prev.favoriteCount - 1}));
             toast.success("Товар удален из избранного");
           }
         } catch (error) {
@@ -329,7 +321,7 @@ export default function BuyerProfile({
                   <h1 className="font-['Montserrat_Alternates'] font-bold text-3xl md:text-4xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Личный кабинет</h1>
                   <p className="text-firm-gray mt-2">Добро пожаловать, {profileData.fullname || session?.user?.name}</p>
                   {profileData.role === "buyer" && (
-                    <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="inline-block mt-2 px-3 py-1 bg-linear-to-r from-firm-orange to-firm-pink text-main text-xs rounded-full flex items-center gap-1">
+                    <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="mt-2 px-3 py-1 bg-linear-to-r from-firm-orange to-firm-pink text-main text-xs rounded-full flex items-center gap-1">
                       <CatalogPinkIcon color="#f9f9f9" className="w-3 h-3" />
                       <span>Покупатель</span>
                     </motion.span>
@@ -361,57 +353,33 @@ export default function BuyerProfile({
                       {avatarPreview ? (<img src={avatarPreview} alt="avatar preview" className="w-full h-full object-cover" />) : profileData.avatarUrl ? (<img src={`/api/proxy/avatar?url=${encodeURIComponent(profileData.avatarUrl)}`} alt="avatar" className="w-full h-full object-cover" />) : (<span className="text-4xl font-['Montserrat_Alternates'] font-bold text-main">{profileData.fullname?.charAt(0).toUpperCase() || session?.user?.name?.charAt(0).toUpperCase() || "U"}</span>)}
 
                       {isEditing && (
-                        <label className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                        <label className="absolute inset-0 bg-main-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                           <span className="text-main text-sm">Изменить</span>
                           <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
                         </label>)}
                     </motion.div>
                     <h3 className="mt-4 font-['Montserrat_Alternates'] font-semibold text-xl text-center">{profileData.fullname || session?.user?.name}</h3>
                     <p className="text-sm text-firm-gray text-center">{profileData.email || session?.user?.email}</p>
-                    {profileData.city && (
-                      <p className="text-xs text-firm-gray mt-2 flex items-center gap-1">
-                        <LocateIcon color="#737682" className="w-3 h-3" />
-                        {profileData.city}
-                      </p>
-                    )}
+                    {profileData.city && (<p className="text-xs text-firm-gray mt-2 flex items-center gap-1"><LocateIcon color="#D97C8E" className="w-3 h-3" />{profileData.city}</p>)}
                   </div>
 
                   <nav className="space-y-2">
                     {[
-                      { id: "profile", icon: ProfileIcon, label: "Мой профиль" },
-                      { id: "orders", icon: ProductsIcon, label: "Мои заказы", count: orders.length },
-                      { id: "favorites", icon: FavoritesIcon, label: "Избранное", count: favorites.length, iconColor: "#242424" },
-                      { id: "settings", icon: SettingsIcon, label: "Настройки" }
-                    ].map((tab) => {
+                    { id: "profile", icon: ProfileIcon, label: "Мой профиль" }, { id: "orders", icon: ProductsIcon, label: "Мои заказы", count: orders.length }, { id: "favorites", icon: FavoritesIcon, label: "Избранное", count: favorites.length, iconColor: "#D97C8E" }, { id: "settings", icon: SettingsIcon, label: "Настройки" }].map((tab) => {
                       const IconComponent = tab.icon;
                       const iconColor = tab.iconColor || "#D97C8E";
                       return (
-                        <motion.button
-                          key={tab.id}
-                          whileHover={{ x: 5 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => setActiveTab(tab.id)}
-                          className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-3 ${activeTab === tab.id ? "bg-linear-to-r from-firm-orange to-firm-pink text-main shadow-lg" : "hover:bg-gray-100 text-text"}`}
-                        >
+                        <motion.button key={tab.id} whileHover={{ x: 5 }} whileTap={{ scale: 0.98 }} onClick={() => setActiveTab(tab.id)} className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-3 ${activeTab === tab.id ? "bg-linear-to-r from-firm-orange to-firm-pink text-main shadow-lg" : "hover:bg-gray-100 text-text"}`}>
                           <IconComponent color={activeTab === tab.id ? "#f9f9f9" : iconColor} className="w-5 h-5" />
-                          <span className="flex-1">{tab.label}</span>
-                          {tab.count !== undefined && tab.count > 0 && (
-                            <span className={`text-xs px-2 py-1 rounded-full ${activeTab === tab.id ? "bg-main text-firm-orange" : "bg-firm-orange/20 text-firm-orange"}`}>
-                              {tab.count}
-                            </span>
-                          )}
+                          <span className="flex-1 hover:text-main">{tab.label}</span>
+                          {tab.count !== undefined && tab.count > 0 && (<span className={`text-xs px-2 py-1 rounded-full ${activeTab === tab.id ? "bg-main text-firm-orange" : "bg-firm-orange/20 text-firm-orange"}`}>{tab.count}</span>)}
                         </motion.button>
                       );
                     })}
 
                     <div className="border-t border-gray-200 my-2 pt-2"></div>
 
-                    <motion.button
-                      whileHover={{ x: 5 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => signOut({ callbackUrl: "/" })}
-                      className="w-full text-left px-4 py-3 rounded-xl transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-3 text-firm-red hover:bg-red-50"
-                    >
+                    <motion.button whileHover={{ x: 5 }} whileTap={{ scale: 0.98 }} onClick={() => signOut({ callbackUrl: "/" })} className="w-full text-left px-4 py-3 rounded-xl transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-3 text-firm-red hover:bg-red-50">
                       <ExitIcon color="#D77C7C" className="w-5 h-5" />
                       <span>Выйти</span>
                     </motion.button>
@@ -426,28 +394,8 @@ export default function BuyerProfile({
                       <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
                         <h2 className="font-['Montserrat_Alternates'] font-bold text-2xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Мой профиль</h2>
                         <div className="flex gap-3">
-                          {profileData.role === "buyer" && (
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={handleBecomeMaster}
-                              disabled={becomeMasterLoading}
-                              className="px-5 py-2 bg-linear-to-r from-firm-pink to-firm-orange text-main rounded-xl font-['Montserrat_Alternates'] font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center gap-2"
-                            >
-                              <MasterIcon color="#f9f9f9" className="w-4 h-4" />
-                              {becomeMasterLoading ? (<div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" />) : ("Стать мастером")}
-                            </motion.button>
-                          )}
-                          {!isEditing ? (
-                            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setIsEditing(true)} className="px-5 py-2 border-2 border-firm-orange text-firm-orange rounded-xl font-['Montserrat_Alternates'] font-medium hover:bg-firm-orange hover:text-main transition-all duration-300 flex items-center gap-2">
-                              <EditIcon color="#D97C8E" className="w-4 h-4" />
-                              Редактировать
-                            </motion.button>
-                          ) : (
-                            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => {setIsEditing(false); setAvatarFile(null); setAvatarPreview(null)}} className="px-5 py-2 bg-firm-gray text-main rounded-xl font-['Montserrat_Alternates'] font-medium hover:bg-firm-gray transition-all">
-                              Отмена
-                            </motion.button>
-                          )}
+                          {profileData.role === "buyer" && (<motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleBecomeMaster} disabled={becomeMasterLoading} className="px-5 py-2 bg-linear-to-r from-firm-pink to-firm-orange text-main rounded-xl font-['Montserrat_Alternates'] font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center gap-2"><MasterIcon color="#f9f9f9" className="w-4 h-4" />{becomeMasterLoading ? (<div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" />) : ("Стать мастером")}</motion.button>)}
+                          {!isEditing ? (<motion.button  whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setIsEditing(true)} className="group px-5 py-2 border-2 border-firm-orange text-firm-orange rounded-xl font-['Montserrat_Alternates'] font-medium hover:bg-firm-orange hover:text-main transition-all duration-300 flex items-center gap-2"><EditIcon color="#F4A67F" className="w-4 h-4 group-hover:text-main transition-colors duration-300" />Редактировать</motion.button>) : (<motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => {setIsEditing(false); setAvatarFile(null); setAvatarPreview(null)}} className="px-5 py-2 bg-firm-gray text-main rounded-xl font-['Montserrat_Alternates'] font-medium hover:bg-firm-gray transition-all">Отмена</motion.button>)}
                         </div>
                       </div>
 
@@ -472,10 +420,7 @@ export default function BuyerProfile({
                             </div>
                           </div>
 
-                          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" disabled={saving} className="w-full mt-6 p-3 bg-linear-to-r from-firm-pink to-firm-orange text-main rounded-xl font-['Montserrat_Alternates'] font-semibold hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2">
-                            <SaveIcon color="#f9f9f9" className="w-4 h-4" />
-                            {saving ? "Сохранение..." : "Сохранить изменения"}
-                          </motion.button>
+                          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" disabled={saving} className="w-full mt-6 p-3 bg-linear-to-r from-firm-pink to-firm-orange text-main rounded-xl font-['Montserrat_Alternates'] font-semibold hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2"><SaveIcon color="#f9f9f9" className="w-4 h-4" />{saving ? "Сохранение..." : "Сохранить изменения"}</motion.button>
                         </motion.form>
                       ) : (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -509,10 +454,7 @@ export default function BuyerProfile({
 
                   {activeTab === "orders" && (
                     <motion.div key="orders" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-main rounded-2xl shadow-xl p-6 md:p-8">
-                      <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-6 bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent flex items-center gap-2">
-                        <ProductsIcon color="#D97C8E" className="w-6 h-6" />
-                        Мои заказы
-                      </h2>
+                      <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-6 bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent flex items-center gap-2"><ProductsIcon color="#F4A67F" className="w-6 h-6" />Мои заказы</h2>
                       
                       {orders.length === 0 ? (
                         <div className="text-center py-12 bg-main rounded-xl">
@@ -520,7 +462,7 @@ export default function BuyerProfile({
                             <ProductsIcon color="#D97C8E" className="w-16 h-16 mx-auto opacity-50" />
                           </div>
                           <p className="text-firm-gray mb-4 font-['Montserrat_Alternates']">У вас пока нет заказов</p>
-                          <Link href="/catalog" className="inline-block px-6 py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all">🛍️ Перейти в каталог</Link>
+                          <Link href="/catalog" className="inline-block px-6 py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all"><CatalogPinkIcon color="#f9f9f9" className="w-5 h-5" /> Перейти в каталог</Link>
                         </div>
                       ) : (
                         <div className="space-y-4">
@@ -553,10 +495,7 @@ export default function BuyerProfile({
                   {activeTab === "favorites" && (
                     <motion.div key="favorites" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-main rounded-2xl shadow-xl p-6 md:p-8">
                       <div className="flex justify-between items-center mb-6">
-                        <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl bg-linear-to-r from-firm-pink to-firm-orange bg-clip-text text-transparent flex items-center gap-2">
-                          <FavoritesIcon color="#D97C8E" className="w-6 h-6" />
-                          Избранное
-                        </h2>
+                        <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl bg-linear-to-r from-firm-pink to-firm-orange bg-clip-text text-transparent flex items-center gap-2"><FavoritesIcon color="#D97C8E" className="w-6 h-6" />Избранное</h2>
                         <Link href="/favorites" className="text-sm text-firm-orange hover:underline">Все избранное →</Link>
                       </div>
 
@@ -601,9 +540,7 @@ export default function BuyerProfile({
                                   </div>
                                 </Link>
 
-                                <button onClick={() => handleRemoveFromFavorites(item.id)} className="absolute top-2 right-2 w-8 h-8 bg-main rounded-full shadow-md flex items-center justify-center text-firm-red hover:bg-firm-red hover:text-main transition-all duration-300 opacity-0 group-hover:opacity-100">
-                                  <DeleteIcon color="#D97C8E" className="w-4 h-4" />
-                                </button>
+                                <button onClick={() => handleRemoveFromFavorites(item.id)} className="absolute top-2 right-2 w-8 h-8 bg-main rounded-full shadow-md flex items-center justify-center text-firm-red hover:bg-firm-red hover:text-main transition-all duration-300 opacity-0 group-hover:opacity-100"><DeleteIcon color="#D97C8E" className="w-4 h-4 group-hover:text-main transition-colors duration-300" /></button>
                               </motion.div>
                             ),
                           )}
@@ -621,9 +558,7 @@ export default function BuyerProfile({
                   {activeTab === "settings" && (
                     <motion.div key="settings" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-main rounded-2xl shadow-xl p-6 md:p-8">
                       <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-6 flex items-center gap-2">
-                        <SettingsIcon color="#D97C8E" className="w-6 h-6" />
-                        Настройки
-                      </h2>
+                        <SettingsIcon color="#D97C8E" className="w-6 h-6" />Настройки</h2>
                       <div className="space-y-6">
                         <div>
                           <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-4 flex items-center gap-2">
@@ -648,19 +583,12 @@ export default function BuyerProfile({
                         </div>
 
                         <div className="border-t border-gray-200 pt-6">
-                          <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-4 flex items-center gap-2">
-                            <NotificateIcon color="#D97C8E" className="w-5 h-5" />
-                            Уведомления и рассылка
-                          </h3>
+                          <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-4 flex items-center gap-2"><NotificateIcon color="#D97C8E" className="w-5 h-5" /> Уведомления и рассылка</h3>
                           <div className="space-y-3">
                             <label className="flex items-center gap-3 cursor-pointer group">
                               <div className="relative flex items-center">
                                 <input type="checkbox" checked={notifications.orderStatus} onChange={(e) => handleNotificationChange("orderStatus", e.target.checked)} className="w-5 h-5 appearance-none border-2 border-firm-orange rounded-md bg-main checked:bg-firm-orange checked:border-firm-orange transition-all duration-200 cursor-pointer" />
-                                {notifications.orderStatus && (
-                                  <svg className="absolute w-4 h-4 text-main left-0.5 top-0.5 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                    <polyline points="20 6 9 17 4 12" />
-                                  </svg>
-                                )}
+                                {notifications.orderStatus && (<svg className="absolute w-4 h-4 text-main left-0.5 top-0.5 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>)}
                               </div>
                               <span className="text-text select-none group-hover:text-firm-orange transition-colors">О статусе заказов</span>
                             </label>
@@ -668,11 +596,7 @@ export default function BuyerProfile({
                             <label className="flex items-center gap-3 cursor-pointer group">
                               <div className="relative flex items-center">
                                 <input type="checkbox" checked={notifications.promotions} onChange={(e) => handleNotificationChange("promotions", e.target.checked)} className="w-5 h-5 appearance-none border-2 border-firm-pink rounded-md bg-main checked:bg-firm-pink checked:border-firm-pink transition-all duration-200 cursor-pointer" />
-                                {notifications.promotions && (
-                                  <svg className="absolute w-4 h-4 text-main left-0.5 top-0.5 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                    <polyline points="20 6 9 17 4 12" />
-                                  </svg>
-                                )}
+                                {notifications.promotions && (<svg className="absolute w-4 h-4 text-main left-0.5 top-0.5 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>)}
                               </div>
                               <span className="text-text select-none group-hover:text-firm-pink transition-colors">О новинках и акциях (рассылка)</span>
                             </label>
@@ -680,11 +604,7 @@ export default function BuyerProfile({
                             <label className="flex items-center gap-3 cursor-pointer group">
                               <div className="relative flex items-center">
                                 <input type="checkbox" checked={notifications.messages} onChange={(e) => handleNotificationChange("messages", e.target.checked)} className="w-5 h-5 appearance-none border-2 border-firm-orange rounded-md bg-main checked:bg-firm-orange checked:border-firm-orange transition-all duration-200 cursor-pointer" />
-                                {notifications.messages && (
-                                  <svg className="absolute w-4 h-4 text-main left-0.5 top-0.5 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                                    <polyline points="20 6 9 17 4 12" />
-                                  </svg>
-                                )}
+                                {notifications.messages && (<svg className="absolute w-4 h-4 text-main left-0.5 top-0.5 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>)}
                               </div>
                               <span className="text-text select-none group-hover:text-firm-orange transition-colors">О новых сообщениях</span>
                             </label>
@@ -692,10 +612,7 @@ export default function BuyerProfile({
                         </div>
 
                         <div className="border-t border-gray-200 pt-6">
-                          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={saveNotificationSettings} disabled={savingNotifications} className="px-6 py-2 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl font-['Montserrat_Alternates'] font-medium hover:shadow-lg transition-all disabled:opacity-50 flex items-center gap-2">
-                            <SaveIcon color="#f9f9f9" className="w-4 h-4" />
-                            {savingNotifications ? "Сохранение..." : "Сохранить настройки уведомлений"}
-                          </motion.button>
+                          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={saveNotificationSettings} disabled={savingNotifications} className="px-6 py-2 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl font-['Montserrat_Alternates'] font-medium hover:shadow-lg transition-all disabled:opacity-50 flex items-center gap-2"><SaveIcon color="#f9f9f9" className="w-4 h-4" />{savingNotifications ? "Сохранение..." : "Сохранить настройки уведомлений"}</motion.button>
                         </div>
                       </div>
                     </motion.div>
