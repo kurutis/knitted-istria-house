@@ -452,7 +452,7 @@ export default function BuyerProfile({
                       <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-6 bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent flex items-center gap-2"><ProductsIcon color="#F4A67F" className="w-6 h-6" />Мои заказы</h2>
                       
                       {orders.length === 0 ? (
-                        <div className="text-center py-12 bg-main rounded-xl">
+                        <div className="text-center py-12 bg-main rounded-xl flex gap-2">
                           <div className="mb-4">
                             <ProductsIcon color="#D97C8E" className="w-16 h-16 mx-auto opacity-50" />
                           </div>
