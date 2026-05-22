@@ -320,7 +320,7 @@ export default function BuyerProfile({
                 <div>
                   <h1 className="font-['Montserrat_Alternates'] font-bold text-3xl md:text-4xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Личный кабинет</h1>
                   <p className="text-firm-gray mt-2">Добро пожаловать, {profileData.fullname || session?.user?.name}</p>
-                  {profileData.role === "buyer" && (<motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="mt-2 px-3 py-1 bg-linear-to-r from-firm-orange to-firm-pink text-main text-xs rounded-full flex items-center gap-1 w-[25%]"><CatalogPinkIcon color="#f9f9f9" className="w-3 h-3" /><span className="text-main">Покупатель</span></motion.span>)}
+                  {profileData.role === "buyer" && (<motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="inline-flex mt-2 px-3 py-1 bg-linear-to-r from-firm-orange to-firm-pink text-main text-xs rounded-full items-center gap-1 w-auto"><CatalogPinkIcon color="#f9f9f9" className="w-3 h-3" /><span>Покупатель</span></motion.span>)}
                 </div>
 
                 <div className="flex gap-6">
