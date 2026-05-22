@@ -390,7 +390,26 @@ export default function BuyerProfile({
                         <h2 className="font-['Montserrat_Alternates'] font-bold text-2xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Мой профиль</h2>
                         <div className="flex gap-3">
                           {profileData.role === "buyer" && (<motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleBecomeMaster} disabled={becomeMasterLoading} className="px-5 py-2 bg-linear-to-r from-firm-pink to-firm-orange text-main rounded-xl font-['Montserrat_Alternates'] font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center gap-2"><MasterIcon color="#f9f9f9" className="w-4 h-4" />{becomeMasterLoading ? (<div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" />) : ("Стать мастером")}</motion.button>)}
-                          {!isEditing ? (<motion.button  whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setIsEditing(true)} className="group px-5 py-2 border-2 border-firm-orange text-firm-orange rounded-xl font-['Montserrat_Alternates'] font-medium hover:bg-firm-orange hover:text-main transition-all duration-300 flex items-center gap-2"><EditIcon color="#F4A67F" className="w-4 h-4 group-hover:text-main transition-colors duration-300" />Редактировать</motion.button>) : (<motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => {setIsEditing(false); setAvatarFile(null); setAvatarPreview(null)}} className="px-5 py-2 bg-firm-gray text-main rounded-xl font-['Montserrat_Alternates'] font-medium hover:bg-firm-gray transition-all">Отмена</motion.button>)}
+                          {!isEditing ? (
+  <motion.button 
+    whileHover={{ scale: 1.05 }} 
+    whileTap={{ scale: 0.95 }} 
+    onClick={() => setIsEditing(true)} 
+    className="group px-5 py-2 border-2 border-firm-orange text-firm-orange rounded-xl font-['Montserrat_Alternates'] font-medium hover:bg-firm-orange hover:text-main transition-all duration-300 flex items-center gap-2"
+  >
+    <EditIcon className="w-4 h-4 transition-colors duration-300" />
+    Редактировать
+  </motion.button>
+) : (
+  <motion.button 
+    whileHover={{ scale: 1.05 }} 
+    whileTap={{ scale: 0.95 }} 
+    onClick={() => {setIsEditing(false); setAvatarFile(null); setAvatarPreview(null)}} 
+    className="px-5 py-2 bg-firm-gray text-main rounded-xl font-['Montserrat_Alternates'] font-medium hover:bg-firm-gray transition-all"
+  >
+    Отмена
+  </motion.button>
+)}
                         </div>
                       </div>
 
