@@ -508,8 +508,8 @@ export default function BlogPostPage() {
 
   return (
     <>
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="text-sm text-firm-gray mb-6">
+      <div className="max-w-4xl mx-auto px-4 py-8 ">
+        <div className="text-sm text-firm-gray mb-6 w-full">
           <Link href="/" className="hover:text-firm-orange">Главная</Link>
           <span className="mx-2">/</span>
           <Link href="/blog" className="hover:text-firm-orange">Блог</Link>
