@@ -514,7 +514,7 @@ export default function BlogPostPage() {
           <span className="mx-2">/</span>
           <Link href="/blog" className="hover:text-firm-orange">Блог</Link>
           <span className="mx-2">/</span>
-          <span className="text-text line-clamp-1">{post.title}</span>
+          <span className="text-text">{post.title}</span>
         </div>
 
         {/* Кнопки редактирования для автора */}
