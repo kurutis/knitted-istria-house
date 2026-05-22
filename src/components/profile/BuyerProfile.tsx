@@ -69,6 +69,7 @@ export default function BuyerProfile({
   const [stats, setStats] = useState({totalOrders: 0, totalSpent: 0, favoriteCount: 0});
 
   const [isEditHovered, setIsEditHovered] = useState(false);
+  const [isDeleteHovered, setIsDeleteHovered] = useState(false);
 
   useEffect(() => {
     fetchProfileData();
@@ -322,7 +323,7 @@ export default function BuyerProfile({
                 <div>
                   <h1 className="font-['Montserrat_Alternates'] font-bold text-3xl md:text-4xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Личный кабинет</h1>
                   <p className="text-firm-gray mt-2">Добро пожаловать, {profileData.fullname || session?.user?.name}</p>
-                  {profileData.role === "buyer" && (<motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="inline-flex mt-2 px-3 py-1 bg-linear-to-r from-firm-orange to-firm-pink text-main text-xs rounded-full items-center gap-1 w-auto"><CatalogPinkIcon color="#f9f9f9" className="w-3 h-3" /><span>Покупатель</span></motion.span>)}
+                  {profileData.role === "buyer" && (<motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="inline-flex mt-2 px-3 py-1 bg-linear-to-r from-firm-orange to-firm-pink text-main text-xs rounded-full items-center gap-1 w-auto"><CatalogPinkIcon color="#f9f9f9" className="w-3 h-3" /><span className="text-main">Покупатель</span></motion.span>)}
                 </div>
 
                 <div className="flex gap-6">
@@ -537,7 +538,7 @@ export default function BuyerProfile({
                                   </div>
                                 </Link>
 
-                                <button onClick={() => handleRemoveFromFavorites(item.id)} className="absolute top-2 right-2 w-8 h-8 bg-main rounded-full shadow-md flex items-center justify-center text-firm-red hover:bg-firm-red hover:text-main transition-all duration-300 opacity-0 group-hover:opacity-100"><DeleteIcon color="#D97C8E" className="w-4 h-4 group-hover:text-main transition-colors duration-300" /></button>
+                                <button onClick={() => handleRemoveFromFavorites(item.id)} onMouseEnter={() => setIsDeleteHovered(true)} onMouseLeave={() => setIsDeleteHovered(false)} className="absolute top-2 right-2 w-8 h-8 rounded-full shadow-md flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100" style={{backgroundColor: isDeleteHovered ? '#D97C8E' : '#f9f9f9'}}><DeleteIcon className="w-4 h-4" color={isDeleteHovered ? '#f9f9f9' : '#D97C8E' } /></button>
                               </motion.div>
                             ),
                           )}
