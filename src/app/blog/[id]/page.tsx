@@ -44,7 +44,6 @@ interface BlogPost {
   images?: Array<{ id: string; url: string; sort_order: number }>;
 }
 
-// Иконки
 const LikeIcon = ({ isActive }: { isActive: boolean }) => (
   <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M23.2002 1.25C27.3399 1.25011 30.7498 4.79098 30.75 9.59082C30.75 12.501 29.5561 15.2315 27.25 18.3066C24.9278 21.4031 21.584 24.7143 17.4414 28.8086L17.4395 28.8105L16 30.2383L14.5605 28.8105L14.5586 28.8086C10.416 24.7143 7.07223 21.4031 4.75 18.3066C2.44386 15.2315 1.25 12.501 1.25 9.59082C1.25022 4.79098 4.6601 1.25011 8.7998 1.25C11.164 1.25 13.487 2.4569 15.0176 4.40039L16 5.64746L16.9824 4.40039C18.513 2.4569 20.836 1.25 23.2002 1.25Z" stroke={isActive ? "#D97C8E" : "#737682"} strokeWidth="2.5" fill={isActive ? "#D97C8E" : "none"} />
@@ -73,7 +72,6 @@ const ShareIcon = () => (
   </svg>
 );
 
-// Компонент аватарки
 const UserAvatar = ({ name, avatarUrl, size = 48 }: { name?: string; avatarUrl?: string | null; size?: number }) => {
   const [avatarError, setAvatarError] = useState(false);
 
@@ -89,16 +87,7 @@ const UserAvatar = ({ name, avatarUrl, size = 48 }: { name?: string; avatarUrl?:
   };
 
   if (avatarUrl && !avatarError) {
-    return (
-      <img 
-        src={getProxiedUrl(avatarUrl)} 
-        alt={name || "Avatar"} 
-        className="rounded-full object-cover" 
-        style={{ width: size, height: size }} 
-        onError={() => setAvatarError(true)} 
-      />
-    );
-  }
+    return (<img  src={getProxiedUrl(avatarUrl)} alt={name || "Avatar"} className="rounded-full object-cover" style={{ width: size, height: size }} onError={() => setAvatarError(true)}  />)}
 
   return (
     <div className="rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold" style={{ width: size, height: size, fontSize: size * 0.4 }}>
@@ -187,13 +176,7 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
 
   if (avatarUrl && !avatarError) {
     return (
-      <img 
-        src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`} 
-        alt={userName || "Profile"} 
-        className="rounded-full object-cover" 
-        style={{ width: size, height: size }} 
-        onError={() => setAvatarError(true)} 
-      />
+      <img src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`} alt={userName || "Profile"} className="rounded-full object-cover" style={{ width: size, height: size }} onError={() => setAvatarError(true)} />
     );
   }
 
@@ -265,12 +248,7 @@ export default function BlogPostPage() {
       setLikesCount(data.likes_count || 0);
       setComments(data.comments || []);
       setCommentsCount(data.comments_count || 0);
-      setEditForm({
-        title: data.title,
-        content: data.content,
-        category: data.category || "",
-        tags: data.tags?.join(", ") || ""
-      });
+      setEditForm({title: data.title, content: data.content, category: data.category || "", tags: data.tags?.join(", ") || ""});
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Произошла ошибка';
       setError(errorMessage);
@@ -292,9 +270,7 @@ export default function BlogPostPage() {
     setLikesCount(newLikesCount);
 
     try {
-      const response = await fetch(`/api/blog/posts/${id}/like`, {
-        method: isLiked ? "DELETE" : "POST"
-      });
+      const response = await fetch(`/api/blog/posts/${id}/like`, {method: isLiked ? "DELETE" : "POST"});
 
       if (!response.ok) {
         setIsLiked(isLiked);
@@ -316,21 +292,13 @@ export default function BlogPostPage() {
 
     setUpdatingComment(true);
     try {
-      const response = await fetch(`/api/blog/comments/${commentId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: editingCommentText })
-      });
+      const response = await fetch(`/api/blog/comments/${commentId}`, {method: "PUT",  headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: editingCommentText })});
 
       if (response.ok) {
         const data = await response.json();
         const updatedComment = data.comment || data;
         
-        setComments(comments.map((c) =>
-          c.id === commentId
-            ? { ...c, content: updatedComment.content, updated_at: updatedComment.updated_at, is_edited: true }
-            : c
-        ));
+        setComments(comments.map((c) => c.id === commentId ? { ...c, content: updatedComment.content, updated_at: updatedComment.updated_at, is_edited: true } : c));
         setEditingCommentId(null);
         setEditingCommentText("");
         toast.success("Комментарий обновлен");
@@ -356,24 +324,11 @@ export default function BlogPostPage() {
 
     setCommentLoading(true);
     try {
-      const response = await fetch(`/api/blog/posts/${id}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: commentText })
-      });
+      const response = await fetch(`/api/blog/posts/${id}/comments`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: commentText })});
 
       if (response.ok) {
         const data = await response.json();
-        const newComment: Comment = {
-          id: data.id,
-          content: data.content,
-          created_at: data.created_at,
-          updated_at: data.created_at,
-          is_edited: false,
-          author_id: data.author_id,
-          author_name: data.author_name,
-          author_avatar: data.author_avatar
-        };
+        const newComment: Comment = { id: data.id, content: data.content, created_at: data.created_at, updated_at: data.created_at, is_edited: false, author_id: data.author_id, author_name: data.author_name, author_avatar: data.author_avatar};
         
         setComments([newComment, ...comments]);
         setCommentsCount(commentsCount + 1);
@@ -419,16 +374,7 @@ export default function BlogPostPage() {
     e.preventDefault();
 
     try {
-      const response = await fetch(`/api/blog/posts/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: editForm.title,
-          content: editForm.content,
-          category: editForm.category,
-          tags: editForm.tags.split(",").map((t) => t.trim()).filter((t) => t)
-        })
-      });
+      const response = await fetch(`/api/blog/posts/${id}`, {method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: editForm.title, content: editForm.content, category: editForm.category, tags: editForm.tags.split(",").map((t) => t.trim()).filter((t) => t)})});
 
       if (response.ok) {
         const updatedPost = await response.json();
@@ -504,11 +450,7 @@ export default function BlogPostPage() {
     return (
       <div className="mt-5 flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <motion.div
-            className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          />
+          <motion.div className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} />
           <p className="mt-4 font-['Montserrat_Alternates'] text-text">Загрузка...</p>
         </div>
       </div>
@@ -534,22 +476,12 @@ export default function BlogPostPage() {
         <form onSubmit={handleUpdatePost} className="space-y-6">
           <div>
             <label className="block text-text mb-1 font-['Montserrat_Alternates'] font-medium">Заголовок <span className="text-firm-red">*</span></label>
-            <input
-              type="text"
-              value={editForm.title}
-              onChange={(e) => setEditForm((prev) => ({ ...prev, title: e.target.value }))}
-              required
-              className="w-full p-3 rounded-lg bg-main border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all"
-            />
+            <input type="text" value={editForm.title} onChange={(e) => setEditForm((prev) => ({ ...prev, title: e.target.value }))} required className="w-full p-3 rounded-lg bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all" />
           </div>
 
           <div>
             <label className="block text-text mb-1 font-['Montserrat_Alternates'] font-medium">Категория</label>
-            <select
-              value={editForm.category}
-              onChange={(e) => setEditForm((prev) => ({ ...prev, category: e.target.value }))}
-              className="w-full p-3 rounded-lg bg-main border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all"
-            >
+            <select value={editForm.category} onChange={(e) => setEditForm((prev) => ({ ...prev, category: e.target.value }))} className="w-full p-3 rounded-lg bg-main border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all">
               <option value="">Выберите категорию</option>
               {blogTags.map((tag) => (<option key={tag} value={tag}>{tag}</option>))}
             </select>
@@ -557,40 +489,17 @@ export default function BlogPostPage() {
 
           <div>
             <label className="block text-text mb-1 font-['Montserrat_Alternates'] font-medium">Теги (через запятую)</label>
-            <input
-              type="text"
-              value={editForm.tags}
-              onChange={(e) => setEditForm((prev) => ({ ...prev, tags: e.target.value }))}
-              className="w-full p-3 rounded-lg bg-main border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all"
-              placeholder="Мастер-класс, Советы, Обзор"
-            />
+            <input type="text" value={editForm.tags} onChange={(e) => setEditForm((prev) => ({ ...prev, tags: e.target.value }))} className="w-full p-3 rounded-lg bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all" placeholder="Мастер-класс, Советы, Обзор" />
           </div>
 
           <div>
             <label className="block text-text mb-1 font-['Montserrat_Alternates'] font-medium">Содержание <span className="text-firm-red">*</span></label>
-            <textarea
-              value={editForm.content}
-              onChange={(e) => setEditForm((prev) => ({ ...prev, content: e.target.value }))}
-              rows={15}
-              required
-              className="w-full p-3 rounded-lg bg-main border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all"
-            />
+            <textarea value={editForm.content} onChange={(e) => setEditForm((prev) => ({ ...prev, content: e.target.value }))} rows={15} required className="w-full p-3 rounded-lg bg-main border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all" />
           </div>
 
           <div className="flex gap-3">
-            <button
-              type="submit"
-              className="px-6 py-2 bg-firm-orange text-main rounded-lg hover:bg-opacity-90 transition"
-            >
-              Сохранить
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsEditing(false)}
-              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
-            >
-              Отмена
-            </button>
+            <button type="submit" className="px-6 py-2 bg-firm-orange text-main rounded-lg hover:bg-opacity-90 transition" >Сохранить</button>
+            <button type="button" onClick={() => setIsEditing(false)} className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition"> Отмена </button>
           </div>
         </form>
       </div>
@@ -600,7 +509,6 @@ export default function BlogPostPage() {
   return (
     <>
       <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Хлебные крошки */}
         <div className="text-sm text-firm-gray mb-6">
           <Link href="/" className="hover:text-firm-orange">Главная</Link>
           <span className="mx-2">/</span>
@@ -612,25 +520,11 @@ export default function BlogPostPage() {
         {/* Кнопки редактирования для автора */}
         {isAuthor && (
           <div className="flex justify-end gap-3 mb-4">
-            <button
-              onClick={() => setIsEditing(true)}
-              className="px-4 py-2 text-sm bg-firm-orange text-main rounded-lg hover:bg-opacity-90 transition flex items-center gap-2"
-            >
-              <EditIcon className="w-4 h-4" color="#f9f9f9" />
-              Редактировать
-            </button>
-            <button
-              onClick={handleDeletePost}
-              disabled={deleting}
-              className="px-4 py-2 text-sm bg-firm-red text-main rounded-lg hover:bg-firm-red transition disabled:opacity-50 flex items-center gap-2"
-            >
-              <DeleteIcon className="w-4 h-4" color="#f9f9f9" />
-              {deleting ? "Удаление..." : "Удалить"}
-            </button>
+            <button onClick={() => setIsEditing(true)} className="px-4 py-2 text-sm bg-firm-orange text-main rounded-lg hover:bg-opacity-90 transition flex items-center gap-2"><EditIcon className="w-4 h-4" color="#f9f9f9" />Редактировать</button>
+            <button onClick={handleDeletePost}  disabled={deleting} className="px-4 py-2 text-sm bg-firm-red text-main rounded-lg hover:bg-firm-red transition disabled:opacity-50 flex items-center gap-2"><DeleteIcon className="w-4 h-4" color="#f9f9f9" />{deleting ? "Удаление..." : "Удалить"}</button>
           </div>
         )}
 
-        {/* Информация об авторе */}
         <Link href={`/masters/${post.master_id}`} className="flex items-center gap-3 group mb-6">
           <UserAvatar name={post.master_name} avatarUrl={post.master_avatar} size={48} />
           <div>
@@ -639,32 +533,19 @@ export default function BlogPostPage() {
           </div>
         </Link>
 
-        {/* Категории и теги */}
         <div className="flex flex-wrap gap-2 mb-4">
-          {post.category && (
-            <span className="px-2 py-1 bg-firm-orange/10 text-firm-orange rounded-full text-xs sm:text-sm">{post.category}</span>
-          )}
-          {post.tags?.map((tag, idx) => (
-            <span key={idx} className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs sm:text-sm">#{tag}</span>
-          ))}
+          {post.category && (<span className="px-2 py-1 bg-firm-orange/10 text-firm-orange rounded-full text-xs sm:text-sm">{post.category}</span>)}
+          {post.tags?.map((tag, idx) => (<span key={idx} className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs sm:text-sm">#{tag}</span>))}
         </div>
 
-        {/* Заголовок */}
         <h1 className="font-['Montserrat_Alternates'] font-bold text-2xl sm:text-3xl md:text-4xl mb-6">{post.title}</h1>
 
-        {/* Изображения */}
-        {(post.images?.length || 0) > 0 || post.main_image_url ? (
-          <div className="mb-8">
-            <MediaGallery images={post.images || []} mainImageUrl={post.main_image_url} video={null} title={post.title} />
-          </div>
-        ) : null}
+        {(post.images?.length || 0) > 0 || post.main_image_url ? (<div className="mb-8"><MediaGallery images={post.images || []} mainImageUrl={post.main_image_url} video={null} title={post.title} /></div>) : null}
 
-        {/* Содержание */}
         <div className="mb-8">
           <div className="text-text whitespace-pre-wrap leading-relaxed text-sm sm:text-base">{post.content}</div>
         </div>
 
-        {/* Действия (лайк, комментарии, просмотры) */}
         <div className="flex items-center gap-6 py-4 border-t border-b border-gray-200 mb-8">
           <button onClick={handleLike} className="flex items-center gap-1.5 transition-all duration-300 hover:scale-110">
             <LikeIcon isActive={isLiked} />
@@ -689,29 +570,16 @@ export default function BlogPostPage() {
           </div>
         </div>
 
-        {/* Блок комментариев */}
         <div>
           <h3 className="font-['Montserrat_Alternates'] font-semibold text-xl mb-6">Комментарии ({commentsCount})</h3>
 
-          {/* Форма комментария для авторизованных */}
           {session ? (
             <div className="flex gap-3 mb-8">
               <CurrentUserAvatar size={40} />
               <div className="flex-1">
-                <textarea
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Написать комментарий..."
-                  rows={3}
-                  className="w-full p-3 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all duration-300 text-sm placeholder:text-firm-gray resize-none"
-                />
+                <textarea  value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Написать комментарий..." rows={3} className="w-full p-3 rounded-xl bg-forms border-2 border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all duration-300 text-sm placeholder:text-firm-gray resize-none" />
                 <div className="flex justify-end mt-2">
-                  <button
-                    onClick={handleComment}
-                    disabled={commentLoading || !commentText.trim()}
-                    className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-firm-orange to-firm-pink rounded-xl text-sm font-['Montserrat_Alternates'] font-medium hover:shadow-lg hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:hover:scale-100"
-                    style={{ color: '#f9f9f9' }}
-                  >
+                  <button onClick={handleComment} disabled={commentLoading || !commentText.trim()} className="flex items-center gap-2 px-5 py-2 bg-linear-to-r from-firm-orange to-firm-pink rounded-xl text-sm font-['Montserrat_Alternates'] font-medium hover:shadow-lg hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:hover:scale-100" style={{ color: '#f9f9f9' }} >
                     {commentLoading ? (
                       <>
                         <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -738,13 +606,10 @@ export default function BlogPostPage() {
                 <PasswordIcon color="#737682" className="w-4 h-4" />
                 Чтобы оставить комментарий, необходимо авторизоваться
               </p>
-              <Link href={`/auth/signin?callbackUrl=/blog/${id}`} className="inline-block px-5 py-2 bg-firm-orange text-white rounded-lg text-sm hover:bg-opacity-90 transition">
-                Войти
-              </Link>
+              <Link href={`/auth/signin?callbackUrl=/blog/${id}`} className="inline-block px-5 py-2 bg-firm-orange text-main rounded-lg text-sm hover:bg-opacity-90 transition">Войти</Link>
             </div>
           )}
 
-          {/* Список комментариев */}
           <AnimatePresence mode="wait">
             {showCommentsState && (
               <div className="space-y-5">
@@ -752,10 +617,7 @@ export default function BlogPostPage() {
                   <p className="text-firm-gray text-center py-8 text-sm">Будьте первым, кто оставит комментарий</p>
                 ) : (
                   comments.map((comment, idx) => (
-                    <div
-                      key={comment.id}
-                      className="flex gap-3 group"
-                    >
+                    <div key={comment.id} className="flex gap-3 group">
                       <UserAvatar name={comment.author_name} avatarUrl={comment.author_avatar} size={40} />
                       <div className="flex-1">
                         <div className="bg-main rounded-xl p-4 shadow-sm border border-gray-100">
@@ -772,43 +634,14 @@ export default function BlogPostPage() {
                               <div className={`flex gap-2 ${!isMobile ? 'opacity-0 group-hover:opacity-100' : ''} transition-opacity`}>
                                 {session?.user?.id === comment.author_id && editingCommentId === comment.id ? (
                                   <>
-                                    <button
-                                      onClick={() => handleUpdateComment(comment.id)}
-                                      disabled={updatingComment}
-                                      className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform disabled:opacity-50"
-                                    >
-                                      <Image src="/save.svg" alt="Сохранить" width={16} height={16} />
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        setEditingCommentId(null);
-                                        setEditingCommentText("");
-                                      }}
-                                      className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"
-                                    >
-                                      <Image src="/delete.svg" alt="Отмена" width={16} height={16} />
-                                    </button>
+                                    <button onClick={() => handleUpdateComment(comment.id)} disabled={updatingComment} className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform disabled:opacity-50"><Image src="/save.svg" alt="Сохранить" width={16} height={16} /></button>
+                                    <button onClick={() => {setEditingCommentId(null); setEditingCommentText("")}} className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"><Image src="/delete.svg" alt="Отмена" width={16} height={16} /></button>
                                   </>
                                 ) : (
                                   <>
                                     {session?.user?.id === comment.author_id && (
-                                      <button
-                                        onClick={() => {
-                                          setEditingCommentId(comment.id);
-                                          setEditingCommentText(comment.content);
-                                        }}
-                                        className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"
-                                      >
-                                        <Image src="/edit.svg" alt="Редактировать" width={16} height={16} />
-                                      </button>
-                                    )}
-                                    <button
-                                      onClick={() => handleDeleteComment(comment.id)}
-                                      disabled={deletingCommentId === comment.id}
-                                      className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform disabled:opacity-50"
-                                    >
-                                      <Image src="/delete.svg" alt="Удалить" width={16} height={16} />
-                                    </button>
+                                      <button onClick={() => {setEditingCommentId(comment.id); setEditingCommentText(comment.content)}}className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"><Image src="/edit.svg" alt="Редактировать" width={16} height={16} /> </button>)}
+                                    <button onClick={() => handleDeleteComment(comment.id)} disabled={deletingCommentId === comment.id} className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform disabled:opacity-50"><Image src="/delete.svg" alt="Удалить" width={16} height={16} /></button>
                                   </>
                                 )}
                               </div>
@@ -816,13 +649,7 @@ export default function BlogPostPage() {
                           </div>
 
                           {editingCommentId === comment.id ? (
-                            <textarea
-                              value={editingCommentText}
-                              onChange={(e) => setEditingCommentText(e.target.value)}
-                              className="w-full p-2 mt-2 rounded-lg bg-main border border-gray-200 outline-firm-orange text-sm"
-                              rows={3}
-                              autoFocus
-                            />
+                            <textarea value={editingCommentText} onChange={(e) => setEditingCommentText(e.target.value)} className="w-full p-2 mt-2 rounded-lg bg-main border border-gray-200 outline-firm-orange text-sm" rows={3} autoFocus />
                           ) : (
                             <p className="text-text text-sm mt-2">{comment.content}</p>
                           )}
@@ -837,14 +664,7 @@ export default function BlogPostPage() {
         </div>
       </div>
 
-      <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        title={confirmModal.title}
-        message={confirmModal.message}
-        type={confirmModal.type}
-        onConfirm={confirmModal.onConfirm}
-        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
-      />
+      <ConfirmModal isOpen={confirmModal.isOpen} title={confirmModal.title} message={confirmModal.message} type={confirmModal.type} onConfirm={confirmModal.onConfirm} onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} />
     </>
   );
 }
