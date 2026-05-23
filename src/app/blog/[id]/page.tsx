@@ -517,7 +517,6 @@ export default function BlogPostPage() {
           <span className="text-text">{post.title}</span>
         </div>
 
-        {/* Кнопки редактирования для автора */}
         {isAuthor && (
           <div className="flex justify-end gap-3 mb-4">
             <button onClick={() => setIsEditing(true)} className="px-4 py-2 text-sm bg-firm-orange text-main rounded-lg hover:bg-opacity-90 transition flex items-center gap-2"><EditIcon className="w-4 h-4" color="#f9f9f9" />Редактировать</button>

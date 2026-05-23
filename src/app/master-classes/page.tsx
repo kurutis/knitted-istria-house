@@ -13,6 +13,45 @@ import type { MasterClass } from "@/types/master-class"
 import AddClassModal from "@/components/modals/AddClassModal"
 import EditClassModal from "@/components/modals/EditClassModal"
 import ConfirmModal from "@/components/ui/ConfirmModal"
+import { EditIcon } from "@/components/icons/EditIcon";
+import { DeleteIcon } from "@/components/icons/DeleteIcon";
+
+const ClassesIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 308 308" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M191.202 34.21H294.366C299.707 34.21 304 37.643 304 41.915V296.295C304 300.567 299.707 304 294.366 304H13.6344C8.29262 304 4 300.567 4 296.295V41.915C4 37.643 8.29262 34.21 13.6344 34.21H88.6106M53.3641 90.4339H254.445M130.486 55.9902V4.03863M19.6438 13.0024H77.4976C82.8185 13.0024 87.132 16.4521 87.132 20.7074V26.5053C87.132 30.7607 82.8185 34.2102 77.4976 34.2102H19.6438C14.3229 34.2102 10.0096 30.7607 10.0096 26.5053V20.7074C10.0096 16.4521 14.3229 13.0024 19.6438 13.0024ZM231.122 13.0024H288.976C294.297 13.0024 298.61 16.4521 298.61 20.7074V26.5053C298.61 30.7607 294.297 34.2102 288.976 34.2102H231.122C225.802 34.2102 221.488 30.7607 221.488 26.5053V20.7074C221.488 16.4521 225.802 13.0024 231.122 13.0024ZM87.1319 49.2387V12.9643C87.1319 12.9643 87.7519 3.31389 104.922 4.03862H207.943C207.943 4.03862 221.488 3.42843 221.488 12.9643V26.4671C221.488 30.7392 217.195 34.1722 211.854 34.1722H190.773C190.773 34.1722 176.321 32.6081 177.227 49.2387C177.656 49.2387 176.798 56.448 162.776 56.1047C162.346 55.7614 101.345 56.1047 101.345 56.1047C101.345 56.1047 91.0905 57.554 87.1795 49.2387H87.1319Z" stroke="#D97C8E" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const CalendarIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M26.8267 4.21244C28.6709 4.21244 30.5151 4.21244 32.3548 4.21244C32.8471 4.21244 33.25 4.57667 33.25 5.02185V32.4406C33.25 32.8858 32.8471 33.25 32.3548 33.25H2.14523C1.65285 33.25 1.25 32.8858 1.25 32.4406V5.02185C1.25 4.57667 1.65285 4.21244 2.14523 4.21244H8.28651M12.7672 4.21244C15.9318 4.21244 19.1009 4.21244 22.2655 4.21244M1.25 10.7565H33.25M9.2086 1.25H11.8361C12.3602 1.25 12.7851 1.63413 12.7851 2.10797V7.34485C12.7851 7.8187 12.3602 8.20283 11.8361 8.20283H9.2086C8.68451 8.20283 8.25966 7.8187 8.25966 7.34485V2.10797C8.25966 1.63413 8.68451 1.25 9.2086 1.25ZM23.1787 1.25H25.8599C26.3836 1.25 26.8088 1.63447 26.8088 2.10797V7.3489C26.8088 7.8224 26.3836 8.20687 25.8599 8.20687H23.2324C22.7087 8.20687 22.2834 7.8224 22.2834 7.3489V2.06346C22.2834 1.61828 22.6863 1.25405 23.1787 1.25405V1.25Z" stroke="#737682" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const NoClassesIcon = () => (
+  <svg width="60" height="60" viewBox="0 0 308 308" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M191.202 34.21H294.366C299.707 34.21 304 37.643 304 41.915V296.295C304 300.567 299.707 304 294.366 304H13.6344C8.29262 304 4 300.567 4 296.295V41.915C4 37.643 8.29262 34.21 13.6344 34.21H88.6106M53.3641 90.4339H254.445M130.486 55.9902V4.03863M19.6438 13.0024H77.4976C82.8185 13.0024 87.132 16.4521 87.132 20.7074V26.5053C87.132 30.7607 82.8185 34.2102 77.4976 34.2102H19.6438C14.3229 34.2102 10.0096 30.7607 10.0096 26.5053V20.7074C10.0096 16.4521 14.3229 13.0024 19.6438 13.0024ZM231.122 13.0024H288.976C294.297 13.0024 298.61 16.4521 298.61 20.7074V26.5053C298.61 30.7607 294.297 34.2102 288.976 34.2102H231.122C225.802 34.2102 221.488 30.7607 221.488 26.5053V20.7074C221.488 16.4521 225.802 13.0024 231.122 13.0024ZM87.1319 49.2387V12.9643C87.1319 12.9643 87.7519 3.31389 104.922 4.03862H207.943C207.943 4.03862 221.488 3.42843 221.488 12.9643V26.4671C221.488 30.7392 217.195 34.1722 211.854 34.1722H190.773C190.773 34.1722 176.321 32.6081 177.227 49.2387C177.656 49.2387 176.798 56.448 162.776 56.1047C162.346 55.7614 101.345 56.1047 101.345 56.1047C101.345 56.1047 91.0905 57.554 87.1795 49.2387H87.1319Z" stroke="#737682" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const NoRegistrationsIcon = () => (
+  <svg width="60" height="60" viewBox="0 0 308 308" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12.4025 304H268.405C273.05 304 276.808 301.191 276.808 297.718V30.3889C276.808 26.9167 273.05 24.1073 268.405 24.1073C259.665 24.1073 250.882 24.1073 242.142 24.1073C259.96 24.1073 277.779 24.1073 295.598 24.1073C300.242 24.1073 304 26.9167 304 30.3889V297.718C304 301.191 300.242 304 295.598 304H12.4025ZM12.4025 304C7.75788 304 4 301.191 4 297.718V30.3889C4 26.9167 7.75788 24.1073 12.4025 24.1073M12.4025 24.1073H45.2949M12.4025 24.1073H45.2103M73.5846 24.1073C120.411 24.1073 167.279 24.1073 214.105 24.1073M74.1335 24.1073C120.875 24.1073 167.659 24.1073 214.401 24.1073M99.2145 87.428H233.613M88.2363 124.896H222.635M93.8521 162.365H228.293M101.875 197.056H236.273M93.8521 238.596H228.293M53.7397 4H65.1823C69.8229 4 73.5848 6.81235 73.5848 10.2816V51.9482C73.5848 55.4174 69.8229 58.2298 65.1823 58.2298H53.7397C49.0991 58.2298 45.337 55.4174 45.337 51.9482V10.2816C45.337 6.81235 49.0991 4 53.7397 4ZM222.55 4H233.993C238.633 4 242.395 6.81235 242.395 10.2816V51.9482C242.395 55.4174 238.633 58.2298 233.993 58.2298H222.55C217.91 58.2298 214.148 55.4174 214.148 51.9482V10.2816C214.148 6.81235 217.91 4 222.55 4ZM53.7397 75.5593H68.6868C73.3274 75.5593 77.0894 78.3717 77.0894 81.8409V93.0151C77.0894 96.4844 73.3274 99.2967 68.6868 99.2967H53.7397C49.0991 99.2967 45.337 96.4844 45.337 93.0151V81.8409C45.337 78.3717 49.0991 75.5593 53.7397 75.5593ZM53.7397 113.028H68.6868C73.3274 113.028 77.0894 115.84 77.0894 119.309V130.484C77.0894 133.953 73.3274 136.765 68.6868 136.765H53.7397C49.0991 136.765 45.337 133.953 45.337 130.484V119.309C45.337 115.84 49.0991 113.028 53.7397 113.028ZM52.0085 150.496H66.9556C71.5962 150.496 75.3582 153.309 75.3582 156.778V167.952C75.3582 171.421 71.5962 174.234 66.9556 174.234H52.0085C47.3679 174.234 43.6059 171.421 43.6059 167.952V156.778C43.6059 153.309 47.3679 150.496 52.0085 150.496ZM53.7397 185.187H68.6868C73.3274 185.187 77.0894 187.999 77.0894 191.468V202.643C77.0894 206.112 73.3274 208.924 68.6868 208.924H53.7397C49.0991 208.924 45.337 206.112 45.337 202.643V191.468C45.337 187.999 49.0991 185.187 53.7397 185.187ZM53.7397 226.727H68.6868C73.3274 226.727 77.0894 229.54 77.0894 233.009V244.183C77.0894 247.652 73.3274 250.465 68.6868 250.465H53.7397C49.0991 250.465 45.337 247.652 45.337 244.183V233.009C45.337 229.54 49.0991 226.727 53.7397 226.727Z" stroke="#737682" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const NoCreatedIcon = () => (
+  <svg width="60" height="60" viewBox="0 0 308 308" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M191.202 34.21H294.366C299.707 34.21 304 37.643 304 41.915V296.295C304 300.567 299.707 304 294.366 304H13.6344C8.29262 304 4 300.567 4 296.295V41.915C4 37.643 8.29262 34.21 13.6344 34.21H88.6106M53.3641 90.4339H254.445M130.486 55.9902V4.03863M19.6438 13.0024H77.4976C82.8185 13.0024 87.132 16.4521 87.132 20.7074V26.5053C87.132 30.7607 82.8185 34.2102 77.4976 34.2102H19.6438C14.3229 34.2102 10.0096 30.7607 10.0096 26.5053V20.7074C10.0096 16.4521 14.3229 13.0024 19.6438 13.0024ZM231.122 13.0024H288.976C294.297 13.0024 298.61 16.4521 298.61 20.7074V26.5053C298.61 30.7607 294.297 34.2102 288.976 34.2102H231.122C225.802 34.2102 221.488 30.7607 221.488 26.5053V20.7074C221.488 16.4521 225.802 13.0024 231.122 13.0024ZM87.1319 49.2387V12.9643C87.1319 12.9643 87.7519 3.31389 104.922 4.03862H207.943C207.943 4.03862 221.488 3.42843 221.488 12.9643V26.4671C221.488 30.7392 217.195 34.1722 211.854 34.1722H190.773C190.773 34.1722 176.321 32.6081 177.227 49.2387C177.656 49.2387 176.798 56.448 162.776 56.1047C162.346 55.7614 101.345 56.1047 101.345 56.1047C101.345 56.1047 91.0905 57.554 87.1795 49.2387H87.1319Z" stroke="#737682" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const LockIcon = () => (
+  <svg width="60" height="60" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 16V16.01M7 11H17V18H7V11Z" stroke="#737682" strokeWidth="2" strokeLinecap="round"/>
+    <path d="M8 11V7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7V11" stroke="#737682" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
 
 export default function MasterClassesPage() {
     const { data: session } = useSession()
@@ -29,7 +68,6 @@ export default function MasterClassesPage() {
     const [showEditModal, setShowEditModal] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
     
-    // Состояние для модального окна подтверждения
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean;
         title: string;
@@ -222,7 +260,6 @@ export default function MasterClassesPage() {
     }
 
     const handleViewParticipants = (masterClass: MasterClass) => {
-        // TODO: показать модальное окно с участниками
         console.log('View participants:', masterClass)
     }
 
@@ -283,12 +320,6 @@ export default function MasterClassesPage() {
         calendarDays.push(new Date(year, month, i))
     }
 
-    const tabVariants = {
-        hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0 },
-        exit: { opacity: 0, y: -20 }
-    }
-
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
@@ -307,7 +338,8 @@ export default function MasterClassesPage() {
             <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
                 {/* Заголовок */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                    <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl lg:text-4xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
+                    <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl lg:text-4xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent flex items-center gap-2">
+                        <ClassesIcon />
                         Мастер-классы
                     </h1>
                     {isMaster && (
@@ -324,9 +356,9 @@ export default function MasterClassesPage() {
                 {/* Вкладки */}
                 <div className="flex gap-2 sm:gap-4 mb-6 border-b border-gray-200">
                     {[
-                        { id: 'all', label: 'Все мастер-классы', icon: '🎓' },
-                        ...(session?.user ? [{ id: 'my', label: 'Мои записи', icon: '📝', count: myRegisteredClasses.length }] : []),
-                        ...(isMaster ? [{ id: 'created', label: 'Мои мастер-классы', icon: '✍️', count: myCreatedClasses.length }] : [])
+                        { id: 'all', label: 'Все мастер-классы', icon: <ClassesIcon /> },
+                        ...(session?.user ? [{ id: 'my', label: 'Мои записи', icon: <CalendarIcon />, count: myRegisteredClasses.length }] : []),
+                        ...(isMaster ? [{ id: 'created', label: 'Мои мастер-классы', icon: <EditIcon className="w-4 h-4" color="#737682" />, count: myCreatedClasses.length }] : [])
                     ].map((tab) => (
                         <button
                             key={tab.id}
@@ -337,7 +369,7 @@ export default function MasterClassesPage() {
                                     : 'text-gray-500 hover:text-gray-700'
                             }`}
                         >
-                            <span>{tab.icon}</span>
+                            <span className="w-4 h-4">{tab.icon}</span>
                             <span className="hidden sm:inline">{tab.label}</span>
                             <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
                             {tab.count !== undefined && tab.count > 0 && (
@@ -356,8 +388,8 @@ export default function MasterClassesPage() {
                     {/* Вкладка "Все мастер-классы" */}
                     {activeTab === 'all' && (
                         <div className="flex flex-col lg:flex-row gap-6">
-                            {/* Календарь */}
-                            <div className="w-full lg:w-1/3 xl:w-1/4 bg-white rounded-2xl shadow-xl p-4 h-fit sticky top-24">
+                            {/* Календарь - на мобильных не фиксированный */}
+                            <div className={`w-full lg:w-1/3 xl:w-1/4 bg-white rounded-2xl shadow-xl p-4 ${!isMobile ? 'sticky top-24' : ''}`}>
                                 <div className="flex justify-between items-center mb-4">
                                     <button onClick={() => changeMonth(-1)} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition">←</button>
                                     <h2 className="font-semibold text-base sm:text-lg">{monthNames[month]} {year}</h2>
@@ -409,9 +441,10 @@ export default function MasterClassesPage() {
                             {/* Список мастер-классов */}
                             <div className="flex-1 space-y-4">
                                 {selectedDate && (
-                                    <div className="bg-gradient-to-r from-firm-orange/10 to-firm-pink/10 rounded-xl p-3">
+                                    <div className="bg-gradient-to-r from-firm-orange/10 to-firm-pink/10 rounded-xl p-3 flex items-center gap-2">
+                                        <CalendarIcon />
                                         <p className="text-gray-600 text-sm">
-                                            📅 Мастер-классы на {selectedDate.toLocaleDateString('ru-RU')}
+                                            Мастер-классы на {selectedDate.toLocaleDateString('ru-RU')}
                                         </p>
                                     </div>
                                 )}
@@ -422,7 +455,9 @@ export default function MasterClassesPage() {
                                     if (classesToShow.length === 0) {
                                         return (
                                             <div className="text-center py-12 bg-gray-50 rounded-xl">
-                                                <div className="text-6xl mb-4">📭</div>
+                                                <div className="mb-4 flex justify-center">
+                                                    <NoClassesIcon />
+                                                </div>
                                                 <p className="text-gray-500">Нет доступных мастер-классов</p>
                                             </div>
                                         )
@@ -447,7 +482,9 @@ export default function MasterClassesPage() {
                         <div className="space-y-4">
                             {!session ? (
                                 <div className="text-center py-12 bg-gray-50 rounded-xl">
-                                    <div className="text-6xl mb-4">🔒</div>
+                                    <div className="mb-4 flex justify-center">
+                                        <LockIcon />
+                                    </div>
                                     <p className="text-gray-500 mb-4">Для просмотра ваших мастер-классов необходимо авторизоваться</p>
                                     <Link href="/auth/signin" className="inline-block px-6 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition">
                                         Войти
@@ -455,7 +492,9 @@ export default function MasterClassesPage() {
                                 </div>
                             ) : myRegisteredClasses.length === 0 ? (
                                 <div className="text-center py-12 bg-gray-50 rounded-xl">
-                                    <div className="text-6xl mb-4">📋</div>
+                                    <div className="mb-4 flex justify-center">
+                                        <NoRegistrationsIcon />
+                                    </div>
                                     <p className="text-gray-500 mb-4">Вы еще не записаны ни на один мастер-класс</p>
                                     <button onClick={() => setActiveTab('all')} className="text-firm-orange hover:underline">
                                         Посмотреть доступные →
@@ -478,7 +517,9 @@ export default function MasterClassesPage() {
                         <div className="space-y-4">
                             {myCreatedClasses.length === 0 ? (
                                 <div className="text-center py-12 bg-gray-50 rounded-xl">
-                                    <div className="text-6xl mb-4">🎨</div>
+                                    <div className="mb-4 flex justify-center">
+                                        <NoCreatedIcon />
+                                    </div>
                                     <p className="text-gray-500 mb-4">У вас нет созданных мастер-классов</p>
                                     <button onClick={() => setShowCreateModal(true)} className="text-firm-orange hover:underline">
                                         Создать первый мастер-класс →
@@ -529,7 +570,6 @@ export default function MasterClassesPage() {
                 )}
             </div>
 
-            {/* Кастомное модальное окно подтверждения */}
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
                 title={confirmModal.title}
