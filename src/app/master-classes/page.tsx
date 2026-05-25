@@ -484,7 +484,6 @@ export default function MasterClassesPage() {
                         </motion.div>
                     )}
 
-                    {/* Вкладка "Мои записи" */}
                     {activeTab === 'my' && (
                         <motion.div
                             key="my"
