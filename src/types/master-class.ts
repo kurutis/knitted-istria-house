@@ -17,6 +17,10 @@ export interface MasterClass {
     master_avatar: string
     status: string
     is_registered?: boolean
+    can_register?: boolean
+    spots_left?: number
+    is_full?: boolean
+    is_upcoming?: boolean
     registrations?: Array<{
         id: string;
         user_id: string;

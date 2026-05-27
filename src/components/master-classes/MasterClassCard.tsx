@@ -1,4 +1,3 @@
-// src/components/master-classes/MasterClassCard.tsx
 'use client'
 
 import { useState } from 'react'
@@ -19,10 +18,26 @@ export default function MasterClassCard({
     onRegister, 
     onCancel 
 }: MasterClassCardProps) {
-    const isPast = new Date(masterClass.date_time) < new Date()
-    const isFull = masterClass.current_participants >= masterClass.max_participants
-    const isRegistered = masterClass.is_registered
     const [imageError, setImageError] = useState(false)
+
+    // Правильная проверка завершенности с учетом длительности
+    const isClassCompleted = (): boolean => {
+        const startTime = new Date(masterClass.date_time);
+        const endTime = new Date(startTime.getTime() + masterClass.duration_minutes * 60000);
+        return new Date() >= endTime;
+    }
+
+    // Проверка, начался ли мастер-класс
+    const isClassStarted = (): boolean => {
+        const startTime = new Date(masterClass.date_time);
+        return new Date() >= startTime;
+    }
+
+    const isPast = isClassCompleted()
+    const isStarted = isClassStarted()
+    const isFull = masterClass.current_participants >= masterClass.max_participants
+    const isRegistered = masterClass.is_registered || false
+    const canRegister = masterClass.can_register !== undefined ? masterClass.can_register : true
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('ru-RU', { 
@@ -37,6 +52,17 @@ export default function MasterClassCard({
             hour: '2-digit', 
             minute: '2-digit' 
         })
+    }
+
+    // Определяем тип иконки для отображения
+    const getTypeIcon = () => {
+        if (masterClass.type === 'online') return '🖥️'
+        return '📍'
+    }
+
+    const getTypeText = () => {
+        if (masterClass.type === 'online') return 'Онлайн'
+        return 'Офлайн'
     }
 
     return (
@@ -54,26 +80,16 @@ export default function MasterClassCard({
                             className="w-full h-full object-cover"
                             onError={() => setImageError(true)}
                         />
-                        {masterClass.type === 'online' && (
-                            <span className="absolute top-2 left-2 px-2 py-1 bg-blue-500 text-white text-xs rounded-full z-10">
-                                🖥️ Онлайн
-                            </span>
-                        )}
-                        {masterClass.type === 'offline' && (
-                            <span className="absolute top-2 left-2 px-2 py-1 bg-green-500 text-white text-xs rounded-full z-10">
-                                📍 Офлайн
-                            </span>
-                        )}
+                        <span className="absolute top-2 left-2 px-2 py-1 bg-black/60 text-white text-xs rounded-full z-10 flex items-center gap-1">
+                            <span>{getTypeIcon()}</span>
+                            <span>{getTypeText()}</span>
+                        </span>
                     </div>
                 ) : (
                     <div className="w-full sm:w-40 h-48 sm:h-auto shrink-0 bg-gradient-to-r from-firm-orange/20 to-firm-pink/20 flex items-center justify-center">
                         <div className="text-center">
-                            <div className="text-4xl mb-1">
-                                {masterClass.type === 'online' ? '🖥️' : '📍'}
-                            </div>
-                            <span className="text-xs text-gray-500">
-                                {masterClass.type === 'online' ? 'Онлайн' : 'Офлайн'}
-                            </span>
+                            <div className="text-4xl mb-1">{getTypeIcon()}</div>
+                            <span className="text-xs text-gray-500">{getTypeText()}</span>
                         </div>
                     </div>
                 )}
@@ -110,13 +126,20 @@ export default function MasterClassCard({
                         {masterClass.type === 'offline' && masterClass.location && (
                             <div className="flex items-center gap-1">📍 {masterClass.location}</div>
                         )}
+                        {masterClass.type === 'online' && masterClass.online_link && (
+                            <div className="flex items-center gap-1">🔗 Онлайн-трансляция</div>
+                        )}
                     </div>
 
                     <div className="mt-3 flex justify-end">
                         {isPast ? (
                             <span className="px-3 py-1.5 bg-gray-200 text-gray-500 rounded-lg text-sm">✅ Завершен</span>
+                        ) : isStarted ? (
+                            <span className="px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-lg text-sm">⏳ В процессе</span>
                         ) : isFull ? (
                             <span className="px-3 py-1.5 bg-gray-200 text-gray-500 rounded-lg text-sm">❌ Мест нет</span>
+                        ) : !canRegister ? (
+                            <span className="px-3 py-1.5 bg-gray-200 text-gray-500 rounded-lg text-sm">⏰ Запись закрыта</span>
                         ) : isRegistered ? (
                             <div className="flex gap-2">
                                 {masterClass.type === 'online' && masterClass.online_link && (
