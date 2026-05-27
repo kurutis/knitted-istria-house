@@ -88,7 +88,7 @@ export async function GET(request: Request) {
                     users!inner (
                         id,
                         email,
-                        profiles!left (
+                        profiles!user_id (
                             full_name,
                             avatar_url,
                             city,
@@ -267,7 +267,7 @@ export async function GET_BY_ID(
                     users!inner (
                         id,
                         email,
-                        profiles!left (
+                        profiles!user_id (
                             full_name,
                             avatar_url,
                             city,
