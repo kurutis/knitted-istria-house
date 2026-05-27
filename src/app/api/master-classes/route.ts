@@ -185,12 +185,12 @@ export async function GET(request: Request) {
                     location: mc.location,
                     online_link: mc.online_link,
                     materials: mc.materials,
-                    image_url: getFullImageUrl(mc.image_url), // ← ИСПРАВЛЕНО!
+                    image_url: getFullImageUrl(mc.image_url),
                     created_at: mc.created_at,
                     updated_at: mc.updated_at,
                     master_id: mc.master_id,
                     master_name: mc.users?.profiles?.[0]?.full_name || mc.users?.email,
-                    master_avatar: mc.users?.profiles?.[0]?.avatar_url,
+                    master_avatar: getFullImageUrl(mc.users?.profiles?.[0]?.avatar_url), // ИСПРАВЛЕНО!
                     master_city: mc.users?.profiles?.[0]?.city,
                     is_upcoming: isUpcoming,
                     is_registered: isRegistered,
@@ -317,12 +317,12 @@ export async function GET_BY_ID(
                 location: masterClass.location,
                 online_link: masterClass.online_link,
                 materials: masterClass.materials,
-                image_url: getFullImageUrl(masterClass.image_url), // ← ИСПРАВЛЕНО!
+                image_url: getFullImageUrl(masterClass.image_url),
                 created_at: masterClass.created_at,
                 updated_at: masterClass.updated_at,
                 master_id: masterClass.master_id,
                 master_name: masterClass.users?.profiles?.[0]?.full_name || masterClass.users?.email,
-                master_avatar: masterClass.users?.profiles?.[0]?.avatar_url,
+                master_avatar: getFullImageUrl(masterClass.users?.profiles?.[0]?.avatar_url), // ИСПРАВЛЕНО!
                 master_city: masterClass.users?.profiles?.[0]?.city,
                 master_phone: masterClass.users?.profiles?.[0]?.phone,
                 master_address: masterClass.users?.profiles?.[0]?.address,
