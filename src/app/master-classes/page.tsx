@@ -307,7 +307,6 @@ export default function MasterClassesPage() {
                 {/* Заголовок */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                     <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl lg:text-4xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent flex items-center gap-3">
-                        <ClassesIcon size={32} />
                         Мастер-классы
                     </h1>
                     {isMaster && (
