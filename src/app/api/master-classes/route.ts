@@ -13,11 +13,6 @@ interface MasterClassRegistration {
     payment_status?: string;
 }
 
-interface MasterClassDetailRegistration {
-    user_id: string;
-    payment_status?: string;
-}
-
 // Rate limiting
 const limiter = rateLimit({ limit: 60, windowMs: 60 * 1000 });
 
@@ -41,6 +36,7 @@ export async function GET(request: Request) {
         const session = await getServerSession(authOptions);
         const userId = session?.user?.id;
 
+        // Rate limiting
         const ip = request.headers.get('x-forwarded-for') || 'unknown';
         const rateLimitResult = limiter(request);
         if (!rateLimitResult.success) {
@@ -51,6 +47,7 @@ export async function GET(request: Request) {
             }, { status: 429 });
         }
 
+        // Параметры пагинации и фильтрации
         const { searchParams } = new URL(request.url);
         const type = searchParams.get('type');
         const masterId = searchParams.get('masterId');
@@ -59,11 +56,11 @@ export async function GET(request: Request) {
         const offset = (page - 1) * limit;
         const includePast = searchParams.get('includePast') === 'true';
 
-        // Отключаем кэш для отладки
-        const cacheKey = `master_classes_${type || 'all'}_${masterId || 'all'}_${page}_${limit}_${includePast}_nocache_${Date.now()}`;
+        // Кэшируем результат
+        const cacheKey = `master_classes_${type || 'all'}_${masterId || 'all'}_${page}_${limit}_${includePast}`;
         
         const result = await cachedQuery(cacheKey, async () => {
-            // ИСПРАВЛЕННЫЙ ЗАПРОС - profiles привязан через user_id
+            // Получаем мастер-классы
             let query = supabase
                 .from('master_classes')
                 .select(`
@@ -72,30 +69,28 @@ export async function GET(request: Request) {
                         id,
                         email
                     ),
-                    profiles!user_id (
-                        full_name,
-                        avatar_url,
-                        city,
-                        phone
-                    ),
                     master_class_registrations!left (
                         user_id
                     )
                 `, { count: 'exact' })
                 .eq('status', 'published');
 
+            // Фильтр по дате
             if (!includePast) {
                 query = query.gt('date_time', new Date().toISOString());
             }
 
+            // Фильтр по типу
             if (type && ['online', 'offline', 'hybrid'].includes(type)) {
                 query = query.eq('type', type);
             }
 
+            // Фильтр по мастеру
             if (masterId) {
                 query = query.eq('master_id', masterId);
             }
 
+            // Сортировка
             query = query.order('date_time', { ascending: !includePast });
 
             const { data: masterClasses, error, count } = await query
@@ -114,6 +109,25 @@ export async function GET(request: Request) {
                 };
             }
 
+            // Получаем ID всех мастеров из мастер-классов
+            const masterIds = [...new Set(masterClasses.map(mc => mc.master_id))];
+            
+            // ОТДЕЛЬНЫЙ ЗАПРОС к таблице profiles (как в блоге!)
+            const { data: profilesData } = await supabase
+                .from('profiles')
+                .select('user_id, full_name, avatar_url, city')
+                .in('user_id', masterIds);
+            
+            // Создаем Map для быстрого доступа к данным мастеров
+            const masterMap = new Map();
+            profilesData?.forEach(profile => {
+                masterMap.set(profile.user_id, {
+                    full_name: profile.full_name,
+                    avatar_url: profile.avatar_url,
+                    city: profile.city
+                });
+            });
+
             // Получаем список доступных типов и мастеров для фильтров
             const { data: allPublished } = await supabase
                 .from('master_classes')
@@ -127,17 +141,15 @@ export async function GET(request: Request) {
             // Получаем информацию о мастерах для фильтров
             let mastersInfo: { id: string; name: string }[] = [];
             if (uniqueMasters.length > 0) {
-                const { data: profilesData } = await supabase
+                const { data: filterProfiles } = await supabase
                     .from('profiles')
                     .select('user_id, full_name')
                     .in('user_id', uniqueMasters);
                 
-                const profileMap = new Map(profilesData?.map(p => [p.user_id, p.full_name]) || []);
-                
-                mastersInfo = uniqueMasters.map(id => ({
-                    id,
-                    name: profileMap.get(id) || 'Мастер'
-                }));
+                mastersInfo = filterProfiles?.map(p => ({
+                    id: p.user_id,
+                    name: p.full_name || 'Мастер'
+                })) || [];
             }
 
             // Форматируем данные
@@ -150,14 +162,9 @@ export async function GET(request: Request) {
                     (reg: MasterClassRegistration) => reg.user_id === userId
                 ) || false : false;
 
-                // Логируем для отладки
-                console.log('Master data:', {
-                    id: mc.master_id,
-                    profile: mc.profiles,
-                    full_name: mc.profiles?.full_name,
-                    avatar_url: mc.profiles?.avatar_url
-                });
-
+                // Получаем данные мастера из Map
+                const masterData = masterMap.get(mc.master_id);
+                
                 return {
                     id: mc.id,
                     title: mc.title,
@@ -178,9 +185,9 @@ export async function GET(request: Request) {
                     created_at: mc.created_at,
                     updated_at: mc.updated_at,
                     master_id: mc.master_id,
-                    master_name: mc.profiles?.full_name || mc.users?.email || 'Мастер',
-                    master_avatar: getFullImageUrl(mc.profiles?.avatar_url),
-                    master_city: mc.profiles?.city,
+                    master_name: masterData?.full_name || mc.users?.email || 'Мастер',
+                    master_avatar: getFullImageUrl(masterData?.avatar_url),
+                    master_city: masterData?.city,
                     is_upcoming: isUpcoming,
                     is_registered: isRegistered,
                     can_register: isUpcoming && !isRegistered && spotsLeft > 0
@@ -245,7 +252,7 @@ export async function GET_BY_ID(
             return NextResponse.json({ error: 'ID мастер-класса обязателен' }, { status: 400 });
         }
 
-        const cacheKey = `master_class_detail_${id}_nocache_${Date.now()}`;
+        const cacheKey = `master_class_detail_${id}`;
         
         const result = await cachedQuery(cacheKey, async () => {
             const { data: masterClass, error } = await supabase
@@ -255,13 +262,6 @@ export async function GET_BY_ID(
                     users!inner (
                         id,
                         email
-                    ),
-                    profiles!user_id (
-                        full_name,
-                        avatar_url,
-                        city,
-                        phone,
-                        address
                     ),
                     master_class_registrations!left (
                         user_id,
@@ -279,13 +279,27 @@ export async function GET_BY_ID(
                 throw new Error('DATABASE_ERROR');
             }
 
+            // ОТДЕЛЬНЫЙ ЗАПРОС к таблице profiles (как в блоге!)
+            const { data: masterProfile } = await supabase
+                .from('profiles')
+                .select('full_name, avatar_url, city, phone, address')
+                .eq('user_id', masterClass.master_id)
+                .single();
+
             const spotsLeft = (masterClass.max_participants || 0) - (masterClass.current_participants || 0);
+            
+            // Определяем тип для регистрации
+            interface ClassRegistration {
+                user_id: string;
+                payment_status?: string;
+            }
+            
             const isRegistered = userId ? masterClass.master_class_registrations?.some(
-                (reg: MasterClassDetailRegistration) => reg.user_id === userId
+                (reg: ClassRegistration) => reg.user_id === userId
             ) || false : false;
 
             const paymentStatus = userId ? masterClass.master_class_registrations?.find(
-                (reg: MasterClassDetailRegistration) => reg.user_id === userId
+                (reg: ClassRegistration) => reg.user_id === userId
             )?.payment_status : null;
 
             return {
@@ -308,11 +322,11 @@ export async function GET_BY_ID(
                 created_at: masterClass.created_at,
                 updated_at: masterClass.updated_at,
                 master_id: masterClass.master_id,
-                master_name: masterClass.profiles?.full_name || masterClass.users?.email || 'Мастер',
-                master_avatar: getFullImageUrl(masterClass.profiles?.avatar_url),
-                master_city: masterClass.profiles?.city,
-                master_phone: masterClass.profiles?.phone,
-                master_address: masterClass.profiles?.address,
+                master_name: masterProfile?.full_name || masterClass.users?.email || 'Мастер',
+                master_avatar: getFullImageUrl(masterProfile?.avatar_url),
+                master_city: masterProfile?.city,
+                master_phone: masterProfile?.phone,
+                master_address: masterProfile?.address,
                 is_registered: isRegistered,
                 payment_status: paymentStatus,
                 can_register: !isRegistered && spotsLeft > 0 && masterClass.status === 'published'
