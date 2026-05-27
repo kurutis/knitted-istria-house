@@ -7,7 +7,7 @@ import { MasterClass } from '@/types/master-class'
 import { CalendarIcon } from '@/components/icons/CalendarIcon'
 import { LocateIcon } from '@/components/icons/LocateIcon'
 
-// Дополнительные иконки, которых нет в списке (создадим их)
+// Дополнительные иконки
 const ClockIcon = () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M12 6V12L16 14M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#737682" strokeWidth="1.5" strokeLinecap="round"/>
@@ -77,6 +77,11 @@ export default function MasterClassCard({
     const [imageError, setImageError] = useState(false)
     const [avatarError, setAvatarError] = useState(false)
 
+    // Используем только существующие поля из интерфейса MasterClass
+    const masterName = masterClass.master_name || 'Мастер'
+    const masterAvatar = masterClass.master_avatar ? getProxiedAvatarUrl(masterClass.master_avatar) : null
+    const masterInitials = masterName.charAt(0).toUpperCase()
+
     const isClassCompleted = (): boolean => {
         const startTime = new Date(masterClass.date_time);
         const endTime = new Date(startTime.getTime() + masterClass.duration_minutes * 60000);
@@ -109,8 +114,14 @@ export default function MasterClassCard({
         })
     }
 
-    const proxiedAvatarUrl = getProxiedAvatarUrl(masterClass.master_avatar)
-    const initials = masterClass.master_name?.charAt(0).toUpperCase() || 'M'
+    console.log('MasterClass data:', {
+        id: masterClass.id,
+        title: masterClass.title,
+        master_name: masterClass.master_name,
+        master_avatar: masterClass.master_avatar,
+        is_registered: masterClass.is_registered,
+        rawData: masterClass
+    })
 
     return (
         <motion.div 
@@ -153,19 +164,19 @@ export default function MasterClassCard({
                             </h3>
                             <div className="flex items-center gap-2 mt-2">
                                 {/* Аватарка мастера */}
-                                {proxiedAvatarUrl && !avatarError ? (
+                                {masterAvatar && !avatarError ? (
                                     <img
-                                        src={proxiedAvatarUrl}
-                                        alt={masterClass.master_name}
+                                        src={masterAvatar}
+                                        alt={masterName}
                                         className="w-6 h-6 rounded-full object-cover"
                                         onError={() => setAvatarError(true)}
                                     />
                                 ) : (
-                                    <div className="w-6 h-6 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main text-xs font-bold">
-                                        {initials}
+                                    <div className="w-6 h-6 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-xs font-bold">
+                                        {masterInitials}
                                     </div>
                                 )}
-                                <span className="text-sm text-gray-500">{masterClass.master_name}</span>
+                                <span className="text-sm text-gray-600 font-medium">{masterName}</span>
                             </div>
                         </div>
                         <div className="text-right">
