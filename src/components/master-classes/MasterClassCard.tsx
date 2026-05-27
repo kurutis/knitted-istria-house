@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Session } from 'next-auth'
 import { MasterClass } from '@/types/master-class'
@@ -76,9 +76,11 @@ export default function MasterClassCard({
 }: MasterClassCardProps) {
     const [imageError, setImageError] = useState(false)
     const [avatarError, setAvatarError] = useState(false)
-
-    // Используем только существующие поля из интерфейса MasterClass
+    
+    // Получаем имя мастера (из разных возможных источников)
     const masterName = masterClass.master_name || 'Мастер'
+    
+    // Получаем проксированный URL аватара
     const masterAvatar = masterClass.master_avatar ? getProxiedAvatarUrl(masterClass.master_avatar) : null
     const masterInitials = masterName.charAt(0).toUpperCase()
 
@@ -113,15 +115,6 @@ export default function MasterClassCard({
             minute: '2-digit' 
         })
     }
-
-    console.log('MasterClass data:', {
-        id: masterClass.id,
-        title: masterClass.title,
-        master_name: masterClass.master_name,
-        master_avatar: masterClass.master_avatar,
-        is_registered: masterClass.is_registered,
-        rawData: masterClass
-    })
 
     return (
         <motion.div 
@@ -163,7 +156,7 @@ export default function MasterClassCard({
                                 {masterClass.title}
                             </h3>
                             <div className="flex items-center gap-2 mt-2">
-                                {/* Аватарка мастера */}
+                                {/* Аватарка мастера - с такой же логикой как в BlogPostCard */}
                                 {masterAvatar && !avatarError ? (
                                     <img
                                         src={masterAvatar}
