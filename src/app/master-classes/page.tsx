@@ -258,11 +258,11 @@ export default function MasterClassesPage() {
             case 'draft':
                 return <span className="px-2 py-1 bg-gray-200 text-gray-700 rounded-full text-xs">Черновик</span>
             case 'moderation':
-                return <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs">На модерации</span>
+                return <span className="px-2 py-1 bg-yellow-100 text-firm-orange rounded-full text-xs">На модерации</span>
             case 'published':
-                return <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">Опубликован</span>
+                return <span className="px-2 py-1 bg-green-100 text-firm-green rounded-full text-xs">Опубликован</span>
             case 'cancelled':
-                return <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">Отменен</span>
+                return <span className="px-2 py-1 bg-red-100 text-firm-red rounded-full text-xs">Отменен</span>
             case 'completed':
                 return <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">Завершен</span>
             default:

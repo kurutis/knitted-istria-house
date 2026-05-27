@@ -321,7 +321,7 @@ export async function POST(request: Request) {
 
         const now = new Date().toISOString();
 
-        // Создаем мастер-класс
+        // Создаем мастер-класс со статусом 'published' (сразу доступен)
         const { data: newClass, error: insertError } = await supabase
             .from('master_classes')
             .insert({
@@ -329,7 +329,7 @@ export async function POST(request: Request) {
                 title: title.trim(),
                 description: description.trim(),
                 type: type || 'offline',
-                status: 'published',
+                status: 'published', // Сразу опубликован, без модерации
                 price,
                 max_participants,
                 current_participants: 0,
@@ -349,11 +349,10 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Ошибка создания мастер-класса' }, { status: 500 });
         }
 
-        // Загружаем изображение с правильными правами доступа
+        // Загружаем изображение
         let imageUrl = null;
         if (imageFile && imageFile.size > 0) {
             try {
-                // Функция uploadToS3 должна иметь ACL: 'public-read'
                 imageUrl = await uploadToS3(imageFile, 'classes', newClass.id, {
                     contentType: imageFile.type
                 });
@@ -387,6 +386,7 @@ export async function POST(request: Request) {
             price,
             max_participants,
             hasImage: !!imageUrl,
+            status: 'published',
             duration: Date.now() - startTime
         });
 
@@ -394,7 +394,7 @@ export async function POST(request: Request) {
             success: true, 
             id: newClass.id,
             image_url: imageUrl,
-            message: 'Мастер-класс успешно создан'
+            message: 'Мастер-класс успешно создан и опубликован'
         }, { status: 201 });
         
     } catch (error) {

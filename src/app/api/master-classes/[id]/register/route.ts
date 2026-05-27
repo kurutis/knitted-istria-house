@@ -34,6 +34,45 @@ function isValidUUID(uuid: string): boolean {
     return uuidRegex.test(uuid);
 }
 
+// Функция для проверки, завершен ли мастер-класс
+function isMasterClassCompleted(dateTime: string, durationMinutes: number): boolean {
+    const startTime = new Date(dateTime);
+    const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
+    const now = new Date();
+    return now >= endTime;
+}
+
+// Функция для проверки, начался ли мастер-класс
+function isMasterClassStarted(dateTime: string): boolean {
+    const startTime = new Date(dateTime);
+    const now = new Date();
+    return now >= startTime;
+}
+
+// Функция для проверки, можно ли еще записаться
+function canRegister(dateTime: string, durationMinutes: number): { can: boolean; reason?: string } {
+    const startTime = new Date(dateTime);
+    const now = new Date();
+    
+    // Проверяем, не завершен ли мастер-класс
+    if (isMasterClassCompleted(dateTime, durationMinutes)) {
+        return { can: false, reason: 'Мастер-класс уже завершен' };
+    }
+    
+    // Проверяем, не начался ли мастер-класс
+    if (isMasterClassStarted(dateTime)) {
+        return { can: false, reason: 'Мастер-класс уже начался' };
+    }
+    
+    // Проверяем, не слишком ли поздно для записи (за 1 час до начала)
+    const hoursUntilClass = (startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+    if (hoursUntilClass < 1) {
+        return { can: false, reason: 'Запись на мастер-класс закрыта за 1 час до начала' };
+    }
+    
+    return { can: true };
+}
+
 export async function POST(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -62,7 +101,7 @@ export async function POST(
             return NextResponse.json({ error: 'Неверный формат ID мастер-класса' }, { status: 400 });
         }
 
-        // 1. Получаем полную информацию о мастер-классе
+        // 1. Получаем полную информацию о мастер-классе (включая duration_minutes)
         const { data: masterClass, error: classError } = await supabase
             .from('master_classes')
             .select(`
@@ -71,6 +110,7 @@ export async function POST(
                 description,
                 price,
                 date_time,
+                duration_minutes,
                 current_participants,
                 max_participants,
                 status,
@@ -90,28 +130,18 @@ export async function POST(
             return NextResponse.json({ error: 'Ошибка при проверке мастер-класса' }, { status: 500 });
         }
 
-        // 2. Проверяем доступность мастер-класса
+        // 2. Проверяем статус мастер-класса
         if (masterClass.status !== 'published') {
             return NextResponse.json({ error: 'Мастер-класс не доступен для записи' }, { status: 400 });
         }
 
-        // Проверяем дату
-        const classDate = new Date(masterClass.date_time);
-        const now = new Date();
-        
-        if (classDate < now) {
-            return NextResponse.json({ error: 'Мастер-класс уже прошел' }, { status: 400 });
+        // 3. Проверяем возможность записи (с учетом времени начала и длительности)
+        const registrationCheck = canRegister(masterClass.date_time, masterClass.duration_minutes);
+        if (!registrationCheck.can) {
+            return NextResponse.json({ error: registrationCheck.reason }, { status: 400 });
         }
 
-        // Проверяем, не слишком ли поздно для записи (например, за 1 час до начала)
-        const hoursUntilClass = (classDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-        if (hoursUntilClass < 1) {
-            return NextResponse.json({ 
-                error: 'Запись на мастер-класс закрыта за 1 час до начала' 
-            }, { status: 400 });
-        }
-
-        // 3. Проверяем наличие мест
+        // 4. Проверяем наличие мест
         const currentParticipants = masterClass.current_participants || 0;
         const maxParticipants = masterClass.max_participants || 0;
 
@@ -119,7 +149,7 @@ export async function POST(
             return NextResponse.json({ error: 'Нет свободных мест' }, { status: 400 });
         }
 
-        // 4. Проверяем, не записан ли уже пользователь
+        // 5. Проверяем, не записан ли уже пользователь
         const { data: existing, error: checkError } = await supabase
             .from('master_class_registrations')
             .select('id, payment_status')
@@ -139,7 +169,7 @@ export async function POST(
             }, { status: 400 });
         }
 
-        // 5. Создаем запись
+        // 6. Создаем запись
         const nowISO = new Date().toISOString();
         const { data: registration, error: insertError } = await supabase
             .from('master_class_registrations')
@@ -159,7 +189,7 @@ export async function POST(
             return NextResponse.json({ error: 'Ошибка при записи' }, { status: 500 });
         }
 
-        // 6. Увеличиваем количество участников
+        // 7. Увеличиваем количество участников
         const newParticipantsCount = currentParticipants + 1;
 
         const { error: updateError } = await supabase
@@ -175,7 +205,7 @@ export async function POST(
             // Не возвращаем ошибку, так как запись уже создана
         }
 
-        // 7. Создаем уведомление для пользователя
+        // 8. Создаем уведомление для пользователя
         await supabase
             .from('notifications')
             .insert({
@@ -192,7 +222,7 @@ export async function POST(
                 is_read: false
             });
 
-        // 8. Уведомляем мастера
+        // 9. Уведомляем мастера
         await supabase
             .from('notifications')
             .insert({
@@ -209,7 +239,7 @@ export async function POST(
                 is_read: false
             });
 
-        // 9. Инвалидируем кэши
+        // 10. Инвалидируем кэши
         invalidateCache(`master_class_${id}`);
         invalidateCache(`master_class_registrations_${id}`);
         invalidateCache(`user_registrations_${session.user.id}`);
@@ -225,10 +255,12 @@ export async function POST(
             spotsLeft: maxParticipants - newParticipantsCount,
             requiresPayment: masterClass.price > 0,
             price: masterClass.price,
+            dateTime: masterClass.date_time,
+            durationMinutes: masterClass.duration_minutes,
             duration: Date.now() - startTime
         });
 
-        // 10. Формируем ответ
+        // 11. Формируем ответ
         const response: RegistrationResponse = {
             success: true,
             message: masterClass.price > 0 
