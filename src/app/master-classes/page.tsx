@@ -71,9 +71,26 @@ export default function MasterClassesPage() {
 
     const fetchMasterClasses = async () => {
         try {
+            setLoading(true)
             const response = await fetch('/api/master-classes')
             const data = await response.json()
-            setMasterClasses(Array.isArray(data) ? data : [])
+            
+            console.log('API Response:', data) // Для отладки
+            
+            // Правильное извлечение данных из ответа API
+            let classes = []
+            if (data.success && data.master_classes) {
+                classes = data.master_classes
+            } else if (data.master_classes && Array.isArray(data.master_classes)) {
+                classes = data.master_classes
+            } else if (Array.isArray(data)) {
+                classes = data
+            } else if (data.classes && Array.isArray(data.classes)) {
+                classes = data.classes
+            }
+            
+            console.log('Extracted classes:', classes) // Для отладки
+            setMasterClasses(classes)
         } catch (error) {
             console.error('Error fetching master classes:', error)
             setMasterClasses([])
