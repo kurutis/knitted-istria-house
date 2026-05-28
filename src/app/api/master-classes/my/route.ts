@@ -211,15 +211,7 @@ export async function GET(request: Request) {
             duration: Date.now() - startTime
         });
 
-        return NextResponse.json({
-            success: true,
-            ...result,
-            meta: {
-                cached: Date.now() - startTime < 100,
-                timestamp: new Date().toISOString()
-            }
-        }, { status: 200 });
-        
+        return NextResponse.json(result.registrations, { status: 200 });
     } catch (error) {
         logError('Error fetching my master classes', error);
         return NextResponse.json({ 
