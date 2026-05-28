@@ -5,31 +5,74 @@ import { supabase } from "@/lib/supabase";
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
-        const sort = searchParams.get('sort') || 'popular';
-        const limit = parseInt(searchParams.get('limit') || '6');
+        
+        // Получаем параметры фильтрации
+        const category = searchParams.get('category');
+        const technique = searchParams.get('technique');
+        const minPrice = searchParams.get('minPrice');
+        const maxPrice = searchParams.get('maxPrice');
+        const search = searchParams.get('search');
+        const sort = searchParams.get('sort') || 'newest';
+        const page = parseInt(searchParams.get('page') || '1');
+        const limit = parseInt(searchParams.get('limit') || '12');
+        const offset = (page - 1) * limit;
 
-        console.log('API /api/catalog/products called', { sort, limit });
+        console.log('API /api/catalog/products called', { category, technique, minPrice, maxPrice, search, sort, page, limit });
 
-        // Простой запрос
+        // Базовый запрос
         let query = supabase
             .from('products')
-            .select('*')
+            .select('*', { count: 'exact' })
             .eq('status', 'active');
 
+        // Фильтр по категории
+        if (category && category !== 'all') {
+            query = query.eq('category', category);
+        }
+
+        // Фильтр по технике вязания
+        if (technique && technique.trim() !== '') {
+            query = query.eq('technique', technique);
+        }
+
+        // Фильтр по цене
+        if (minPrice && !isNaN(parseFloat(minPrice))) {
+            query = query.gte('price', parseFloat(minPrice));
+        }
+        if (maxPrice && !isNaN(parseFloat(maxPrice))) {
+            query = query.lte('price', parseFloat(maxPrice));
+        }
+
+        // Поиск по названию
+        if (search && search.trim() !== '') {
+            query = query.ilike('title', `%${search.trim()}%`);
+        }
+
+        // Сортировка
         if (sort === 'popular') {
             query = query.order('views', { ascending: false });
         } else if (sort === 'newest') {
             query = query.order('created_at', { ascending: false });
+        } else if (sort === 'price_asc') {
+            query = query.order('price', { ascending: true });
+        } else if (sort === 'price_desc') {
+            query = query.order('price', { ascending: false });
+        } else if (sort === 'rating') {
+            query = query.order('rating', { ascending: false });
+        } else {
+            query = query.order('created_at', { ascending: false });
         }
 
-        const { data: products, error } = await query.limit(limit);
+        // Пагинация
+        const { data: products, error, count } = await query
+            .range(offset, offset + limit - 1);
 
         if (error) {
             console.error('Supabase error:', error);
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
-        console.log('Products found:', products?.length);
+        console.log('Products found:', products?.length, 'Total:', count);
 
         // Получаем имена мастеров отдельно
         const masterIds = [...new Set(products?.map(p => p.master_id) || [])];
@@ -38,27 +81,43 @@ export async function GET(request: Request) {
         if (masterIds.length > 0) {
             const { data: profiles } = await supabase
                 .from('profiles')
-                .select('user_id, full_name')
+                .select('user_id, full_name, avatar_url')
                 .in('user_id', masterIds);
             
             profiles?.forEach(p => {
-                mastersMap.set(p.user_id, p.full_name);
+                mastersMap.set(p.user_id, {
+                    name: p.full_name,
+                    avatar: p.avatar_url
+                });
             });
         }
 
         const formattedProducts = products?.map(p => ({
             id: p.id,
             title: p.title,
+            description: p.description,
             price: p.price,
             main_image_url: p.main_image_url,
-            master_name: mastersMap.get(p.master_id) || 'Мастер',
+            master_id: p.master_id,
+            master_name: mastersMap.get(p.master_id)?.name || 'Мастер',
+            master_avatar: mastersMap.get(p.master_id)?.avatar,
+            status: p.status,
             views: p.views || 0,
-            created_at: p.created_at
+            rating: p.rating || 0,
+            created_at: p.created_at,
+            category: p.category,
+            technique: p.technique
         })) || [];
 
         return NextResponse.json({ 
-            products: formattedProducts, 
-            pagination: { total: formattedProducts.length } 
+            products: formattedProducts,
+            pagination: {
+                page,
+                limit,
+                total: count || 0,
+                totalPages: Math.ceil((count || 0) / limit),
+                hasMore: offset + limit < (count || 0)
+            }
         });
         
     } catch (error) {

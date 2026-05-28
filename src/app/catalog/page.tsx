@@ -89,12 +89,16 @@ function CatalogContent() {
 
   const fetchFilters = async () => {
       try {
+          // Исправьте URL - должно быть /api/catalog/filters, а не /api/filters
           const response = await fetch(`/api/catalog/filters`);
           const data = await response.json();
-          if (data.priceRange && data.priceRange.max > 50000) {
-              data.priceRange.max = 50000;
+          
+          if (data.success) {
+              if (data.priceRange && data.priceRange.max > 50000) {
+                  data.priceRange.max = 50000;
+              }
+              setAvailableFilters(data);
           }
-          setAvailableFilters(data);
       } catch (error) {
           console.error("Error fetching filters:", error);
       }
