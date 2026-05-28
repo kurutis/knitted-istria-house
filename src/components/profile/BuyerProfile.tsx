@@ -604,7 +604,7 @@ export default function BuyerProfile({
                       ) : (
                         <>
                           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-5">
-                            {favorites.slice(0, 6).map((item: any, idx: number) => (
+                            {favorites.slice(0, 6).map((item: {id: string; title: string; price: number; main_image_url?: string; image?: string; master_name?: string; master_id?: string;}, idx: number) => (
                               <motion.div key={item.id} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.05 }} whileHover={{ y: -5 }} className="group bg-main rounded-xl overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300 relative">
                                 <Link href={`/catalog/${item.id}`}>
                                   <div className="relative aspect-square bg-main overflow-hidden">
