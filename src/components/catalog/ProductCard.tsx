@@ -158,7 +158,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                             <span className="text-firm-gray text-sm">Нет фото</span>
                         </div>
                     )}
-                    <button onClick={handleAddToFavorite} disabled={loading} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 z-10 disabled:opacity-50 bg-white/80 backdrop-blur-sm"><FavoritesIcon size={20} className={`transition-all duration-300 ${isHovered && !isFavorite ? 'scale-110 rotate-12' : ''} ${isFavorite ? 'scale-110' : ''}`} color={isFavorite ? "#D97C8E" : "#737682"} /></button>
+                    <button onClick={handleAddToFavorite} disabled={loading} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 z-10 disabled:opacity-50 bg-main backdrop-blur-sm"><FavoritesIcon size={20} className={`transition-all duration-300 ${isHovered && !isFavorite ? 'scale-110 rotate-12' : ''} ${isFavorite ? 'scale-110' : ''}`} color={isFavorite ? "#D97C8E" : "#737682"} /></button>
                 </div>
 
                 <div className="p-3">
