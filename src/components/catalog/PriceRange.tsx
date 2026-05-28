@@ -12,15 +12,12 @@ interface PriceRangeProps {
 }
 
 export default function PriceRange({ min, max, currentMin, currentMax, onChange }: PriceRangeProps) {
-    // Нормализуем значения для отображения
     const displayMin = Math.max(0, min)
     const displayMax = Math.min(Math.max(max, currentMax), 50000)
     
-    // Инициализируем состояние из пропсов
     const [localMin, setLocalMin] = useState(() => Math.max(currentMin, displayMin))
     const [localMax, setLocalMax] = useState(() => Math.min(currentMax, displayMax))
 
-    // Обновляем локальное состояние только когда пропсы меняются
     if (localMin !== Math.max(currentMin, displayMin)) {
         setLocalMin(Math.max(currentMin, displayMin))
     }
@@ -53,65 +50,21 @@ export default function PriceRange({ min, max, currentMin, currentMax, onChange 
                 </div>
 
                 <div className="relative h-2 bg-gray-200 rounded-full my-4">
-                    <motion.div 
-                        className="absolute h-full bg-gradient-to-r from-firm-orange to-firm-pink rounded-full"
-                        style={{
-                            left: `${minPercent}%`,
-                            width: `${maxPercent - minPercent}%`
-                        }}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${maxPercent - minPercent}%` }}
-                        transition={{ duration: 0.2 }}
-                    />
+                    <motion.div className="absolute h-full bg-linear-to-r from-firm-orange to-firm-pink rounded-full" style={{left: `${minPercent}%`, width: `${maxPercent - minPercent}%`}} initial={{ width: 0 }} animate={{ width: `${maxPercent - minPercent}%` }} transition={{ duration: 0.2 }} />
                 </div>
 
-                <input
-                    type="range"
-                    min={displayMin}
-                    max={displayMax}
-                    step="100"
-                    value={localMin}
-                    onChange={(e) => handleMinChange(Number(e.target.value))}
-                    className="w-full h-2 bg-transparent appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 md:[&::-webkit-slider-thumb]:w-5 md:[&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-firm-orange [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform"
-                    style={{ marginTop: '-14px' }}
-                />
-
-                <input
-                    type="range"
-                    min={displayMin}
-                    max={displayMax}
-                    step="100"
-                    value={localMax}
-                    onChange={(e) => handleMaxChange(Number(e.target.value))}
-                    className="w-full h-2 bg-transparent appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 md:[&::-webkit-slider-thumb]:w-5 md:[&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-firm-pink [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform"
-                    style={{ marginTop: '-14px' }}
-                />
+                <input type="range" min={displayMin} max={displayMax} step="100" value={localMin} onChange={(e) => handleMinChange(Number(e.target.value))} className="w-full h-2 bg-transparent appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 md:[&::-webkit-slider-thumb]:w-5 md:[&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-firm-orange [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform" style={{ marginTop: '-14px' }} />
+                <input type="range" min={displayMin} max={displayMax} step="100" value={localMax} onChange={(e) => handleMaxChange(Number(e.target.value))} className="w-full h-2 bg-transparent appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 md:[&::-webkit-slider-thumb]:w-5 md:[&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-firm-pink [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform" style={{ marginTop: '-14px' }} />
             </div>
 
             <div className="flex gap-2 mt-6 px-2">
                 <div className="flex-1">
                     <label className="block text-xs text-firm-gray mb-1">От</label>
-                    <input 
-                        type="number" 
-                        value={localMin} 
-                        onChange={(e) => handleMinChange(Number(e.target.value))}
-                        min={displayMin} 
-                        max={localMax} 
-                        step="100"
-                        className="w-full p-2 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm" 
-                    />
+                    <input type="number" value={localMin} onChange={(e) => handleMinChange(Number(e.target.value))} min={displayMin} max={localMax} step="100" className="w-full p-2 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm" />
                 </div>
                 <div className="flex-1">
                     <label className="block text-xs text-firm-gray mb-1">До</label>
-                    <input 
-                        type="number" 
-                        value={localMax} 
-                        onChange={(e) => handleMaxChange(Number(e.target.value))}
-                        min={localMin} 
-                        max={displayMax} 
-                        step="100"
-                        className="w-full p-2 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm" 
-                    />
+                    <input type="number" value={localMax} onChange={(e) => handleMaxChange(Number(e.target.value))} min={localMin} max={displayMax} step="100" className="w-full p-2 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm" />
                 </div>
             </div>
 
@@ -120,14 +73,7 @@ export default function PriceRange({ min, max, currentMin, currentMax, onChange 
                 <span>{displayMax.toLocaleString()} ₽</span>
             </div>
 
-            <motion.button 
-                onClick={() => onChange(localMin, localMax)} 
-                className="w-full mt-3 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl font-medium hover:shadow-lg transition-all text-sm"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-            >
-                Применить
-            </motion.button>
+            <motion.button onClick={() => onChange(localMin, localMax)} className="w-full mt-3 py-2 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl font-medium hover:shadow-lg transition-all text-sm" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>Применить</motion.button>
         </div>
     )
 }
