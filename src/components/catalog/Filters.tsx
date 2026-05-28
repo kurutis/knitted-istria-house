@@ -338,12 +338,19 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
                                 transition={{ delay: idx * 0.03 }}
                             >
                                 <span className="flex items-center gap-2">
-                                    <input
-                                        type="checkbox"
-                                        checked={filters.technique === tech.technique}
-                                        onChange={() => handleTechniqueChange(tech.technique)}
-                                        className="w-4 h-4 rounded accent-firm-orange"
-                                    />
+                                    <div className="relative flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={filters.technique === tech.technique}
+                                            onChange={() => handleTechniqueChange(tech.technique)}
+                                            className="w-5 h-5 appearance-none border-2 border-firm-orange rounded-md bg-main checked:bg-firm-orange checked:border-firm-orange transition-all duration-200 cursor-pointer"
+                                        />
+                                        {filters.technique === tech.technique && (
+                                            <svg className="absolute w-4 h-4 text-main left-0.5 top-0.5 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                                <polyline points="20 6 9 17 4 12" />
+                                            </svg>
+                                        )}
+                                    </div>
                                     <span className="text-sm text-text">{tech.technique}</span>
                                 </span>
                                 <span className="text-xs text-firm-gray">{tech.count}</span>
