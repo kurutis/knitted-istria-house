@@ -184,10 +184,7 @@ export default function Header() {
                       <ChatIcon size={24} color="#737682" />
                     </Link>
                     {unreadCount > 0 && (
-                      <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2 bg-firm-red text-main text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-lg">
-                        {unreadCount > 9 ? '9+' : unreadCount}
-                      </motion.span>
-                    )}
+                      <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2 bg-firm-red text-main text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-lg">{unreadCount > 9 ? '9+' : unreadCount}</motion.span>)}
                   </motion.div>
                 )}
 
@@ -211,15 +208,13 @@ export default function Header() {
                       {proxiedAvatarUrl && !avatarError ? (
                         <img src={proxiedAvatarUrl} alt="profile" className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover ring-2 ring-white/50 hover:ring-firm-orange transition-all duration-300" onError={() => setAvatarError(true)} />
                       ) : (
-                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main text-xs sm:text-sm font-bold">
+                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main text-xs sm:text-sm font-bold">
                           {getInitials()}
                         </div>
                       )}
                     </Link>
                   ) : (
-                    <Link href="/auth/signin" className="block">
-                      <ProfileIcon size={24} color="#737682" />
-                    </Link>
+                    <Link href="/auth/signin" className="block"><ProfileIcon size={24} color="#737682" /></Link>
                   )}
                 </motion.div>
               </div>
@@ -228,7 +223,6 @@ export default function Header() {
         </div>
       </motion.header>
 
-      {/* Мобильная панель */}
       <div className="fixed bottom-4 left-0 right-0 z-40 lg:hidden">
         <div className="flex justify-center">
           <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl px-4 py-2 mx-auto inline-flex">
@@ -307,7 +301,6 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Мобильное меню */}
       <AnimatePresence>
         {isMenuOpen && (
           <>
@@ -319,53 +312,15 @@ export default function Header() {
                   <button onClick={() => setIsMenuOpen(false)} className="w-8 h-8 rounded-full bg-main flex items-center justify-center">✕</button>
                 </div>
                 <div className="space-y-2">
-                  <Link href="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300">
-                    <HomeIcon size={24} color="#737682" />
-                    <span className="text-gray-700 font-['Montserrat_Alternates']">Главная</span>
-                  </Link>
-                  <Link href="/catalog" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300">
-                    <CatalogPinkIcon size={20} color="#737682" />
-                    <span className="text-gray-700 font-['Montserrat_Alternates']">Каталог</span>
-                  </Link>
-                  <Link href="/shopping-cart" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300">
-                    <CartIcon size={20} color="#737682" />
-                    <span className="text-gray-700 font-['Montserrat_Alternates']">Корзина</span>
-                  </Link>
-                  <Link href="/favorites" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300">
-                    <FavoritesIcon size={20} color="#737682" />
-                    <span className="text-gray-700 font-['Montserrat_Alternates']">Избранное</span>
-                  </Link>
-                  <Link href="/blog" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300">
-                    <BlogIcon size={20} color="#737682" />
-                    <span className="text-gray-700 font-['Montserrat_Alternates']">Блог</span>
-                  </Link>
-                  <Link href="/master-classes" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300">
-                    <ClassesIcon size={20} color="#737682" />
-                    <span className="text-gray-700 font-['Montserrat_Alternates']">Мастер-классы</span>
-                  </Link>
+                  <Link href="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300"><HomeIcon size={24} color="#737682" /><span className="text-gray-700 font-['Montserrat_Alternates']">Главная</span></Link>
+                  <Link href="/catalog" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300"><CatalogPinkIcon size={20} color="#737682" /><span className="text-gray-700 font-['Montserrat_Alternates']">Каталог</span></Link>
+                  <Link href="/shopping-cart" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300"><CartIcon size={20} color="#737682" /><span className="text-gray-700 font-['Montserrat_Alternates']">Корзина</span></Link>
+                  <Link href="/favorites" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300"><FavoritesIcon size={20} color="#737682" /><span className="text-gray-700 font-['Montserrat_Alternates']">Избранное</span></Link>
+                  <Link href="/blog" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300"><BlogIcon size={20} color="#737682" /><span className="text-gray-700 font-['Montserrat_Alternates']">Блог</span></Link>
+                  <Link href="/master-classes" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300"><ClassesIcon size={20} color="#737682" /><span className="text-gray-700 font-['Montserrat_Alternates']">Мастер-классы</span></Link>
                   {isAuthenticated && (isBuyer || isMaster) && (
-                    <Link href="/chats" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300 relative">
-                      <ChatIcon size={20} color="#737682" />
-                      <span className="text-text font-['Montserrat_Alternates']">Сообщения</span>
-                      {unreadCount > 0 && (
-                        <span className="ml-auto bg-firm-red text-white text-xs rounded-full px-2 py-0.5 min-w-5 text-center">
-                          {unreadCount > 9 ? '9+' : unreadCount}
-                        </span>
-                      )}
-                    </Link>
-                  )}
-                  {!isAuthenticated && (
-                    <>
-                      <Link href="/auth/signin" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300">
-                        <ProfileIcon size={20} color="#737682" />
-                        <span className="text-gray-700 font-['Montserrat_Alternates']">Войти</span>
-                      </Link>
-                      <Link href="/auth/signup" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300">
-                        <ProfileIcon size={20} color="#737682" />
-                        <span className="text-gray-700 font-['Montserrat_Alternates']">Зарегистрироваться</span>
-                      </Link>
-                    </>
-                  )}
+                    <Link href="/chats" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300 relative"><ChatIcon size={20} color="#737682" /><span className="text-text font-['Montserrat_Alternates']">Сообщения</span>{unreadCount > 0 && (<span className="ml-auto bg-firm-red text-main text-xs rounded-full px-2 py-0.5 min-w-5 text-center">{unreadCount > 9 ? '9+' : unreadCount}</span>)}</Link>)}
+                  {!isAuthenticated && (<><Link href="/auth/signin" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300"><ProfileIcon size={20} color="#737682" /><span className="text-gray-700 font-['Montserrat_Alternates']">Войти</span></Link><Link href="/auth/signup" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300"><ProfileIcon size={20} color="#737682" /><span className="text-gray-700 font-['Montserrat_Alternates']">Зарегистрироваться</span></Link></> )}
                 </div>
               </div>
             </motion.div>
