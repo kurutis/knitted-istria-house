@@ -165,7 +165,7 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
                         onClick={() => onFilterChange({ category: cat.name })}
                         className={`w-full text-left px-3 py-2 rounded-xl transition-all flex items-center gap-2 ${
                             isActive
-                                ? 'bg-gradient-to-r from-firm-orange to-firm-pink text-main shadow-md'
+                                ? 'bg-gradient-to-r from-firm-orange to-firm-pink shadow-md'
                                 : 'hover:bg-main border-2 border-transparent hover:border-firm-orange/20'
                         }`}
                         style={{ paddingLeft: `${12 + level * 20}px` }}
@@ -181,7 +181,7 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
                                 <motion.span
                                     animate={{ rotate: isExpanded ? 90 : 0 }}
                                     transition={{ duration: 0.2 }}
-                                    className="text-xs"
+                                    className="text-xs text-firm-pink"
                                 >
                                     ▶
                                 </motion.span>
@@ -202,9 +202,11 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
                             </span>
                         )}
                         
-                        <span className={`flex-1 text-sm ${isActive ? 'font-medium' : ''}`}>{cat.name}</span>
+                        <span className={`flex-1 text-sm ${isActive ? 'text-main font-medium' : 'text-text'}`}>
+                            {cat.name}
+                        </span>
                         {cat.products_count !== undefined && cat.products_count > 0 && (
-                            <span className={`text-xs ${isActive ? 'opacity-90' : 'opacity-75'}`}>
+                            <span className={`text-xs ${isActive ? 'text-main opacity-90' : 'text-firm-gray opacity-75'}`}>
                                 {cat.products_count}
                             </span>
                         )}
@@ -273,7 +275,7 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
                             onClick={() => onFilterChange({ category: 'all' })}
                             className={`w-full text-left px-3 py-2 rounded-xl transition-all flex items-center gap-2 ${
                                 filters.category === 'all'
-                                    ? 'bg-gradient-to-r from-firm-orange to-firm-pink text-main shadow-md'
+                                    ? 'bg-gradient-to-r from-firm-orange to-firm-pink shadow-md'
                                     : 'hover:bg-main border-2 border-transparent hover:border-firm-orange/20'
                             }`}
                         >
@@ -287,7 +289,9 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
                                     className={`object-contain ${filters.category === 'all' ? 'brightness-0 invert' : ''}`}
                                 />
                             </span>
-                            <span className={`flex-1 text-sm ${filters.category === 'all' ? 'font-medium' : ''}`}>Все категории</span>
+                            <span className={`flex-1 text-sm ${filters.category === 'all' ? 'text-main font-medium' : 'text-text'}`}>
+                                Все категории
+                            </span>
                         </motion.button>
                         {renderCategories(categories)}
                     </div>
