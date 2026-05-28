@@ -1,14 +1,54 @@
-// app/api/my/master-classes/route.ts
+// app/api/master-classes/my/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
-import { cachedQuery, invalidateCache } from "@/lib/db-optimized";
+import { cachedQuery } from "@/lib/db-optimized";
 import { logError, logInfo } from "@/lib/error-logger";
 
 // Rate limiting
-const limiter = rateLimit({ limit: 60, windowMs: 60 * 1000 }); // 60 запросов в минуту
+const limiter = rateLimit({ limit: 60, windowMs: 60 * 1000 });
+
+interface MasterClassData {
+    id: string;
+    title: string;
+    description: string;
+    type: string;
+    status: string;
+    price: number;
+    max_participants: number;
+    current_participants: number;
+    date_time: string;
+    duration_minutes: number;
+    location: string | null;
+    online_link: string | null;
+    materials: string | null;
+    image_url: string | null;
+    created_at: string;
+    updated_at: string;
+    master_id: string;
+    users: Array<{
+        id: string;
+        email: string;
+    }>;
+}
+
+interface Registration {
+    master_class_id: string;
+    payment_status: string;
+    payment_amount: number;
+    created_at: string;
+    updated_at: string;
+}
+
+interface ProfileData {
+    user_id: string;
+    full_name: string | null;
+    avatar_url: string | null;
+    city: string | null;
+    phone: string | null;
+}
 
 export async function GET(request: Request) {
     const startTime = Date.now();
@@ -20,34 +60,25 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
         }
 
-        // Rate limiting
-        const ip = request.headers.get('x-forwarded-for') || 'unknown';
         const rateLimitResult = limiter(request);
         if (!rateLimitResult.success) {
-            return NextResponse.json({ 
-                error: 'Слишком много запросов',
-                registrations: []
-            }, { status: 429 });
+            return NextResponse.json([], { status: 429 });
         }
 
-        // Параметры пагинации и фильтрации
         const { searchParams } = new URL(request.url);
-        const status = searchParams.get('status'); // upcoming, past, cancelled
+        const status = searchParams.get('status');
         const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
         const page = parseInt(searchParams.get('page') || '1');
         const offset = (page - 1) * limit;
 
-        // Кэшируем результат
         const cacheKey = `my_master_classes_${session.user.id}_${status || 'all'}_${page}_${limit}`;
         
         const result = await cachedQuery(cacheKey, async () => {
             // 1. Получаем ID мастер-классов, на которые записан пользователь
-            const registrationsQuery = supabase
+            const { data: registrations, error: regError } = await supabase
                 .from('master_class_registrations')
                 .select('master_class_id, payment_status, payment_amount, created_at, updated_at')
                 .eq('user_id', session.user.id);
-
-            const { data: registrations, error: regError, count: totalRegistrations } = await registrationsQuery;
 
             if (regError) {
                 logError('Error fetching registrations', regError);
@@ -55,14 +86,10 @@ export async function GET(request: Request) {
             }
 
             if (!registrations || registrations.length === 0) {
-                return {
-                    registrations: [],
-                    pagination: { total: 0, page, limit, totalPages: 0 },
-                    stats: { total: 0, upcoming: 0, past: 0, cancelled: 0, paid: 0 }
-                };
+                return [];
             }
 
-            const masterClassIds = registrations.map(r => r.master_class_id);
+            const masterClassIds = registrations.map((r: Registration) => r.master_class_id);
             
             // 2. Получаем информацию о мастер-классах
             let classesQuery = supabase
@@ -87,18 +114,11 @@ export async function GET(request: Request) {
                     master_id,
                     users!inner (
                         id,
-                        email,
-                        profiles!left (
-                            full_name,
-                            avatar_url,
-                            city,
-                            phone
-                        )
+                        email
                     )
                 `)
                 .in('id', masterClassIds);
 
-            // Фильтр по статусу (предстоящие/прошедшие)
             const now = new Date().toISOString();
             if (status === 'upcoming') {
                 classesQuery = classesQuery.gt('date_time', now);
@@ -108,7 +128,7 @@ export async function GET(request: Request) {
                 classesQuery = classesQuery.eq('status', 'cancelled');
             }
 
-            const { data: masterClasses, error: mcError, count: totalClasses } = await classesQuery
+            const { data: masterClasses, error: mcError } = await classesQuery
                 .order('date_time', { ascending: status === 'past' ? false : true })
                 .range(offset, offset + limit - 1);
 
@@ -117,39 +137,55 @@ export async function GET(request: Request) {
                 throw new Error('DATABASE_ERROR');
             }
 
-            // 3. Создаем Map для быстрого доступа к информации о регистрации
-            const registrationMap = new Map();
-            registrations.forEach(reg => {
-                registrationMap.set(reg.master_class_id, {
-                    payment_status: reg.payment_status,
-                    payment_amount: reg.payment_amount,
-                    registered_at: reg.created_at,
-                    updated_at: reg.updated_at
-                });
+            if (!masterClasses || masterClasses.length === 0) {
+                return [];
+            }
+
+            // 3. Получаем данные профилей мастеров (отдельный запрос)
+            const masterIds = [...new Set(masterClasses.map((mc: MasterClassData) => mc.master_id))];
+            const { data: profilesData } = await supabase
+                .from('profiles')
+                .select('user_id, full_name, avatar_url, city, phone')
+                .in('user_id', masterIds);
+            
+            const profileMap = new Map<string, ProfileData>();
+            profilesData?.forEach((profile: ProfileData) => {
+                profileMap.set(profile.user_id, profile);
             });
 
-            // 4. Форматируем результат с дополнительной информацией
+            // 4. Создаем Map для доступа к информации о регистрации
+            const registrationMap = new Map<string, Registration>();
+            registrations.forEach((reg: Registration) => {
+                registrationMap.set(reg.master_class_id, reg);
+            });
+
+            // 5. Форматируем результат
             const nowDate = new Date();
-            const formattedClasses = masterClasses?.map(mc => {
+            const formattedRegistrations = masterClasses.map((mc: MasterClassData) => {
                 const classDate = new Date(mc.date_time);
                 const isUpcoming = classDate > nowDate;
                 const isPast = classDate < nowDate;
-                const isFull = mc.current_participants >= mc.max_participants;
-                const spotsLeft = mc.max_participants - (mc.current_participants || 0);
+                const isFull = (mc.current_participants || 0) >= (mc.max_participants || 0);
+                const spotsLeft = (mc.max_participants || 0) - (mc.current_participants || 0);
+                
+                const registration = registrationMap.get(mc.id);
+                const masterProfile = profileMap.get(mc.master_id);
+                // users - это массив, берем первый элемент
+                const userEmail = mc.users?.[0]?.email;
                 
                 return {
                     id: mc.id,
-                    payment_status: registrationMap.get(mc.id)?.payment_status || 'pending',
-                    payment_amount: registrationMap.get(mc.id)?.payment_amount || 0,
-                    registered_at: registrationMap.get(mc.id)?.registered_at,
-                    updated_at: registrationMap.get(mc.id)?.updated_at,
+                    payment_status: registration?.payment_status || 'pending',
+                    payment_amount: registration?.payment_amount || 0,
+                    registered_at: registration?.created_at,
+                    updated_at: registration?.updated_at,
                     master_class: {
                         id: mc.id,
                         title: mc.title,
                         description: mc.description,
                         type: mc.type,
                         status: mc.status,
-                        price: parseFloat(mc.price || 0),
+                        price: parseFloat(String(mc.price || 0)),
                         max_participants: mc.max_participants,
                         current_participants: mc.current_participants || 0,
                         spots_left: spotsLeft,
@@ -163,62 +199,31 @@ export async function GET(request: Request) {
                         created_at: mc.created_at,
                         updated_at: mc.updated_at,
                         master_id: mc.master_id,
-                        master_name: mc.users?.[0]?.profiles?.[0]?.full_name || mc.users?.[0]?.email,
-                        master_avatar: mc.users?.[0]?.profiles?.[0]?.avatar_url,
-                        master_city: mc.users?.[0]?.profiles?.[0]?.city,
-                        master_phone: mc.users?.[0]?.profiles?.[0]?.phone,
+                        master_name: masterProfile?.full_name || userEmail || 'Мастер',
+                        master_avatar: masterProfile?.avatar_url,
+                        master_city: masterProfile?.city,
+                        master_phone: masterProfile?.phone,
                         is_upcoming: isUpcoming,
                         is_past: isPast,
                         can_cancel: isUpcoming && mc.status === 'published' && !isPast,
                         can_review: isPast && mc.status === 'completed'
                     }
                 };
-            }) || [];
+            });
 
-            // 5. Подсчет статистики
-            const allRegistrations = registrations;
-            const allMasterClasses = masterClasses || [];
-            
-            const stats = {
-                total: allRegistrations.length,
-                upcoming: allMasterClasses.filter(mc => new Date(mc.date_time) > new Date()).length,
-                past: allMasterClasses.filter(mc => new Date(mc.date_time) < new Date()).length,
-                cancelled: allMasterClasses.filter(mc => mc.status === 'cancelled').length,
-                paid: allRegistrations.filter(r => r.payment_status === 'paid').length,
-                total_spent: allRegistrations
-                    .filter(r => r.payment_status === 'paid')
-                    .reduce((sum, r) => sum + (r.payment_amount || 0), 0)
-            };
-
-            return {
-                registrations: formattedClasses,
-                pagination: {
-                    total: totalClasses || 0,
-                    page,
-                    limit,
-                    totalPages: Math.ceil((totalClasses || 0) / limit),
-                    hasMore: offset + limit < (totalClasses || 0)
-                },
-                stats
-            };
+            return formattedRegistrations;
         });
 
         logInfo('My master classes fetched', {
             userId: session.user.id,
-            count: result.registrations.length,
-            total: result.pagination.total,
-            stats: result.stats,
+            count: result.length,
             duration: Date.now() - startTime
         });
 
-        return NextResponse.json(result.registrations, { status: 200 });
+        return NextResponse.json(result, { status: 200 });
+        
     } catch (error) {
         logError('Error fetching my master classes', error);
-        return NextResponse.json({ 
-            error: 'Ошибка загрузки мастер-классов',
-            registrations: [],
-            pagination: { total: 0, page: 1, limit: 20, totalPages: 0 },
-            stats: { total: 0, upcoming: 0, past: 0, cancelled: 0, paid: 0, total_spent: 0 }
-        }, { status: 500 });
+        return NextResponse.json([], { status: 500 });
     }
 }
