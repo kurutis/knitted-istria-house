@@ -4,12 +4,14 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import { CartIcon } from "@/components/icons/CartIcon";
 import { DeleteIcon } from "@/components/icons/DeleteIcon";
 import { ArrowLeftIcon } from "@/components/icons/ArrowLeftIcon";
 import { CheckIcon } from "@/components/icons/CheckIcon";
+import { RefreshIcon } from "@/components/icons/RefreshIcon";
 import PaymentGateway from "@/components/payment/PaymentGateway";
 
 interface CartItem {
@@ -46,6 +48,7 @@ export default function ShoppingCartPage() {
   const [step, setStep] = useState(1);
   const [orderLoading, setOrderLoading] = useState(false);
   const [createdOrder, setCreatedOrder] = useState<{ id: string; order_number: string } | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   
   const [confirmModal, setConfirmModal] = useState<{isOpen: boolean; title: string; message: string; onConfirm: () => void; type?: 'danger' | 'warning' | 'info'}>({isOpen: false, title: '', message: '', onConfirm: () => {}, type: 'warning'});
 
@@ -57,6 +60,13 @@ export default function ShoppingCartPage() {
     postal_code: "",
   });
   const [comment, setComment] = useState("");
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -268,9 +278,13 @@ export default function ShoppingCartPage() {
             Добавьте товары, чтобы оформить заказ
           </p>
           <Link href="/catalog">
-            <button className="px-6 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition">
+            <motion.button 
+              className="px-6 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
               Перейти в каталог
-            </button>
+            </motion.button>
           </Link>
         </div>
       </div>
@@ -285,15 +299,16 @@ export default function ShoppingCartPage() {
             Оформление заказа
           </h1>
 
-          <div className="flex items-center justify-center gap-4">
+          {/* Steps */}
+          <div className="flex items-center justify-center gap-2 sm:gap-4 flex-wrap">
             {[
               { num: 1, title: "Корзина" },
               { num: 2, title: "Доставка" },
               { num: 3, title: "Подтверждение" },
               { num: 4, title: "Оплата" },
-            ].map((s) => (
+            ].map((s, idx) => (
               <div key={s.num} className="flex items-center">
-                <button
+                <motion.button
                   onClick={() => {
                     if (s.num === 4 && !createdOrder) return;
                     setStep(s.num);
@@ -302,6 +317,8 @@ export default function ShoppingCartPage() {
                     step >= s.num ? "text-firm-orange" : "text-firm-gray"
                   } ${s.num === 4 && !createdOrder ? "cursor-not-allowed opacity-50" : ""}`}
                   disabled={s.num === 4 && !createdOrder}
+                  whileHover={{ scale: step >= s.num ? 1.05 : 1 }}
+                  whileTap={{ scale: 0.95 }}
                 >
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${
@@ -317,10 +334,10 @@ export default function ShoppingCartPage() {
                   <span className="font-['Montserrat_Alternates'] text-sm hidden sm:inline">
                     {s.title}
                   </span>
-                </button>
+                </motion.button>
                 {s.num < 4 && (
                   <div
-                    className={`w-12 h-0.5 mx-2 ${step > s.num ? "bg-gradient-to-r from-firm-orange to-firm-pink" : "bg-gray-300"}`}
+                    className={`w-8 sm:w-12 h-0.5 mx-1 sm:mx-2 ${step > s.num ? "bg-gradient-to-r from-firm-orange to-firm-pink" : "bg-gray-300"}`}
                   />
                 )}
               </div>
@@ -330,266 +347,300 @@ export default function ShoppingCartPage() {
 
         <div className="flex flex-col lg:flex-row gap-8">
           <div className="flex-1">
-            {/* Шаг 1: Корзина */}
-            {step === 1 && (
-              <div className="space-y-4">
-                {cart.items.map((item) => (
-                  <div
-                    key={item.product_id}
-                    className="bg-main rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all"
-                  >
-                    <div className="flex gap-6">
-                      <Link
-                        href={`/catalog/${item.product_id}`}
-                        className="w-24 h-24 flex-shrink-0"
-                      >
-                        {item.main_image_url ? (
-                          <img
-                            src={item.main_image_url}
-                            alt={item.title}
-                            className="w-full h-full object-cover rounded-xl"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-r from-firm-orange/20 to-firm-pink/20 rounded-xl flex items-center justify-center">
-                            <CartIcon color="#D97C8E" size={32} />
-                          </div>
-                        )}
-                      </Link>
+            <AnimatePresence mode="wait">
+              {/* Шаг 1: Корзина */}
+              {step === 1 && (
+                <motion.div
+                  key="step1"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="space-y-4"
+                >
+                  {cart.items.map((item, idx) => (
+                    <motion.div
+                      key={item.product_id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="bg-main rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6 hover:shadow-xl transition-all"
+                    >
+                      <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                        <Link
+                          href={`/catalog/${item.product_id}`}
+                          className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 mx-auto sm:mx-0"
+                        >
+                          {item.main_image_url ? (
+                            <img
+                              src={item.main_image_url}
+                              alt={item.title}
+                              className="w-full h-full object-cover rounded-xl"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-r from-firm-orange/20 to-firm-pink/20 rounded-xl flex items-center justify-center">
+                              <CartIcon color="#D97C8E" size={28} />
+                            </div>
+                          )}
+                        </Link>
 
-                      <div className="flex-1">
-                        <div className="flex justify-between">
-                          <div>
-                            <Link href={`/catalog/${item.product_id}`}>
-                              <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg hover:text-firm-orange transition">
-                                {item.title}
-                              </h3>
-                            </Link>
-                            <p className="text-sm text-firm-gray mt-1">
-                              {item.master_name}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => removeItem(item.product_id)}
-                            disabled={updating === item.product_id}
-                            className="text-firm-gray hover:text-firm-red transition"
-                          >
-                            <DeleteIcon className="w-5 h-5" color="#9CA3AF" />
-                          </button>
-                        </div>
-
-                        <div className="flex justify-between items-center mt-4">
-                          <div className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <div className="flex flex-col sm:flex-row justify-between gap-2">
+                            <div>
+                              <Link href={`/catalog/${item.product_id}`}>
+                                <h3 className="font-['Montserrat_Alternates'] font-semibold text-base sm:text-lg hover:text-firm-orange transition line-clamp-2">
+                                  {item.title}
+                                </h3>
+                              </Link>
+                              <p className="text-xs sm:text-sm text-firm-gray mt-1">
+                                {item.master_name}
+                              </p>
+                            </div>
                             <button
-                              onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
-                              disabled={updating === item.product_id || item.quantity <= 1}
-                              className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gradient-to-r hover:from-firm-orange hover:to-firm-pink hover:text-main transition disabled:opacity-50 flex items-center justify-center"
-                            >
-                              -
-                            </button>
-                            <span className="w-8 text-center font-medium">
-                              {item.quantity}
-                            </span>
-                            <button
-                              onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
+                              onClick={() => removeItem(item.product_id)}
                               disabled={updating === item.product_id}
-                              className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gradient-to-r hover:from-firm-orange hover:to-firm-pink hover:text-main transition disabled:opacity-50 flex items-center justify-center"
+                              className="text-firm-gray hover:text-firm-red transition self-start sm:self-auto"
                             >
-                              +
+                              <DeleteIcon className="w-5 h-5" color="#9CA3AF" />
                             </button>
                           </div>
-                          <div className="text-right">
-                            <p className="font-['Montserrat_Alternates'] font-bold text-xl text-firm-orange">
-                              {(item.price * item.quantity).toLocaleString()} ₽
-                            </p>
+
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mt-4">
+                            <div className="flex items-center gap-3">
+                              <motion.button
+                                onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
+                                disabled={updating === item.product_id || item.quantity <= 1}
+                                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gradient-to-r hover:from-firm-orange hover:to-firm-pink hover:text-main transition disabled:opacity-50 flex items-center justify-center"
+                                whileTap={{ scale: 0.9 }}
+                              >
+                                -
+                              </motion.button>
+                              <span className="w-8 text-center font-medium">
+                                {item.quantity}
+                              </span>
+                              <motion.button
+                                onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
+                                disabled={updating === item.product_id}
+                                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gradient-to-r hover:from-firm-orange hover:to-firm-pink hover:text-main transition disabled:opacity-50 flex items-center justify-center"
+                                whileTap={{ scale: 0.9 }}
+                              >
+                                +
+                              </motion.button>
+                            </div>
+                            <div className="text-left sm:text-right">
+                              <p className="font-['Montserrat_Alternates'] font-bold text-lg sm:text-xl text-firm-orange">
+                                {(item.price * item.quantity).toLocaleString()} ₽
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </div>
+                    </motion.div>
+                  ))}
+
+                  <div className="mt-6">
+                    <Link href="/catalog">
+                      <motion.button 
+                        className="text-firm-orange hover:underline font-['Montserrat_Alternates'] flex items-center gap-2"
+                        whileHover={{ x: -5 }}
+                      >
+                        <ArrowLeftIcon size={18} />
+                        Продолжить покупки
+                      </motion.button>
+                    </Link>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Шаг 2: Доставка */}
+              {step === 2 && (
+                <motion.div
+                  key="step2"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="bg-main rounded-2xl shadow-lg border border-gray-100 p-6"
+                >
+                  <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl mb-6">
+                    Адрес доставки
+                  </h2>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-text mb-1 font-medium">
+                        ФИО <span className="text-firm-red">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="full_name"
+                        value={shippingAddress.full_name}
+                        onChange={handleShippingChange}
+                        className="w-full p-3 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all"
+                        placeholder="Иванов Иван Иванович"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-text mb-1 font-medium">
+                        Телефон <span className="text-firm-red">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={shippingAddress.phone}
+                        onChange={handleShippingChange}
+                        className="w-full p-3 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all"
+                        placeholder="+7 (999) 123-45-67"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-text mb-1 font-medium">
+                        Город <span className="text-firm-red">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="city"
+                        value={shippingAddress.city}
+                        onChange={handleShippingChange}
+                        className="w-full p-3 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all"
+                        placeholder="Москва"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-text mb-1 font-medium">
+                        Адрес <span className="text-firm-red">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="address"
+                        value={shippingAddress.address}
+                        onChange={handleShippingChange}
+                        className="w-full p-3 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all"
+                        placeholder="ул. Примерная, д. 1, кв. 1"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-text mb-1 font-medium">
+                        Почтовый индекс
+                      </label>
+                      <input
+                        type="text"
+                        name="postal_code"
+                        value={shippingAddress.postal_code}
+                        onChange={handleShippingChange}
+                        className="w-full p-3 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all"
+                        placeholder="123456"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-text mb-1 font-medium">
+                        Комментарий к заказу
+                      </label>
+                      <textarea
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                        rows={3}
+                        className="w-full p-3 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all"
+                        placeholder="Пожелания к доставке или особые отметки..."
+                      />
                     </div>
                   </div>
-                ))}
+                </motion.div>
+              )}
 
-                <div className="mt-6">
-                  <Link href="/catalog">
-                    <button className="text-firm-orange hover:underline font-['Montserrat_Alternates'] flex items-center gap-2">
-                      <ArrowLeftIcon size={18} />
-                      Продолжить покупки
-                    </button>
-                  </Link>
-                </div>
-              </div>
-            )}
+              {/* Шаг 3: Подтверждение */}
+              {step === 3 && (
+                <motion.div
+                  key="step3"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="bg-main rounded-2xl shadow-lg border border-gray-100 p-6"
+                >
+                  <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl mb-6">
+                    Подтверждение заказа
+                  </h2>
 
-            {/* Шаг 2: Доставка */}
-            {step === 2 && (
-              <div className="bg-main rounded-2xl shadow-lg border border-gray-100 p-6">
-                <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl mb-6">
-                  Адрес доставки
-                </h2>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-text mb-1 font-medium">
-                      ФИО <span className="text-firm-red">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="full_name"
-                      value={shippingAddress.full_name}
-                      onChange={handleShippingChange}
-                      className="w-full p-3 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all"
-                      placeholder="Иванов Иван Иванович"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-text mb-1 font-medium">
-                      Телефон <span className="text-firm-red">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={shippingAddress.phone}
-                      onChange={handleShippingChange}
-                      className="w-full p-3 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all"
-                      placeholder="+7 (999) 123-45-67"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-text mb-1 font-medium">
-                      Город <span className="text-firm-red">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="city"
-                      value={shippingAddress.city}
-                      onChange={handleShippingChange}
-                      className="w-full p-3 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all"
-                      placeholder="Москва"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-text mb-1 font-medium">
-                      Адрес <span className="text-firm-red">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="address"
-                      value={shippingAddress.address}
-                      onChange={handleShippingChange}
-                      className="w-full p-3 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all"
-                      placeholder="ул. Примерная, д. 1, кв. 1"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-text mb-1 font-medium">
-                      Почтовый индекс
-                    </label>
-                    <input
-                      type="text"
-                      name="postal_code"
-                      value={shippingAddress.postal_code}
-                      onChange={handleShippingChange}
-                      className="w-full p-3 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all"
-                      placeholder="123456"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-text mb-1 font-medium">
-                      Комментарий к заказу
-                    </label>
-                    <textarea
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value)}
-                      rows={3}
-                      className="w-full p-3 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all"
-                      placeholder="Пожелания к доставке или особые отметки..."
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Шаг 3: Подтверждение */}
-            {step === 3 && (
-              <div className="bg-main rounded-2xl shadow-lg border border-gray-100 p-6">
-                <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl mb-6">
-                  Подтверждение заказа
-                </h2>
-
-                <div className="space-y-4">
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <h3 className="font-semibold mb-2">Товары в заказе:</h3>
-                    <div className="space-y-2">
-                      {cart.items.map((item) => (
-                        <div
-                          key={item.product_id}
-                          className="flex justify-between text-sm"
-                        >
-                          <span>
-                            {item.title} × {item.quantity}
-                          </span>
-                          <span className="font-medium">
-                            {(item.price * item.quantity).toLocaleString()} ₽
-                          </span>
-                        </div>
-                      ))}
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h3 className="font-semibold mb-2">Товары в заказе:</h3>
+                      <div className="space-y-2">
+                        {cart.items.map((item) => (
+                          <div
+                            key={item.product_id}
+                            className="flex justify-between text-sm"
+                          >
+                            <span>
+                              {item.title} × {item.quantity}
+                            </span>
+                            <span className="font-medium">
+                              {(item.price * item.quantity).toLocaleString()} ₽
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <h3 className="font-semibold mb-2">Адрес доставки:</h3>
-                    <p className="text-sm">{shippingAddress.full_name}</p>
-                    <p className="text-sm">{shippingAddress.phone}</p>
-                    <p className="text-sm">
-                      {shippingAddress.city}, {shippingAddress.address}
-                    </p>
-                    {shippingAddress.postal_code && (
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h3 className="font-semibold mb-2">Адрес доставки:</h3>
+                      <p className="text-sm">{shippingAddress.full_name}</p>
+                      <p className="text-sm">{shippingAddress.phone}</p>
                       <p className="text-sm">
-                        Индекс: {shippingAddress.postal_code}
+                        {shippingAddress.city}, {shippingAddress.address}
                       </p>
+                      {shippingAddress.postal_code && (
+                        <p className="text-sm">
+                          Индекс: {shippingAddress.postal_code}
+                        </p>
+                      )}
+                    </div>
+
+                    {comment && (
+                      <div className="bg-gray-50 rounded-xl p-4">
+                        <h3 className="font-semibold mb-2">Комментарий:</h3>
+                        <p className="text-sm">{comment}</p>
+                      </div>
                     )}
                   </div>
+                </motion.div>
+              )}
 
-                  {comment && (
+              {/* Шаг 4: Оплата */}
+              {step === 4 && createdOrder && (
+                <motion.div
+                  key="step4"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="bg-main rounded-2xl shadow-lg border border-gray-100 p-6"
+                >
+                  <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl mb-6">
+                    Оплата заказа №{createdOrder.order_number}
+                  </h2>
+                  
+                  <div className="mb-6">
                     <div className="bg-gray-50 rounded-xl p-4">
-                      <h3 className="font-semibold mb-2">Комментарий:</h3>
-                      <p className="text-sm">{comment}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Шаг 4: Оплата */}
-            {step === 4 && createdOrder && (
-              <div className="bg-main rounded-2xl shadow-lg border border-gray-100 p-6">
-                <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl mb-6">
-                  Оплата заказа №{createdOrder.order_number}
-                </h2>
-                
-                <div className="mb-6">
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <h3 className="font-semibold mb-2">Детали заказа:</h3>
-                    <div className="space-y-1 text-sm">
-                      <p><span className="text-gray-500">Сумма:</span> {Math.round(finalTotal).toLocaleString()} ₽</p>
-                      <p><span className="text-gray-500">Способ доставки:</span> {shippingCost === 0 ? "Бесплатная" : "Стандартная"}</p>
-                      <p><span className="text-gray-500">Адрес:</span> {shippingAddress.city}, {shippingAddress.address}</p>
+                      <h3 className="font-semibold mb-2">Детали заказа:</h3>
+                      <div className="space-y-1 text-sm">
+                        <p><span className="text-firm-gray">Сумма:</span> {Math.round(finalTotal).toLocaleString()} ₽</p>
+                        <p><span className="text-firm-gray">Способ доставки:</span> {shippingCost === 0 ? "Бесплатная" : "Стандартная"}</p>
+                        <p><span className="text-firm-gray">Адрес:</span> {shippingAddress.city}, {shippingAddress.address}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-                
-                <PaymentGateway
-                  amount={finalTotal}
-                  orderId={createdOrder.id}
-                  onSuccess={handlePaymentSuccess}
-                  onCancel={() => setStep(3)}
-                />
-              </div>
-            )}
+                  
+                  <PaymentGateway
+                    amount={finalTotal}
+                    orderId={createdOrder.id}
+                    onSuccess={handlePaymentSuccess}
+                    onCancel={() => setStep(3)}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Правая колонка - итоги */}
@@ -641,12 +692,14 @@ export default function ShoppingCartPage() {
                     onChange={(e) => setPromoCode(e.target.value)}
                     className="flex-1 p-2 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm"
                   />
-                  <button
+                  <motion.button
                     onClick={applyPromoCode}
                     className="px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition text-sm font-medium"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
                     Применить
-                  </button>
+                  </motion.button>
                 </div>
               </div>
 
@@ -660,31 +713,44 @@ export default function ShoppingCartPage() {
               </div>
 
               {step === 1 && (
-                <button
+                <motion.button
                   onClick={() => setStep(2)}
                   className="w-full py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition font-['Montserrat_Alternates'] font-semibold"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   Продолжить оформление →
-                </button>
+                </motion.button>
               )}
 
               {step === 2 && (
-                <button
+                <motion.button
                   onClick={() => setStep(3)}
                   className="w-full py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition font-['Montserrat_Alternates'] font-semibold"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   Перейти к подтверждению →
-                </button>
+                </motion.button>
               )}
 
               {step === 3 && (
-                <button
+                <motion.button
                   onClick={handlePlaceOrder}
                   disabled={orderLoading}
                   className="w-full py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition font-['Montserrat_Alternates'] font-semibold disabled:opacity-50"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  {orderLoading ? "Оформление..." : "Подтвердить заказ"}
-                </button>
+                  {orderLoading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Оформление...
+                    </div>
+                  ) : (
+                    "Подтвердить заказ"
+                  )}
+                </motion.button>
               )}
 
               <p className="text-xs text-firm-gray text-center mt-4">
