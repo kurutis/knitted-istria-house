@@ -4,15 +4,15 @@ interface HomeIconProps {
     size?: number;
 }
 
-export const HomeIcon = ({ className = "", color = "#737682", size = 20 }: HomeIconProps) => (
+export const HomeIcon = ({ className = "", color = "#D97C8E", size = 35 }: HomeIconProps) => (
     <svg 
         width={size} 
         height={size} 
-        viewBox="0 0 308 308" 
+        viewBox="0 0 35 35" 
         fill="none" 
         xmlns="http://www.w3.org/2000/svg"
         className={className}
     >
-        <path d="M38.4211 134.13V296.671C38.4211 300.727 41.1453 304 44.5221 304H264.613C267.99 304 270.714 300.727 270.714 296.671V134.13M4 140.948L150.85 5.50848C153.035 3.49717 156.1 3.49717 158.285 5.50848L304 140.914M214.131 57.4276V21.7013C214.131 17.6446 216.855 14.372 220.232 14.372H245.26C248.637 14.372 251.361 17.6446 251.361 21.7013V92.0288" stroke={color} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M4.92158 15.1305V32.4682C4.92158 32.9009 5.21216 33.25 5.57236 33.25H29.0487C29.4089 33.25 29.6995 32.9009 29.6995 32.4682V15.1305M1.25 15.8578L16.914 1.4109C17.1471 1.19637 17.474 1.19637 17.7071 1.4109L33.25 15.8541M23.6639 6.94894V3.13814C23.6639 2.70543 23.9545 2.35635 24.3147 2.35635H26.9844C27.3446 2.35635 27.6352 2.70543 27.6352 3.13814V10.6397" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
 );
