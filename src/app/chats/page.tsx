@@ -3,7 +3,16 @@
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
+import { ChatIcon } from "@/components/icons/ChatIcon";
+import { RefreshIcon } from "@/components/icons/RefreshIcon";
+import { SupportIcon } from "@/components/icons/SupportIcon";
+import { SendIcon } from "@/components/icons/SendIcon";
+import { AttachmentIcon } from "@/components/icons/AttachmentIcon";
+import { CloseIcon } from "@/components/icons/CloseIcon";
+import { ArrowLeftIcon } from "@/components/icons/ArrowLeftIcon";
+import { PlusIcon } from "@/components/icons/PlusIcon";
 
 interface Chat {
   id: string;
@@ -44,8 +53,17 @@ export default function ChatsPage() {
   const [refreshingMessages, setRefreshingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [creatingTicket, setCreatingTicket] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [showMobileChat, setShowMobileChat] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -63,6 +81,9 @@ export default function ChatsPage() {
     if (selectedChat) {
       fetchMessages(selectedChat.id);
       markAsRead(selectedChat.id);
+      if (isMobile) {
+        setShowMobileChat(true);
+      }
     }
   }, [selectedChat]);
 
@@ -102,33 +123,33 @@ export default function ChatsPage() {
 
   const fetchMessages = async (chatId: string) => {
     try {
-        const response = await fetch(`/api/chats/${chatId}/messages`);
-        if (!response.ok) throw new Error("Ошибка загрузки");
-        const data = await response.json();
-        setMessages(data.messages || data || []);
+      const response = await fetch(`/api/chats/${chatId}/messages`);
+      if (!response.ok) throw new Error("Ошибка загрузки");
+      const data = await response.json();
+      setMessages(data.messages || data || []);
     } catch (error) {
-        console.error("Error fetching messages:", error);
-        toast.error("Ошибка загрузки сообщений");
+      console.error("Error fetching messages:", error);
+      toast.error("Ошибка загрузки сообщений");
     }
-};
+  };
 
   const refreshMessages = async () => {
     if (!selectedChat) return;
     
     try {
-        setRefreshingMessages(true);
-        const response = await fetch(`/api/chats/${selectedChat.id}/messages`);
-        if (!response.ok) throw new Error("Ошибка загрузки");
-        const data = await response.json();
-        setMessages(data.messages || data || []);
-        toast.success("Сообщения обновлены");
+      setRefreshingMessages(true);
+      const response = await fetch(`/api/chats/${selectedChat.id}/messages`);
+      if (!response.ok) throw new Error("Ошибка загрузки");
+      const data = await response.json();
+      setMessages(data.messages || data || []);
+      toast.success("Сообщения обновлены");
     } catch (error) {
-        console.error("Error refreshing messages:", error);
-        toast.error("Ошибка обновления");
+      console.error("Error refreshing messages:", error);
+      toast.error("Ошибка обновления");
     } finally {
-        setRefreshingMessages(false);
+      setRefreshingMessages(false);
     }
-};
+  };
 
   const markAsRead = async (chatId: string) => {
     try {
@@ -237,6 +258,11 @@ export default function ChatsPage() {
     }
   };
 
+  const goBackToChats = () => {
+    setShowMobileChat(false);
+    setSelectedChat(null);
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -258,12 +284,34 @@ export default function ChatsPage() {
     });
   };
 
+  const formatChatTime = (dateString: string) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+
+    if (diff < 24 * 60 * 60 * 1000) {
+      return date.toLocaleTimeString("ru-RU", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+    return date.toLocaleDateString("ru-RU", {
+      day: "2-digit",
+      month: "2-digit",
+    });
+  };
+
+  const getInitials = (name: string) => {
+    return name?.charAt(0).toUpperCase() || "U";
+  };
+
   if (loading) {
     return (
       <div className="mt-5 flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 font-['Montserrat_Alternates'] text-gray-600">Загрузка...</p>
+          <p className="mt-4 font-['Montserrat_Alternates'] text-firm-gray">Загрузка...</p>
         </div>
       </div>
     );
@@ -272,161 +320,493 @@ export default function ChatsPage() {
   const supportChat = chats.find((c) => c.type === "support");
   const otherChats = chats.filter((c) => c.type !== "support");
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="font-['Montserrat_Alternates'] font-semibold text-3xl">Сообщения</h1>
-        <button
-          onClick={refreshChats}
-          disabled={refreshing}
-          className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition disabled:opacity-50 flex items-center gap-2"
-        >
-          {refreshing ? (
-            <>
-              <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
-              Обновление...
-            </>
-          ) : (
-            <>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Обновить чаты
-            </>
-          )}
-        </button>
-      </div>
+  // Десктопная версия
+  if (!isMobile) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent flex items-center gap-2">
+            <ChatIcon size={28} color="#D97C8E" />
+            Сообщения
+          </h1>
+          <motion.button
+            onClick={refreshChats}
+            disabled={refreshing}
+            className="px-4 py-2 bg-main border-2 border-gray-200 text-firm-gray rounded-xl hover:border-firm-orange transition disabled:opacity-50 flex items-center gap-2"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            {refreshing ? (
+              <>
+                <div className="w-4 h-4 border-2 border-firm-orange border-t-transparent rounded-full animate-spin" />
+                <span>Обновление...</span>
+              </>
+            ) : (
+              <>
+                <RefreshIcon />
+                <span>Обновить чаты</span>
+              </>
+            )}
+          </motion.button>
+        </div>
 
-      <div className="flex gap-6 h-[70vh]">
-        {/* Список чатов */}
-        <div className="w-1/3 bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-gray-200 bg-gray-50">
-            <h2 className="font-['Montserrat_Alternates'] font-semibold text-lg">Чаты</h2>
+        <div className="flex gap-6 h-[70vh]">
+          {/* Список чатов */}
+          <div className="w-1/3 bg-main rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-firm-orange/5 to-firm-pink/5">
+              <h2 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text">Чаты</h2>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              {supportChat && (
+                <motion.button
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  onClick={() => setSelectedChat(supportChat)}
+                  className={`w-full p-4 flex items-center gap-3 transition-all border-b border-gray-100 ${
+                    selectedChat?.id === supportChat.id
+                      ? "bg-gradient-to-r from-firm-orange/10 to-firm-pink/10"
+                      : "hover:bg-gray-50"
+                  }`}
+                >
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center">
+                    <SupportIcon size={24} color="white" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className="flex justify-between items-center">
+                      <p className="font-semibold text-text">Поддержка</p>
+                      <span className="text-xs text-firm-gray">
+                        {supportChat.last_message_time && formatChatTime(supportChat.last_message_time)}
+                      </span>
+                    </div>
+                    <p className="text-sm text-firm-gray truncate">
+                      {supportChat.last_message || "Напишите нам"}
+                    </p>
+                  </div>
+                  {supportChat.unread_count > 0 && (
+                    <div className="w-5 h-5 bg-firm-orange rounded-full flex items-center justify-center">
+                      <span className="text-main text-xs font-bold">{supportChat.unread_count}</span>
+                    </div>
+                  )}
+                </motion.button>
+              )}
+
+              {otherChats.map((chat, idx) => (
+                <motion.button
+                  key={chat.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  onClick={() => setSelectedChat(chat)}
+                  className={`w-full p-4 flex items-center gap-3 transition-all border-b border-gray-100 ${
+                    selectedChat?.id === chat.id
+                      ? "bg-gradient-to-r from-firm-orange/10 to-firm-pink/10"
+                      : "hover:bg-gray-50"
+                  }`}
+                >
+                  <div className="relative">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold overflow-hidden">
+                      {chat.participant_avatar ? (
+                        <img src={chat.participant_avatar} alt={chat.participant_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-lg">{getInitials(chat.participant_name)}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className="flex justify-between items-center">
+                      <p className="font-semibold text-text">{chat.participant_name}</p>
+                      <span className="text-xs text-firm-gray">{formatChatTime(chat.last_message_time)}</span>
+                    </div>
+                    <p className="text-sm text-firm-gray truncate">{chat.last_message}</p>
+                  </div>
+                  {chat.unread_count > 0 && (
+                    <div className="w-5 h-5 bg-firm-orange rounded-full flex items-center justify-center">
+                      <span className="text-main text-xs font-bold">{chat.unread_count}</span>
+                    </div>
+                  )}
+                </motion.button>
+              ))}
+
+              {chats.length === 0 && (
+                <div className="p-8 text-center">
+                  <ChatIcon size={48} color="#D4D4D4" className="mx-auto mb-3" />
+                  <p className="text-firm-gray mb-4">У вас пока нет чатов</p>
+                  <motion.button
+                    onClick={startNewSupportTicket}
+                    disabled={creatingTicket}
+                    className="px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition disabled:opacity-50 flex items-center gap-2 mx-auto"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <PlusIcon size={16} />
+                    {creatingTicket ? "Создание..." : "Обратиться в поддержку"}
+                  </motion.button>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
-            {supportChat && (
-              <button
-                onClick={() => setSelectedChat(supportChat)}
-                className={`w-full p-4 flex items-center gap-3 hover:bg-gray-50 transition border-b border-gray-100 ${
-                  selectedChat?.id === supportChat.id ? "bg-orange-50" : ""
-                }`}
-              >
-                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold text-lg">
-                  📞
-                </div>
-                <div className="flex-1 text-left">
-                  <div className="flex justify-between items-center">
-                    <p className="font-semibold">Поддержка</p>
-                    <span className="text-xs text-gray-400">
-                      {supportChat.last_message_time && formatMessageTime(supportChat.last_message_time)}
-                    </span>
+          {/* Область сообщений */}
+          <div className="flex-1 bg-main rounded-2xl shadow-lg border border-gray-100 flex flex-col">
+            {selectedChat ? (
+              <>
+                <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-firm-orange/5 to-firm-pink/5 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center">
+                      {selectedChat.type === "support" ? (
+                        <SupportIcon size={20} color="white" />
+                      ) : (
+                        <span className="text-main font-bold">
+                          {getInitials(selectedChat.participant_name)}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-['Montserrat_Alternates'] font-semibold text-text">
+                        {selectedChat.type === "support" ? "Служба поддержки" : selectedChat.participant_name}
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-500 truncate">
-                    {supportChat.last_message || "Напишите нам"}
-                  </p>
-                </div>
-                {supportChat.unread_count > 0 && (
-                  <div className="w-5 h-5 bg-firm-orange rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs">{supportChat.unread_count}</span>
-                  </div>
-                )}
-              </button>
-            )}
-
-            {otherChats.map((chat) => (
-              <button
-                key={chat.id}
-                onClick={() => setSelectedChat(chat)}
-                className={`w-full p-4 flex items-center gap-3 hover:bg-gray-50 transition border-b border-gray-100 ${
-                  selectedChat?.id === chat.id ? "bg-orange-50" : ""
-                }`}
-              >
-                <div className="relative">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden">
-                    {chat.participant_avatar ? (
-                      <img src={chat.participant_avatar} alt={chat.participant_name} className="w-full h-full object-cover" />
+                  <motion.button
+                    onClick={refreshMessages}
+                    disabled={refreshingMessages}
+                    className="px-3 py-1 text-sm bg-main border border-gray-200 text-firm-gray rounded-lg hover:border-firm-orange transition disabled:opacity-50 flex items-center gap-1"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    {refreshingMessages ? (
+                      <div className="w-4 h-4 border-2 border-firm-orange border-t-transparent rounded-full animate-spin" />
                     ) : (
-                      chat.participant_name?.charAt(0).toUpperCase()
+                      <RefreshIcon size={14} />
                     )}
-                  </div>
+                    <span>Обновить</span>
+                  </motion.button>
                 </div>
-                <div className="flex-1 text-left">
-                  <div className="flex justify-between items-center">
-                    <p className="font-semibold">{chat.participant_name}</p>
-                    <span className="text-xs text-gray-400">{formatMessageTime(chat.last_message_time)}</span>
-                  </div>
-                  <p className="text-sm text-gray-500 truncate">{chat.last_message}</p>
-                </div>
-                {chat.unread_count > 0 && (
-                  <div className="w-5 h-5 bg-firm-orange rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs">{chat.unread_count}</span>
-                  </div>
-                )}
-              </button>
-            ))}
 
-            {chats.length === 0 && (
-              <div className="p-8 text-center text-gray-500">
-                <p>У вас пока нет чатов</p>
-                <button
-                  onClick={startNewSupportTicket}
-                  disabled={creatingTicket}
-                  className="mt-3 px-4 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50"
-                >
-                  {creatingTicket ? "Создание..." : "📞 Обратиться в поддержку"}
-                </button>
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {messages.length === 0 ? (
+                    <div className="text-center py-12">
+                      {selectedChat.type === "support" ? (
+                        <div className="bg-gray-50 rounded-2xl p-6">
+                          <SupportIcon size={48} color="#D97C8E" className="mx-auto mb-3" />
+                          <p className="text-text mb-2">Добро пожаловать в службу поддержки!</p>
+                          <p className="text-firm-gray text-sm">Напишите ваше сообщение, и мы поможем вам.</p>
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <ChatIcon size={48} color="#D4D4D4" className="mx-auto mb-3" />
+                          <p className="text-firm-gray">Напишите первое сообщение</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    messages.map((message, index) => {
+                      const isMine = message.sender_id === session?.user?.id;
+                      const showAvatar = !isMine && (index === 0 || messages[index - 1]?.sender_id !== message.sender_id);
+
+                      return (
+                        <motion.div
+                          key={message.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+                        >
+                          <div className={`flex gap-2 max-w-[70%] ${isMine ? "flex-row-reverse" : ""}`}>
+                            {!isMine && showAvatar && (
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main text-xs font-bold flex-shrink-0 overflow-hidden">
+                                {message.sender_avatar ? (
+                                  <img src={message.sender_avatar} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  getInitials(message.sender_name)
+                                )}
+                              </div>
+                            )}
+                            {!isMine && !showAvatar && <div className="w-8" />}
+
+                            <div>
+                              <div className={`rounded-2xl p-3 ${isMine ? "bg-gradient-to-r from-firm-orange to-firm-pink text-main" : "bg-gray-100 text-text"}`}>
+                                <p className="break-words">{message.content}</p>
+
+                                {message.attachments && message.attachments.length > 0 && (
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    {message.attachments.map((att, idx) =>
+                                      att.type === "image" ? (
+                                        <img
+                                          key={idx}
+                                          src={att.url}
+                                          alt="attachment"
+                                          className="max-w-[200px] max-h-[150px] rounded-lg cursor-pointer"
+                                          onClick={() => window.open(att.url, "_blank")}
+                                        />
+                                      ) : (
+                                        <video key={idx} src={att.url} controls className="max-w-[200px] max-h-[150px] rounded-lg" />
+                                      )
+                                    )}
+                                  </div>
+                                )}
+
+                                {message.is_edited && <span className="text-xs opacity-70 mt-1 block">(изменено)</span>}
+                              </div>
+
+                              <div className={`flex items-center gap-2 mt-1 ${isMine ? "justify-end" : ""}`}>
+                                <p className="text-xs text-firm-gray">{formatMessageTime(message.created_at)}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                <div className="p-4 border-t border-gray-200">
+                  {attachmentPreviews.length > 0 && (
+                    <div className="flex gap-2 mb-3 pb-3 border-b">
+                      {attachmentPreviews.map((preview, idx) => (
+                        <div key={idx} className="relative">
+                          <img src={preview} alt="preview" className="w-16 h-16 object-cover rounded-lg" />
+                          <motion.button
+                            onClick={() => removeAttachment(idx)}
+                            className="absolute -top-2 -right-2 w-5 h-5 bg-firm-red text-main rounded-full text-xs flex items-center justify-center"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                          >
+                            <CloseIcon size={10} />
+                          </motion.button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    <motion.button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="p-2 rounded-xl bg-main border-2 border-gray-200 hover:border-firm-orange transition"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <AttachmentIcon />
+                    </motion.button>
+                    <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple onChange={handleFileSelect} className="hidden" />
+                    <textarea
+                      value={messageText}
+                      onChange={(e) => setMessageText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          sendMessage();
+                        }
+                      }}
+                      placeholder="Написать сообщение..."
+                      rows={1}
+                      className="flex-1 p-3 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all resize-none text-sm"
+                      style={{ minHeight: "44px", maxHeight: "120px" }}
+                    />
+                    <motion.button
+                      onClick={sendMessage}
+                      disabled={sending || (!messageText.trim() && attachments.length === 0)}
+                      className="px-5 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      {sending ? (
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <SendIcon />
+                      )}
+                    </motion.button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center">
+                  <ChatIcon size={64} color="#D4D4D4" className="mx-auto mb-4" />
+                  <p className="text-firm-gray mb-4">Выберите чат для начала общения</p>
+                  <motion.button
+                    onClick={startNewSupportTicket}
+                    disabled={creatingTicket}
+                    className="px-5 py-2.5 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition flex items-center gap-2 mx-auto"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <PlusIcon size={16} />
+                    {creatingTicket ? "Создание..." : "Создать обращение в поддержку"}
+                  </motion.button>
+                </div>
               </div>
             )}
           </div>
         </div>
+      </div>
+    );
+  }
 
-        {/* Область сообщений */}
-        <div className="flex-1 bg-white rounded-lg shadow-md flex flex-col">
-          {selectedChat ? (
-            <>
-              <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden">
-                      {selectedChat.type === "support" ? (
-                        "📞"
-                      ) : selectedChat.participant_avatar ? (
-                        <img src={selectedChat.participant_avatar} alt={selectedChat.participant_name} className="w-full h-full object-cover" />
-                      ) : (
-                        selectedChat.participant_name?.charAt(0).toUpperCase()
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="font-['Montserrat_Alternates'] font-semibold">
-                      {selectedChat.type === "support" ? "Служба поддержки" : selectedChat.participant_name}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={refreshMessages}
-                  disabled={refreshingMessages}
-                  className="px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition disabled:opacity-50 flex items-center gap-1"
+  // Мобильная версия
+  return (
+    <div className="min-h-screen bg-main">
+      <div className="px-4 py-4">
+        <AnimatePresence mode="wait">
+          {!showMobileChat ? (
+            // Список чатов (мобильный)
+            <motion.div
+              key="chats-list"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-4"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent flex items-center gap-2">
+                  <ChatIcon size={24} color="#D97C8E" />
+                  Сообщения
+                </h1>
+                <motion.button
+                  onClick={refreshChats}
+                  disabled={refreshing}
+                  className="p-2 bg-main border-2 border-gray-200 rounded-xl"
+                  whileTap={{ scale: 0.95 }}
                 >
-                  {refreshingMessages ? (
-                    <div className="w-4 h-4 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    "🔄 Обновить"
-                  )}
-                </button>
+                  <RefreshIcon size={18} />
+                </motion.button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              <div className="space-y-2">
+                {supportChat && (
+                  <motion.button
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    onClick={() => setSelectedChat(supportChat)}
+                    className="w-full p-4 bg-main rounded-2xl shadow-md border border-gray-100 flex items-center gap-3"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center">
+                      <SupportIcon size={22} color="white" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <div className="flex justify-between items-center">
+                        <p className="font-semibold text-text">Поддержка</p>
+                        <span className="text-xs text-firm-gray">
+                          {supportChat.last_message_time && formatChatTime(supportChat.last_message_time)}
+                        </span>
+                      </div>
+                      <p className="text-sm text-firm-gray truncate">
+                        {supportChat.last_message || "Напишите нам"}
+                      </p>
+                    </div>
+                    {supportChat.unread_count > 0 && (
+                      <div className="w-5 h-5 bg-firm-orange rounded-full flex items-center justify-center">
+                        <span className="text-main text-xs font-bold">{supportChat.unread_count}</span>
+                      </div>
+                    )}
+                  </motion.button>
+                )}
+
+                {otherChats.map((chat) => (
+                  <motion.button
+                    key={chat.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    onClick={() => setSelectedChat(chat)}
+                    className="w-full p-4 bg-main rounded-2xl shadow-md border border-gray-100 flex items-center gap-3"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold overflow-hidden">
+                      {chat.participant_avatar ? (
+                        <img src={chat.participant_avatar} alt={chat.participant_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-lg">{getInitials(chat.participant_name)}</span>
+                      )}
+                    </div>
+                    <div className="flex-1 text-left">
+                      <div className="flex justify-between items-center">
+                        <p className="font-semibold text-text">{chat.participant_name}</p>
+                        <span className="text-xs text-firm-gray">{formatChatTime(chat.last_message_time)}</span>
+                      </div>
+                      <p className="text-sm text-firm-gray truncate">{chat.last_message}</p>
+                    </div>
+                    {chat.unread_count > 0 && (
+                      <div className="w-5 h-5 bg-firm-orange rounded-full flex items-center justify-center">
+                        <span className="text-main text-xs font-bold">{chat.unread_count}</span>
+                      </div>
+                    )}
+                  </motion.button>
+                ))}
+
+                {chats.length === 0 && (
+                  <div className="text-center py-12">
+                    <ChatIcon size={48} color="#D4D4D4" className="mx-auto mb-3" />
+                    <p className="text-firm-gray mb-4">У вас пока нет чатов</p>
+                    <motion.button
+                      onClick={startNewSupportTicket}
+                      disabled={creatingTicket}
+                      className="px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition flex items-center gap-2 mx-auto"
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <PlusIcon size={16} />
+                      {creatingTicket ? "Создание..." : "Обратиться в поддержку"}
+                    </motion.button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          ) : (
+            // Область сообщений (мобильная)
+            <motion.div
+              key="chat-messages"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="flex flex-col h-[85vh]"
+            >
+              {/* Header */}
+              <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
+                <motion.button
+                  onClick={goBackToChats}
+                  className="p-2 -ml-2"
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <ArrowLeftIcon size={24} color="#D97C8E" />
+                </motion.button>
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center">
+                  {selectedChat?.type === "support" ? (
+                    <SupportIcon size={20} color="white" />
+                  ) : (
+                    <span className="text-main font-bold">
+                      {getInitials(selectedChat?.participant_name || "")}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <p className="font-['Montserrat_Alternates'] font-semibold text-text">
+                    {selectedChat?.type === "support" ? "Служба поддержки" : selectedChat?.participant_name}
+                  </p>
+                </div>
+                <motion.button
+                  onClick={refreshMessages}
+                  disabled={refreshingMessages}
+                  className="ml-auto p-2 bg-main border border-gray-200 rounded-xl"
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <RefreshIcon size={16} />
+                </motion.button>
+              </div>
+
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto py-4 space-y-3">
                 {messages.length === 0 ? (
                   <div className="text-center py-12">
-                    {selectedChat.type === "support" ? (
-                      <div className="bg-gray-50 rounded-lg p-6">
-                        <p className="text-gray-600 mb-2">👋 Добро пожаловать в службу поддержки!</p>
-                        <p className="text-gray-500 text-sm">Напишите ваше сообщение, и мы поможем вам.</p>
+                    {selectedChat?.type === "support" ? (
+                      <div className="bg-gray-50 rounded-2xl p-6">
+                        <SupportIcon size={48} color="#D97C8E" className="mx-auto mb-3" />
+                        <p className="text-text mb-2">Добро пожаловать в службу поддержки!</p>
+                        <p className="text-firm-gray text-sm">Напишите ваше сообщение, и мы поможем вам.</p>
                       </div>
                     ) : (
-                      <p className="text-gray-400">Напишите первое сообщение</p>
+                      <div className="text-center">
+                        <ChatIcon size={48} color="#D4D4D4" className="mx-auto mb-3" />
+                        <p className="text-firm-gray">Напишите первое сообщение</p>
+                      </div>
                     )}
                   </div>
                 ) : (
@@ -435,23 +815,27 @@ export default function ChatsPage() {
                     const showAvatar = !isMine && (index === 0 || messages[index - 1]?.sender_id !== message.sender_id);
 
                     return (
-                      <div key={message.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-                        <div className={`flex gap-2 max-w-[70%] ${isMine ? "flex-row-reverse" : ""}`}>
+                      <motion.div
+                        key={message.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+                      >
+                        <div className={`flex gap-2 max-w-[85%] ${isMine ? "flex-row-reverse" : ""}`}>
                           {!isMine && showAvatar && (
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main text-xs font-bold flex-shrink-0 overflow-hidden">
                               {message.sender_avatar ? (
                                 <img src={message.sender_avatar} alt="" className="w-full h-full object-cover" />
                               ) : (
-                                message.sender_name?.charAt(0).toUpperCase()
+                                getInitials(message.sender_name)
                               )}
                             </div>
                           )}
-                          {!isMine && !showAvatar && <div className="w-8"></div>}
+                          {!isMine && !showAvatar && <div className="w-8" />}
 
                           <div>
-                            <div className={`rounded-lg p-3 ${isMine ? "bg-firm-orange text-white" : "bg-gray-100 text-gray-700"}`}>
-                              <p className="break-words">{message.content}</p>
-
+                            <div className={`rounded-2xl p-3 ${isMine ? "bg-gradient-to-r from-firm-orange to-firm-pink text-main" : "bg-gray-100 text-text"}`}>
+                              <p className="break-words text-sm">{message.content}</p>
                               {message.attachments && message.attachments.length > 0 && (
                                 <div className="mt-2 flex flex-wrap gap-2">
                                   {message.attachments.map((att, idx) =>
@@ -460,40 +844,39 @@ export default function ChatsPage() {
                                         key={idx}
                                         src={att.url}
                                         alt="attachment"
-                                        className="max-w-[200px] max-h-[150px] rounded-lg cursor-pointer"
+                                        className="max-w-[150px] max-h-[120px] rounded-lg cursor-pointer"
                                         onClick={() => window.open(att.url, "_blank")}
                                       />
                                     ) : (
-                                      <video key={idx} src={att.url} controls className="max-w-[200px] max-h-[150px] rounded-lg" />
+                                      <video key={idx} src={att.url} controls className="max-w-[150px] max-h-[120px] rounded-lg" />
                                     )
                                   )}
                                 </div>
                               )}
-
                               {message.is_edited && <span className="text-xs opacity-70 mt-1 block">(изменено)</span>}
                             </div>
-
                             <div className={`flex items-center gap-2 mt-1 ${isMine ? "justify-end" : ""}`}>
-                              <p className="text-xs text-gray-400">{formatMessageTime(message.created_at)}</p>
+                              <p className="text-xs text-firm-gray">{formatMessageTime(message.created_at)}</p>
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     );
                   })
                 )}
                 <div ref={messagesEndRef} />
               </div>
 
-              <div className="p-4 border-t border-gray-200">
+              {/* Input area */}
+              <div className="pt-4 border-t border-gray-200">
                 {attachmentPreviews.length > 0 && (
-                  <div className="flex gap-2 mb-3 pb-3 border-b">
+                  <div className="flex gap-2 mb-3 pb-3 border-b overflow-x-auto">
                     {attachmentPreviews.map((preview, idx) => (
-                      <div key={idx} className="relative">
-                        <img src={preview} alt="preview" className="w-16 h-16 object-cover rounded-lg" />
+                      <div key={idx} className="relative flex-shrink-0">
+                        <img src={preview} alt="preview" className="w-14 h-14 object-cover rounded-lg" />
                         <button
                           onClick={() => removeAttachment(idx)}
-                          className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center"
+                          className="absolute -top-2 -right-2 w-5 h-5 bg-firm-red text-main rounded-full text-xs flex items-center justify-center"
                         >
                           ✕
                         </button>
@@ -505,9 +888,9 @@ export default function ChatsPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition"
+                    className="p-2 rounded-xl bg-main border-2 border-gray-200"
                   >
-                    📎
+                    <AttachmentIcon />
                   </button>
                   <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple onChange={handleFileSelect} className="hidden" />
                   <textarea
@@ -521,37 +904,25 @@ export default function ChatsPage() {
                     }}
                     placeholder="Написать сообщение..."
                     rows={1}
-                    className="flex-1 p-2 rounded-lg bg-gray-100 outline-firm-orange resize-none"
-                    style={{ minHeight: "40px", maxHeight: "120px" }}
+                    className="flex-1 p-3 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all resize-none text-sm"
+                    style={{ minHeight: "44px", maxHeight: "100px" }}
                   />
                   <button
                     onClick={sendMessage}
                     disabled={sending || (!messageText.trim() && attachments.length === 0)}
-                    className="px-4 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50"
+                    className="px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition disabled:opacity-50"
                   >
-                    {sending ? "..." : "Отправить"}
+                    {sending ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <SendIcon size={18} />
+                    )}
                   </button>
                 </div>
               </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-gray-400">
-              <div className="text-center">
-                <svg className="w-16 h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                <p>Выберите чат для начала общения</p>
-                <button
-                  onClick={startNewSupportTicket}
-                  disabled={creatingTicket}
-                  className="mt-4 px-4 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition"
-                >
-                  Создать обращение в поддержку
-                </button>
-              </div>
-            </div>
+            </motion.div>
           )}
-        </div>
+        </AnimatePresence>
       </div>
     </div>
   );
