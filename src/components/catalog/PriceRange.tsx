@@ -12,16 +12,21 @@ interface PriceRangeProps {
 }
 
 export default function PriceRange({ min, max, currentMin, currentMax, onChange }: PriceRangeProps) {
-    const displayMin = 0
-    const displayMax = max
+    // Нормализуем значения для отображения
+    const displayMin = Math.max(0, min)
+    const displayMax = Math.min(Math.max(max, currentMax), 50000) // Ограничиваем максимальную цену для отображения
     
-    // Используем пропсы напрямую, не создавая локальное состояние
-    // Или если нужно локальное состояние для оптимизации, инициализируем его без useEffect
-    const [localMin, setLocalMin] = useState(currentMin)
-    const [localMax, setLocalMax] = useState(currentMax)
+    // Инициализируем состояние из пропсов
+    const [localMin, setLocalMin] = useState(() => Math.max(currentMin, displayMin))
+    const [localMax, setLocalMax] = useState(() => Math.min(currentMax, displayMax))
 
-    // Вместо useEffect используем проверку при каждом onChange
-    // или просто используем пропсы напрямую в JSX
+    // Обновляем локальное состояние только когда пропсы меняются и отличаются от текущих значений
+    if (localMin !== Math.max(currentMin, displayMin)) {
+        setLocalMin(Math.max(currentMin, displayMin))
+    }
+    if (localMax !== Math.min(currentMax, displayMax)) {
+        setLocalMax(Math.min(currentMax, displayMax))
+    }
 
     const handleMinChange = (value: number) => {
         const newMin = Math.min(Math.max(value, displayMin), localMax - 100)
@@ -36,8 +41,8 @@ export default function PriceRange({ min, max, currentMin, currentMax, onChange 
     }
 
     const range = displayMax - displayMin
-    const minPercent = ((localMin - displayMin) / range) * 100
-    const maxPercent = ((localMax - displayMin) / range) * 100
+    const minPercent = range > 0 ? ((localMin - displayMin) / range) * 100 : 0
+    const maxPercent = range > 0 ? ((localMax - displayMin) / range) * 100 : 100
 
     return (
         <div className="w-full">

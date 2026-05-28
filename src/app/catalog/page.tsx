@@ -88,13 +88,16 @@ function CatalogContent() {
   };
 
   const fetchFilters = async () => {
-    try {
-      const response = await fetch(`/api/catalog/filters`);
-      const data = await response.json();
-      setAvailableFilters(data);
-    } catch (error) {
-      console.error("Error fetching filters:", error);
-    }
+      try {
+          const response = await fetch(`/api/catalog/filters`);
+          const data = await response.json();
+          if (data.priceRange && data.priceRange.max > 50000) {
+              data.priceRange.max = 50000;
+          }
+          setAvailableFilters(data);
+      } catch (error) {
+          console.error("Error fetching filters:", error);
+      }
   };
 
   const fetchCategories = async () => {

@@ -43,12 +43,17 @@ interface Category {
     subcategories?: Category[]
 }
 
+// Ограничиваем максимальную цену для отображения
+const MAX_DISPLAY_PRICE = 50000
+
 export default function Filters({ filters, availableFilters, onFilterChange, onClearFilters }: FiltersProps) {
-   const maxPrice = availableFilters.priceRange?.max ? (availableFilters.priceRange.max > 100000 ? 100000 : availableFilters.priceRange.max) : 10000
+    // Ограничиваем максимальную цену для отображения
+    const originalMaxPrice = availableFilters.priceRange?.max || 10000
+    const displayMaxPrice = Math.min(originalMaxPrice, MAX_DISPLAY_PRICE)
 
     const [priceRange, setPriceRange] = useState({
-        min: filters.minPrice || availableFilters.priceRange?.min || 0,
-        max: filters.maxPrice || maxPrice
+        min: Number(filters.minPrice) || availableFilters.priceRange?.min || 0,
+        max: Number(filters.maxPrice) || displayMaxPrice
     })
     const [categories, setCategories] = useState<Category[]>([])
     const [loadingCategories, setLoadingCategories] = useState(true)
@@ -58,6 +63,14 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
     useEffect(() => {
         fetchCategories()
     }, [])
+
+    // Синхронизируем priceRange при изменении фильтров
+    useEffect(() => {
+        setPriceRange({
+            min: Number(filters.minPrice) || availableFilters.priceRange?.min || 0,
+            max: Number(filters.maxPrice) || displayMaxPrice
+        })
+    }, [filters.minPrice, filters.maxPrice, availableFilters.priceRange?.min, displayMaxPrice])
 
     const fetchCategories = async () => {
         try {
@@ -287,7 +300,7 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
                 <h4 className="font-['Montserrat_Alternates'] font-medium mb-3 text-base">Цена</h4>
                 <PriceRange
                     min={availableFilters.priceRange?.min || 0}
-                    max={availableFilters.priceRange?.max || 10000}
+                    max={displayMaxPrice}
                     currentMin={Number(priceRange.min)}
                     currentMax={Number(priceRange.max)}
                     onChange={handlePriceChange}
@@ -363,9 +376,12 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
                             >
-                                {filters.minPrice || 0} - {filters.maxPrice || '∞'} ₽
+                                {Number(filters.minPrice) || 0} - {Number(filters.maxPrice) || displayMaxPrice} ₽
                                 <button onClick={() => {
-                                    setPriceRange({ min: availableFilters.priceRange?.min || 0, max: availableFilters.priceRange?.max || 10000 })
+                                    setPriceRange({ 
+                                        min: availableFilters.priceRange?.min || 0, 
+                                        max: displayMaxPrice 
+                                    })
                                     onFilterChange({ minPrice: '', maxPrice: '' })
                                 }}>✕</button>
                             </motion.span>

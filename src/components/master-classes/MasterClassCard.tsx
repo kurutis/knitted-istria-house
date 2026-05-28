@@ -80,10 +80,7 @@ export default function MasterClassCard({masterClass, session, onRegister, onCan
                 {masterClass.image_url && !imageError ? (
                     <div className="w-full sm:w-48 h-48 sm:h-auto shrink-0 relative bg-gray-100">
                         <img src={masterClass.image_url}  alt={masterClass.title} className="w-full h-full object-cover" onError={() => setImageError(true)} />
-                        <span className={`absolute top-2 left-2 px-2 py-1 text-main text-xs rounded-full flex items-center gap-1 z-10 ${masterClass.type === 'online' ? 'bg-firm-pink' : 'bg-firm-green'}`}>
-                            {masterClass.type === 'online' ? ( <OnlineIcon color="white" size={12} />) : (<LocateIcon color="white" size={12} />)}
-                            <span>{masterClass.type === 'online' ? 'Онлайн' : 'Офлайн'}</span>
-                        </span>
+                        <span className={`absolute top-2 left-2 px-2 py-1 text-main text-xs rounded-full flex items-center gap-1 z-10 ${masterClass.type === 'online' ? 'bg-firm-pink' : 'bg-firm-green'}`}>{masterClass.type === 'online' ? ( <OnlineIcon color="white" size={12} />) : (<LocateIcon color="white" size={12} />)}<span className='text-main'>{masterClass.type === 'online' ? 'Онлайн' : 'Офлайн'}</span></span>
                     </div>
                 ) : (
                     <div className="w-full sm:w-48 h-48 sm:h-auto shrink-0 bg-linear-to-r from-firm-orange/20 to-firm-pink/20 flex items-center justify-center">
