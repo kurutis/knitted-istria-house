@@ -557,17 +557,14 @@ export default function ChatsPage() {
   const supportChat = chats.find((c) => c.type === "support");
   const otherChats = chats.filter((c) => c.type !== "support");
 
-  // Мобильное контекстное меню
   const contextMenuMessage = contextMenu.messageId ? messages.find(m => m.id === contextMenu.messageId) : null;
   const isContextMenuMine = contextMenuMessage?.sender_id === session?.user?.id;
 
-  // Десктопная версия
   if (!isMobile) {
     return (
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex justify-between items-center mb-6">
           <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent flex items-center gap-2">
-            <ChatIcon size={28} color="#D97C8E" />
             Сообщения
           </h1>
           <motion.button
@@ -836,13 +833,11 @@ export default function ChatsPage() {
     );
   }
 
-  // Мобильная версия
   return (
     <div className="min-h-screen bg-main">
       <div className="px-4">
         <AnimatePresence mode="wait">
           {!showMobileChat ? (
-            // Список чатов (мобильный)
             <motion.div
               key="chats-list"
               initial={{ opacity: 0, x: -20 }}
@@ -852,7 +847,6 @@ export default function ChatsPage() {
             >
               <div className="flex justify-between items-center mb-4">
                 <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent flex items-center gap-2">
-                  <ChatIcon size={24} color="#D97C8E" />
                   Сообщения
                 </h1>
                 <button
