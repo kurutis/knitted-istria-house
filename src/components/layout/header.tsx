@@ -327,7 +327,7 @@ export default function Header() {
         )}
       </AnimatePresence>
 
-      <div className="h-13 sm:h-15 md:h-18 lg:h-20" />
+      <div className="h-6 sm:h-10 md:h-12 lg:h-14" />
     </>
   );
 }
