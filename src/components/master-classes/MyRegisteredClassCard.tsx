@@ -33,11 +33,19 @@ export default function MyRegisteredClassCard({
     const [imageError, setImageError] = useState(false)
     const [avatarError, setAvatarError] = useState(false)
 
-    const masterName = masterClass.master_name || 'Мастер'
-    const masterAvatar = masterClass.master_avatar ? getProxiedAvatarUrl(masterClass.master_avatar) : null
+    // Безопасное получение имени мастера
+    const masterName = masterClass?.master_name || 'Мастер'
+    const masterAvatar = masterClass?.master_avatar ? getProxiedAvatarUrl(masterClass.master_avatar) : null
     const masterInitials = masterName.charAt(0).toUpperCase()
 
+    // Безопасное форматирование цены
+    const formatPrice = (price: number | undefined | null) => {
+        if (price === undefined || price === null) return '0'
+        return price.toLocaleString()
+    }
+
     const formatDate = (dateString: string) => {
+        if (!dateString) return ''
         return new Date(dateString).toLocaleDateString('ru-RU', { 
             day: '2-digit', 
             month: '2-digit', 
@@ -46,10 +54,16 @@ export default function MyRegisteredClassCard({
     }
 
     const formatTime = (dateString: string) => {
+        if (!dateString) return ''
         return new Date(dateString).toLocaleTimeString('ru-RU', { 
             hour: '2-digit', 
             minute: '2-digit' 
         })
+    }
+
+    // Если нет данных о мастер-классе, не рендерим
+    if (!masterClass) {
+        return null
     }
 
     return (
@@ -63,7 +77,7 @@ export default function MyRegisteredClassCard({
                     <div className="w-full sm:w-48 h-48 sm:h-auto shrink-0 relative bg-gray-100">
                         <img 
                             src={masterClass.image_url} 
-                            alt={masterClass.title} 
+                            alt={masterClass.title || 'Мастер-класс'} 
                             className="w-full h-full object-cover"
                             onError={() => setImageError(true)}
                         />
@@ -96,7 +110,7 @@ export default function MyRegisteredClassCard({
                     <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
                         <div>
                             <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg sm:text-xl line-clamp-1">
-                                {masterClass.title}
+                                {masterClass.title || 'Без названия'}
                             </h3>
                             <div className="flex items-center gap-2 mt-2">
                                 {masterAvatar && !avatarError ? (
@@ -116,16 +130,16 @@ export default function MyRegisteredClassCard({
                         </div>
                         <div className="text-right">
                             <div className="text-xl font-bold text-firm-orange">
-                                {masterClass.price.toLocaleString()} ₽
+                                {formatPrice(masterClass.price)} ₽
                             </div>
                             <div className="text-sm text-firm-gray flex items-center gap-1 justify-end">
                                 <UserIcon />
-                                <span>{masterClass.current_participants}/{masterClass.max_participants}</span>
+                                <span>{masterClass.current_participants || 0}/{masterClass.max_participants || 0}</span>
                             </div>
                         </div>
                     </div>
 
-                    <p className="text-firm-gray mt-2 text-sm line-clamp-2">{masterClass.description}</p>
+                    <p className="text-firm-gray mt-2 text-sm line-clamp-2">{masterClass.description || 'Описание отсутствует'}</p>
 
                     <div className="flex flex-wrap gap-3 mt-3 text-xs text-firm-gray">
                         <div className="flex items-center gap-1">
@@ -138,7 +152,7 @@ export default function MyRegisteredClassCard({
                         </div>
                         <div className="flex items-center gap-1">
                             <DurationIcon />
-                            <span>{masterClass.duration_minutes} мин</span>
+                            <span>{masterClass.duration_minutes || 0} мин</span>
                         </div>
                         {masterClass.type === 'offline' && masterClass.location && (
                             <div className="flex items-center gap-1">
