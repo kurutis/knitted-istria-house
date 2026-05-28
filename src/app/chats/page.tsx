@@ -13,6 +13,8 @@ import { AttachmentIcon } from "@/components/icons/AttachmentIcon";
 import { CloseIcon } from "@/components/icons/CloseIcon";
 import { ArrowLeftIcon } from "@/components/icons/ArrowLeftIcon";
 import { PlusIcon } from "@/components/icons/PlusIcon";
+import { EditIcon } from "@/components/icons/EditIcon";
+import { DeleteIcon } from "@/components/icons/DeleteIcon";
 
 interface Chat {
   id: string;
@@ -55,8 +57,23 @@ export default function ChatsPage() {
   const [creatingTicket, setCreatingTicket] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileChat, setShowMobileChat] = useState(false);
+  
+  // Состояния для редактирования/удаления
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingMessageText, setEditingMessageText] = useState("");
+  const [updatingMessage, setUpdatingMessage] = useState(false);
+  const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ visible: boolean; x: number; y: number; messageId: string | null }>({
+    visible: false,
+    x: 0,
+    y: 0,
+    messageId: null,
+  });
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const editInputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -90,6 +107,12 @@ export default function ChatsPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    if (editingMessageId && editInputRef.current) {
+      editInputRef.current.focus();
+    }
+  }, [editingMessageId]);
 
   const fetchChats = async () => {
     try {
@@ -233,6 +256,89 @@ export default function ChatsPage() {
     }
   };
 
+  // Функции для редактирования сообщения
+  const handleEditMessage = async (messageId: string, newContent: string) => {
+    if (!newContent.trim()) return;
+
+    setUpdatingMessage(true);
+    try {
+      const response = await fetch(`/api/chats/messages/${messageId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: newContent }),
+      });
+
+      if (response.ok) {
+        const updatedMessage = await response.json();
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === messageId
+              ? { ...msg, content: updatedMessage.content, is_edited: true }
+              : msg
+          )
+        );
+        setEditingMessageId(null);
+        setEditingMessageText("");
+        toast.success("Сообщение изменено");
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Ошибка редактирования");
+      }
+    } catch (error) {
+      console.error("Error editing message:", error);
+      toast.error("Ошибка редактирования");
+    } finally {
+      setUpdatingMessage(false);
+    }
+  };
+
+  // Функция для удаления сообщения
+  const handleDeleteMessage = async (messageId: string) => {
+    setDeletingMessageId(messageId);
+    try {
+      const response = await fetch(`/api/chats/messages/${messageId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+        toast.success("Сообщение удалено");
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Ошибка удаления");
+      }
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      toast.error("Ошибка удаления");
+    } finally {
+      setDeletingMessageId(null);
+    }
+  };
+
+  // Обработчики для долгого нажатия (мобильная версия)
+  const handleTouchStart = (messageId: string) => {
+    longPressTimerRef.current = setTimeout(() => {
+      // Показываем контекстное меню
+      setContextMenu({
+        visible: true,
+        x: 0,
+        y: 0,
+        messageId: messageId,
+      });
+    }, 500);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const closeContextMenu = () => {
+    setContextMenu({ visible: false, x: 0, y: 0, messageId: null });
+  };
+
   const startNewSupportTicket = async () => {
     setCreatingTicket(true);
     try {
@@ -261,6 +367,8 @@ export default function ChatsPage() {
   const goBackToChats = () => {
     setShowMobileChat(false);
     setSelectedChat(null);
+    setEditingMessageId(null);
+    closeContextMenu();
   };
 
   const scrollToBottom = () => {
@@ -306,6 +414,135 @@ export default function ChatsPage() {
     return name?.charAt(0).toUpperCase() || "U";
   };
 
+  // Компонент сообщения (общий для десктопа и мобилки)
+  const MessageBubble = ({ message, isMine, showAvatar, index }: { 
+    message: Message; 
+    isMine: boolean; 
+    showAvatar: boolean;
+    index: number;
+  }) => {
+    const isEditing = editingMessageId === message.id;
+    const isDeleting = deletingMessageId === message.id;
+
+    if (isEditing) {
+      return (
+        <div className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+          <div className={`flex gap-2 max-w-[70%] ${isMine ? "flex-row-reverse" : ""}`}>
+            <div className="w-8 flex-shrink-0" />
+            <div className="flex-1">
+              <div className="bg-main rounded-2xl p-3 border-2 border-firm-orange">
+                <textarea
+                  ref={editInputRef}
+                  value={editingMessageText}
+                  onChange={(e) => setEditingMessageText(e.target.value)}
+                  className="w-full p-2 rounded-xl bg-main border border-gray-200 focus:outline-none focus:ring-2 focus:ring-firm-orange resize-none text-sm"
+                  rows={3}
+                  autoFocus
+                />
+                <div className="flex justify-end gap-2 mt-2">
+                  <button
+                    onClick={() => {
+                      setEditingMessageId(null);
+                      setEditingMessageText("");
+                    }}
+                    className="px-3 py-1 text-sm text-firm-gray hover:text-gray-700 transition"
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    onClick={() => handleEditMessage(message.id, editingMessageText)}
+                    disabled={updatingMessage || !editingMessageText.trim()}
+                    className="px-3 py-1 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-lg text-sm hover:shadow-lg transition disabled:opacity-50"
+                  >
+                    {updatingMessage ? "Сохранение..." : "Сохранить"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <motion.div
+        key={message.id}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+      >
+        <div 
+          className={`flex gap-2 max-w-[70%] ${isMine ? "flex-row-reverse" : ""}`}
+          onTouchStart={() => !isMobile ? null : handleTouchStart(message.id)}
+          onTouchEnd={handleTouchEnd}
+        >
+          {!isMine && showAvatar && (
+            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main text-xs font-bold flex-shrink-0 overflow-hidden">
+              {message.sender_avatar ? (
+                <img src={message.sender_avatar} alt="" className="w-full h-full object-cover" />
+              ) : (
+                getInitials(message.sender_name)
+              )}
+            </div>
+          )}
+          {!isMine && !showAvatar && <div className="w-8 flex-shrink-0" />}
+
+          <div className="relative group">
+            <div className={`rounded-2xl p-3 ${isMine ? "bg-gradient-to-r from-firm-orange to-firm-pink text-main" : "bg-gray-100 text-text"}`}>
+              <p className="break-words text-sm">{message.content}</p>
+
+              {message.attachments && message.attachments.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {message.attachments.map((att, idx) =>
+                    att.type === "image" ? (
+                      <img
+                        key={idx}
+                        src={att.url}
+                        alt="attachment"
+                        className="max-w-[200px] max-h-[150px] rounded-lg cursor-pointer"
+                        onClick={() => window.open(att.url, "_blank")}
+                      />
+                    ) : (
+                      <video key={idx} src={att.url} controls className="max-w-[200px] max-h-[150px] rounded-lg" />
+                    )
+                  )}
+                </div>
+              )}
+
+              {message.is_edited && <span className="text-xs opacity-70 mt-1 block">(изменено)</span>}
+            </div>
+
+            {/* Десктопные кнопки действий (при наведении) */}
+            {!isMobile && isMine && (
+              <div className="absolute -top-2 right-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-main rounded-lg shadow-md p-1">
+                <button
+                  onClick={() => {
+                    setEditingMessageId(message.id);
+                    setEditingMessageText(message.content);
+                  }}
+                  className="p-1 hover:bg-gray-100 rounded transition"
+                >
+                  <EditIcon size={14} color="#D97C8E" />
+                </button>
+                <button
+                  onClick={() => handleDeleteMessage(message.id)}
+                  disabled={isDeleting}
+                  className="p-1 hover:bg-gray-100 rounded transition"
+                >
+                  <DeleteIcon size={14} color="#EF4444" />
+                </button>
+              </div>
+            )}
+
+            <div className={`flex items-center gap-2 mt-1 ${isMine ? "justify-end" : ""}`}>
+              <p className="text-xs text-firm-gray">{formatMessageTime(message.created_at)}</p>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="mt-5 flex items-center justify-center min-h-[60vh]">
@@ -319,6 +556,10 @@ export default function ChatsPage() {
 
   const supportChat = chats.find((c) => c.type === "support");
   const otherChats = chats.filter((c) => c.type !== "support");
+
+  // Мобильное контекстное меню
+  const contextMenuMessage = contextMenu.messageId ? messages.find(m => m.id === contextMenu.messageId) : null;
+  const isContextMenuMine = contextMenuMessage?.sender_id === session?.user?.id;
 
   // Десктопная версия
   if (!isMobile) {
@@ -351,13 +592,13 @@ export default function ChatsPage() {
         </div>
 
         <div className="flex gap-6 h-[70vh]">
-          {/* Список чатов */}
+          {/* Левая колонка - список чатов */}
           <div className="w-1/3 bg-main rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex flex-col">
             <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-firm-orange/5 to-firm-pink/5">
               <h2 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text">Чаты</h2>
             </div>
-
             <div className="flex-1 overflow-y-auto">
+              {/* Поддержка */}
               {supportChat && (
                 <motion.button
                   initial={{ opacity: 0, x: -20 }}
@@ -391,6 +632,7 @@ export default function ChatsPage() {
                 </motion.button>
               )}
 
+              {/* Другие чаты */}
               {otherChats.map((chat, idx) => (
                 <motion.button
                   key={chat.id}
@@ -404,14 +646,12 @@ export default function ChatsPage() {
                       : "hover:bg-gray-50"
                   }`}
                 >
-                  <div className="relative flex-shrink-0">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold overflow-hidden">
-                      {chat.participant_avatar ? (
-                        <img src={chat.participant_avatar} alt={chat.participant_name} className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-lg">{getInitials(chat.participant_name)}</span>
-                      )}
-                    </div>
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold overflow-hidden flex-shrink-0">
+                    {chat.participant_avatar ? (
+                      <img src={chat.participant_avatar} alt={chat.participant_name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-lg">{getInitials(chat.participant_name)}</span>
+                    )}
                   </div>
                   <div className="flex-1 text-left min-w-0">
                     <div className="flex justify-between items-center gap-2">
@@ -447,10 +687,11 @@ export default function ChatsPage() {
             </div>
           </div>
 
-          {/* Область сообщений */}
+          {/* Правая колонка - сообщения */}
           <div className="flex-1 bg-main rounded-2xl shadow-lg border border-gray-100 flex flex-col">
             {selectedChat ? (
               <>
+                {/* Header чата */}
                 <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-firm-orange/5 to-firm-pink/5 flex items-center justify-between">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center flex-shrink-0">
@@ -484,6 +725,7 @@ export default function ChatsPage() {
                   </motion.button>
                 </div>
 
+                {/* Список сообщений */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
                   {messages.length === 0 ? (
                     <div className="text-center py-12">
@@ -504,91 +746,45 @@ export default function ChatsPage() {
                     messages.map((message, index) => {
                       const isMine = message.sender_id === session?.user?.id;
                       const showAvatar = !isMine && (index === 0 || messages[index - 1]?.sender_id !== message.sender_id);
-
                       return (
-                        <motion.div
+                        <MessageBubble
                           key={message.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className={`flex ${isMine ? "justify-end" : "justify-start"}`}
-                        >
-                          <div className={`flex gap-2 max-w-[70%] ${isMine ? "flex-row-reverse" : ""}`}>
-                            {!isMine && showAvatar && (
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main text-xs font-bold flex-shrink-0 overflow-hidden">
-                                {message.sender_avatar ? (
-                                  <img src={message.sender_avatar} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  getInitials(message.sender_name)
-                                )}
-                              </div>
-                            )}
-                            {!isMine && !showAvatar && <div className="w-8 flex-shrink-0" />}
-
-                            <div>
-                              <div className={`rounded-2xl p-3 ${isMine ? "bg-gradient-to-r from-firm-orange to-firm-pink text-main" : "bg-gray-100 text-text"}`}>
-                                <p className="break-words text-sm">{message.content}</p>
-
-                                {message.attachments && message.attachments.length > 0 && (
-                                  <div className="mt-2 flex flex-wrap gap-2">
-                                    {message.attachments.map((att, idx) =>
-                                      att.type === "image" ? (
-                                        <img
-                                          key={idx}
-                                          src={att.url}
-                                          alt="attachment"
-                                          className="max-w-[200px] max-h-[150px] rounded-lg cursor-pointer"
-                                          onClick={() => window.open(att.url, "_blank")}
-                                        />
-                                      ) : (
-                                        <video key={idx} src={att.url} controls className="max-w-[200px] max-h-[150px] rounded-lg" />
-                                      )
-                                    )}
-                                  </div>
-                                )}
-
-                                {message.is_edited && <span className="text-xs opacity-70 mt-1 block">(изменено)</span>}
-                              </div>
-
-                              <div className={`flex items-center gap-2 mt-1 ${isMine ? "justify-end" : ""}`}>
-                                <p className="text-xs text-firm-gray">{formatMessageTime(message.created_at)}</p>
-                              </div>
-                            </div>
-                          </div>
-                        </motion.div>
+                          message={message}
+                          isMine={isMine}
+                          showAvatar={showAvatar}
+                          index={index}
+                        />
                       );
                     })
                   )}
                   <div ref={messagesEndRef} />
                 </div>
 
+                {/* Input area */}
                 <div className="p-4 border-t border-gray-200">
                   {attachmentPreviews.length > 0 && (
                     <div className="flex gap-2 mb-3 pb-3 border-b overflow-x-auto">
                       {attachmentPreviews.map((preview, idx) => (
                         <div key={idx} className="relative flex-shrink-0">
                           <img src={preview} alt="preview" className="w-14 h-14 object-cover rounded-lg" />
-                          <motion.button
+                          <button
                             onClick={() => removeAttachment(idx)}
                             className="absolute -top-2 -right-2 w-5 h-5 bg-firm-red text-main rounded-full text-xs flex items-center justify-center"
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
                           >
-                            <CloseIcon size={10} />
-                          </motion.button>
+                            ✕
+                          </button>
                         </div>
                       ))}
                     </div>
                   )}
 
                   <div className="flex gap-2">
-                    <motion.button
+                    <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="p-2 rounded-xl bg-main border-2 border-gray-200 hover:border-firm-orange transition flex-shrink-0"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
+                      className="p-2 rounded-xl bg-main border-2 border-gray-200 hover:border-firm-orange transition flex-shrink-0 flex items-center justify-center w-10 h-10"
                     >
-                      <AttachmentIcon size={20} />
-                    </motion.button>
+                      <AttachmentIcon size={18} color="#6B7280" />
+                    </button>
                     <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple onChange={handleFileSelect} className="hidden" />
                     <textarea
                       value={messageText}
@@ -604,19 +800,17 @@ export default function ChatsPage() {
                       className="flex-1 p-3 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all resize-none text-sm"
                       style={{ minHeight: "44px", maxHeight: "120px" }}
                     />
-                    <motion.button
+                    <button
                       onClick={sendMessage}
                       disabled={sending || (!messageText.trim() && attachments.length === 0)}
-                      className="px-5 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
+                      className="px-5 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition disabled:opacity-50 flex-shrink-0"
                     >
                       {sending ? (
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       ) : (
                         <SendIcon />
                       )}
-                    </motion.button>
+                    </button>
                   </div>
                 </div>
               </>
@@ -625,16 +819,14 @@ export default function ChatsPage() {
                 <div className="text-center">
                   <ChatIcon size={64} color="#D4D4D4" className="mx-auto mb-4" />
                   <p className="text-firm-gray mb-4">Выберите чат для начала общения</p>
-                  <motion.button
+                  <button
                     onClick={startNewSupportTicket}
                     disabled={creatingTicket}
                     className="px-5 py-2.5 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition flex items-center gap-2 mx-auto"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
                   >
                     <PlusIcon size={16} />
                     {creatingTicket ? "Создание..." : "Создать обращение в поддержку"}
-                  </motion.button>
+                  </button>
                 </div>
               </div>
             )}
@@ -663,22 +855,18 @@ export default function ChatsPage() {
                   <ChatIcon size={24} color="#D97C8E" />
                   Сообщения
                 </h1>
-                <motion.button
+                <button
                   onClick={refreshChats}
                   disabled={refreshing}
                   className="p-2 bg-main border-2 border-gray-200 rounded-xl"
-                  whileTap={{ scale: 0.95 }}
                 >
                   <RefreshIcon size={18} />
-                </motion.button>
+                </button>
               </div>
 
               <div className="space-y-2">
                 {supportChat && (
-                  <motion.button
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    onClick={() => setSelectedChat(supportChat)}
+                  <button                    onClick={() => setSelectedChat(supportChat)}
                     className="w-full p-4 bg-main rounded-2xl shadow-md border border-gray-100 flex items-center gap-3"
                   >
                     <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center flex-shrink-0">
@@ -700,14 +888,12 @@ export default function ChatsPage() {
                         <span className="text-main text-xs font-bold">{supportChat.unread_count}</span>
                       </div>
                     )}
-                  </motion.button>
+                  </button>
                 )}
 
                 {otherChats.map((chat) => (
-                  <motion.button
+                  <button
                     key={chat.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
                     onClick={() => setSelectedChat(chat)}
                     className="w-full p-4 bg-main rounded-2xl shadow-md border border-gray-100 flex items-center gap-3"
                   >
@@ -730,22 +916,21 @@ export default function ChatsPage() {
                         <span className="text-main text-xs font-bold">{chat.unread_count}</span>
                       </div>
                     )}
-                  </motion.button>
+                  </button>
                 ))}
 
                 {chats.length === 0 && (
                   <div className="text-center py-12">
                     <ChatIcon size={48} color="#D4D4D4" className="mx-auto mb-3" />
                     <p className="text-firm-gray mb-4">У вас пока нет чатов</p>
-                    <motion.button
+                    <button
                       onClick={startNewSupportTicket}
                       disabled={creatingTicket}
                       className="px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition flex items-center gap-2 mx-auto"
-                      whileTap={{ scale: 0.95 }}
                     >
                       <PlusIcon size={16} />
                       {creatingTicket ? "Создание..." : "Обратиться в поддержку"}
-                    </motion.button>
+                    </button>
                   </div>
                 )}
               </div>
@@ -761,13 +946,12 @@ export default function ChatsPage() {
             >
               {/* Header */}
               <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
-                <motion.button
+                <button
                   onClick={goBackToChats}
                   className="p-2 -ml-2"
-                  whileTap={{ scale: 0.95 }}
                 >
                   <ArrowLeftIcon size={24} color="#D97C8E" />
-                </motion.button>
+                </button>
                 <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center flex-shrink-0">
                   {selectedChat?.type === "support" ? (
                     <SupportIcon size={20} color="white" />
@@ -782,14 +966,13 @@ export default function ChatsPage() {
                     {selectedChat?.type === "support" ? "Служба поддержки" : selectedChat?.participant_name}
                   </p>
                 </div>
-                <motion.button
+                <button
                   onClick={refreshMessages}
                   disabled={refreshingMessages}
                   className="p-2 bg-main border border-gray-200 rounded-xl flex-shrink-0"
-                  whileTap={{ scale: 0.95 }}
                 >
                   <RefreshIcon size={16} />
-                </motion.button>
+                </button>
               </div>
 
               {/* Messages */}
@@ -813,54 +996,14 @@ export default function ChatsPage() {
                   messages.map((message, index) => {
                     const isMine = message.sender_id === session?.user?.id;
                     const showAvatar = !isMine && (index === 0 || messages[index - 1]?.sender_id !== message.sender_id);
-
                     return (
-                      <motion.div
+                      <MessageBubble
                         key={message.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={`flex ${isMine ? "justify-end" : "justify-start"}`}
-                      >
-                        <div className={`flex gap-2 max-w-[85%] ${isMine ? "flex-row-reverse" : ""}`}>
-                          {!isMine && showAvatar && (
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main text-xs font-bold flex-shrink-0 overflow-hidden">
-                              {message.sender_avatar ? (
-                                <img src={message.sender_avatar} alt="" className="w-full h-full object-cover" />
-                              ) : (
-                                getInitials(message.sender_name)
-                              )}
-                            </div>
-                          )}
-                          {!isMine && !showAvatar && <div className="w-8 flex-shrink-0" />}
-
-                          <div>
-                            <div className={`rounded-2xl p-3 ${isMine ? "bg-gradient-to-r from-firm-orange to-firm-pink text-main" : "bg-gray-100 text-text"}`}>
-                              <p className="break-words text-sm">{message.content}</p>
-                              {message.attachments && message.attachments.length > 0 && (
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                  {message.attachments.map((att, idx) =>
-                                    att.type === "image" ? (
-                                      <img
-                                        key={idx}
-                                        src={att.url}
-                                        alt="attachment"
-                                        className="max-w-[150px] max-h-[120px] rounded-lg cursor-pointer"
-                                        onClick={() => window.open(att.url, "_blank")}
-                                      />
-                                    ) : (
-                                      <video key={idx} src={att.url} controls className="max-w-[150px] max-h-[120px] rounded-lg" />
-                                    )
-                                  )}
-                                </div>
-                              )}
-                              {message.is_edited && <span className="text-xs opacity-70 mt-1 block">(изменено)</span>}
-                            </div>
-                            <div className={`flex items-center gap-2 mt-1 ${isMine ? "justify-end" : ""}`}>
-                              <p className="text-xs text-firm-gray">{formatMessageTime(message.created_at)}</p>
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
+                        message={message}
+                        isMine={isMine}
+                        showAvatar={showAvatar}
+                        index={index}
+                      />
                     );
                   })
                 )}
@@ -888,9 +1031,9 @@ export default function ChatsPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="p-2 rounded-xl bg-main border-2 border-gray-200 flex-shrink-0"
+                    className="p-2 rounded-xl bg-main border-2 border-gray-200 flex-shrink-0 flex items-center justify-center w-10 h-10"
                   >
-                    <AttachmentIcon size={20} />
+                    <AttachmentIcon size={18} color="#6B7280" />
                   </button>
                   <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple onChange={handleFileSelect} className="hidden" />
                   <textarea
@@ -924,6 +1067,64 @@ export default function ChatsPage() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Мобильное контекстное меню для сообщений */}
+      <AnimatePresence>
+        {contextMenu.visible && isContextMenuMine && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/50"
+            onClick={closeContextMenu}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="absolute bottom-0 left-0 right-0 bg-main rounded-2xl shadow-xl p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    if (contextMenu.messageId) {
+                      const message = messages.find(m => m.id === contextMenu.messageId);
+                      if (message) {
+                        setEditingMessageId(message.id);
+                        setEditingMessageText(message.content);
+                      }
+                      closeContextMenu();
+                    }
+                  }}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition"
+                >
+                  <EditIcon size={20} color="#D97C8E" />
+                  <span className="text-text">Редактировать</span>
+                </button>
+                <button
+                  onClick={() => {
+                    if (contextMenu.messageId) {
+                      handleDeleteMessage(contextMenu.messageId);
+                      closeContextMenu();
+                    }
+                  }}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-50 transition"
+                >
+                  <DeleteIcon size={20} color="#EF4444" />
+                  <span className="text-firm-red">Удалить</span>
+                </button>
+              </div>
+              <button
+                onClick={closeContextMenu}
+                className="w-full mt-2 p-3 text-center text-firm-gray hover:bg-gray-50 rounded-xl transition"
+              >
+                Отмена
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
