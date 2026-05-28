@@ -4,17 +4,15 @@ interface SupportIconProps {
     size?: number;
 }
 
-export const SupportIcon = ({ className = "", color = "white", size = 24 }: SupportIconProps) => (
+export const SupportIcon = ({ className = "", color = "white", size = 20 }: SupportIconProps) => (
     <svg 
         width={size} 
         height={size} 
-        viewBox="0 0 24 24" 
+        viewBox="0 0 20 20" 
         fill="none" 
         xmlns="http://www.w3.org/2000/svg"
         className={className}
     >
-        <path d="M3 21L5.5 19.5M21 3L18.5 4.5M18.5 4.5L15 9M18.5 4.5L21 3M18.5 4.5L21 7" stroke={color} strokeWidth="2" strokeLinecap="round"/>
-        <circle cx="12" cy="12" r="9" stroke={color} strokeWidth="2"/>
-        <path d="M12 8V12M12 16H12.01" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+        <path d="M10 0C4.486 0 0 4.486 0 10V14.143C0 15.167 0.897 16 2 16H3C3.26522 16 3.51957 15.8946 3.70711 15.7071C3.89464 15.5196 4 15.2652 4 15V9.857C4 9.59178 3.89464 9.33743 3.70711 9.14989C3.51957 8.96236 3.26522 8.857 3 8.857H2.092C2.648 4.987 5.978 2 10 2C14.022 2 17.352 4.987 17.908 8.857H17C16.7348 8.857 16.4804 8.96236 16.2929 9.14989C16.1054 9.33743 16 9.59178 16 9.857V16C16 17.103 15.103 18 14 18H12V17H8V20H14C16.206 20 18 18.206 18 16C19.103 16 20 15.167 20 14.143V10C20 4.486 15.514 0 10 0Z" fill={color}/>
     </svg>
 );
