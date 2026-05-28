@@ -13,10 +13,8 @@ interface MasterClassRegistration {
     payment_status?: string;
 }
 
-// Rate limiting
 const limiter = rateLimit({ limit: 60, windowMs: 60 * 1000 });
 
-// Функция для получения полного URL изображения из Selectel
 function getFullImageUrl(imagePath: string | null): string | null {
     if (!imagePath) return null;
     if (imagePath.startsWith('http')) return imagePath;
