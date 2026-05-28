@@ -17,12 +17,24 @@ interface Category {
   parent_category_id: number | null;
 }
 
+interface Product {
+  id: string;
+  title: string;
+  price: number;
+  main_image_url: string;
+  master_id: string;
+  master_name?: string;
+  status?: string;
+  created_at?: string;
+  category?: string;
+}
+
 // Компонент, который использует useSearchParams
 function CatalogContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -68,25 +80,25 @@ function CatalogContent() {
   }, []);
 
   useEffect(() => {
-      const categoryParam = searchParams.get("category");
-      const techniqueParam = searchParams.get("technique");
-      const minPriceParam = searchParams.get("minPrice");
-      const maxPriceParam = searchParams.get("maxPrice");
-      const searchParam = searchParams.get("search");
-      const sortParam = searchParams.get("sort");
-      const pageParam = searchParams.get("page");
+    const categoryParam = searchParams.get("category");
+    const techniqueParam = searchParams.get("technique");
+    const minPriceParam = searchParams.get("minPrice");
+    const maxPriceParam = searchParams.get("maxPrice");
+    const searchParam = searchParams.get("search");
+    const sortParam = searchParams.get("sort");
+    const pageParam = searchParams.get("page");
 
-      if (categoryParam || techniqueParam || minPriceParam || maxPriceParam || searchParam || sortParam) {
-          setFilters({
-              category: categoryParam || "all",
-              technique: techniqueParam || "",
-              minPrice: minPriceParam || "",
-              maxPrice: maxPriceParam || "",
-              search: searchParam || "",
-              sort: sortParam || "newest",
-              page: parseInt(pageParam || "1"),
-          });
-      }
+    if (categoryParam || techniqueParam || minPriceParam || maxPriceParam || searchParam || sortParam) {
+      setFilters({
+        category: categoryParam || "all",
+        technique: techniqueParam || "",
+        minPrice: minPriceParam || "",
+        maxPrice: maxPriceParam || "",
+        search: searchParam || "",
+        sort: sortParam || "newest",
+        page: parseInt(pageParam || "1"),
+      });
+    }
   }, [searchParams]);
 
   const fetchProducts = async () => {
@@ -100,30 +112,30 @@ function CatalogContent() {
       const response = await fetch(`/api/catalog/products?${params}`);
       const data = await response.json();
 
-      setProducts(data.products);
+      setProducts(data.products || []);
       setPagination(data.pagination);
     } catch (error) {
       console.error("Error fetching products:", error);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
   };
 
   const fetchFilters = async () => {
-      try {
-          // Исправьте URL - должно быть /api/catalog/filters, а не /api/filters
-          const response = await fetch(`/api/catalog/filters`);
-          const data = await response.json();
-          
-          if (data.success) {
-              if (data.priceRange && data.priceRange.max > 50000) {
-                  data.priceRange.max = 50000;
-              }
-              setAvailableFilters(data);
-          }
-      } catch (error) {
-          console.error("Error fetching filters:", error);
+    try {
+      const response = await fetch(`/api/catalog/filters`);
+      const data = await response.json();
+
+      if (data.success) {
+        if (data.priceRange && data.priceRange.max > 50000) {
+          data.priceRange.max = 50000;
+        }
+        setAvailableFilters(data);
       }
+    } catch (error) {
+      console.error("Error fetching filters:", error);
+    }
   };
 
   const fetchCategories = async () => {
@@ -152,14 +164,8 @@ function CatalogContent() {
       ...filters,
       ...newFilters,
       page: 1,
-      minPrice:
-        newFilters.minPrice !== undefined
-          ? String(newFilters.minPrice)
-          : filters.minPrice,
-      maxPrice:
-        newFilters.maxPrice !== undefined
-          ? String(newFilters.maxPrice)
-          : filters.maxPrice,
+      minPrice: newFilters.minPrice !== undefined ? String(newFilters.minPrice) : filters.minPrice,
+      maxPrice: newFilters.maxPrice !== undefined ? String(newFilters.maxPrice) : filters.maxPrice,
     };
     setFilters(updated);
 
@@ -201,7 +207,7 @@ function CatalogContent() {
 
   const getGridCols = () => {
     if (isMobile) return "grid-cols-2";
-    return "grid-cols-3 lg:grid-cols-4";
+    return "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4";
   };
 
   const getCategoryIcon = (categoryName: string) => {
@@ -214,52 +220,57 @@ function CatalogContent() {
       Пледы: "🛋️",
       Игрушки: "🧸",
     };
-    return emojis[categoryName] || allIcon;
+    return emojis[categoryName] || "📦";
   };
 
   const handleIconError = (categoryName: string) => {
     setIconErrors((prev) => new Set(prev).add(categoryName));
   };
 
-  // Основные категории (без родителя)
-  const rootCategories = categories.filter(
-    (cat) => cat.parent_category_id === null,
-  );
+  const rootCategories = categories.filter((cat) => cat.parent_category_id === null);
 
   return (
-    <div className="flex items-start justify-center px-3 sm:px-4">
-      <div className="flex flex-col gap-5 w-full max-w-7xl">
+    <div className="min-h-screen bg-main">
+      <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
         {/* Header */}
-        <div className="px-2">
-          <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl lg:text-4xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
             Каталог изделий
           </h1>
-          <p className="text-gray-600 mt-1 text-sm">
+          <p className="text-firm-gray mt-2 text-sm">
             {pagination.total} уникальных изделий ручной работы
           </p>
         </div>
 
         {/* Category Icons Row */}
         {!loadingCategories && rootCategories.length > 0 && (
-          <div className="overflow-x-auto pb-2 px-2">
-            <div className="flex gap-4 min-w-max">
+          <div className="overflow-x-auto pb-3 mb-6">
+            <div className="flex gap-3 min-w-max">
               <button
                 onClick={() => handleFilterChange({ category: "all" })}
-                className={`flex flex-col items-center gap-2 p-2 rounded-lg transition-all ${
+                className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all ${
                   filters.category === "all"
-                    ? "bg-firm-orange bg-opacity-10"
+                    ? "bg-gradient-to-r from-firm-orange/15 to-firm-pink/15"
                     : "hover:bg-gray-50"
                 }`}
               >
-                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                  filters.category === "all"
+                    ? "bg-gradient-to-r from-firm-orange to-firm-pink"
+                    : "bg-gray-100"
+                }`}>
                   <Image
                     src={allIcon}
                     alt="all"
-                    className="w-6 h-6 object-contain"
+                    className={`w-6 h-6 object-contain ${
+                      filters.category === "all" ? "brightness-0 invert" : ""
+                    }`}
                   />
                 </div>
                 <span
-                  className={`text-xs font-medium ${filters.category === "all" ? "text-firm-orange" : "text-gray-600"}`}
+                  className={`text-xs font-medium ${
+                    filters.category === "all" ? "text-firm-orange" : "text-firm-gray"
+                  }`}
                 >
                   Все
                 </span>
@@ -267,33 +278,42 @@ function CatalogContent() {
 
               {rootCategories.map((cat) => {
                 const hasError = iconErrors.has(cat.name);
+                const isActive = filters.category === cat.name;
 
                 return (
                   <button
                     key={cat.id}
                     onClick={() => handleFilterChange({ category: cat.name })}
-                    className={`flex flex-col items-center gap-2 p-2 rounded-lg transition-all ${
-                      filters.category === cat.name
-                        ? "bg-firm-orange bg-opacity-10"
+                    className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all ${
+                      isActive
+                        ? "bg-gradient-to-r from-firm-orange/15 to-firm-pink/15"
                         : "hover:bg-gray-50"
                     }`}
                   >
-                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                      isActive
+                        ? "bg-gradient-to-r from-firm-orange to-firm-pink"
+                        : "bg-gray-100"
+                    }`}>
                       {cat.icon_url && !hasError ? (
                         <img
                           src={cat.icon_url}
                           alt={cat.name}
-                          className="w-6 h-6 object-contain"
+                          className={`w-6 h-6 object-contain ${
+                            isActive ? "brightness-0 invert" : ""
+                          }`}
                           onError={() => handleIconError(cat.name)}
                         />
                       ) : (
-                        <span className="text-2xl">
+                        <span className={`text-2xl ${isActive ? "brightness-0 invert" : ""}`}>
                           {getCategoryIcon(cat.name)}
                         </span>
                       )}
                     </div>
                     <span
-                      className={`text-xs font-medium ${filters.category === cat.name ? "text-firm-orange" : "text-gray-600"}`}
+                      className={`text-xs font-medium ${
+                        isActive ? "text-firm-orange" : "text-firm-gray"
+                      }`}
                     >
                       {cat.name}
                     </span>
@@ -305,17 +325,17 @@ function CatalogContent() {
         )}
 
         {/* Search and Mobile Filters Button */}
-        <div className="flex gap-3 items-center px-2">
+        <div className="flex gap-3 items-center mb-6">
           <div className="relative flex-1 md:w-96 md:flex-none">
             <input
               type="text"
               placeholder="Поиск по названию..."
               value={filters.search}
               onChange={(e) => handleSearch(e.target.value)}
-              className="w-full p-3 pl-10 rounded-lg bg-[#f1f1f1] outline-firm-orange text-sm"
+              className="w-full p-3 pl-10 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm placeholder:text-firm-gray"
             />
             <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-firm-gray"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -332,11 +352,12 @@ function CatalogContent() {
           {isMobile && (
             <motion.button
               onClick={() => setShowMobileFilters(true)}
-              className="px-4 py-3 bg-firm-orange text-white rounded-lg flex items-center gap-2 text-sm whitespace-nowrap"
+              className="px-4 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl flex items-center gap-2 text-sm font-medium whitespace-nowrap shadow-md"
               whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.02 }}
             >
               <svg
-                className="w-4 h-4"
+                className="w-4 h-4 text-main"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -356,7 +377,7 @@ function CatalogContent() {
         <div className="flex flex-col md:flex-row gap-6">
           {/* Desktop Filters */}
           {!isMobile && (
-            <div className="w-full md:w-1/4">
+            <div className="w-full md:w-80 lg:w-96 shrink-0">
               <Filters
                 filters={filters}
                 availableFilters={availableFilters}
@@ -367,16 +388,16 @@ function CatalogContent() {
           )}
 
           {/* Products Grid */}
-          <div className="w-full md:w-3/4">
+          <div className="flex-1">
             {/* Sort and count */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 px-2">
-              <p className="text-sm text-gray-500">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+              <p className="text-sm text-firm-gray">
                 Показано {products.length} из {pagination.total}
               </p>
               <select
                 value={filters.sort}
                 onChange={(e) => handleFilterChange({ sort: e.target.value })}
-                className="p-2 rounded-lg bg-[#f1f1f1] outline-firm-pink font-['Montserrat_Alternates'] text-sm w-full sm:w-auto"
+                className="p-2 rounded-xl bg-main border-2 border-gray-200 outline-firm-pink font-['Montserrat_Alternates'] text-sm w-full sm:w-auto focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all"
               >
                 <option value="newest">Сначала новые</option>
                 <option value="popular">Популярные</option>
@@ -402,14 +423,15 @@ function CatalogContent() {
                   key="empty"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-center py-12 bg-[#f1f1f1] rounded-lg mx-2"
+                  className="text-center py-16 bg-main rounded-2xl border-2 border-gray-100"
                 >
-                  <p className="text-gray-500 mb-4 font-['Montserrat_Alternates']">
+                  <div className="text-6xl mb-4">🔍</div>
+                  <p className="text-firm-gray mb-4 font-['Montserrat_Alternates'] text-base">
                     Товары не найдены
                   </p>
                   <button
                     onClick={clearFilter}
-                    className="px-6 py-3 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition-all"
+                    className="px-6 py-2.5 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl font-medium hover:shadow-lg transition-all"
                   >
                     Сбросить фильтры
                   </button>
@@ -419,34 +441,19 @@ function CatalogContent() {
                   key="products"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className={`grid ${getGridCols()} gap-2 sm:gap-4`}
+                  className={`grid ${getGridCols()} gap-3 sm:gap-4`}
                 >
-                  {products.map(
-                    (
-                      product: {
-                        id: string;
-                        title: string;
-                        price: number;
-                        main_image_url: string;
-                        master_id: string;
-                        master_name?: string;
-                        status?: string;
-                        created_at?: string;
-                        category?: string;
-                      },
-                      index: number,
-                    ) => (
-                      <motion.div
-                        key={product.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        whileHover={{ y: -5 }}
-                      >
-                        <ProductCard product={product} />
-                      </motion.div>
-                    ),
-                  )}
+                  {products.map((product: Product, index: number) => (
+                    <motion.div
+                      key={product.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      whileHover={{ y: -5 }}
+                    >
+                      <ProductCard product={product} />
+                    </motion.div>
+                  ))}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -480,20 +487,18 @@ function CatalogContent() {
             onClick={() => setShowMobileFilters(false)}
           >
             <motion.div
-              className="fixed right-0 top-0 h-full w-[85%] max-w-sm bg-white shadow-xl overflow-y-auto"
+              className="fixed right-0 top-0 h-full w-[85%] max-w-sm bg-main shadow-xl overflow-y-auto"
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
-                <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg">
-                  Фильтры
-                </h3>
+              <div className="sticky top-0 bg-main border-b border-gray-200 p-4 flex justify-between items-center">
+                <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg">Фильтры</h3>
                 <button
                   onClick={() => setShowMobileFilters(false)}
-                  className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
+                  className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition"
                 >
                   ✕
                 </button>
@@ -520,7 +525,7 @@ export default function CatalogPage() {
     <Suspense
       fallback={
         <div className="flex justify-center items-center min-h-[60vh]">
-          Загрузка...
+          <LoadingSpinner />
         </div>
       }
     >
