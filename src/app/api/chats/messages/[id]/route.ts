@@ -1,9 +1,10 @@
+// app/api/chats/messages/[id]/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { rateLimit, getClientIP } from "@/lib/rate-limit";
-import { logError, logInfo, logApiRequest } from "@/lib/error-logger";
+import { rateLimit } from "@/lib/rate-limit";
+import { logError, logInfo } from "@/lib/error-logger";
 import { sanitize } from "@/lib/sanitize";
 import { invalidateCache } from "@/lib/db-optimized";
 import { z } from "zod";
@@ -23,8 +24,6 @@ export async function PUT(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const startTime = Date.now();
-    
     try {
         const session = await getServerSession(authOptions);
         if (!session?.user) {
@@ -49,6 +48,7 @@ export async function PUT(
         const { content } = validatedData;
         const sanitizedContent = sanitize.text(content.trim());
 
+        // Получаем сообщение
         const { data: message, error: findError } = await supabase
             .from('messages')
             .select('sender_id, chat_id, content, created_at, is_deleted')
@@ -71,64 +71,56 @@ export async function PUT(
             return NextResponse.json({ error: 'Доступ запрещен' }, { status: 403 });
         }
 
-        const { data: updatedMessage, error: updateError } = await supabase
+        // Обновляем сообщение
+        const { error: updateError } = await supabase
             .from('messages')
             .update({
                 content: sanitizedContent,
                 is_edited: true,
                 edited_at: new Date().toISOString()
             })
-            .eq('id', id)
-            .select(`
-                id,
-                chat_id,
-                sender_id,
-                content,
-                is_read,
-                is_edited,
-                edited_at,
-                attachments,
-                created_at,
-                users!inner (
-                    id,
-                    email,
-                    profiles!left (
-                        full_name,
-                        avatar_url
-                    )
-                )
-            `)
-            .single();
+            .eq('id', id);
 
         if (updateError) {
             logError('Error updating message', updateError);
             return NextResponse.json({ error: 'Ошибка обновления сообщения' }, { status: 500 });
         }
 
+        let senderName = session.user.name || 'Пользователь';
+        let senderAvatar = null;
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, avatar_url')
+            .eq('user_id', session.user.id)
+            .single();
+
+        if (profile) {
+            senderName = profile.full_name || senderName;
+            senderAvatar = profile.avatar_url;
+        }
+
         invalidateCache(new RegExp(`chat_messages_${message.chat_id}`));
 
-        logApiRequest('PUT', `/api/chats/messages/${id}`, 200, Date.now() - startTime, session.user.id);
         logInfo(`Message edited`, { 
             messageId: id, 
             userId: session.user.id,
             chatId: message.chat_id
         });
 
-        const formattedMessage = {
-            id: updatedMessage.id,
-            chat_id: updatedMessage.chat_id,
-            sender_id: updatedMessage.sender_id,
-            content: updatedMessage.content,
-            is_read: updatedMessage.is_read,
-            is_edited: updatedMessage.is_edited,
-            edited_at: updatedMessage.edited_at,
-            attachments: updatedMessage.attachments || [],
-            created_at: updatedMessage.created_at,
-            sender_name: updatedMessage.users?.[0]?.profiles?.[0]?.full_name || updatedMessage.users?.[0]?.email,
-            sender_avatar: updatedMessage.users?.[0]?.profiles?.[0]?.avatar_url
-        };
-
-        return NextResponse.json(formattedMessage, { status: 200 });
+        return NextResponse.json({
+            id: id,
+            chat_id: message.chat_id,
+            sender_id: session.user.id,
+            content: sanitizedContent,
+            is_read: false,
+            is_edited: true,
+            edited_at: new Date().toISOString(),
+            attachments: [],
+            created_at: message.created_at,
+            sender_name: senderName,
+            sender_avatar: senderAvatar
+        }, { status: 200 });
         
     } catch (error) {
         if (error instanceof z.ZodError) {
@@ -143,8 +135,6 @@ export async function DELETE(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const startTime = Date.now();
-    
     try {
         const session = await getServerSession(authOptions);
         if (!session?.user) {
@@ -200,7 +190,6 @@ export async function DELETE(
 
         invalidateCache(new RegExp(`chat_messages_${message.chat_id}`));
 
-        logApiRequest('DELETE', `/api/chats/messages/${id}`, 200, Date.now() - startTime, session.user.id);
         logInfo(`Message deleted`, { 
             messageId: id, 
             userId: session.user.id,
