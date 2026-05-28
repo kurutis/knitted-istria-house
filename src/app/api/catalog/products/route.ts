@@ -2,6 +2,47 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
+// Функция для получения всех названий подкатегорий рекурсивно
+async function getAllSubcategoryNames(categoryId: number): Promise<string[]> {
+    const { data: subcategories } = await supabase
+        .from('categories')
+        .select('id, name')
+        .eq('parent_category_id', categoryId);
+
+    if (!subcategories || subcategories.length === 0) {
+        return [];
+    }
+
+    const subcategoryNames = subcategories.map(c => c.name);
+    
+    for (const sub of subcategories) {
+        const deeperNames = await getAllSubcategoryNames(sub.id);
+        subcategoryNames.push(...deeperNames);
+    }
+
+    return subcategoryNames;
+}
+
+// Функция для получения всех названий категорий (включая подкатегории) по имени родительской категории
+async function getAllCategoryNamesIncludingSubcategories(categoryName: string): Promise<string[]> {
+    // Находим категорию по имени
+    const { data: category } = await supabase
+        .from('categories')
+        .select('id, name')
+        .eq('name', categoryName)
+        .single();
+
+    if (!category) {
+        return [categoryName];
+    }
+
+    // Получаем все подкатегории
+    const subcategoryNames = await getAllSubcategoryNames(category.id);
+    
+    // Возвращаем родительскую категорию + все подкатегории
+    return [category.name, ...subcategoryNames];
+}
+
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -25,9 +66,10 @@ export async function GET(request: Request) {
             .select('*', { count: 'exact' })
             .eq('status', 'active');
 
-        // Фильтр по категории
+        // Фильтр по категории (включая все подкатегории)
         if (category && category !== 'all') {
-            query = query.eq('category', category);
+            const categoryNames = await getAllCategoryNamesIncludingSubcategories(category);
+            query = query.in('category', categoryNames);
         }
 
         // Фильтр по технике вязания
@@ -49,18 +91,24 @@ export async function GET(request: Request) {
         }
 
         // Сортировка
-        if (sort === 'popular') {
-            query = query.order('views', { ascending: false });
-        } else if (sort === 'newest') {
-            query = query.order('created_at', { ascending: false });
-        } else if (sort === 'price_asc') {
-            query = query.order('price', { ascending: true });
-        } else if (sort === 'price_desc') {
-            query = query.order('price', { ascending: false });
-        } else if (sort === 'rating') {
-            query = query.order('rating', { ascending: false });
-        } else {
-            query = query.order('created_at', { ascending: false });
+        switch (sort) {
+            case 'popular':
+                query = query.order('views', { ascending: false });
+                break;
+            case 'newest':
+                query = query.order('created_at', { ascending: false });
+                break;
+            case 'price_asc':
+                query = query.order('price', { ascending: true });
+                break;
+            case 'price_desc':
+                query = query.order('price', { ascending: false });
+                break;
+            case 'rating':
+                query = query.order('rating', { ascending: false });
+                break;
+            default:
+                query = query.order('created_at', { ascending: false });
         }
 
         // Пагинация
@@ -72,9 +120,7 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
-        console.log('Products found:', products?.length, 'Total:', count);
-
-        // Получаем имена мастеров отдельно
+        // Получаем имена мастеров
         const masterIds = [...new Set(products?.map(p => p.master_id) || [])];
         
         const mastersMap = new Map();
@@ -103,7 +149,6 @@ export async function GET(request: Request) {
             master_avatar: mastersMap.get(p.master_id)?.avatar,
             status: p.status,
             views: p.views || 0,
-            rating: p.rating || 0,
             created_at: p.created_at,
             category: p.category,
             technique: p.technique

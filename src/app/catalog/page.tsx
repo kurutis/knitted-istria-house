@@ -67,6 +67,28 @@ function CatalogContent() {
     fetchFilters();
   }, []);
 
+  useEffect(() => {
+      const categoryParam = searchParams.get("category");
+      const techniqueParam = searchParams.get("technique");
+      const minPriceParam = searchParams.get("minPrice");
+      const maxPriceParam = searchParams.get("maxPrice");
+      const searchParam = searchParams.get("search");
+      const sortParam = searchParams.get("sort");
+      const pageParam = searchParams.get("page");
+
+      if (categoryParam || techniqueParam || minPriceParam || maxPriceParam || searchParam || sortParam) {
+          setFilters({
+              category: categoryParam || "all",
+              technique: techniqueParam || "",
+              minPrice: minPriceParam || "",
+              maxPrice: maxPriceParam || "",
+              search: searchParam || "",
+              sort: sortParam || "newest",
+              page: parseInt(pageParam || "1"),
+          });
+      }
+  }, [searchParams]);
+
   const fetchProducts = async () => {
     setLoading(true);
     try {
