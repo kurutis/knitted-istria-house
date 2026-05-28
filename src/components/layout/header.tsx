@@ -251,7 +251,7 @@ export default function Header() {
                     {proxiedAvatarUrl && !avatarError ? (
                       <img src={proxiedAvatarUrl} alt="profile" className="w-5 h-5 rounded-full object-cover" onError={() => setAvatarError(true)} />
                     ) : (
-                      <div className="w-5 h-5 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main text-[10px] font-bold">
+                      <div className="w-5 h-5 rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main text-[10px] font-bold">
                         {getInitials()}
                       </div>
                     )}
@@ -327,7 +327,7 @@ export default function Header() {
         )}
       </AnimatePresence>
 
-      <div className="h-15 md:h-18" />
+      <div className="h-13 sm:h-15 md:h-18 lg:h-20" />
     </>
   );
 }
