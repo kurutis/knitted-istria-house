@@ -104,7 +104,30 @@ export default function MasterClassesPage() {
         try {
             const response = await fetch('/api/master-classes/my')
             const data = await response.json()
-            setMyRegisteredClasses(Array.isArray(data) ? data : [])
+            
+            // Определяем тип для регистрации
+            interface Registration {
+                id: string;
+                payment_status: string;
+                payment_amount: number;
+                registered_at: string;
+                updated_at: string;
+                master_class: MasterClass;
+            }
+            
+            // Извлекаем master_class из каждого объекта регистрации
+            let classes: MasterClass[] = []
+            
+            if (Array.isArray(data)) {
+                // data - массив регистраций
+                const registrations = data as Registration[]
+                classes = registrations.map(item => item.master_class).filter(Boolean)
+            } else if (data.registrations && Array.isArray(data.registrations)) {
+                const registrations = data.registrations as Registration[]
+                classes = registrations.map(item => item.master_class).filter(Boolean)
+            }
+            
+            setMyRegisteredClasses(classes)
         } catch (error) {
             console.error('Error fetching my registered classes:', error)
             setMyRegisteredClasses([])
