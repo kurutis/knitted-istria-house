@@ -7,22 +7,6 @@ import { rateLimit } from "@/lib/rate-limit";
 import { invalidateCache } from "@/lib/db-optimized";
 import { logError, logInfo } from "@/lib/error-logger";
 
-interface MasterClassData {
-    id: string;
-    title: string;
-    description: string;
-    price: number;
-    date_time: string;
-    duration_minutes: number;
-    current_participants: number;
-    max_participants: number;
-    status: string;
-    master_id: string;
-    type: string;
-    location: string | null;
-    online_link: string | null;
-}
-
 interface RegistrationResponse {
     success: boolean;
     message: string;
@@ -44,11 +28,13 @@ interface RegistrationResponse {
 // Rate limiting
 const limiter = rateLimit({ limit: 10, windowMs: 60 * 1000 });
 
+// Валидация UUID
 function isValidUUID(uuid: string): boolean {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     return uuidRegex.test(uuid);
 }
 
+// Функция для проверки, завершен ли мастер-класс
 function isMasterClassCompleted(dateTime: string, durationMinutes: number): boolean {
     const startTime = new Date(dateTime);
     const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
@@ -56,24 +42,29 @@ function isMasterClassCompleted(dateTime: string, durationMinutes: number): bool
     return now >= endTime;
 }
 
+// Функция для проверки, начался ли мастер-класс
 function isMasterClassStarted(dateTime: string): boolean {
     const startTime = new Date(dateTime);
     const now = new Date();
     return now >= startTime;
 }
 
+// Функция для проверки, можно ли еще записаться
 function canRegister(dateTime: string, durationMinutes: number): { can: boolean; reason?: string } {
     const startTime = new Date(dateTime);
     const now = new Date();
     
+    // Проверяем, не завершен ли мастер-класс
     if (isMasterClassCompleted(dateTime, durationMinutes)) {
         return { can: false, reason: 'Мастер-класс уже завершен' };
     }
     
+    // Проверяем, не начался ли мастер-класс
     if (isMasterClassStarted(dateTime)) {
         return { can: false, reason: 'Мастер-класс уже начался' };
     }
     
+    // Проверяем, не слишком ли поздно для записи (за 1 час до начала)
     const hoursUntilClass = (startTime.getTime() - now.getTime()) / (1000 * 60 * 60);
     if (hoursUntilClass < 1) {
         return { can: false, reason: 'Запись на мастер-класс закрыта за 1 час до начала' };
@@ -89,55 +80,68 @@ export async function POST(
     const startTime = Date.now();
     
     try {
-        // Получаем params (Next.js 15 требует await)
-        const { id } = await params;
-        
-        console.log('[DEBUG] Registration attempt for class:', id);
-        
         const session = await getServerSession(authOptions);
         
         if (!session?.user) {
-            console.log('[DEBUG] Unauthorized');
             return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
         }
-        
-        console.log('[DEBUG] User:', session.user.id);
 
+        // Rate limiting
+        const ip = request.headers.get('x-forwarded-for') || 'unknown';
+        const rateLimitResult = limiter(request);
+        if (!rateLimitResult.success) {
+            return NextResponse.json({ 
+                error: 'Слишком много запросов. Попробуйте через минуту.' 
+            }, { status: 429 });
+        }
+
+        const { id } = await params;
+        
         if (!isValidUUID(id)) {
-            console.log('[DEBUG] Invalid UUID format');
             return NextResponse.json({ error: 'Неверный формат ID мастер-класса' }, { status: 400 });
         }
 
-        // 1. Получаем мастер-класс
-        console.log('[DEBUG] Fetching master class...');
+        // 1. Получаем полную информацию о мастер-классе (включая duration_minutes)
         const { data: masterClass, error: classError } = await supabase
             .from('master_classes')
-            .select('*')
+            .select(`
+                id,
+                title,
+                description,
+                price,
+                date_time,
+                duration_minutes,
+                current_participants,
+                max_participants,
+                status,
+                master_id,
+                type,
+                location,
+                online_link
+            `)
             .eq('id', id)
             .single();
 
         if (classError) {
-            console.error('[DEBUG] Error fetching master class:', classError);
             if (classError.code === 'PGRST116') {
                 return NextResponse.json({ error: 'Мастер-класс не найден' }, { status: 404 });
             }
+            logError('Error fetching master class', classError);
             return NextResponse.json({ error: 'Ошибка при проверке мастер-класса' }, { status: 500 });
         }
 
-        console.log('[DEBUG] Master class found:', masterClass.title);
-
-        // 2. Проверяем статус
+        // 2. Проверяем статус мастер-класса
         if (masterClass.status !== 'published') {
             return NextResponse.json({ error: 'Мастер-класс не доступен для записи' }, { status: 400 });
         }
 
-        // 3. Проверяем возможность записи
+        // 3. Проверяем возможность записи (с учетом времени начала и длительности)
         const registrationCheck = canRegister(masterClass.date_time, masterClass.duration_minutes);
         if (!registrationCheck.can) {
             return NextResponse.json({ error: registrationCheck.reason }, { status: 400 });
         }
 
-        // 4. Проверяем места
+        // 4. Проверяем наличие мест
         const currentParticipants = masterClass.current_participants || 0;
         const maxParticipants = masterClass.max_participants || 0;
 
@@ -145,8 +149,7 @@ export async function POST(
             return NextResponse.json({ error: 'Нет свободных мест' }, { status: 400 });
         }
 
-        // 5. Проверяем существующую запись
-        console.log('[DEBUG] Checking existing registration...');
+        // 5. Проверяем, не записан ли уже пользователь
         const { data: existing, error: checkError } = await supabase
             .from('master_class_registrations')
             .select('id, payment_status')
@@ -155,7 +158,7 @@ export async function POST(
             .maybeSingle();
 
         if (checkError && checkError.code !== 'PGRST116') {
-            console.error('[DEBUG] Error checking registration:', checkError);
+            logError('Error checking existing registration', checkError);
             return NextResponse.json({ error: 'Ошибка проверки записи' }, { status: 500 });
         }
 
@@ -167,15 +170,17 @@ export async function POST(
         }
 
         // 6. Создаем запись
-        console.log('[DEBUG] Creating registration...');
         const nowISO = new Date().toISOString();
+        
+        // ИСПРАВЛЕНО: для бесплатных МК используем 'paid', для платных - 'pending'
+        const paymentStatus = masterClass.price > 0 ? 'pending' : 'paid';
         
         const { data: registration, error: insertError } = await supabase
             .from('master_class_registrations')
             .insert({
                 master_class_id: id,
                 user_id: session.user.id,
-                payment_status: masterClass.price > 0 ? 'pending' : 'free',
+                payment_status: paymentStatus,
                 payment_amount: masterClass.price || 0,
                 created_at: nowISO,
                 updated_at: nowISO
@@ -184,15 +189,13 @@ export async function POST(
             .single();
 
         if (insertError) {
-            console.error('[DEBUG] Insert error:', insertError);
-            return NextResponse.json({ error: `Ошибка при записи: ${insertError.message}` }, { status: 500 });
+            logError('Error creating registration', insertError);
+            return NextResponse.json({ error: 'Ошибка при записи' }, { status: 500 });
         }
 
-        console.log('[DEBUG] Registration created:', registration.id);
-
-        // 7. Обновляем количество участников
+        // 7. Увеличиваем количество участников
         const newParticipantsCount = currentParticipants + 1;
-        
+
         const { error: updateError } = await supabase
             .from('master_classes')
             .update({ 
@@ -202,69 +205,66 @@ export async function POST(
             .eq('id', id);
 
         if (updateError) {
-            console.error('[DEBUG] Update error:', updateError);
+            logError('Error updating participants count', updateError);
             // Не возвращаем ошибку, так как запись уже создана
         }
 
-        // 8. Создаем уведомления (пробуем, но не блокируем успех)
-        try {
-            await supabase
-                .from('notifications')
-                .insert({
+        // 8. Создаем уведомление для пользователя
+        await supabase
+            .from('notifications')
+            .insert({
+                user_id: session.user.id,
+                title: 'Вы записаны на мастер-класс',
+                message: `Вы успешно записаны на "${masterClass.title}". ${masterClass.price > 0 ? 'Ожидайте подтверждения оплаты.' : 'До встречи!'}`,
+                type: 'master_class',
+                metadata: { 
+                    master_class_id: id,
+                    registration_id: registration.id,
+                    payment_required: masterClass.price > 0
+                },
+                created_at: nowISO,
+                is_read: false
+            });
+
+        // 9. Уведомляем мастера
+        await supabase
+            .from('notifications')
+            .insert({
+                user_id: masterClass.master_id,
+                title: 'Новая запись на мастер-класс',
+                message: `Пользователь ${session.user.email || session.user.name} записался на "${masterClass.title}". Осталось мест: ${maxParticipants - newParticipantsCount}`,
+                type: 'master_class_registration',
+                metadata: { 
+                    master_class_id: id, 
                     user_id: session.user.id,
-                    title: 'Вы записаны на мастер-класс',
-                    message: `Вы успешно записаны на "${masterClass.title}". ${masterClass.price > 0 ? 'Ожидайте подтверждения оплаты.' : 'До встречи!'}`,
-                    type: 'master_class',
-                    metadata: { 
-                        master_class_id: id,
-                        registration_id: registration.id,
-                        payment_required: masterClass.price > 0
-                    },
-                    created_at: nowISO,
-                    is_read: false
-                });
-        } catch (notifError) {
-            console.error('[DEBUG] Notification error (non-critical):', notifError);
-        }
+                    registration_id: registration.id
+                },
+                created_at: nowISO,
+                is_read: false
+            });
 
-        try {
-            await supabase
-                .from('notifications')
-                .insert({
-                    user_id: masterClass.master_id,
-                    title: 'Новая запись на мастер-класс',
-                    message: `Новый участник записался на "${masterClass.title}". Осталось мест: ${maxParticipants - newParticipantsCount}`,
-                    type: 'master_class_registration',
-                    metadata: { 
-                        master_class_id: id, 
-                        user_id: session.user.id,
-                        registration_id: registration.id
-                    },
-                    created_at: nowISO,
-                    is_read: false
-                });
-        } catch (notifError) {
-            console.error('[DEBUG] Master notification error (non-critical):', notifError);
-        }
-
-        // 9. Инвалидируем кэши
-        try {
-            invalidateCache(`master_class_${id}`);
-            invalidateCache(`master_class_registrations_${id}`);
-            invalidateCache(`user_registrations_${session.user.id}`);
-        } catch (cacheError) {
-            console.error('[DEBUG] Cache invalidation error (non-critical):', cacheError);
-        }
+        // 10. Инвалидируем кэши
+        invalidateCache(`master_class_${id}`);
+        invalidateCache(`master_class_registrations_${id}`);
+        invalidateCache(`user_registrations_${session.user.id}`);
+        invalidateCache(new RegExp(`master_classes_master_${masterClass.master_id}`));
 
         logInfo('User registered for master class', {
             masterClassId: id,
             userId: session.user.id,
             masterId: masterClass.master_id,
             title: masterClass.title,
+            currentParticipants: newParticipantsCount,
+            maxParticipants,
+            spotsLeft: maxParticipants - newParticipantsCount,
             requiresPayment: masterClass.price > 0,
+            price: masterClass.price,
+            dateTime: masterClass.date_time,
+            durationMinutes: masterClass.duration_minutes,
             duration: Date.now() - startTime
         });
 
+        // 11. Формируем ответ
         const response: RegistrationResponse = {
             success: true,
             message: masterClass.price > 0 
@@ -291,11 +291,7 @@ export async function POST(
         return NextResponse.json(response, { status: 201 });
         
     } catch (error) {
-        console.error('[DEBUG] Fatal error:', error);
         logError('Error registering for master class', error);
-        return NextResponse.json({ 
-            error: 'Ошибка при записи',
-            details: error instanceof Error ? error.message : 'Unknown error'
-        }, { status: 500 });
+        return NextResponse.json({ error: 'Ошибка при записи' }, { status: 500 });
     }
 }
