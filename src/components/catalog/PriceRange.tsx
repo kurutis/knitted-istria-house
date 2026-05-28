@@ -14,13 +14,13 @@ interface PriceRangeProps {
 export default function PriceRange({ min, max, currentMin, currentMax, onChange }: PriceRangeProps) {
     // Нормализуем значения для отображения
     const displayMin = Math.max(0, min)
-    const displayMax = Math.min(Math.max(max, currentMax), 50000) // Ограничиваем максимальную цену для отображения
+    const displayMax = Math.min(Math.max(max, currentMax), 50000)
     
     // Инициализируем состояние из пропсов
     const [localMin, setLocalMin] = useState(() => Math.max(currentMin, displayMin))
     const [localMax, setLocalMax] = useState(() => Math.min(currentMax, displayMax))
 
-    // Обновляем локальное состояние только когда пропсы меняются и отличаются от текущих значений
+    // Обновляем локальное состояние только когда пропсы меняются
     if (localMin !== Math.max(currentMin, displayMin)) {
         setLocalMin(Math.max(currentMin, displayMin))
     }
@@ -90,7 +90,7 @@ export default function PriceRange({ min, max, currentMin, currentMax, onChange 
 
             <div className="flex gap-2 mt-6 px-2">
                 <div className="flex-1">
-                    <label className="block text-xs text-gray-500 mb-1">От</label>
+                    <label className="block text-xs text-firm-gray mb-1">От</label>
                     <input 
                         type="number" 
                         value={localMin} 
@@ -98,11 +98,11 @@ export default function PriceRange({ min, max, currentMin, currentMax, onChange 
                         min={displayMin} 
                         max={localMax} 
                         step="100"
-                        className="w-full p-2 rounded-lg bg-[#f1f1f1] outline-firm-orange text-sm" 
+                        className="w-full p-2 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm" 
                     />
                 </div>
                 <div className="flex-1">
-                    <label className="block text-xs text-gray-500 mb-1">До</label>
+                    <label className="block text-xs text-firm-gray mb-1">До</label>
                     <input 
                         type="number" 
                         value={localMax} 
@@ -110,19 +110,19 @@ export default function PriceRange({ min, max, currentMin, currentMax, onChange 
                         min={localMin} 
                         max={displayMax} 
                         step="100"
-                        className="w-full p-2 rounded-lg bg-[#f1f1f1] outline-firm-pink text-sm" 
+                        className="w-full p-2 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm" 
                     />
                 </div>
             </div>
 
-            <div className="flex justify-between text-xs text-gray-400 mt-2 px-2">
+            <div className="flex justify-between text-xs text-firm-gray mt-2 px-2">
                 <span>{displayMin.toLocaleString()} ₽</span>
                 <span>{displayMax.toLocaleString()} ₽</span>
             </div>
 
             <motion.button 
                 onClick={() => onChange(localMin, localMax)} 
-                className="w-full mt-3 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition-colors text-sm"
+                className="w-full mt-3 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl font-medium hover:shadow-lg transition-all text-sm"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
             >
