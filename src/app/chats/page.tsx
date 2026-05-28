@@ -326,8 +326,8 @@ export default function ChatsPage() {
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent flex items-center gap-2">
-              <ChatIcon size={28} color="#D97C8E" />
-              Сообщения
+            <ChatIcon size={28} color="#D97C8E" />
+            Сообщения
           </h1>
           <motion.button
             onClick={refreshChats}
@@ -369,13 +369,13 @@ export default function ChatsPage() {
                       : "hover:bg-gray-50"
                   }`}
                 >
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center">
-                    <SupportIcon size={24} color="white" />
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center flex-shrink-0">
+                    <SupportIcon size={22} color="white" />
                   </div>
-                  <div className="flex-1 text-left">
-                    <div className="flex justify-between items-center">
-                      <p className="font-semibold text-text">Поддержка</p>
-                      <span className="text-xs text-firm-gray">
+                  <div className="flex-1 text-left min-w-0">
+                    <div className="flex justify-between items-center gap-2">
+                      <p className="font-semibold text-text truncate">Поддержка</p>
+                      <span className="text-xs text-firm-gray flex-shrink-0">
                         {supportChat.last_message_time && formatChatTime(supportChat.last_message_time)}
                       </span>
                     </div>
@@ -384,7 +384,7 @@ export default function ChatsPage() {
                     </p>
                   </div>
                   {supportChat.unread_count > 0 && (
-                    <div className="w-5 h-5 bg-firm-orange rounded-full flex items-center justify-center">
+                    <div className="w-5 h-5 bg-firm-orange rounded-full flex items-center justify-center flex-shrink-0">
                       <span className="text-main text-xs font-bold">{supportChat.unread_count}</span>
                     </div>
                   )}
@@ -404,7 +404,7 @@ export default function ChatsPage() {
                       : "hover:bg-gray-50"
                   }`}
                 >
-                  <div className="relative">
+                  <div className="relative flex-shrink-0">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold overflow-hidden">
                       {chat.participant_avatar ? (
                         <img src={chat.participant_avatar} alt={chat.participant_name} className="w-full h-full object-cover" />
@@ -413,15 +413,15 @@ export default function ChatsPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex-1 text-left">
-                    <div className="flex justify-between items-center">
-                      <p className="font-semibold text-text">{chat.participant_name}</p>
-                      <span className="text-xs text-firm-gray">{formatChatTime(chat.last_message_time)}</span>
+                  <div className="flex-1 text-left min-w-0">
+                    <div className="flex justify-between items-center gap-2">
+                      <p className="font-semibold text-text truncate">{chat.participant_name}</p>
+                      <span className="text-xs text-firm-gray flex-shrink-0">{formatChatTime(chat.last_message_time)}</span>
                     </div>
                     <p className="text-sm text-firm-gray truncate">{chat.last_message}</p>
                   </div>
                   {chat.unread_count > 0 && (
-                    <div className="w-5 h-5 bg-firm-orange rounded-full flex items-center justify-center">
+                    <div className="w-5 h-5 bg-firm-orange rounded-full flex items-center justify-center flex-shrink-0">
                       <span className="text-main text-xs font-bold">{chat.unread_count}</span>
                     </div>
                   )}
@@ -452,18 +452,18 @@ export default function ChatsPage() {
             {selectedChat ? (
               <>
                 <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-firm-orange/5 to-firm-pink/5 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center flex-shrink-0">
                       {selectedChat.type === "support" ? (
                         <SupportIcon size={20} color="white" />
                       ) : (
-                        <span className="text-main font-bold">
+                        <span className="text-main font-bold text-base">
                           {getInitials(selectedChat.participant_name)}
                         </span>
                       )}
                     </div>
-                    <div>
-                      <p className="font-['Montserrat_Alternates'] font-semibold text-text">
+                    <div className="min-w-0">
+                      <p className="font-['Montserrat_Alternates'] font-semibold text-text truncate">
                         {selectedChat.type === "support" ? "Служба поддержки" : selectedChat.participant_name}
                       </p>
                     </div>
@@ -471,7 +471,7 @@ export default function ChatsPage() {
                   <motion.button
                     onClick={refreshMessages}
                     disabled={refreshingMessages}
-                    className="px-3 py-1 text-sm bg-main border border-gray-200 text-firm-gray rounded-lg hover:border-firm-orange transition disabled:opacity-50 flex items-center gap-1"
+                    className="px-3 py-1 text-sm bg-main border border-gray-200 text-firm-gray rounded-lg hover:border-firm-orange transition disabled:opacity-50 flex items-center gap-1 flex-shrink-0"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
@@ -480,7 +480,7 @@ export default function ChatsPage() {
                     ) : (
                       <RefreshIcon size={14} />
                     )}
-                    <span>Обновить</span>
+                    <span className="hidden sm:inline">Обновить</span>
                   </motion.button>
                 </div>
 
@@ -522,11 +522,11 @@ export default function ChatsPage() {
                                 )}
                               </div>
                             )}
-                            {!isMine && !showAvatar && <div className="w-8" />}
+                            {!isMine && !showAvatar && <div className="w-8 flex-shrink-0" />}
 
                             <div>
                               <div className={`rounded-2xl p-3 ${isMine ? "bg-gradient-to-r from-firm-orange to-firm-pink text-main" : "bg-gray-100 text-text"}`}>
-                                <p className="break-words">{message.content}</p>
+                                <p className="break-words text-sm">{message.content}</p>
 
                                 {message.attachments && message.attachments.length > 0 && (
                                   <div className="mt-2 flex flex-wrap gap-2">
@@ -563,10 +563,10 @@ export default function ChatsPage() {
 
                 <div className="p-4 border-t border-gray-200">
                   {attachmentPreviews.length > 0 && (
-                    <div className="flex gap-2 mb-3 pb-3 border-b">
+                    <div className="flex gap-2 mb-3 pb-3 border-b overflow-x-auto">
                       {attachmentPreviews.map((preview, idx) => (
-                        <div key={idx} className="relative">
-                          <img src={preview} alt="preview" className="w-16 h-16 object-cover rounded-lg" />
+                        <div key={idx} className="relative flex-shrink-0">
+                          <img src={preview} alt="preview" className="w-14 h-14 object-cover rounded-lg" />
                           <motion.button
                             onClick={() => removeAttachment(idx)}
                             className="absolute -top-2 -right-2 w-5 h-5 bg-firm-red text-main rounded-full text-xs flex items-center justify-center"
@@ -583,11 +583,11 @@ export default function ChatsPage() {
                   <div className="flex gap-2">
                     <motion.button
                       onClick={() => fileInputRef.current?.click()}
-                      className="p-2 rounded-xl bg-main border-2 border-gray-200 hover:border-firm-orange transition"
+                      className="p-2 rounded-xl bg-main border-2 border-gray-200 hover:border-firm-orange transition flex-shrink-0"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
-                      <AttachmentIcon />
+                      <AttachmentIcon size={20} />
                     </motion.button>
                     <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple onChange={handleFileSelect} className="hidden" />
                     <textarea
@@ -607,7 +607,7 @@ export default function ChatsPage() {
                     <motion.button
                       onClick={sendMessage}
                       disabled={sending || (!messageText.trim() && attachments.length === 0)}
-                      className="px-5 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-5 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
@@ -623,7 +623,7 @@ export default function ChatsPage() {
             ) : (
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
-                  <ChatIcon size={48} color="#D4D4D4" className="mx-auto mb-3" />
+                  <ChatIcon size={64} color="#D4D4D4" className="mx-auto mb-4" />
                   <p className="text-firm-gray mb-4">Выберите чат для начала общения</p>
                   <motion.button
                     onClick={startNewSupportTicket}
@@ -681,13 +681,13 @@ export default function ChatsPage() {
                     onClick={() => setSelectedChat(supportChat)}
                     className="w-full p-4 bg-main rounded-2xl shadow-md border border-gray-100 flex items-center gap-3"
                   >
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center flex-shrink-0">
                       <SupportIcon size={22} color="white" />
                     </div>
-                    <div className="flex-1 text-left">
-                      <div className="flex justify-between items-center">
-                        <p className="font-semibold text-text">Поддержка</p>
-                        <span className="text-xs text-firm-gray">
+                    <div className="flex-1 text-left min-w-0">
+                      <div className="flex justify-between items-center gap-2">
+                        <p className="font-semibold text-text truncate">Поддержка</p>
+                        <span className="text-xs text-firm-gray flex-shrink-0">
                           {supportChat.last_message_time && formatChatTime(supportChat.last_message_time)}
                         </span>
                       </div>
@@ -696,7 +696,7 @@ export default function ChatsPage() {
                       </p>
                     </div>
                     {supportChat.unread_count > 0 && (
-                      <div className="w-5 h-5 bg-firm-orange rounded-full flex items-center justify-center">
+                      <div className="w-5 h-5 bg-firm-orange rounded-full flex items-center justify-center flex-shrink-0">
                         <span className="text-main text-xs font-bold">{supportChat.unread_count}</span>
                       </div>
                     )}
@@ -711,22 +711,22 @@ export default function ChatsPage() {
                     onClick={() => setSelectedChat(chat)}
                     className="w-full p-4 bg-main rounded-2xl shadow-md border border-gray-100 flex items-center gap-3"
                   >
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold overflow-hidden">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold overflow-hidden flex-shrink-0">
                       {chat.participant_avatar ? (
                         <img src={chat.participant_avatar} alt={chat.participant_name} className="w-full h-full object-cover" />
                       ) : (
                         <span className="text-lg">{getInitials(chat.participant_name)}</span>
                       )}
                     </div>
-                    <div className="flex-1 text-left">
-                      <div className="flex justify-between items-center">
-                        <p className="font-semibold text-text">{chat.participant_name}</p>
-                        <span className="text-xs text-firm-gray">{formatChatTime(chat.last_message_time)}</span>
+                    <div className="flex-1 text-left min-w-0">
+                      <div className="flex justify-between items-center gap-2">
+                        <p className="font-semibold text-text truncate">{chat.participant_name}</p>
+                        <span className="text-xs text-firm-gray flex-shrink-0">{formatChatTime(chat.last_message_time)}</span>
                       </div>
                       <p className="text-sm text-firm-gray truncate">{chat.last_message}</p>
                     </div>
                     {chat.unread_count > 0 && (
-                      <div className="w-5 h-5 bg-firm-orange rounded-full flex items-center justify-center">
+                      <div className="w-5 h-5 bg-firm-orange rounded-full flex items-center justify-center flex-shrink-0">
                         <span className="text-main text-xs font-bold">{chat.unread_count}</span>
                       </div>
                     )}
@@ -768,24 +768,24 @@ export default function ChatsPage() {
                 >
                   <ArrowLeftIcon size={24} color="#D97C8E" />
                 </motion.button>
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center flex-shrink-0">
                   {selectedChat?.type === "support" ? (
                     <SupportIcon size={20} color="white" />
                   ) : (
-                    <span className="text-main font-bold">
+                    <span className="text-main font-bold text-base">
                       {getInitials(selectedChat?.participant_name || "")}
                     </span>
                   )}
                 </div>
-                <div>
-                  <p className="font-['Montserrat_Alternates'] font-semibold text-text">
+                <div className="flex-1 min-w-0">
+                  <p className="font-['Montserrat_Alternates'] font-semibold text-text truncate">
                     {selectedChat?.type === "support" ? "Служба поддержки" : selectedChat?.participant_name}
                   </p>
                 </div>
                 <motion.button
                   onClick={refreshMessages}
                   disabled={refreshingMessages}
-                  className="ml-auto p-2 bg-main border border-gray-200 rounded-xl"
+                  className="p-2 bg-main border border-gray-200 rounded-xl flex-shrink-0"
                   whileTap={{ scale: 0.95 }}
                 >
                   <RefreshIcon size={16} />
@@ -831,7 +831,7 @@ export default function ChatsPage() {
                               )}
                             </div>
                           )}
-                          {!isMine && !showAvatar && <div className="w-8" />}
+                          {!isMine && !showAvatar && <div className="w-8 flex-shrink-0" />}
 
                           <div>
                             <div className={`rounded-2xl p-3 ${isMine ? "bg-gradient-to-r from-firm-orange to-firm-pink text-main" : "bg-gray-100 text-text"}`}>
@@ -888,9 +888,9 @@ export default function ChatsPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="p-2 rounded-xl bg-main border-2 border-gray-200"
+                    className="p-2 rounded-xl bg-main border-2 border-gray-200 flex-shrink-0"
                   >
-                    <AttachmentIcon />
+                    <AttachmentIcon size={20} />
                   </button>
                   <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple onChange={handleFileSelect} className="hidden" />
                   <textarea
@@ -910,7 +910,7 @@ export default function ChatsPage() {
                   <button
                     onClick={sendMessage}
                     disabled={sending || (!messageText.trim() && attachments.length === 0)}
-                    className="px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition disabled:opacity-50"
+                    className="px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition disabled:opacity-50 flex-shrink-0"
                   >
                     {sending ? (
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
