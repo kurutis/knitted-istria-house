@@ -4,15 +4,18 @@ interface ChatIconProps {
     size?: number;
 }
 
-export const ChatIcon = ({ className = "", color = "#9CA3AF", size = 48 }: ChatIconProps) => (
+export const ChatIcon = ({ className = "", color = "#242424", size = 36 }: ChatIconProps) => (
     <svg 
         width={size} 
         height={size} 
-        viewBox="0 0 24 24" 
+        viewBox="0 0 37 36" 
         fill="none" 
         xmlns="http://www.w3.org/2000/svg"
         className={className}
     >
-        <path d="M8 12H8.01M12 12H12.01M16 12H16.01M21 12C21 13.2 20.5 14.2 19.7 15.1C18.9 15.9 17.8 16.5 16.5 16.8C16.1 16.9 15.7 16.9 15.2 17L13.5 17.5C13 17.6 12.6 17.2 12.7 16.7C12.7 16.6 12.8 16.5 12.8 16.5M3 12C3 13.2 3.5 14.2 4.3 15.1C5.1 15.9 6.2 16.5 7.5 16.8M7.5 16.8L5 19M7.5 16.8L9 14" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+        <circle cx="2.32349" cy="2.32349" r="2.32349" transform="matrix(1 0 0 -1 9.62622 19.897)" fill={color}/>
+        <circle cx="2.32349" cy="2.32349" r="2.32349" transform="matrix(1 0 0 -1 16.9839 19.897)" fill={color}/>
+        <circle cx="2.32349" cy="2.32349" r="2.32349" transform="matrix(1 0 0 -1 24.729 19.897)" fill={color}/>
+        <path d="M19.6262 32.0648C28.4628 32.0648 35.6262 25.1667 35.6262 16.6574C35.6262 8.14813 28.4628 1.25 19.6262 1.25C10.7897 1.25 3.62622 8.14813 3.62622 16.6574C3.62622 20.4012 5.01285 23.8331 7.31853 26.5029C6.91254 29.643 5.86044 31.0025 3.62622 33.25C6.96012 32.6917 8.71604 32.0376 11.6262 30.0036C13.9796 31.3145 16.7119 32.0648 19.6262 32.0648Z" stroke={color} strokeWidth="2.5"/>
     </svg>
 );

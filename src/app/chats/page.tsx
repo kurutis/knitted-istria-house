@@ -326,8 +326,8 @@ export default function ChatsPage() {
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent flex items-center gap-2">
-            <ChatIcon size={28} color="#D97C8E" />
-            Сообщения
+              <ChatIcon size={28} color="#D97C8E" />
+              Сообщения
           </h1>
           <motion.button
             onClick={refreshChats}
@@ -623,7 +623,7 @@ export default function ChatsPage() {
             ) : (
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
-                  <ChatIcon size={64} color="#D4D4D4" className="mx-auto mb-4" />
+                  <ChatIcon size={48} color="#D4D4D4" className="mx-auto mb-3" />
                   <p className="text-firm-gray mb-4">Выберите чат для начала общения</p>
                   <motion.button
                     onClick={startNewSupportTicket}
