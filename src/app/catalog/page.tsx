@@ -9,6 +9,7 @@ import ProductCard from "@/components/catalog/ProductCard";
 import Pagination from "@/components/ui/Pagination";
 import allIcon from "../../../public/products.svg";
 import Image from "next/image";
+import { SearchIcon } from "@/components/icons/SearchIcon"
 
 interface Category {
   id: number;
@@ -425,7 +426,9 @@ function CatalogContent() {
                   animate={{ opacity: 1, y: 0 }}
                   className="text-center py-16 bg-main rounded-2xl border-2 border-gray-100"
                 >
-                  <div className="text-6xl mb-4">🔍</div>
+                  <div className="mb-4 flex justify-center">
+                      <SearchIcon color="#D4D4D4" size={80} />
+                  </div>
                   <p className="text-firm-gray mb-4 font-['Montserrat_Alternates'] text-base">
                     Товары не найдены
                   </p>
