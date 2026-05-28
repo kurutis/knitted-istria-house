@@ -169,7 +169,6 @@ export default function Header() {
                 {navLinks.map((link, index) => (
                   <motion.li key={link.href} initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
                     <Link className="font-Montserrat_Alternates font-semibold hover:font-bold transition-all duration-300 relative group flex items-center gap-2" href={link.href}>
-                      {link.icon}
                       {link.name}
                       <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-firm-orange transition-all duration-300 group-hover:w-full" />
                     </Link>
