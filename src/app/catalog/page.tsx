@@ -328,6 +328,10 @@ function CatalogContent() {
         {/* Search and Mobile Filters Button */}
         <div className="flex gap-3 items-center mb-6">
           <div className="relative flex-1 md:w-96 md:flex-none">
+            {/* Иконка поиска внутри поля */}
+            <div className="absolute left-3 top-1/2 -translate-y-1/2">
+              <SearchIcon color="#737682" size={16} />
+            </div>
             <input
               type="text"
               placeholder="Поиск по названию..."
@@ -335,19 +339,6 @@ function CatalogContent() {
               onChange={(e) => handleSearch(e.target.value)}
               className="w-full p-3 pl-10 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm placeholder:text-firm-gray"
             />
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-firm-gray"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
           </div>
 
           {isMobile && (
@@ -427,7 +418,7 @@ function CatalogContent() {
                   className="text-center py-16 bg-main rounded-2xl border-2 border-gray-100"
                 >
                   <div className="mb-4 flex justify-center">
-                      <SearchIcon color="#D4D4D4" size={80} />
+                    <SearchIcon color="#D4D4D4" size={80} />
                   </div>
                   <p className="text-firm-gray mb-4 font-['Montserrat_Alternates'] text-base">
                     Товары не найдены
@@ -522,7 +513,6 @@ function CatalogContent() {
   );
 }
 
-// Основной компонент с Suspense
 export default function CatalogPage() {
   return (
     <Suspense
