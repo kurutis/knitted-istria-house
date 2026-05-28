@@ -10,6 +10,7 @@ import { CartIcon } from "@/components/icons/CartIcon";
 import { DeleteIcon } from "@/components/icons/DeleteIcon";
 import { ArrowLeftIcon } from "@/components/icons/ArrowLeftIcon";
 import { CheckIcon } from "@/components/icons/CheckIcon";
+import PaymentGateway from "@/components/payment/PaymentGateway";
 
 interface CartItem {
   product_id: string;
@@ -37,31 +38,16 @@ interface ShippingAddress {
 export default function ShoppingCartPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [cart, setCart] = useState<CartData>({
-    items: [],
-    totalCount: 0,
-    totalAmount: 0,
-  });
+  const [cart, setCart] = useState<CartData>({items: [],totalCount: 0, totalAmount: 0});
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState("");
   const [discount, setDiscount] = useState(0);
   const [step, setStep] = useState(1);
   const [orderLoading, setOrderLoading] = useState(false);
+  const [createdOrder, setCreatedOrder] = useState<{ id: string; order_number: string } | null>(null);
   
-  const [confirmModal, setConfirmModal] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    onConfirm: () => void;
-    type?: 'danger' | 'warning' | 'info';
-  }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    onConfirm: () => {},
-    type: 'warning'
-  });
+  const [confirmModal, setConfirmModal] = useState<{isOpen: boolean; title: string; message: string; onConfirm: () => void; type?: 'danger' | 'warning' | 'info'}>({isOpen: false, title: '', message: '', onConfirm: () => {}, type: 'warning'});
 
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
     full_name: "",
@@ -195,49 +181,59 @@ export default function ShoppingCartPage() {
   };
 
   const handlePlaceOrder = async () => {
-    if (!shippingAddress.full_name.trim()) {
-      toast.error("Укажите ФИО");
-      return;
-    }
-    if (!shippingAddress.phone.trim()) {
-      toast.error("Укажите телефон");
-      return;
-    }
-    if (!shippingAddress.city.trim()) {
-      toast.error("Укажите город");
-      return;
-    }
-    if (!shippingAddress.address.trim()) {
-      toast.error("Укажите адрес доставки");
-      return;
-    }
-
-    setOrderLoading(true);
-    try {
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          shippingAddress,
-          discount,
-          comment,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Ошибка оформления заказа");
+      if (!shippingAddress.full_name.trim()) {
+          toast.error("Укажите ФИО");
+          return;
+      }
+      if (!shippingAddress.phone.trim()) {
+          toast.error("Укажите телефон");
+          return;
+      }
+      if (!shippingAddress.city.trim()) {
+          toast.error("Укажите город");
+          return;
+      }
+      if (!shippingAddress.address.trim()) {
+          toast.error("Укажите адрес доставки");
+          return;
       }
 
-      toast.success(`Заказ №${data.order.order_number} успешно оформлен!`);
+      setOrderLoading(true);
+      try {
+          const response = await fetch("/api/orders", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                  shippingAddress,
+                  discount,
+                  comment,
+              }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+              throw new Error(data.error || "Ошибка оформления заказа");
+          }
+
+          setCreatedOrder({
+              id: data.order.id,
+              order_number: data.order.order_number
+          });
+          
+          setStep(4);
+          
+      } catch (error) {
+          console.error("Error placing order:", error);
+          toast.error(error instanceof Error ? error.message : "Ошибка оформления заказа");
+      } finally {
+          setOrderLoading(false);
+      }
+  };
+
+  const handlePaymentSuccess = () => {
+      toast.success("Заказ успешно оформлен и оплачен!");
       router.push("/profile?tab=orders");
-    } catch (error) {
-      console.error("Error placing order:", error);
-      toast.error(error instanceof Error ? error.message : "Ошибка оформления заказа");
-    } finally {
-      setOrderLoading(false);
-    }
   };
 
   const estimatedTax = cart.totalAmount * 0.07;
@@ -294,13 +290,18 @@ export default function ShoppingCartPage() {
               { num: 1, title: "Корзина" },
               { num: 2, title: "Доставка" },
               { num: 3, title: "Подтверждение" },
+              { num: 4, title: "Оплата" },
             ].map((s) => (
               <div key={s.num} className="flex items-center">
                 <button
-                  onClick={() => setStep(s.num)}
+                  onClick={() => {
+                    if (s.num === 4 && !createdOrder) return;
+                    setStep(s.num);
+                  }}
                   className={`flex items-center gap-2 ${
                     step >= s.num ? "text-firm-orange" : "text-firm-gray"
-                  }`}
+                  } ${s.num === 4 && !createdOrder ? "cursor-not-allowed opacity-50" : ""}`}
+                  disabled={s.num === 4 && !createdOrder}
                 >
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${
@@ -317,7 +318,7 @@ export default function ShoppingCartPage() {
                     {s.title}
                   </span>
                 </button>
-                {s.num < 3 && (
+                {s.num < 4 && (
                   <div
                     className={`w-12 h-0.5 mx-2 ${step > s.num ? "bg-gradient-to-r from-firm-orange to-firm-pink" : "bg-gray-300"}`}
                   />
@@ -560,6 +561,33 @@ export default function ShoppingCartPage() {
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* Шаг 4: Оплата */}
+            {step === 4 && createdOrder && (
+              <div className="bg-main rounded-2xl shadow-lg border border-gray-100 p-6">
+                <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl mb-6">
+                  Оплата заказа №{createdOrder.order_number}
+                </h2>
+                
+                <div className="mb-6">
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <h3 className="font-semibold mb-2">Детали заказа:</h3>
+                    <div className="space-y-1 text-sm">
+                      <p><span className="text-gray-500">Сумма:</span> {Math.round(finalTotal).toLocaleString()} ₽</p>
+                      <p><span className="text-gray-500">Способ доставки:</span> {shippingCost === 0 ? "Бесплатная" : "Стандартная"}</p>
+                      <p><span className="text-gray-500">Адрес:</span> {shippingAddress.city}, {shippingAddress.address}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <PaymentGateway
+                  amount={finalTotal}
+                  orderId={createdOrder.id}
+                  onSuccess={handlePaymentSuccess}
+                  onCancel={() => setStep(3)}
+                />
               </div>
             )}
           </div>
