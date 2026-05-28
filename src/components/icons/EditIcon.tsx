@@ -5,7 +5,14 @@ interface EditIconProps {
 }
 
 export const EditIcon = ({ className = "", color = "#D97C8E", size = 20 }: EditIconProps) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+  <svg 
+    width={size} 
+    height={size} 
+    viewBox="0 0 32 32" 
+    fill="none" 
+    xmlns="http://www.w3.org/2000/svg" 
+    className={className}
+  >
     <path d="M3.55555 28.4444H6.08889L23.4667 11.0667L20.9333 8.53333L3.55555 25.9111V28.4444ZM0 32V24.4444L23.4667 1.02222C23.8222 0.696296 24.2151 0.444445 24.6453 0.266667C25.0755 0.088889 25.5271 0 26 0C26.4729 0 26.9321 0.088889 27.3778 0.266667C27.8234 0.444445 28.2086 0.711111 28.5333 1.06667L30.9778 3.55556C31.3333 3.88148 31.5929 4.26667 31.7564 4.71111C31.92 5.15556 32.0012 5.6 32 6.04444C32 6.51852 31.9188 6.97067 31.7564 7.40089C31.5941 7.83111 31.3345 8.22341 30.9778 8.57778L7.55555 32H0ZM22.1778 9.82222L20.9333 8.53333L23.4667 11.0667L22.1778 9.82222Z" fill={color}/>
   </svg>
 );
