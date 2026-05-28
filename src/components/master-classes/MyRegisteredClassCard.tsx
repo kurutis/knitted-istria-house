@@ -4,6 +4,22 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { MasterClass } from '@/types/master-class'
+import { CalendarIcon } from '@/components/icons/CalendarIcon'
+import { LocateIcon } from '@/components/icons/LocateIcon'
+import { ClockIcon } from '@/components/icons/ClockIcon'
+import { DurationIcon } from '@/components/icons/DurationIcon'
+import { UserIcon } from '@/components/icons/UserIcon'
+import { OnlineIcon } from '@/components/icons/OnlineIcon'
+import { CancelIcon } from '@/components/icons/CancelIcon'
+import { LaunchIcon } from '@/components/icons/LaunchIcon'
+
+const getProxiedAvatarUrl = (url: string | null): string | null => {
+    if (!url) return null
+    if (url.includes('/api/proxy/avatar') || url.includes('selstorage.ru')) {
+        return url
+    }
+    return `/api/proxy/avatar?url=${encodeURIComponent(url)}`
+}
 
 interface MyRegisteredClassCardProps {
     masterClass: MasterClass
@@ -15,6 +31,11 @@ export default function MyRegisteredClassCard({
     onCancel 
 }: MyRegisteredClassCardProps) {
     const [imageError, setImageError] = useState(false)
+    const [avatarError, setAvatarError] = useState(false)
+
+    const masterName = masterClass.master_name || 'Мастер'
+    const masterAvatar = masterClass.master_avatar ? getProxiedAvatarUrl(masterClass.master_avatar) : null
+    const masterInitials = masterName.charAt(0).toUpperCase()
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('ru-RU', { 
@@ -33,32 +54,37 @@ export default function MyRegisteredClassCard({
 
     return (
         <motion.div 
-            className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
+            className="bg-main rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
             whileHover={{ y: -4 }}
         >
             <div className="flex flex-col sm:flex-row">
                 {/* Изображение */}
                 {masterClass.image_url && !imageError ? (
-                    <div className="w-full sm:w-40 h-48 sm:h-auto shrink-0 relative bg-gray-100">
+                    <div className="w-full sm:w-48 h-48 sm:h-auto shrink-0 relative bg-gray-100">
                         <img 
                             src={masterClass.image_url} 
                             alt={masterClass.title} 
                             className="w-full h-full object-cover"
                             onError={() => setImageError(true)}
                         />
-                        {masterClass.type === 'online' && (
-                            <span className="absolute top-2 left-2 px-2 py-1 bg-blue-500 text-white text-xs rounded-full z-10">
-                                🖥️ Онлайн
-                            </span>
-                        )}
+                        <span className={`absolute top-2 left-2 px-2 py-1 text-main text-xs rounded-full flex items-center gap-1 z-10 ${masterClass.type === 'online' ? 'bg-firm-pink' : 'bg-firm-green'}`}>
+                            {masterClass.type === 'online' ? (
+                                <OnlineIcon color="white" size={12} />
+                            ) : (
+                                <LocateIcon color="white" size={12} />
+                            )}
+                            <span>{masterClass.type === 'online' ? 'Онлайн' : 'Офлайн'}</span>
+                        </span>
                     </div>
                 ) : (
-                    <div className="w-full sm:w-40 h-48 sm:h-auto shrink-0 bg-gradient-to-r from-firm-orange/20 to-firm-pink/20 flex items-center justify-center">
+                    <div className="w-full sm:w-48 h-48 sm:h-auto shrink-0 bg-linear-to-r from-firm-orange/20 to-firm-pink/20 flex items-center justify-center">
                         <div className="text-center">
-                            <div className="text-4xl mb-1">
-                                {masterClass.type === 'online' ? '🖥️' : '📍'}
-                            </div>
-                            <span className="text-xs text-gray-500">
+                            {masterClass.type === 'online' ? (
+                                <OnlineIcon color="#D97C8E" size={32} />
+                            ) : (
+                                <LocateIcon color="#D97C8E" size={32} />
+                            )}
+                            <span className="text-xs text-firm-gray block mt-1">
                                 {masterClass.type === 'online' ? 'Онлайн' : 'Офлайн'}
                             </span>
                         </div>
@@ -72,47 +98,80 @@ export default function MyRegisteredClassCard({
                             <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg sm:text-xl line-clamp-1">
                                 {masterClass.title}
                             </h3>
-                            <div className="flex items-center gap-2 mt-1">
-                                <span className="text-sm text-gray-500">👤 {masterClass.master_name}</span>
+                            <div className="flex items-center gap-2 mt-2">
+                                {masterAvatar && !avatarError ? (
+                                    <img
+                                        src={masterAvatar}
+                                        alt={masterName}
+                                        className="w-6 h-6 rounded-full object-cover"
+                                        onError={() => setAvatarError(true)}
+                                    />
+                                ) : (
+                                    <div className="w-6 h-6 rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main text-xs font-bold">
+                                        {masterInitials}
+                                    </div>
+                                )}
+                                <span className="text-sm text-firm-gray font-medium">{masterName}</span>
                             </div>
                         </div>
-                        <div className="text-left sm:text-right">
+                        <div className="text-right">
                             <div className="text-xl font-bold text-firm-orange">
                                 {masterClass.price.toLocaleString()} ₽
                             </div>
-                            <div className="text-sm text-gray-500">
-                                мест: {masterClass.current_participants}/{masterClass.max_participants}
+                            <div className="text-sm text-firm-gray flex items-center gap-1 justify-end">
+                                <UserIcon />
+                                <span>{masterClass.current_participants}/{masterClass.max_participants}</span>
                             </div>
                         </div>
                     </div>
 
-                    <p className="text-gray-600 mt-2 text-sm line-clamp-2">{masterClass.description}</p>
+                    <p className="text-firm-gray mt-2 text-sm line-clamp-2">{masterClass.description}</p>
 
-                    <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
-                        <div className="flex items-center gap-1">📅 {formatDate(masterClass.date_time)}</div>
-                        <div className="flex items-center gap-1">⏰ {formatTime(masterClass.date_time)}</div>
-                        <div className="flex items-center gap-1">⏱️ {masterClass.duration_minutes} мин</div>
+                    <div className="flex flex-wrap gap-3 mt-3 text-xs text-firm-gray">
+                        <div className="flex items-center gap-1">
+                            <CalendarIcon color="#737682" size={14} />
+                            <span>{formatDate(masterClass.date_time)}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <ClockIcon />
+                            <span>{formatTime(masterClass.date_time)}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <DurationIcon />
+                            <span>{masterClass.duration_minutes} мин</span>
+                        </div>
                         {masterClass.type === 'offline' && masterClass.location && (
-                            <div className="flex items-center gap-1">📍 {masterClass.location}</div>
+                            <div className="flex items-center gap-1">
+                                <LocateIcon color="#737682" size={14} />
+                                <span className="truncate max-w-37.5">{masterClass.location}</span>
+                            </div>
                         )}
                     </div>
 
                     <div className="mt-3 flex justify-end">
                         <div className="flex gap-2">
                             {masterClass.type === 'online' && masterClass.online_link && (
-                                <button
+                                <motion.button
                                     onClick={() => window.open(masterClass.online_link, '_blank')}
-                                    className="px-3 py-1.5 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition"
+                                    className="flex items-center gap-1 px-3 py-1.5 bg-firm-green text-main rounded-lg text-sm hover:bg-green-400 transition"
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    transition={{ duration: 0.15 }}
                                 >
-                                    🚀 Запустить
-                                </button>
+                                    <LaunchIcon />
+                                    <span className='text-main'>Запустить</span>
+                                </motion.button>
                             )}
-                            <button
+                            <motion.button
                                 onClick={() => onCancel(masterClass.id)}
-                                className="px-3 py-1.5 border border-red-500 text-red-500 rounded-lg text-sm hover:bg-red-500 hover:text-white transition"
+                                className="flex items-center gap-1 px-3 py-1.5 border border-firm-red text-firm-red rounded-lg text-sm hover:bg-firm-red hover:text-main transition"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                transition={{ duration: 0.15 }}
                             >
-                                Отменить
-                            </button>
+                                <CancelIcon />
+                                <span className='text-firm-red group-hover:text-main'>Отменить</span>
+                            </motion.button>
                         </div>
                     </div>
                 </div>
