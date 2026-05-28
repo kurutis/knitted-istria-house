@@ -2,10 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { rateLimit, getClientIP } from "@/lib/rate-limit";
-import { logError, logInfo, logApiRequest } from "@/lib/error-logger";
-import { sanitize } from "@/lib/sanitize";
-import { cachedQuery } from "@/lib/db-optimized";
+import { rateLimit } from "@/lib/rate-limit";
+import { logError, logApiRequest } from "@/lib/error-logger";
 
 const limiter = rateLimit({ limit: 60, windowMs: 60 * 1000 });
 
@@ -14,198 +12,147 @@ export async function GET(request: Request) {
     
     try {
         const session = await getServerSession(authOptions);
+        
         if (!session?.user) {
             return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
         }
 
-        const ip = getClientIP(request);
         const rateLimitResult = limiter(request);
         if (!rateLimitResult.success) {
             return NextResponse.json({ 
-                error: 'Слишком много запросов. Попробуйте через минуту.',
-                chats: []
+                error: 'Слишком много запросов. Попробуйте через минуту.' 
             }, { status: 429 });
         }
 
-        const cacheKey = `user_chats_${session.user.id}`;
-        
-        const chats = await cachedQuery(cacheKey, async () => {
-            const { data: participants, error: participantsError } = await supabase
-                .from('chat_participants')
-                .select('chat_id')
-                .eq('user_id', session.user.id);
+        const userId = session.user.id;
 
-            if (participantsError) {
-                logError('Error fetching participants', participantsError);
-                throw new Error('DATABASE_ERROR');
-            }
+        // Получаем все чаты пользователя
+        const { data: chats, error: chatsError } = await supabase
+            .from('chats')
+            .select(`
+                id,
+                type,
+                created_at,
+                updated_at,
+                participants!inner (
+                    user_id
+                )
+            `)
+            .eq('participants.user_id', userId);
 
-            if (!participants || participants.length === 0) {
-                return [];
-            }
+        if (chatsError) {
+            logError('Error fetching chats', chatsError);
+            return NextResponse.json({ chats: [] }, { status: 200 });
+        }
 
-            const chatIds = participants.map(p => p.chat_id);
-            
-            const { data: chatsData, error: chatsError } = await supabase
-                .from('chats')
-                .select('*')
-                .in('id', chatIds)
-                .order('last_message_at', { ascending: false, nullsFirst: false });
+        if (!chats || chats.length === 0) {
+            return NextResponse.json({ chats: [] }, { status: 200 });
+        }
 
-            if (chatsError) {
-                logError('Error fetching chats', chatsError);
-                throw new Error('DATABASE_ERROR');
-            }
+        const chatIds = chats.map(chat => chat.id);
 
-            if (!chatsData || chatsData.length === 0) {
-                return [];
-            }
+        // Получаем последнее сообщение для каждого чата
+        const { data: lastMessages } = await supabase
+            .from('messages')
+            .select('chat_id, content, created_at')
+            .in('chat_id', chatIds)
+            .order('created_at', { ascending: false });
 
-            const { data: lastMessages, error: messagesError } = await supabase
-                .from('messages')
-                .select('chat_id, content, created_at, sender_id')
-                .in('chat_id', chatIds)
-                .order('created_at', { ascending: false });
+        // Получаем непрочитанные сообщения
+        const { data: unreadCounts } = await supabase
+            .from('messages')
+            .select('chat_id, id', { count: 'exact' })
+            .in('chat_id', chatIds)
+            .eq('is_read', false)
+            .neq('sender_id', userId);
 
-            const lastMessageMap = new Map();
-            lastMessages?.forEach(msg => {
-                if (!lastMessageMap.has(msg.chat_id)) {
-                    lastMessageMap.set(msg.chat_id, {
-                        last_message: msg.content?.substring(0, 200) || 'Вложение',
-                        last_message_time: msg.created_at,
-                        last_sender_id: msg.sender_id
-                    });
-                }
-            });
-
-            // Получаем количество непрочитанных сообщений
-            const { data: unreadData, error: unreadError } = await supabase
-                .from('messages')
-                .select('chat_id')
-                .in('chat_id', chatIds)
-                .eq('is_read', false)
-                .neq('sender_id', session.user.id);
-
-            const unreadMap = new Map();
-            unreadData?.forEach(msg => {
-                unreadMap.set(msg.chat_id, (unreadMap.get(msg.chat_id) || 0) + 1);
-            });
-
-            // Получаем других участников для обычных чатов
-            const { data: otherParticipants, error: otherError } = await supabase
-                .from('chat_participants')
-                .select('chat_id, user_id')
-                .in('chat_id', chatIds)
-                .neq('user_id', session.user.id);
-
-            // Получаем профили других участников
-            const otherUserIds = otherParticipants?.map(p => p.user_id) || [];
-            const { data: profiles } = await supabase
-                .from('profiles')
-                .select('user_id, full_name, avatar_url')
-                .in('user_id', otherUserIds);
-
-            const profileMap = new Map();
-            profiles?.forEach(p => {
-                profileMap.set(p.user_id, {
-                    full_name: p.full_name,
-                    avatar_url: p.avatar_url
-                });
-            });
-
-            // Получаем роли других участников
-            const { data: users } = await supabase
-                .from('users')
-                .select('id, role')
-                .in('id', otherUserIds);
-
-            const roleMap = new Map();
-            users?.forEach(u => {
-                roleMap.set(u.id, u.role);
-            });
-
-            const participantMap = new Map();
-            otherParticipants?.forEach(p => {
-                participantMap.set(p.chat_id, {
-                    participant_id: p.user_id,
-                    participant_name: profileMap.get(p.user_id)?.full_name || 'Пользователь',
-                    participant_avatar: profileMap.get(p.user_id)?.avatar_url || null,
-                    participant_role: roleMap.get(p.user_id) || 'buyer'
-                });
-            });
-
-            const formattedChats = [];
-            
-            for (const chat of chatsData) {
-                const lastMsg = lastMessageMap.get(chat.id);
-                const otherParticipant = participantMap.get(chat.id);
-                const unreadCount = unreadMap.get(chat.id) || 0;
-
-                if (chat.type === 'support') {
-                    const { data: ticket } = await supabase
-                        .from('support_tickets')
-                        .select('status')
-                        .eq('chat_id', chat.id)
-                        .maybeSingle();
-
-                    formattedChats.push({
-                        id: chat.id,
-                        type: 'support',
-                        participant_id: 'support',
-                        participant_name: 'Поддержка',
-                        participant_avatar: null,
-                        last_message: sanitize.text(lastMsg?.last_message || chat.last_message_preview || 'Нет сообщений'),
-                        last_message_time: lastMsg?.last_message_time || chat.last_message_at,
-                        unread_count: unreadCount,
-                        created_at: chat.created_at,
-                        ticket_status: ticket?.status
-                    });
-                } else if (otherParticipant) {
-                    formattedChats.push({
-                        id: chat.id,
-                        type: otherParticipant.participant_role === 'master' ? 'master' : 'buyer',
-                        participant_id: otherParticipant.participant_id,
-                        participant_name: sanitize.text(otherParticipant.participant_name || 'Пользователь'),
-                        participant_avatar: otherParticipant.participant_avatar,
-                        last_message: sanitize.text(lastMsg?.last_message || chat.last_message_preview || 'Нет сообщений'),
-                        last_message_time: lastMsg?.last_message_time || chat.last_message_at,
-                        unread_count: unreadCount,
-                        created_at: chat.created_at
-                    });
-                }
-            }
-
-            formattedChats.sort((a, b) => {
-                const timeA = a.last_message_time ? new Date(a.last_message_time).getTime() : 0;
-                const timeB = b.last_message_time ? new Date(b.last_message_time).getTime() : 0;
-                return timeB - timeA;
-            });
-
-            return formattedChats;
-        }, 10);
-
-        logApiRequest('GET', '/api/chats', 200, Date.now() - startTime, session.user.id);
-        logInfo('Chats fetched', {
-            userId: session.user.id,
-            count: chats.length,
-            duration: Date.now() - startTime
+        const unreadMap = new Map<string, number>();
+        unreadCounts?.forEach(msg => {
+            unreadMap.set(msg.chat_id, (unreadMap.get(msg.chat_id) || 0) + 1);
         });
 
-        return NextResponse.json({ 
-            success: true,
-            chats,
-            meta: {
-                total: chats.length,
-                cached: Date.now() - startTime < 100
+        // Создаем Map последних сообщений
+        const lastMessageMap = new Map<string, { content: string; created_at: string }>();
+        lastMessages?.forEach(msg => {
+            if (!lastMessageMap.has(msg.chat_id)) {
+                lastMessageMap.set(msg.chat_id, {
+                    content: msg.content || '',
+                    created_at: msg.created_at
+                });
             }
-        }, { status: 200 });
+        });
+
+        // Форматируем чаты
+        const formattedChats = await Promise.all(chats.map(async (chat) => {
+            // Получаем информацию о собеседнике
+            let participantName = '';
+            let participantAvatar = null;
+            let participantId = '';
+
+            if (chat.type === 'support') {
+                participantName = 'Поддержка';
+                participantId = 'support';
+            } else {
+                // Получаем другого участника чата
+                const { data: participants } = await supabase
+                    .from('participants')
+                    .select('user_id')
+                    .eq('chat_id', chat.id)
+                    .neq('user_id', userId);
+
+                const otherUserId = participants?.[0]?.user_id;
+                if (otherUserId) {
+                    participantId = otherUserId;
+                    // Получаем профиль пользователя
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('full_name, avatar_url')
+                        .eq('user_id', otherUserId)
+                        .single();
+                    
+                    if (profile) {
+                        participantName = profile.full_name || 'Пользователь';
+                        participantAvatar = profile.avatar_url;
+                    } else {
+                        // Если нет профиля, получаем email из users
+                        const { data: user } = await supabase
+                            .from('users')
+                            .select('email')
+                            .eq('id', otherUserId)
+                            .single();
+                        participantName = user?.email?.split('@')[0] || 'Пользователь';
+                    }
+                }
+            }
+
+            const lastMessage = lastMessageMap.get(chat.id);
+            const lastMessageTime = lastMessage?.created_at || chat.created_at;
+            const lastMessageContent = lastMessage?.content || 'Нет сообщений';
+
+            return {
+                id: chat.id,
+                type: chat.type,
+                participant_id: participantId,
+                participant_name: participantName,
+                participant_avatar: participantAvatar,
+                last_message: lastMessageContent,
+                last_message_time: lastMessageTime,
+                unread_count: unreadMap.get(chat.id) || 0,
+                ticket_status: chat.type === 'support' ? 'open' : undefined
+            };
+        }));
+
+        // Сортируем чаты по времени последнего сообщения
+        formattedChats.sort((a, b) => {
+            return new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime();
+        });
+
+        logApiRequest('GET', '/api/chats', 200, Date.now() - startTime, userId);
+
+        return NextResponse.json({ chats: formattedChats }, { status: 200 });
         
     } catch (error) {
-        console.error('Fatal error in chats API:', error);
         logError('Error fetching chats', error);
-        return NextResponse.json({ 
-            error: 'Ошибка загрузки чатов',
-            chats: []
-        }, { status: 500 });
+        return NextResponse.json({ chats: [] }, { status: 500 });
     }
 }
