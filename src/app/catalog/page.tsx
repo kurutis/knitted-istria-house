@@ -351,7 +351,7 @@ function CatalogContent() {
               <svg
                 className="w-4 h-4 text-main"
                 fill="none"
-                stroke="currentColor"
+                stroke="#f9f9f9"
                 viewBox="0 0 24 24"
               >
                 <path
