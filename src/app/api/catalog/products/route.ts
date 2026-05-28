@@ -25,7 +25,6 @@ async function getAllSubcategoryNames(categoryId: number): Promise<string[]> {
 
 // Функция для получения всех названий категорий (включая подкатегории) по имени родительской категории
 async function getAllCategoryNamesIncludingSubcategories(categoryName: string): Promise<string[]> {
-    // Находим категорию по имени
     const { data: category } = await supabase
         .from('categories')
         .select('id, name')
@@ -36,10 +35,7 @@ async function getAllCategoryNamesIncludingSubcategories(categoryName: string): 
         return [categoryName];
     }
 
-    // Получаем все подкатегории
     const subcategoryNames = await getAllSubcategoryNames(category.id);
-    
-    // Возвращаем родительскую категорию + все подкатегории
     return [category.name, ...subcategoryNames];
 }
 
@@ -47,7 +43,6 @@ export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         
-        // Получаем параметры фильтрации
         const category = searchParams.get('category');
         const technique = searchParams.get('technique');
         const minPrice = searchParams.get('minPrice');
@@ -60,11 +55,49 @@ export async function GET(request: Request) {
 
         console.log('API /api/catalog/products called', { category, technique, minPrice, maxPrice, search, sort, page, limit });
 
-        // Базовый запрос
+        // Базовый запрос - сначала получаем ID товаров с учетом поиска
+        let productIds: string[] | null = null;
+        
+        // Если есть поисковый запрос, сначала получаем ID подходящих товаров
+        if (search && search.trim() !== '') {
+            const searchTerm = search.trim();
+            
+            // Используем простой поиск через ILIKE
+            const { data: searchResults, error: searchError } = await supabase
+                .from('products')
+                .select('id')
+                .eq('status', 'active')
+                .ilike('title', `%${searchTerm}%`);
+            
+            if (searchError) {
+                console.error('Search error:', searchError);
+            } else if (searchResults && searchResults.length > 0) {
+                productIds = searchResults.map(p => p.id);
+            } else {
+                // Если ничего не найдено, возвращаем пустой результат
+                return NextResponse.json({ 
+                    products: [],
+                    pagination: {
+                        page,
+                        limit,
+                        total: 0,
+                        totalPages: 0,
+                        hasMore: false
+                    }
+                });
+            }
+        }
+
+        // Основной запрос
         let query = supabase
             .from('products')
             .select('*', { count: 'exact' })
             .eq('status', 'active');
+
+        // Фильтр по ID из поиска
+        if (productIds) {
+            query = query.in('id', productIds);
+        }
 
         // Фильтр по категории (включая все подкатегории)
         if (category && category !== 'all') {
@@ -83,11 +116,6 @@ export async function GET(request: Request) {
         }
         if (maxPrice && !isNaN(parseFloat(maxPrice))) {
             query = query.lte('price', parseFloat(maxPrice));
-        }
-
-        // Поиск по названию
-        if (search && search.trim() !== '') {
-            query = query.ilike('title', `%${search.trim()}%`);
         }
 
         // Сортировка
