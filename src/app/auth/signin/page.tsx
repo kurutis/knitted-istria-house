@@ -179,10 +179,10 @@ function SignInForm() {
                         onClick={() => signIn('google', { callbackUrl })}
                         className="p-2 sm:p-3 rounded-xl transition-all"
                     >
-                        <Image src={google} alt="Google" width={28} height={28} className="w-7 h-7 sm:w-8 sm:h-8" />
+                        <Image src={google} alt="Google" width={28} height={28} className="w-7 h-7 sm:w-6 sm:h-6" />
                     </motion.button>
 
-                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} type="button" onClick={() => signIn('yandex', { callbackUrl })} className="p-2 sm:p-3 rounded-xl transition-all"><Image src={yandex} alt="Yandex" width={28} height={28} className="w-7 h-7 sm:w-8 sm:h-8" /></motion.button>
+                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} type="button" onClick={() => signIn('yandex', { callbackUrl })} className="p-2 sm:p-3 rounded-xl transition-all"><Image src={yandex} alt="Yandex" width={28} height={28} className="w-7 h-7 sm:w-6 sm:h-6" /></motion.button>
 
                     <motion.button
                         whileHover={{ scale: 1.05 }}
@@ -191,7 +191,7 @@ function SignInForm() {
                         onClick={() => signIn('vk', { callbackUrl })}
                         className="p-2 sm:p-3 rounded-xl transition-all"
                     >
-                        <Image src={vk} alt="VK" width={28} height={28} className="w-7 h-7 sm:w-8 sm:h-8" />
+                        <Image src={vk} alt="VK" width={28} height={28} className="w-7 h-7 sm:w-6 sm:h-6" />
                     </motion.button>
                 </div>
 
