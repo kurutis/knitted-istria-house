@@ -11,7 +11,7 @@ import { ClassesIcon } from "@/components/icons/ClassesIcon";
 import { ChatIcon } from "@/components/icons/ChatIcon";
 import { CartIcon } from "@/components/icons/CartIcon";
 import { FavoritesIcon } from "@/components/icons/FavoritesIcon";
-import { ProfileIcon } from "@/components/icons/ProfileIcon";
+import { UserIcon } from "@/components/icons/UserIcon";
 import logo from "../../../public/logo.svg"
 import Image from "next/image";
 
@@ -213,7 +213,7 @@ export default function Header() {
                       )}
                     </Link>
                   ) : (
-                    <Link href="/auth/signin" className="block"><ProfileIcon size={24} color="#737682" /></Link>
+                    <Link href="/auth/signin" className="block"><UserIcon size={24} color="#737682" /></Link>
                   )}
                 </motion.div>
               </div>
@@ -281,7 +281,7 @@ export default function Header() {
                     <span className="text-[10px] font-medium">Блог</span>
                   </Link>
                   <Link href="/auth/signin" className="flex flex-col items-center gap-1 transition-all duration-300 text-firm-orange font-semibold">
-                    <ProfileIcon size={20} color="#F4A67F" />
+                    <UserIcon size={20} color="#F4A67F" />
                     <span className="text-[10px] font-medium">Войти</span>
                   </Link>
                   
@@ -319,7 +319,7 @@ export default function Header() {
                   <Link href="/master-classes" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300"><ClassesIcon size={20} color="#737682" /><span className="text-gray-700 font-['Montserrat_Alternates']">Мастер-классы</span></Link>
                   {isAuthenticated && (isBuyer || isMaster) && (
                     <Link href="/chats" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300 relative"><ChatIcon size={20} color="#737682" /><span className="text-text font-['Montserrat_Alternates']">Сообщения</span>{unreadCount > 0 && (<span className="ml-auto bg-firm-red text-main text-xs rounded-full px-2 py-0.5 min-w-5 text-center">{unreadCount > 9 ? '9+' : unreadCount}</span>)}</Link>)}
-                  {!isAuthenticated && (<><Link href="/auth/signin" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300"><ProfileIcon size={20} color="#737682" /><span className="text-gray-700 font-['Montserrat_Alternates']">Войти</span></Link><Link href="/auth/signup" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300"><ProfileIcon size={20} color="#737682" /><span className="text-gray-700 font-['Montserrat_Alternates']">Зарегистрироваться</span></Link></> )}
+                  {!isAuthenticated && (<><Link href="/auth/signin" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300"><UserIcon size={20} color="#737682" /><span className="text-gray-700 font-['Montserrat_Alternates']">Войти</span></Link><Link href="/auth/signup" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-main transition-all duration-300"><UserIcon size={20} color="#737682" /><span className="text-gray-700 font-['Montserrat_Alternates']">Зарегистрироваться</span></Link></> )}
                 </div>
               </div>
             </motion.div>
