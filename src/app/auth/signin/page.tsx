@@ -11,7 +11,6 @@ import google from '../../../../public/google.svg'
 import yandex from '../../../../public/yandex.svg'
 import vk from '../../../../public/vk.svg'
 import { PasswordIcon } from "@/components/icons/PasswordIcon"
-import { UserIcon } from "@/components/icons/UserIcon"
 
 function SignInForm() {
     const router = useRouter()
@@ -82,9 +81,9 @@ function SignInForm() {
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ delay: 0.2, type: "spring" }}
-                        className="mx-auto w-20 h-20 sm:w-20 sm:h-20 bg-gradient-to-r from-firm-orange to-firm-pink rounded-2xl flex items-center justify-center mb-3 sm:mb-4"
+                        className="mx-auto w-20 h-20 bg-gradient-to-r from-firm-orange to-firm-pink rounded-2xl flex items-center justify-center mb-3 sm:mb-4"
                     >
-                        <UserIcon size={isMobile ? 36 : 32} color="white" />
+                        <PasswordIcon color="#f9f9f9" className="w-10 h-10 sm:w-10 sm:h-10" />
                     </motion.div>
                     <h2 className="font-montserrat font-bold text-2xl sm:text-3xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
                         Добро пожаловать
@@ -179,16 +178,16 @@ function SignInForm() {
                     </div>
                 </div>
 
-                {/* Социальные кнопки - увеличенные иконки на мобильных */}
-                <div className="flex items-center justify-center gap-6 sm:gap-3">
+                {/* Социальные кнопки - разные размеры для мобильных и десктопа */}
+                <div className="flex items-center justify-center gap-4 sm:gap-6">
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         type="button"
                         onClick={() => signIn('google', { callbackUrl })}
-                        className="p-2 sm:p-3 rounded-xl transition-all"
+                        className="p-2 rounded-xl transition-all"
                     >
-                        <Image src={google} alt="Google" width={isMobile ? 36 : 28} height={isMobile ? 36 : 28} className="w-9 h-9 sm:w-6 sm:h-6" />
+                        <Image src={google} alt="Google" width={28} height={28} className="w-7 h-7 sm:w-8 sm:h-8" />
                     </motion.button>
 
                     <motion.button
@@ -196,9 +195,9 @@ function SignInForm() {
                         whileTap={{ scale: 0.95 }}
                         type="button"
                         onClick={() => signIn('yandex', { callbackUrl })}
-                        className="p-2 sm:p-3 rounded-xl transition-all"
+                        className="p-2 rounded-xl transition-all"
                     >
-                        <Image src={yandex} alt="Yandex" width={isMobile ? 36 : 28} height={isMobile ? 36 : 28} className="w-9 h-9 sm:w-6 sm:h-6" />
+                        <Image src={yandex} alt="Yandex" width={28} height={28} className="w-7 h-7 sm:w-8 sm:h-8" />
                     </motion.button>
 
                     <motion.button
@@ -206,9 +205,9 @@ function SignInForm() {
                         whileTap={{ scale: 0.95 }}
                         type="button"
                         onClick={() => signIn('vk', { callbackUrl })}
-                        className="p-2 sm:p-3 rounded-xl transition-all"
+                        className="p-2 rounded-xl transition-all"
                     >
-                        <Image src={vk} alt="VK" width={isMobile ? 36 : 28} height={isMobile ? 36 : 28} className="w-9 h-9 sm:w-6 sm:h-6" />
+                        <Image src={vk} alt="VK" width={28} height={28} className="w-7 h-7 sm:w-8 sm:h-8" />
                     </motion.button>
                 </div>
 
