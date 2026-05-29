@@ -6,6 +6,8 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import { toast } from 'react-hot-toast'
 import { UserIcon } from "@/components/icons/UserIcon"
+import { CatalogPinkIcon } from "@/components/icons/CatalogPinkIcon"
+import { MasterIcon } from "@/components/icons/MasterIcon"
 
 export default function SignUpPage() {
     const router = useRouter()
@@ -227,8 +229,8 @@ export default function SignUpPage() {
                     className="max-w-md w-full bg-main rounded-2xl shadow-2xl p-6 sm:p-8 border border-gray-100"
                 >
                     <div className="text-center">
-                        <div className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-firm-orange to-firm-pink rounded-2xl flex items-center justify-center mb-3 sm:mb-4">
-                            <span className="text-2xl sm:text-3xl">{icon}</span>
+                        <div className="mx-auto w-20 h-20 sm:w-20 sm:h-20 bg-gradient-to-r from-firm-orange to-firm-pink rounded-2xl flex items-center justify-center mb-3 sm:mb-4">
+                            <span className="text-3xl sm:text-3xl">{icon}</span>
                         </div>
                         <h2 className="font-montserrat font-bold text-2xl sm:text-3xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
                             Подтверждение
@@ -304,8 +306,8 @@ export default function SignUpPage() {
                 className="max-w-md w-full bg-main rounded-2xl shadow-2xl p-6 sm:p-8 border border-gray-100"
             >
                 <div className="text-center">
-                    <div className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-firm-orange to-firm-pink rounded-2xl flex items-center justify-center mb-3 sm:mb-4">
-                        <UserIcon size={isMobile ? 28 : 32} color="white" />
+                    <div className="mx-auto w-20 h-20 sm:w-20 sm:h-20 bg-gradient-to-r from-firm-orange to-firm-pink rounded-2xl flex items-center justify-center mb-3 sm:mb-4">
+                        <UserIcon size={isMobile ? 36 : 32} color="white" />
                     </div>
                     <h2 className="font-montserrat font-bold text-2xl sm:text-3xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
                         Создать аккаунт
@@ -421,8 +423,8 @@ export default function SignUpPage() {
                         />
                     </div>
 
-                    {/* Роль */}
-                    <div className="flex flex-col sm:flex-row gap-3 py-2">
+                    {/* Роль - с иконками */}
+                    <div className="flex flex-col sm:flex-row gap-4 py-2">
                         <label className="flex items-center gap-2 cursor-pointer">
                             <div className="relative flex items-center">
                                 <input
@@ -437,7 +439,8 @@ export default function SignUpPage() {
                                     <div className="absolute w-2 h-2 bg-main rounded-full left-1 top-1 pointer-events-none"></div>
                                 )}
                             </div>
-                            <span className="text-xs sm:text-sm text-firm-gray">🛍️ Покупатель</span>
+                            <CatalogPinkIcon size={18} color="#D97C8E" />
+                            <span className="text-xs sm:text-sm text-firm-gray">Покупатель</span>
                         </label>
 
                         <label className="flex items-center gap-2 cursor-pointer">
@@ -454,7 +457,8 @@ export default function SignUpPage() {
                                     <div className="absolute w-2 h-2 bg-main rounded-full left-1 top-1 pointer-events-none"></div>
                                 )}
                             </div>
-                            <span className="text-xs sm:text-sm text-firm-gray">✨ Продавец (Мастер)</span>
+                            <MasterIcon size={18} color="#D97C8E" />
+                            <span className="text-xs sm:text-sm text-firm-gray">Продавец (Мастер)</span>
                         </label>
                     </div>
 
