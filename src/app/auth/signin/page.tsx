@@ -178,17 +178,27 @@ function SignInForm() {
                     </div>
                 </div>
 
-                {/* Социальные кнопки - разные стили для мобильных и десктопа */}
-                <div className="flex items-center justify-center gap-6">
+                {/* Социальные кнопки - на мобильных только крупные иконки без рамки, на десктопе рамка + текст */}
+                <div className="flex items-center justify-center gap-8 sm:gap-4">
                     {/* Google */}
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         type="button"
                         onClick={() => signIn('google', { callbackUrl })}
-                        className="flex items-center justify-center gap-2 sm:gap-2 p-2 sm:p-3 border-2 border-gray-200 rounded-xl hover:border-firm-orange hover:bg-firm-orange/5 transition-all"
+                        className={`flex items-center justify-center transition-all ${
+                            isMobile 
+                                ? 'p-0' 
+                                : 'gap-2 p-3 border-2 border-gray-200 rounded-xl hover:border-firm-orange hover:bg-firm-orange/5'
+                        }`}
                     >
-                        <Image src={google} alt="Google" width={isMobile ? 32 : 24} height={isMobile ? 32 : 24} className="w-8 h-8 sm:w-6 sm:h-6" />
+                        <Image 
+                            src={google} 
+                            alt="Google" 
+                            width={isMobile ? 40 : 24} 
+                            height={isMobile ? 40 : 24} 
+                            className={isMobile ? "w-10 h-10" : "w-6 h-6"} 
+                        />
                         <span className="hidden sm:inline text-sm font-medium text-firm-gray">Google</span>
                     </motion.button>
 
@@ -198,9 +208,19 @@ function SignInForm() {
                         whileTap={{ scale: 0.95 }}
                         type="button"
                         onClick={() => signIn('yandex', { callbackUrl })}
-                        className="flex items-center justify-center gap-2 sm:gap-2 p-2 sm:p-3 border-2 border-gray-200 rounded-xl hover:border-firm-orange hover:bg-firm-orange/5 transition-all"
+                        className={`flex items-center justify-center transition-all ${
+                            isMobile 
+                                ? 'p-0' 
+                                : 'gap-2 p-3 border-2 border-gray-200 rounded-xl hover:border-firm-orange hover:bg-firm-orange/5'
+                        }`}
                     >
-                        <Image src={yandex} alt="Yandex" width={isMobile ? 32 : 24} height={isMobile ? 32 : 24} className="w-8 h-8 sm:w-6 sm:h-6" />
+                        <Image 
+                            src={yandex} 
+                            alt="Yandex" 
+                            width={isMobile ? 40 : 24} 
+                            height={isMobile ? 40 : 24} 
+                            className={isMobile ? "w-10 h-10" : "w-6 h-6"} 
+                        />
                         <span className="hidden sm:inline text-sm font-medium text-firm-gray">Яндекс</span>
                     </motion.button>
 
@@ -210,9 +230,19 @@ function SignInForm() {
                         whileTap={{ scale: 0.95 }}
                         type="button"
                         onClick={() => signIn('vk', { callbackUrl })}
-                        className="flex items-center justify-center gap-2 sm:gap-2 p-2 sm:p-3 border-2 border-gray-200 rounded-xl hover:border-firm-orange hover:bg-firm-orange/5 transition-all"
+                        className={`flex items-center justify-center transition-all ${
+                            isMobile 
+                                ? 'p-0' 
+                                : 'gap-2 p-3 border-2 border-gray-200 rounded-xl hover:border-firm-orange hover:bg-firm-orange/5'
+                        }`}
                     >
-                        <Image src={vk} alt="VK" width={isMobile ? 32 : 24} height={isMobile ? 32 : 24} className="w-8 h-8 sm:w-6 sm:h-6" />
+                        <Image 
+                            src={vk} 
+                            alt="VK" 
+                            width={isMobile ? 40 : 24} 
+                            height={isMobile ? 40 : 24} 
+                            className={isMobile ? "w-10 h-10" : "w-6 h-6"} 
+                        />
                         <span className="hidden sm:inline text-sm font-medium text-firm-gray">VK</span>
                     </motion.button>
                 </div>
