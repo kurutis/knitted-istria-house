@@ -170,17 +170,16 @@ function SignInForm() {
                     </div>
                 </div>
 
-                {/* Социальные кнопки - на мобильных только иконки, на десктопе иконки + текст */}
-                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                {/* Социальные кнопки - на мобильных только иконки без рамки, на десктопе иконки + текст с рамкой */}
+                <div className="flex items-center justify-center gap-4 sm:gap-3">
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         type="button"
                         onClick={() => signIn('google', { callbackUrl })}
-                        className="flex items-center justify-center p-2.5 sm:p-3 border-2 border-gray-200 rounded-xl hover:border-firm-orange hover:bg-firm-orange/5 transition-all"
+                        className="p-2 sm:p-3 rounded-xl transition-all"
                     >
-                        <Image src={google} alt="Google" width={24} height={24} className="w-5 h-5 sm:w-6 sm:h-6" />
-                        <span className="hidden sm:inline ml-2 text-sm font-medium text-firm-gray">Google</span>
+                        <Image src={google} alt="Google" width={28} height={28} className="w-7 h-7 sm:w-6 sm:h-6" />
                     </motion.button>
 
                     <motion.button
@@ -188,10 +187,9 @@ function SignInForm() {
                         whileTap={{ scale: 0.95 }}
                         type="button"
                         onClick={() => signIn('yandex', { callbackUrl })}
-                        className="flex items-center justify-center p-2.5 sm:p-3 border-2 border-gray-200 rounded-xl hover:border-firm-orange hover:bg-firm-orange/5 transition-all"
+                        className="p-2 sm:p-3 rounded-xl transition-all"
                     >
-                        <Image src={yandex} alt="Yandex" width={24} height={24} className="w-5 h-5 sm:w-6 sm:h-6" />
-                        <span className="hidden sm:inline ml-2 text-sm font-medium text-firm-gray">Яндекс</span>
+                        <Image src={yandex} alt="Yandex" width={28} height={28} className="w-7 h-7 sm:w-6 sm:h-6" />
                     </motion.button>
 
                     <motion.button
@@ -199,10 +197,9 @@ function SignInForm() {
                         whileTap={{ scale: 0.95 }}
                         type="button"
                         onClick={() => signIn('vk', { callbackUrl })}
-                        className="flex items-center justify-center p-2.5 sm:p-3 border-2 border-gray-200 rounded-xl hover:border-firm-orange hover:bg-firm-orange/5 transition-all"
+                        className="p-2 sm:p-3 rounded-xl transition-all"
                     >
-                        <Image src={vk} alt="VK" width={24} height={24} className="w-5 h-5 sm:w-6 sm:h-6" />
-                        <span className="hidden sm:inline ml-2 text-sm font-medium text-firm-gray">VK</span>
+                        <Image src={vk} alt="VK" width={28} height={28} className="w-7 h-7 sm:w-6 sm:h-6" />
                     </motion.button>
                 </div>
 
