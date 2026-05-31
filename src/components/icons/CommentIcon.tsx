@@ -1,5 +1,11 @@
-export const CommentIcon = ({ color = "#242424", className = "" }: { color?: string; className?: string }) => (
-  <svg width="37" height="36" viewBox="0 0 37 36" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+interface CommentIconProps {
+    color?: string;
+    className?: string;
+    size?: number;
+}
+
+export const CommentIcon = ({ color = "#242424", className = "", size = 36 }: CommentIconProps) => (
+  <svg width={size} height={size} viewBox="0 0 37 36" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
     <circle cx="2.32349" cy="2.32349" r="2.32349" transform="matrix(1 0 0 -1 9.62622 19.897)" fill={color}/>
     <circle cx="2.32349" cy="2.32349" r="2.32349" transform="matrix(1 0 0 -1 16.9839 19.897)" fill={color}/>
     <circle cx="2.32349" cy="2.32349" r="2.32349" transform="matrix(1 0 0 -1 24.729 19.897)" fill={color}/>
