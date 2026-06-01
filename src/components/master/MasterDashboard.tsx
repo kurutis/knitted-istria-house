@@ -544,7 +544,7 @@ export default function MasterDashboard({session}: {session: {user: { id: string
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-firm-gray text-xs sm:text-sm font-['Montserrat_Alternates']">{stat.label}</p>
-                    <p className={`text-xl sm:text-2xl md:text-3xl font-bold mt-1 bg-{stat.color} bg-clip-text text-transparent`}>{stat.value.toLocaleString()}</p>
+                    <p className={`text-xl sm:text-2xl md:text-3xl font-bold mt-1`} style={{ color: stat.color }}>{stat.value.toLocaleString()}</p>
                   </div>
                   <div>{stat.icon}</div>
                 </div>
