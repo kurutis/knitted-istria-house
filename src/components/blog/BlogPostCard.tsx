@@ -8,9 +8,9 @@ import toast from "react-hot-toast";
 import MediaGallery from "@/components/blog/MediaGallery";
 import { useSession } from "next-auth/react";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import EditPostModal from "@/components/modals/EditPostModal";
 
 // Импорт иконок из библиотеки
-import { UserIcon } from "../icons/UserIcon";
 import { CalendarIcon } from "../icons/CalendarIcon";
 import { ViewsIcon } from "../icons/ViewsIcon";
 import { CommentIcon } from "../icons/CommentIcon";
@@ -54,7 +54,9 @@ export interface BlogPostCardProps {
   isOwner?: boolean;
   onEdit?: (postId: string) => void;
   onDelete?: (postId: string) => void;
+  onPostUpdated?: () => void;
   variant?: "default" | "compact" | "full";
+  sessionUser?: { id: string; name: string; email: string; role: string } | null;
 }
 
 const getImageUrl = (img: string | { id: string; url?: string; image_url?: string; sort_order: number }): string => {
@@ -301,7 +303,7 @@ const CommentButton = ({ isActive, onClick, count }: { isActive: boolean; onClic
   </motion.button>
 );
 
-export default function BlogPostCard({ post, showComments: externalShowComments, isOwner = false, onEdit, onDelete, variant = "default" }: BlogPostCardProps) {
+export default function BlogPostCard({ post, showComments: externalShowComments, isOwner = false, onEdit, onDelete, onPostUpdated, variant = "default", sessionUser }: BlogPostCardProps) {
   const { data: session } = useSession();
   const [showCommentsState, setShowCommentsState] = useState(externalShowComments || false);
   const [commentText, setCommentText] = useState("");
@@ -318,6 +320,9 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
   const [updatingComment, setUpdatingComment] = useState(false);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
   
+  // Состояние для модального окна редактирования поста
+  const [showEditPostModal, setShowEditPostModal] = useState(false);
+  
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -332,8 +337,14 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
     type: 'warning'
   });
 
+  // Получаем ID текущего пользователя
+  const currentUserId = session?.user?.id || sessionUser?.id;
+
+  // Исправленная проверка на мобильное устройство
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -369,7 +380,7 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
   };
 
   const handleLike = async () => {
-    if (!session) {
+    if (!currentUserId) {
       window.location.href = "/auth/signin?callbackUrl=/blog";
       return;
     }
@@ -399,7 +410,7 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
   };
 
   const handleCommentSubmit = async () => {
-    if (!session) {
+    if (!currentUserId) {
       window.location.href = "/auth/signin?callbackUrl=/blog";
       return;
     }
@@ -513,6 +524,20 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
     });
   };
 
+  const handleEditPost = () => {
+    setShowEditPostModal(true);
+  };
+
+  const handlePostUpdated = () => {
+    setShowEditPostModal(false);
+    if (onPostUpdated) {
+      onPostUpdated();
+    }
+    if (onEdit) {
+      onEdit(post.id);
+    }
+  };
+
   const galleryImages = useMemo(() => {
     const uniqueUrls = new Set<string>();
     
@@ -575,7 +600,7 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
             className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-gray-100 bg-gray-50/50 rounded-xl p-3 sm:p-4"
           >
             {/* Форма добавления комментария - адаптивная */}
-            {session && (
+            {currentUserId && (
               <div className="flex flex-col sm:flex-row gap-3 mb-4 sm:mb-6">
                 <div className="hidden sm:block">
                   <CurrentUserAvatar size={40} />
@@ -625,7 +650,7 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
                   animate={{ opacity: 1 }}
                   className="text-gray-400 text-xs sm:text-sm text-center py-6 sm:py-8"
                 >
-                  💬 Будьте первым, кто оставит комментарий
+                  Будьте первым, кто оставит комментарий
                 </motion.p>
               ) : (
                 comments.map((comment, idx) => (
@@ -656,7 +681,7 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
                             </div>
                           </div>
                           
-                          {session?.user?.id === comment.author_id && (
+                          {currentUserId === comment.author_id && (
                             <div className={`flex gap-0.5 sm:gap-1 ${!isMobile ? 'opacity-0 group-hover:opacity-100' : ''} transition-opacity`}>
                               {editingCommentId === comment.id ? (
                                 <>
@@ -750,17 +775,15 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
 
         {isOwner && (
           <div className="flex gap-1 sm:gap-2 ml-auto">
-            {onEdit && (
-              <motion.button 
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => onEdit(post.id)} 
-                className="flex items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1 text-xs sm:text-sm text-gray-600 hover:text-firm-orange rounded-lg hover:bg-gray-100 transition-all duration-300"
-              >
-                <EditIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#6B7280" size={16} />
-                <span className="hidden xs:inline">Редактировать</span>
-              </motion.button>
-            )}
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleEditPost} 
+              className="flex items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1 text-xs sm:text-sm text-gray-600 hover:text-firm-orange rounded-lg hover:bg-gray-100 transition-all duration-300"
+            >
+              <EditIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#6B7280" size={16} />
+              <span className="hidden xs:inline">Редактировать</span>
+            </motion.button>
             {onDelete && (
               <motion.button 
                 whileHover={{ scale: 1.05 }}
@@ -781,6 +804,29 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
         </div>
       </div>
     );
+  };
+
+  // Подготовка данных для EditPostModal с правильными полями
+  const editPostData = {
+    id: post.id,
+    title: post.title,
+    content: post.content,
+    excerpt: post.excerpt || "",
+    category: "",
+    tags: "",
+    main_image_url: post.main_image_url || "",
+    images: Array.isArray(post.images) 
+      ? post.images.map(img => {
+          if (typeof img === 'string') {
+            return { id: crypto.randomUUID(), image_url: img, sort_order: 0 };
+          }
+          return { 
+            id: img.id, 
+            image_url: img.url || img.image_url || '', 
+            sort_order: img.sort_order 
+          };
+        })
+      : []
   };
 
   return (
@@ -847,6 +893,14 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
           {renderComments()}
         </div>
       </motion.article>
+
+      {/* Модальное окно редактирования поста */}
+      <EditPostModal
+        isOpen={showEditPostModal}
+        onClose={() => setShowEditPostModal(false)}
+        post={editPostData}
+        onSuccess={handlePostUpdated}
+      />
 
       <ConfirmModal 
         isOpen={confirmModal.isOpen} 
