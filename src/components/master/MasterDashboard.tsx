@@ -257,7 +257,10 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
       if (data.orders) {
         setMasterOrders(data.orders);
         setOrderPagination(data.pagination || { total: 0, page: 1, limit: 20, totalPages: 1, hasMore: false });
-        if (data.stats) {setOrderStats(data.stats)}
+        if (data.stats) {
+          setOrderStats(data.stats);
+          
+          setStats(prev => ({...prev,  total_orders: data.stats.total || 0, new_orders: data.stats.new || 0}))}
       }
     } catch (error) {
       console.error('Error fetching master orders:', error);
@@ -327,8 +330,8 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
       setLoading(true);
 
       if (!session?.user) {
-        router.push("/auth/signin?callbackUrl=/master/dashboard");
-        return;
+        router.push("/auth/signin?callbackUrl=/master/dashboard")
+        return
       }
 
       const profileRes = await fetch("/api/master/profile", { credentials: "include" });
@@ -363,14 +366,26 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
       setMasterAvatar(userAvatar);
 
       let recentPostsArray: BlogPost[] = [];
-      if (recentPostsData && recentPostsData.posts && Array.isArray(recentPostsData.posts)) {recentPostsArray = recentPostsData.posts.map((post: ApiPostData) => ({id: post.id, title: post.title || "Без названия",  content: post.content || "", excerpt: post.excerpt || post.content?.substring(0, 200) || "", created_at: post.created_at || new Date().toISOString(), views_count: post.views_count || post.views || 0, likes_count: post.likes_count || 0, comments_count: post.comments_count || 0, master_id: post.master_id || "", author_name: post.author_name || post.master_name || "Мастер", author_avatar: post.author_avatar || post.master_avatar, images: post.images || [], main_image_url: post.main_image_url || "", is_liked: post.is_liked || false, comments: post.comments || []}))}
+      if (recentPostsData && recentPostsData.posts && Array.isArray(recentPostsData.posts)) { recentPostsArray = recentPostsData.posts.map((post: ApiPostData) => ({id: post.id, title: post.title || "Без названия", content: post.content || "", excerpt: post.excerpt || post.content?.substring(0, 200) || "", created_at: post.created_at || new Date().toISOString(),  views_count: post.views_count || post.views || 0, likes_count: post.likes_count || 0,  comments_count: post.comments_count || 0, master_id: post.master_id || "", author_name: post.author_name || post.master_name || "Мастер", author_avatar: post.author_avatar || post.master_avatar, images: post.images || [], main_image_url: post.main_image_url || "", is_liked: post.is_liked || false, comments: post.comments || []}))}
       setRecentPosts(recentPostsArray);
 
-      const formattedMyPosts: BlogPost[] = myPostsArray.map((post: ApiPostData) => ({id: post.id, title: post.title || "Без названия", content: post.content || "", excerpt: post.excerpt || post.content?.substring(0, 200) || "", created_at: post.created_at || new Date().toISOString(), views_count: post.views || post.views_count || 0, likes_count: post.stats?.likes_count || post.likes_count || 0, comments_count: post.stats?.comments_count || post.comments_count || 0, master_id: post.master_id || session.user.id, author_name: userFullName, author_avatar: userAvatar, images: post.images || [], main_image_url: post.main_image_url || "", is_liked: false, comments: post.comments || []}));
+      const formattedMyPosts: BlogPost[] = myPostsArray.map((post: ApiPostData) => ({id: post.id, title: post.title || "Без названия", content: post.content || "",  excerpt: post.excerpt || post.content?.substring(0, 200) || "", created_at: post.created_at || new Date().toISOString(), views_count: post.views || post.views_count || 0, likes_count: post.stats?.likes_count || post.likes_count || 0, comments_count: post.stats?.comments_count || post.comments_count || 0,  master_id: post.master_id || session.user.id, author_name: userFullName, author_avatar: userAvatar, images: post.images || [], main_image_url: post.main_image_url || "", is_liked: false, comments: post.comments || []}));
 
       setMyPosts(formattedMyPosts);
 
-      setStats({total_orders: 0, new_orders: 0, total_products: 0, total_views: 0, total_followers: 0});
+      try {
+        const statsRes = await fetch("/api/master/stats", { credentials: "include" });
+        const statsData = await statsRes.json();
+        
+        if (statsData.success) {
+          setStats({total_orders: statsData.total_orders || 0, new_orders: statsData.new_orders || 0, total_products: statsData.total_products || 0, total_views: statsData.total_views || 0, total_followers: statsData.total_followers || 0});
+        } else {
+          console.error("Error fetching stats:", statsData.error);
+        }
+      } catch (statsError) {
+        console.error("Error fetching master stats:", statsError);
+      }
+      
       setOrders([]);
       setNotifications([]);
     } catch (error) {
