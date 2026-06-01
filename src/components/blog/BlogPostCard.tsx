@@ -10,6 +10,7 @@ import { useSession } from "next-auth/react";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 
 // Импорт иконок из библиотеки
+import { UserIcon } from "../icons/UserIcon";
 import { CalendarIcon } from "../icons/CalendarIcon";
 import { ViewsIcon } from "../icons/ViewsIcon";
 import { CommentIcon } from "../icons/CommentIcon";
@@ -281,7 +282,7 @@ const LikeButton = ({ isActive, onClick }: { isActive: boolean; onClick: () => v
     onClick={onClick} 
     className="flex items-center gap-1.5 transition-all duration-300"
   >
-    <LikeIcon color={isActive ? "#D97C8E" : "#737682"} className="w-6 h-6" />
+    <LikeIcon color={isActive ? "#D97C8E" : "#737682"} className="w-5 h-5 sm:w-6 sm:h-6" />
   </motion.button>
 );
 
@@ -293,8 +294,8 @@ const CommentButton = ({ isActive, onClick, count }: { isActive: boolean; onClic
     onClick={onClick} 
     className="flex items-center gap-1.5 transition-all duration-300"
   >
-    <CommentIcon color={isActive ? "#F4A67F" : "#737682"} className="w-6 h-6" />
-    <span className={`text-sm font-medium ${isActive ? 'text-firm-orange' : 'text-gray-500'}`}>
+    <CommentIcon color={isActive ? "#F4A67F" : "#737682"} className="w-5 h-5 sm:w-6 sm:h-6" />
+    <span className={`text-xs sm:text-sm font-medium ${isActive ? 'text-firm-orange' : 'text-gray-500'}`}>
       {count}
     </span>
   </motion.button>
@@ -571,18 +572,20 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
             animate={{ opacity: 1, height: "auto" }} 
             exit={{ opacity: 0, height: 0 }} 
             transition={{ duration: 0.3, ease: "easeInOut" }} 
-            className="mt-6 pt-4 border-t border-gray-100 bg-gray-50/50 rounded-xl p-4"
+            className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-gray-100 bg-gray-50/50 rounded-xl p-3 sm:p-4"
           >
-            {/* Форма добавления комментария */}
+            {/* Форма добавления комментария - адаптивная */}
             {session && (
-              <div className="flex gap-3 mb-6">
-                <CurrentUserAvatar size={40} />
+              <div className="flex flex-col sm:flex-row gap-3 mb-4 sm:mb-6">
+                <div className="hidden sm:block">
+                  <CurrentUserAvatar size={40} />
+                </div>
                 <div className="flex-1">
                   <textarea 
                     value={commentText}  
                     onChange={(e) => setCommentText(e.target.value)} 
                     placeholder="Написать комментарий..." 
-                    rows={2} 
+                    rows={isMobile ? 3 : 2} 
                     className="w-full p-3 rounded-xl bg-white border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all duration-300 text-sm placeholder:text-gray-400 resize-none"
                   />
                   <div className="flex justify-end mt-2">
@@ -591,20 +594,20 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
                       whileTap={{ scale: 0.98 }}
                       onClick={handleCommentSubmit} 
                       disabled={commentLoading || !commentText.trim()} 
-                      className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl text-sm font-['Montserrat_Alternates'] font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:hover:scale-100"
+                      className="flex items-center gap-2 px-4 sm:px-5 py-1.5 sm:py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl text-xs sm:text-sm font-['Montserrat_Alternates'] font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:hover:scale-100"
                     >
                       {commentLoading ? (
                         <>
                           <motion.div 
                             animate={{ rotate: 360 }} 
                             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                            className="w-4 h-4 border-2 border-white border-t-transparent rounded-full" 
+                            className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full" 
                           />
                           <span>Отправка...</span>
                         </>
                       ) : (
                         <>
-                          <SendIcon className="w-4 h-4" color="#FFFFFF" size={16} />
+                          <SendIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#FFFFFF" size={16} />
                           <span>Отправить</span>
                         </>
                       )}
@@ -614,15 +617,15 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
               </div>
             )}
 
-            {/* Список комментариев */}
-            <div className="space-y-4 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
+            {/* Список комментариев - адаптивный */}
+            <div className="space-y-3 sm:space-y-4 max-h-96 overflow-y-auto pr-1 sm:pr-2">
               {comments.length === 0 ? (
                 <motion.p 
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="text-gray-400 text-sm text-center py-8"
+                  className="text-gray-400 text-xs sm:text-sm text-center py-6 sm:py-8"
                 >
-                  Будьте первым, кто оставит комментарий
+                  💬 Будьте первым, кто оставит комментарий
                 </motion.p>
               ) : (
                 comments.map((comment, idx) => (
@@ -631,30 +634,30 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.05 }}
-                    className="flex gap-3 group"
+                    className="flex gap-2 sm:gap-3 group"
                   >
                     <UserAvatar 
                       userId={comment.author_id} 
                       name={comment.author_name} 
                       avatarUrl={comment.author_avatar} 
-                      size={36} 
+                      size={isMobile ? 28 : 36} 
                     />
-                    <div className="flex-1">
-                      <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-semibold text-sm text-gray-800">{comment.author_name}</p>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <CalendarIcon className="w-3 h-3" color="#9CA3AF" size={12} />
-                              <p className="text-xs text-gray-400">{formatDate(comment.created_at)}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="bg-white rounded-xl p-2 sm:p-3 shadow-sm border border-gray-100">
+                        <div className="flex justify-between items-start flex-wrap gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-xs sm:text-sm text-gray-800 truncate">{comment.author_name}</p>
+                            <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-0.5">
+                              <CalendarIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3" color="#9CA3AF" size={12} />
+                              <p className="text-[10px] sm:text-xs text-gray-400">{formatDate(comment.created_at)}</p>
                               {comment.is_edited && (
-                                <span className="text-xs text-gray-400">(ред.)</span>
+                                <span className="text-[10px] sm:text-xs text-gray-400">(ред.)</span>
                               )}
                             </div>
                           </div>
                           
                           {session?.user?.id === comment.author_id && (
-                            <div className={`flex gap-1 ${!isMobile ? 'opacity-0 group-hover:opacity-100' : ''} transition-opacity`}>
+                            <div className={`flex gap-0.5 sm:gap-1 ${!isMobile ? 'opacity-0 group-hover:opacity-100' : ''} transition-opacity`}>
                               {editingCommentId === comment.id ? (
                                 <>
                                   <motion.button 
@@ -664,7 +667,7 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
                                     disabled={updatingComment}
                                     className="p-1 rounded-lg hover:bg-green-50 transition-colors disabled:opacity-50"
                                   >
-                                    <CheckCircleIcon className="w-4 h-4" color="#22C55E" size={16} />
+                                    <CheckCircleIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#22C55E" size={16} />
                                   </motion.button>
                                   <motion.button 
                                     whileHover={{ scale: 1.1 }}
@@ -675,7 +678,7 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
                                     }}
                                     className="p-1 rounded-lg hover:bg-red-50 transition-colors"
                                   >
-                                    <CloseIcon className="w-4 h-4" color="#EF4444" size={16} />
+                                    <CloseIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#EF4444" size={16} />
                                   </motion.button>
                                 </>
                               ) : (
@@ -689,7 +692,7 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
                                     }}
                                     className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
                                   >
-                                    <EditIcon className="w-4 h-4" color="#6B7280" size={16} />
+                                    <EditIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#6B7280" size={16} />
                                   </motion.button>
                                   <motion.button 
                                     whileHover={{ scale: 1.1 }}
@@ -698,7 +701,7 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
                                     disabled={deletingCommentId === comment.id} 
                                     className="p-1 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
                                   >
-                                    <DeleteIcon className="w-4 h-4" color="#EF4444" size={16} />
+                                    <DeleteIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#EF4444" size={16} />
                                   </motion.button>
                                 </>
                               )}
@@ -710,12 +713,12 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
                           <textarea 
                             value={editingCommentText} 
                             onChange={(e) => setEditingCommentText(e.target.value)} 
-                            className="w-full p-2 mt-2 rounded-lg bg-gray-50 border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-1 focus:ring-firm-orange text-sm" 
-                            rows={3} 
+                            className="w-full p-2 mt-2 rounded-lg bg-gray-50 border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-1 focus:ring-firm-orange text-xs sm:text-sm" 
+                            rows={isMobile ? 4 : 3} 
                             autoFocus 
                           />
                         ) : (
-                          <p className="text-gray-700 text-sm mt-2 leading-relaxed">{comment.content}</p>
+                          <p className="text-gray-700 text-xs sm:text-sm mt-2 leading-relaxed break-words">{comment.content}</p>
                         )}
                       </div>
                     </div>
@@ -731,11 +734,13 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
 
   const renderActions = () => {
     return (
-      <div className="flex items-center gap-6 pt-4 mt-4 border-t border-gray-100">
-        <LikeButton isActive={isLiked} onClick={handleLike} />
-        <span className={`text-sm font-medium ${isLiked ? 'text-firm-pink' : 'text-gray-500'}`}>
-          {likesCount}
-        </span>
+      <div className="flex flex-wrap items-center gap-3 sm:gap-6 pt-3 sm:pt-4 mt-3 sm:mt-4 border-t border-gray-100">
+        <div className="flex items-center gap-1">
+          <LikeButton isActive={isLiked} onClick={handleLike} />
+          <span className={`text-xs sm:text-sm font-medium ${isLiked ? 'text-firm-pink' : 'text-gray-500'}`}>
+            {likesCount}
+          </span>
+        </div>
         
         <CommentButton 
           isActive={showCommentsState} 
@@ -744,16 +749,16 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
         />
 
         {isOwner && (
-          <div className="flex gap-2 ml-auto">
+          <div className="flex gap-1 sm:gap-2 ml-auto">
             {onEdit && (
               <motion.button 
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => onEdit(post.id)} 
-                className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-firm-orange rounded-lg hover:bg-gray-100 transition-all duration-300"
+                className="flex items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1 text-xs sm:text-sm text-gray-600 hover:text-firm-orange rounded-lg hover:bg-gray-100 transition-all duration-300"
               >
-                <EditIcon className="w-4 h-4" color="#6B7280" size={16} />
-                <span>Редактировать</span>
+                <EditIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#6B7280" size={16} />
+                <span className="hidden xs:inline">Редактировать</span>
               </motion.button>
             )}
             {onDelete && (
@@ -761,20 +766,18 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => onDelete(post.id)} 
-                className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-red-600 rounded-lg hover:bg-red-50 transition-all duration-300"
+                className="flex items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1 text-xs sm:text-sm text-gray-600 hover:text-red-600 rounded-lg hover:bg-red-50 transition-all duration-300"
               >
-                <DeleteIcon className="w-4 h-4" color="#EF4444" size={16} />
-                <span>Удалить</span>
+                <DeleteIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#EF4444" size={16} />
+                <span className="hidden xs:inline">Удалить</span>
               </motion.button>
             )}
           </div>
         )}
 
-        <div className="flex-1"></div>
-        
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 sm:gap-1.5 ml-auto">
           <ViewsIcon />
-          <span className="font-['Raleway'] text-sm text-gray-500">{post.views_count}</span>
+          <span className="font-['Raleway'] text-xs sm:text-sm text-gray-500">{post.views_count}</span>
         </div>
       </div>
     );
@@ -787,51 +790,51 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
         animate={{ opacity: 1, y: 0 }} 
         whileHover={{ boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)" }}
         transition={{ duration: 0.3 }}
-        className="p-6 transition-all duration-300 bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden border border-gray-100"
+        className="p-4 sm:p-6 transition-all duration-300 bg-white rounded-xl sm:rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden border border-gray-100"
       >
         <div className="max-w-3xl mx-auto">
-          {/* Автор */}
-          <Link href={`/masters/${post.master_id}`} className="flex items-center gap-3 group mb-5">
+          {/* Автор - адаптивный */}
+          <Link href={`/masters/${post.master_id}`} className="flex items-center gap-2 sm:gap-3 group mb-4 sm:mb-5">
             <UserAvatar 
               userId={post.master_id} 
               name={post.author_name} 
               avatarUrl={post.author_avatar || post.master_avatar} 
-              size={52} 
+              size={isMobile ? 40 : 52} 
             />
-            <div>
-              <p className="font-semibold text-gray-800 group-hover:text-firm-orange transition-colors duration-300">
+            <div className="min-w-0">
+              <p className="font-semibold text-gray-800 group-hover:text-firm-orange transition-colors duration-300 text-sm sm:text-base truncate">
                 {post.author_name}
               </p>
-              <div className="flex items-center gap-2 mt-0.5">
-                <CalendarIcon className="w-3.5 h-3.5" color="#9CA3AF" size={14} />
-                <p className="text-xs text-gray-400">{formatDate(post.created_at)}</p>
+              <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5">
+                <CalendarIcon className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5" color="#9CA3AF" size={14} />
+                <p className="text-[10px] sm:text-xs text-gray-400">{formatDate(post.created_at)}</p>
               </div>
             </div>
           </Link>
 
-          {/* Заголовок */}
-          <h3 className="font-['Montserrat_Alternates'] font-bold text-2xl mb-4 hover:text-firm-orange transition-colors duration-300">
+          {/* Заголовок - адаптивный */}
+          <h3 className="font-['Montserrat_Alternates'] font-bold text-lg sm:text-xl md:text-2xl mb-3 sm:mb-4 hover:text-firm-orange transition-colors duration-300 line-clamp-2">
             <Link href={`/blog/${post.id}`}>{post.title}</Link>
           </h3>
 
           {/* Изображения */}
           {renderPostImages()}
 
-          {/* Контент */}
-          <p className="text-gray-600 mt-4 leading-relaxed line-clamp-3">
+          {/* Контент - адаптивный */}
+          <p className="text-gray-600 text-sm sm:text-base mt-3 sm:mt-4 leading-relaxed line-clamp-3">
             {post.excerpt || post.content?.substring(0, 300)}...
           </p>
 
-          {/* Кнопка "Читать полностью" */}
+          {/* Кнопка "Читать полностью" - адаптивная */}
           <Link 
             href={`/blog/${post.id}`} 
-            className="inline-flex items-center gap-2 text-firm-orange hover:text-firm-pink text-sm font-medium mt-3 group transition-colors duration-300"
+            className="inline-flex items-center gap-1.5 sm:gap-2 text-firm-orange hover:text-firm-pink text-xs sm:text-sm font-medium mt-2 sm:mt-3 group transition-colors duration-300"
           >
             <span>Читать полностью</span>
             <motion.span 
               animate={{ x: [0, 5, 0] }}
               transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }}
-              className="inline-block"
+              className="inline-block text-sm sm:text-base"
             >
               →
             </motion.span>
