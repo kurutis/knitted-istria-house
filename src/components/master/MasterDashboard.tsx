@@ -32,24 +32,9 @@ import { CheckCircleIcon } from "../icons/CheckCircleIcon";
 import { ClockIcon } from "../icons/ClockIcon";
 import { MailIcon } from "../icons/MailIcon";
 import { TruckIcon } from "../icons/TruckIcon";
-
-const FilterIcon = ({ className = "", color = "#242424", size = 20 }: { className?: string; color?: string; size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-    <path d="M4 6H20M7 12H17M10 18H14" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const StarIcon = ({ className = "", color = "#242424", size = 20 }: { className?: string; color?: string; size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const PackageIcon = ({ className = "", color = "#242424", size = 20 }: { className?: string; color?: string; size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-    <path d="M20 7L12 12L4 7M12 22V12M3 5L12 2L21 5L12 8L3 5Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
+import { FilterIcon } from "../icons/FilterIcon";
+import { StarIcon } from "../icons/StarIcon";
+import { PackageIcon } from "../icons/PackageIcon";
 
 interface ApiCommentData {
   id: string;
