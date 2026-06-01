@@ -9,6 +9,17 @@ import MediaGallery from "@/components/blog/MediaGallery";
 import { useSession } from "next-auth/react";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 
+// Импорт иконок из библиотеки
+import { CalendarIcon } from "../icons/CalendarIcon";
+import { ViewsIcon } from "../icons/ViewsIcon";
+import { CommentIcon } from "../icons/CommentIcon";
+import { LikeIcon } from "../icons/LikeIcon";
+import { EditIcon } from "../icons/EditIcon";
+import { DeleteIcon } from "../icons/DeleteIcon";
+import { CloseIcon } from "../icons/CloseIcon";
+import { CheckCircleIcon } from "../icons/CheckCircleIcon";
+import { SendIcon } from "../icons/SendIcon";
+
 export interface BlogPostCardProps {
   post: {
     id: string;
@@ -53,33 +64,13 @@ const getImageUrl = (img: string | { id: string; url?: string; image_url?: strin
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
   const now = new Date();
-  const diff = Math.floor((now.getTime() - date.getTime()) / 1000 / 60 / 60);
+  const diff = Math.floor((now.getTime() - date.getTime()) / 1000 / 60);
+  
   if (diff < 1) return "только что";
-  if (diff < 24) return `${diff} ч назад`;
-  return date.toLocaleDateString("ru-RU");
+  if (diff < 60) return `${diff} мин назад`;
+  if (diff < 1440) return `${Math.floor(diff / 60)} ч назад`;
+  return date.toLocaleDateString("ru-RU", { day: 'numeric', month: 'long' });
 };
-
-const LikeIcon = ({ isActive }: { isActive: boolean }) => (
-  <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M23.2002 1.25C27.3399 1.25011 30.7498 4.79098 30.75 9.59082C30.75 12.501 29.5561 15.2315 27.25 18.3066C24.9278 21.4031 21.584 24.7143 17.4414 28.8086L17.4395 28.8105L16 30.2383L14.5605 28.8105L14.5586 28.8086C10.416 24.7143 7.07223 21.4031 4.75 18.3066C2.44386 15.2315 1.25 12.501 1.25 9.59082C1.25022 4.79098 4.6601 1.25011 8.7998 1.25C11.164 1.25 13.487 2.4569 15.0176 4.40039L16 5.64746L16.9824 4.40039C18.513 2.4569 20.836 1.25 23.2002 1.25Z" stroke={isActive ? "#D97C8E" : "#737682"} strokeWidth="2.5" fill={isActive ? "#D97C8E" : "none"} />
-  </svg>
-);
-
-const CommentIcon = ({ isActive }: { isActive: boolean }) => (
-  <svg width="24" height="24" viewBox="0 0 37 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="2.32349" cy="2.32349" r="2.32349" transform="matrix(1 0 0 -1 9.62622 19.897)" fill={isActive ? "#F4A67F" : "#737682"}/>
-    <circle cx="2.32349" cy="2.32349" r="2.32349" transform="matrix(1 0 0 -1 16.9839 19.897)" fill={isActive ? "#F4A67F" : "#737682"}/>
-    <circle cx="2.32349" cy="2.32349" r="2.32349" transform="matrix(1 0 0 -1 24.729 19.897)" fill={isActive ? "#F4A67F" : "#737682"}/>
-    <path d="M19.6262 32.0648C28.4628 32.0648 35.6262 25.1667 35.6262 16.6574C35.6262 8.14813 28.4628 1.25 19.6262 1.25C10.7897 1.25 3.62622 8.14813 3.62622 16.6574C3.62622 20.4012 5.01285 23.8331 7.31853 26.5029C6.91254 29.643 5.86044 31.0025 3.62622 33.25C6.96012 32.6917 8.71604 32.0376 11.6262 30.0036C13.9796 31.3145 16.7119 32.0648 19.6262 32.0648Z" stroke={isActive ? "#F4A67F" : "#737682"} strokeWidth="2.5"/>
-  </svg>
-);
-
-const ViewsIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#737682" strokeWidth="1.5">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-  </svg>
-);
 
 const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: { 
   userId?: string; 
@@ -132,13 +123,13 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
 
   const getProxiedUrl = (url: string) => {
     if (!url) return '';
-    if (url.includes('/api/proxy/avatar')) {return url;}
+    if (url.includes('/api/proxy/avatar')) return url;
     return `/api/proxy/avatar?url=${encodeURIComponent(url)}`;
   };
 
   const getInitials = () => {
-    if (displayName && displayName.length > 0) {return displayName.charAt(0).toUpperCase()}
-    if (name && name.length > 0) {return name.charAt(0).toUpperCase()}
+    if (displayName && displayName.length > 0) return displayName.charAt(0).toUpperCase();
+    if (name && name.length > 0) return name.charAt(0).toUpperCase();
     return "U";
   };
 
@@ -150,11 +141,22 @@ const UserAvatar = ({ userId, name, avatarUrl: initialAvatarUrl, size = 48 }: {
 
   if (avatarUrl && !avatarError) {
     const proxiedUrl = getProxiedUrl(avatarUrl);
-    return (<img src={proxiedUrl} alt={displayName || name || "Avatar"} className="rounded-full object-cover" style={{ width: size, height: size }} onError={() => setAvatarError(true)} />);
+    return (
+      <img 
+        src={proxiedUrl} 
+        alt={displayName || name || "Avatar"} 
+        className="rounded-full object-cover ring-2 ring-white shadow-md"
+        style={{ width: size, height: size }} 
+        onError={() => setAvatarError(true)} 
+      />
+    );
   }
 
   return (
-    <div className="rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold" style={{ width: size, height: size, fontSize: size * 0.4 }}>
+    <div 
+      className="rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold shadow-md" 
+      style={{ width: size, height: size, fontSize: size * 0.4 }}
+    >
       {getInitials()}
     </div>
   );
@@ -170,7 +172,7 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
 
   const getProxiedUrl = (url: string) => {
     if (!url) return '';
-    if (url.includes('/api/proxy/avatar')) {return url}
+    if (url.includes('/api/proxy/avatar')) return url;
     return `/api/proxy/avatar?url=${encodeURIComponent(url)}`;
   };
 
@@ -187,9 +189,7 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
           if (response.ok) {
             const data = await response.json();
             if (data.success && data.profile) {
-              if (data.profile.avatar_url) {
-                setAvatarUrl(data.profile.avatar_url);
-              }
+              if (data.profile.avatar_url) setAvatarUrl(data.profile.avatar_url);
               if (data.profile.fullname && data.profile.fullname.trim()) {
                 setUserName(data.profile.fullname);
               } else {
@@ -214,10 +214,7 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
               name = data.full_name || data.fullname || "";
             }
             
-            if (avatar) {
-              setAvatarUrl(avatar);
-            }
-            
+            if (avatar) setAvatarUrl(avatar);
             if (name && name.trim()) {
               setUserName(name);
             } else {
@@ -241,15 +238,9 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
 
   const getInitials = () => {
     if (loading) return "U";
-    if (userName && userName.length > 0) {
-      return userName.charAt(0).toUpperCase();
-    }
-    if (session?.user?.name) {
-      return session.user.name.charAt(0).toUpperCase();
-    }
-    if (session?.user?.email) {
-      return session.user.email.charAt(0).toUpperCase();
-    }
+    if (userName && userName.length > 0) return userName.charAt(0).toUpperCase();
+    if (session?.user?.name) return session.user.name.charAt(0).toUpperCase();
+    if (session?.user?.email) return session.user.email.charAt(0).toUpperCase();
     return "U";
   };
 
@@ -262,16 +253,52 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
   if (avatarUrl && !avatarError) {
     const proxiedUrl = getProxiedUrl(avatarUrl);
     return (
-      <img src={proxiedUrl} alt={userName || "Profile"} className="rounded-full object-cover" style={{ width: size, height: size }} onError={() => setAvatarError(true)} />
+      <img 
+        src={proxiedUrl} 
+        alt={userName || "Profile"} 
+        className="rounded-full object-cover ring-2 ring-firm-orange/30" 
+        style={{ width: size, height: size }} 
+        onError={() => setAvatarError(true)} 
+      />
     );
   }
 
   return (
-    <div className="rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold" style={{ width: size, height: size, fontSize: size * 0.4 }}>
+    <div 
+      className="rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold shadow-md" 
+      style={{ width: size, height: size, fontSize: size * 0.4 }}
+    >
       {getInitials()}
     </div>
   );
 };
+
+// Обертка для LikeIcon с состоянием
+const LikeButton = ({ isActive, onClick }: { isActive: boolean; onClick: () => void }) => (
+  <motion.button 
+    whileHover={{ scale: 1.1 }}
+    whileTap={{ scale: 0.95 }}
+    onClick={onClick} 
+    className="flex items-center gap-1.5 transition-all duration-300"
+  >
+    <LikeIcon color={isActive ? "#D97C8E" : "#737682"} className="w-6 h-6" />
+  </motion.button>
+);
+
+// Обертка для CommentIcon с состоянием
+const CommentButton = ({ isActive, onClick, count }: { isActive: boolean; onClick: () => void; count: number }) => (
+  <motion.button 
+    whileHover={{ scale: 1.1 }}
+    whileTap={{ scale: 0.95 }}
+    onClick={onClick} 
+    className="flex items-center gap-1.5 transition-all duration-300"
+  >
+    <CommentIcon color={isActive ? "#F4A67F" : "#737682"} className="w-6 h-6" />
+    <span className={`text-sm font-medium ${isActive ? 'text-firm-orange' : 'text-gray-500'}`}>
+      {count}
+    </span>
+  </motion.button>
+);
 
 export default function BlogPostCard({ post, showComments: externalShowComments, isOwner = false, onEdit, onDelete, variant = "default" }: BlogPostCardProps) {
   const { data: session } = useSession();
@@ -305,15 +332,19 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
   });
 
   useEffect(() => {
-    const checkMobile = () => {setIsMobile(window.innerWidth < 768)};
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  useEffect(() => {if (externalShowComments !== undefined) {setShowCommentsState(externalShowComments)}}, [externalShowComments]);
+  useEffect(() => {
+    if (externalShowComments !== undefined) setShowCommentsState(externalShowComments);
+  }, [externalShowComments]);
 
-  useEffect(() => {if (showCommentsState) {fetchComments()}}, [showCommentsState, post.id]);
+  useEffect(() => {
+    if (showCommentsState) fetchComments();
+  }, [showCommentsState, post.id]);
 
   const fetchComments = async () => {
     try {
@@ -375,19 +406,32 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
 
     setCommentLoading(true);
     try {
-      const response = await fetch(`/api/blog/posts/${post.id}/comments`, {method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: commentText })});
+      const response = await fetch(`/api/blog/posts/${post.id}/comments`, {
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ content: commentText })
+      });
 
       if (response.ok) {
         const data = await response.json();
-        const newComment = {id: data.id, content: data.content, created_at: data.created_at, updated_at: data.updated_at || data.created_at, is_edited: false, author_id: data.author_id, author_name: data.author_name, author_avatar: data.author_avatar};
+        const newComment = {
+          id: data.id, 
+          content: data.content, 
+          created_at: data.created_at, 
+          updated_at: data.updated_at || data.created_at, 
+          is_edited: false, 
+          author_id: data.author_id, 
+          author_name: data.author_name, 
+          author_avatar: data.author_avatar
+        };
         
         setComments([newComment, ...comments]);
         setCommentsCount(commentsCount + 1);
         setCommentText("");
         setShowCommentsState(true);
+        toast.success("Комментарий добавлен");
       } else {
         const error = await response.json();
-        console.error("Error adding comment:", error);
         toast.error(error.error || "Ошибка при добавлении комментария");
       }
     } catch (error) {
@@ -403,12 +447,19 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
 
     setUpdatingComment(true);
     try {
-      const response = await fetch(`/api/blog/comments/${commentId}`, {method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: editingCommentText })});
+      const response = await fetch(`/api/blog/comments/${commentId}`, {
+        method: "PUT", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ content: editingCommentText })
+      });
 
       if (response.ok) {
         const data = await response.json();
-        
-        setComments(comments.map(comment => comment.id === commentId ? { ...comment, content: data.content, updated_at: data.updated_at, is_edited: true } : comment));
+        setComments(comments.map(comment => 
+          comment.id === commentId 
+            ? { ...comment, content: data.content, updated_at: data.updated_at, is_edited: true } 
+            : comment
+        ));
         setEditingCommentId(null);
         setEditingCommentText("");
         toast.success("Комментарий обновлен");
@@ -428,7 +479,7 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
     setConfirmModal({
       isOpen: true,
       title: 'Удаление комментария',
-      message: 'Вы уверены, что хотите удалить этот комментарий?',
+      message: 'Вы уверены, что хотите удалить этот комментарий? Это действие нельзя отменить.',
       type: 'danger',
       onConfirm: async () => {
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
@@ -464,31 +515,48 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
   const galleryImages = useMemo(() => {
     const uniqueUrls = new Set<string>();
     
-    if (post.main_image_url) {uniqueUrls.add(post.main_image_url)}
+    if (post.main_image_url) uniqueUrls.add(post.main_image_url);
     
     if (post.images && Array.isArray(post.images)) {
       post.images.forEach(img => {
-        const url = getImageUrl(img)
-        if (url) {uniqueUrls.add(url)}
+        const url = getImageUrl(img);
+        if (url) uniqueUrls.add(url);
       });
     }
     
-    return Array.from(uniqueUrls).map((url, index) => ({id: `img-${index}`, url: url, image_url: url, sort_order: index}))}, [post.main_image_url, post.images]);
+    return Array.from(uniqueUrls).map((url, index) => ({
+      id: `img-${index}`, 
+      url: url, 
+      image_url: url, 
+      sort_order: index
+    }));
+  }, [post.main_image_url, post.images]);
 
   const renderPostImages = () => {
     if (galleryImages.length === 0) return null;
 
     if (variant === "compact") {
       return (
-        <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-100 mb-4">
-          <Image src={galleryImages[0].url} alt={post.title} fill className="object-cover hover:scale-105 transition-transform duration-300" sizes="(max-width: 768px) 100vw, 800px" />
+        <div className="relative aspect-video rounded-xl overflow-hidden bg-gray-100 mb-4">
+          <Image 
+            src={galleryImages[0].url} 
+            alt={post.title} 
+            fill 
+            className="object-cover hover:scale-105 transition-transform duration-500" 
+            sizes="(max-width: 768px) 100vw, 800px" 
+          />
         </div>
       );
     }
 
     return (
-      <div className="mb-6">
-        <MediaGallery images={galleryImages} mainImageUrl={galleryImages[0]?.url} video={null} title={post.title} />
+      <div className="mb-6 -mx-2">
+        <MediaGallery 
+          images={galleryImages} 
+          mainImageUrl={galleryImages[0]?.url} 
+          video={null} 
+          title={post.title} 
+        />
       </div>
     );
   };
@@ -497,72 +565,161 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
     return (
       <AnimatePresence mode="wait">
         {showCommentsState && (
-          <motion.div key="comments" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3, ease: "easeInOut" }} className="mt-4 pt-4 border-t border-firm-gray bg-main rounded-xl p-4 overflow-hidden">
+          <motion.div 
+            key="comments" 
+            initial={{ opacity: 0, height: 0 }} 
+            animate={{ opacity: 1, height: "auto" }} 
+            exit={{ opacity: 0, height: 0 }} 
+            transition={{ duration: 0.3, ease: "easeInOut" }} 
+            className="mt-6 pt-4 border-t border-gray-100 bg-gray-50/50 rounded-xl p-4"
+          >
+            {/* Форма добавления комментария */}
             {session && (
-              <div className="flex gap-3 mb-4">
-                <CurrentUserAvatar size={32} />
+              <div className="flex gap-3 mb-6">
+                <CurrentUserAvatar size={40} />
                 <div className="flex-1">
-                  <textarea value={commentText}  onChange={(e) => setCommentText(e.target.value)} placeholder="Написать комментарий..." rows={2} className="w-full p-3 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all duration-300 text-sm placeholder:text-firm-gray resize-none"/>
+                  <textarea 
+                    value={commentText}  
+                    onChange={(e) => setCommentText(e.target.value)} 
+                    placeholder="Написать комментарий..." 
+                    rows={2} 
+                    className="w-full p-3 rounded-xl bg-white border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all duration-300 text-sm placeholder:text-gray-400 resize-none"
+                  />
                   <div className="flex justify-end mt-2">
-                    <button onClick={handleCommentSubmit} disabled={commentLoading || !commentText.trim()} className="flex items-center gap-2 px-5 py-2 bg-linear-to-r from-firm-orange to-firm-pink rounded-xl text-sm font-['Montserrat_Alternates'] font-medium hover:shadow-lg hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:hover:scale-100" style={{ color: 'var(--color-main)' }}>
+                    <motion.button 
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleCommentSubmit} 
+                      disabled={commentLoading || !commentText.trim()} 
+                      className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl text-sm font-['Montserrat_Alternates'] font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:hover:scale-100"
+                    >
                       {commentLoading ? (
                         <>
-                          <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                          </svg>
+                          <motion.div 
+                            animate={{ rotate: 360 }} 
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            className="w-4 h-4 border-2 border-white border-t-transparent rounded-full" 
+                          />
                           <span>Отправка...</span>
                         </>
                       ) : (
                         <>
-                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                          </svg>
+                          <SendIcon className="w-4 h-4" color="#FFFFFF" size={16} />
                           <span>Отправить</span>
                         </>
                       )}
-                    </button>
+                    </motion.button>
                   </div>
                 </div>
               </div>
             )}
 
-            <div className="space-y-3 max-h-96 overflow-y-auto">
+            {/* Список комментариев */}
+            <div className="space-y-4 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
               {comments.length === 0 ? (
-                <p className="text-firm-gray text-sm text-center py-4">Будьте первым, кто оставит комментарий</p>
+                <motion.p 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-gray-400 text-sm text-center py-8"
+                >
+                  Будьте первым, кто оставит комментарий
+                </motion.p>
               ) : (
-                comments.map((comment) => (
-                  <div key={comment.id} className="flex gap-3 group">
-                    <UserAvatar userId={comment.author_id} name={comment.author_name} avatarUrl={comment.author_avatar} size={32} />
+                comments.map((comment, idx) => (
+                  <motion.div 
+                    key={comment.id} 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="flex gap-3 group"
+                  >
+                    <UserAvatar 
+                      userId={comment.author_id} 
+                      name={comment.author_name} 
+                      avatarUrl={comment.author_avatar} 
+                      size={36} 
+                    />
                     <div className="flex-1">
-                      <div className="bg-main rounded-xl p-3 shadow-sm">
+                      <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100">
                         <div className="flex justify-between items-start">
                           <div>
-                            <p className="font-semibold text-sm">{comment.author_name}</p>
-                            <p className="text-xs text-firm-gray mt-0.5">{formatDate(comment.created_at)} {comment.is_edited && (<span className="ml-2 text-firm-gray text-xs">(ред.)</span>)}</p>
+                            <p className="font-semibold text-sm text-gray-800">{comment.author_name}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <CalendarIcon className="w-3 h-3" color="#9CA3AF" size={12} />
+                              <p className="text-xs text-gray-400">{formatDate(comment.created_at)}</p>
+                              {comment.is_edited && (
+                                <span className="text-xs text-gray-400">(ред.)</span>
+                              )}
+                            </div>
                           </div>
                           
                           {session?.user?.id === comment.author_id && (
-                            <div className={`flex gap-2 ${!isMobile ? 'opacity-0 group-hover:opacity-100' : ''} transition-opacity`}>
+                            <div className={`flex gap-1 ${!isMobile ? 'opacity-0 group-hover:opacity-100' : ''} transition-opacity`}>
                               {editingCommentId === comment.id ? (
                                 <>
-                                  <button onClick={() => handleUpdateComment(comment.id)} disabled={updatingComment}className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform disabled:opacity-50"><Image src="/save.svg" alt="Сохранить" width={16} height={16} /></button>
-                                  <button onClick={() => {setEditingCommentId(null); setEditingCommentText("")}}className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"><Image src="/delete.svg" alt="Отмена" width={16} height={16} /></button>
+                                  <motion.button 
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => handleUpdateComment(comment.id)} 
+                                    disabled={updatingComment}
+                                    className="p-1 rounded-lg hover:bg-green-50 transition-colors disabled:opacity-50"
+                                  >
+                                    <CheckCircleIcon className="w-4 h-4" color="#22C55E" size={16} />
+                                  </motion.button>
+                                  <motion.button 
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => {
+                                      setEditingCommentId(null);
+                                      setEditingCommentText("");
+                                    }}
+                                    className="p-1 rounded-lg hover:bg-red-50 transition-colors"
+                                  >
+                                    <CloseIcon className="w-4 h-4" color="#EF4444" size={16} />
+                                  </motion.button>
                                 </>
                               ) : (
                                 <>
-                                  <button onClick={() => {setEditingCommentId(comment.id);setEditingCommentText(comment.content)}}className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"><Image src="/edit.svg" alt="Редактировать" width={16} height={16} /></button>
-                                  <button onClick={() => handleDeleteComment(comment.id)} disabled={deletingCommentId === comment.id} className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform disabled:opacity-50"><Image src="/delete.svg" alt="Удалить" width={16} height={16} /></button>
+                                  <motion.button 
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => {
+                                      setEditingCommentId(comment.id);
+                                      setEditingCommentText(comment.content);
+                                    }}
+                                    className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                                  >
+                                    <EditIcon className="w-4 h-4" color="#6B7280" size={16} />
+                                  </motion.button>
+                                  <motion.button 
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => handleDeleteComment(comment.id)} 
+                                    disabled={deletingCommentId === comment.id} 
+                                    className="p-1 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+                                  >
+                                    <DeleteIcon className="w-4 h-4" color="#EF4444" size={16} />
+                                  </motion.button>
                                 </>
                               )}
                             </div>
                           )}
                         </div>
 
-                        {editingCommentId === comment.id ? (<textarea value={editingCommentText} onChange={(e) => setEditingCommentText(e.target.value)} className="w-full p-2 mt-2 rounded-lg bg-main border border-gray-200 outline-firm-orange text-sm" rows={3} autoFocus />) : (<p className="text-text text-sm mt-2">{comment.content}</p>)}
+                        {editingCommentId === comment.id ? (
+                          <textarea 
+                            value={editingCommentText} 
+                            onChange={(e) => setEditingCommentText(e.target.value)} 
+                            className="w-full p-2 mt-2 rounded-lg bg-gray-50 border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-1 focus:ring-firm-orange text-sm" 
+                            rows={3} 
+                            autoFocus 
+                          />
+                        ) : (
+                          <p className="text-gray-700 text-sm mt-2 leading-relaxed">{comment.content}</p>
+                        )}
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))
               )}
             </div>
@@ -574,15 +731,42 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
 
   const renderActions = () => {
     return (
-      <div className="flex items-center gap-6 pt-4 mt-4 border-t border-main">
-        <button onClick={handleLike} className="flex items-center gap-1.5 transition-all duration-300 hover:scale-110"><LikeIcon isActive={isLiked} /><span className={`text-sm ${isLiked ? 'text-firm-pink' : 'text-firm-gray'}`}>{likesCount}</span></button>
+      <div className="flex items-center gap-6 pt-4 mt-4 border-t border-gray-100">
+        <LikeButton isActive={isLiked} onClick={handleLike} />
+        <span className={`text-sm font-medium ${isLiked ? 'text-firm-pink' : 'text-gray-500'}`}>
+          {likesCount}
+        </span>
         
-        <button onClick={() => setShowCommentsState(!showCommentsState)} className="flex items-center gap-1.5 transition-all duration-300 hover:scale-110"><CommentIcon isActive={showCommentsState} /><span className={`text-sm ${showCommentsState ? 'text-firm-orange' : 'text-firm-gray'}`}>{commentsCount}</span></button>
+        <CommentButton 
+          isActive={showCommentsState} 
+          onClick={() => setShowCommentsState(!showCommentsState)} 
+          count={commentsCount}
+        />
 
         {isOwner && (
           <div className="flex gap-2 ml-auto">
-            {onEdit && (<button onClick={() => onEdit(post.id)} className="text-firm-gray hover:text-firm-orange transition">Редактировать</button>)}
-            {onDelete && (<button onClick={() => onDelete(post.id)} className="text-firm-gray hover:text-firm-red transition">Удалить</button>)}
+            {onEdit && (
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onEdit(post.id)} 
+                className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-firm-orange rounded-lg hover:bg-gray-100 transition-all duration-300"
+              >
+                <EditIcon className="w-4 h-4" color="#6B7280" size={16} />
+                <span>Редактировать</span>
+              </motion.button>
+            )}
+            {onDelete && (
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onDelete(post.id)} 
+                className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-red-600 rounded-lg hover:bg-red-50 transition-all duration-300"
+              >
+                <DeleteIcon className="w-4 h-4" color="#EF4444" size={16} />
+                <span>Удалить</span>
+              </motion.button>
+            )}
           </div>
         )}
 
@@ -590,7 +774,7 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
         
         <div className="flex items-center gap-1.5">
           <ViewsIcon />
-          <span className="font-[Raleway] text-sm text-firm-gray">{post.views_count}</span>
+          <span className="font-['Raleway'] text-sm text-gray-500">{post.views_count}</span>
         </div>
       </div>
     );
@@ -598,31 +782,77 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
 
   return (
     <>
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} whileHover={{ backgroundColor: "#f9fafb" }} className="p-6 transition-all duration-300 bg-main rounded-2xl shadow-xl hover:shadow-2xl overflow-hidden">
+      <motion.article 
+        initial={{ opacity: 0, y: 20 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        whileHover={{ boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)" }}
+        transition={{ duration: 0.3 }}
+        className="p-6 transition-all duration-300 bg-white rounded-2xl shadow-lg hover:shadow-2xl overflow-hidden border border-gray-100"
+      >
         <div className="max-w-3xl mx-auto">
-          <Link href={`/masters/${post.master_id}`} className="flex items-center gap-3 group mb-4">
-            <UserAvatar userId={post.master_id} name={post.author_name} avatarUrl={post.author_avatar || post.master_avatar} size={48} />
+          {/* Автор */}
+          <Link href={`/masters/${post.master_id}`} className="flex items-center gap-3 group mb-5">
+            <UserAvatar 
+              userId={post.master_id} 
+              name={post.author_name} 
+              avatarUrl={post.author_avatar || post.master_avatar} 
+              size={52} 
+            />
             <div>
-              <p className="font-semibold group-hover:text-firm-orange transition-colors">{post.author_name}</p>
-              <p className="text-xs text-firm-gray">{formatDate(post.created_at)}</p>
+              <p className="font-semibold text-gray-800 group-hover:text-firm-orange transition-colors duration-300">
+                {post.author_name}
+              </p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <CalendarIcon className="w-3.5 h-3.5" color="#9CA3AF" size={14} />
+                <p className="text-xs text-gray-400">{formatDate(post.created_at)}</p>
+              </div>
             </div>
           </Link>
 
-          <h3 className="font-['Montserrat_Alternates'] font-semibold text-2xl mb-3 hover:text-firm-orange transition-colors"><Link href={`/blog/${post.id}`}>{post.title}</Link></h3>
+          {/* Заголовок */}
+          <h3 className="font-['Montserrat_Alternates'] font-bold text-2xl mb-4 hover:text-firm-orange transition-colors duration-300">
+            <Link href={`/blog/${post.id}`}>{post.title}</Link>
+          </h3>
 
+          {/* Изображения */}
           {renderPostImages()}
 
-          <p className="text-gray-600 mt-4 line-clamp-3">{post.excerpt || post.content?.substring(0, 300)}...</p>
+          {/* Контент */}
+          <p className="text-gray-600 mt-4 leading-relaxed line-clamp-3">
+            {post.excerpt || post.content?.substring(0, 300)}...
+          </p>
 
-          <Link href={`/blog/${post.id}`} className="text-firm-orange hover:underline text-sm mt-3 inline-flex items-center gap-1 group">Читать полностью<span className="inline-block text-firm-orange">→</span></Link>
+          {/* Кнопка "Читать полностью" */}
+          <Link 
+            href={`/blog/${post.id}`} 
+            className="inline-flex items-center gap-2 text-firm-orange hover:text-firm-pink text-sm font-medium mt-3 group transition-colors duration-300"
+          >
+            <span>Читать полностью</span>
+            <motion.span 
+              animate={{ x: [0, 5, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }}
+              className="inline-block"
+            >
+              →
+            </motion.span>
+          </Link>
 
+          {/* Действия */}
           {renderActions()}
 
+          {/* Комментарии */}
           {renderComments()}
         </div>
-      </motion.div>
+      </motion.article>
 
-      <ConfirmModal isOpen={confirmModal.isOpen} title={confirmModal.title} message={confirmModal.message} type={confirmModal.type} onConfirm={confirmModal.onConfirm} onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} />
+      <ConfirmModal 
+        isOpen={confirmModal.isOpen} 
+        title={confirmModal.title} 
+        message={confirmModal.message} 
+        type={confirmModal.type} 
+        onConfirm={confirmModal.onConfirm} 
+        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} 
+      />
     </>
   );
 }
