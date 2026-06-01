@@ -31,6 +31,7 @@ import { ClassesIcon } from "../icons/ClassesIcon";
 import { CheckCircleIcon } from "../icons/CheckCircleIcon";
 import { ClockIcon } from "../icons/ClockIcon";
 import { MailIcon } from "../icons/MailIcon";
+import { TruckIcon } from "../icons/TruckIcon";
 
 const FilterIcon = ({ className = "", color = "#242424", size = 20 }: { className?: string; color?: string; size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
@@ -41,15 +42,6 @@ const FilterIcon = ({ className = "", color = "#242424", size = 20 }: { classNam
 const StarIcon = ({ className = "", color = "#242424", size = 20 }: { className?: string; color?: string; size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
     <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
-
-const TruckIcon = ({ className = "", color = "#242424", size = 20 }: { className?: string; color?: string; size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-    <path d="M6 18C7.10457 18 8 17.1046 8 16C8 14.8954 7.10457 14 6 14C4.89543 14 4 14.8954 4 16C4 17.1046 4.89543 18 6 18Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M18 18C19.1046 18 20 17.1046 20 16C20 14.8954 19.1046 14 18 14C16.8954 14 16 14.8954 16 16C16 17.1046 16.8954 18 18 18Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M4 16H3V10M8 16H16V4H20L22 8V16H20" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M16 12H22" stroke={color} strokeWidth="2" strokeLinecap="round"/>
   </svg>
 );
 
