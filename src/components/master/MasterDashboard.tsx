@@ -194,6 +194,18 @@ const normalizePostForCard = (post: BlogPost) => ({
   }))
 });
 
+// Вспомогательная функция для порядка статусов
+const getStatusOrder = (status: string): number => {
+  const order: Record<string, number> = {
+    'new': 0,
+    'processing': 1,
+    'shipped': 2,
+    'delivered': 3,
+    'cancelled': -1
+  };
+  return order[status] ?? -1;
+};
+
 export default function MasterDashboard({ session }: { session: { user: { id: string; name: string; email: string; role: string } } | null }) {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -222,6 +234,7 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
   const [trackingNumber, setTrackingNumber] = useState<{ [key: string]: string }>({});
   const [showTrackingModal, setShowTrackingModal] = useState<string | null>(null);
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  const [showStatusModal, setShowStatusModal] = useState<{ orderId: string; currentStatus: string; targetStatus: string } | null>(null);
 
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [yarns, setYarns] = useState<{ id: string; name: string; brand: string }[]>([]);
@@ -246,6 +259,40 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
       loadYarns();
     }
   }, [showAddProductModal]);
+
+  const getNextStatus = (currentStatus: string): { status: string; label: string; action: string } | null => {
+    const statusFlow: Record<string, { status: string; label: string; action: string }> = {
+      'new': { status: 'processing', label: 'В обработку', action: 'Подтвердить заказ' },
+      'processing': { status: 'shipped', label: 'Отправлен', action: 'Подтвердить отправку' },
+      'shipped': { status: 'delivered', label: 'Доставлен', action: 'Подтвердить доставку' }
+    };
+    return statusFlow[currentStatus] || null;
+  };
+
+  // Функция для получения статуса отмены
+  const getCancelStatus = (currentStatus: string): { status: string; label: string } | null => {
+    if (currentStatus === 'new' || currentStatus === 'processing') {
+      return { status: 'cancelled', label: 'Отменить заказ' };
+    }
+    return null;
+  };
+
+  // Функция для получения всех доступных действий
+  const getAvailableActions = (currentStatus: string) => {
+    const actions = [];
+    
+    const next = getNextStatus(currentStatus);
+    if (next) {
+      actions.push({ type: 'next', ...next });
+    }
+    
+    const cancel = getCancelStatus(currentStatus);
+    if (cancel) {
+      actions.push({ type: 'cancel', ...cancel });
+    }
+    
+    return actions;
+  };
 
   // Функции для заказов
   const fetchMasterOrders = async (status: string = orderStatusFilter, pageNum: number = orderPage) => {
@@ -301,7 +348,8 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
 
       if (response.ok) {
         await fetchMasterOrders(orderStatusFilter, orderPage);
-        toast.success(`Статус заказа обновлен на "${getStatusText(newStatus)}"`);
+        toast.success(getStatusActionMessage(newStatus));
+        setShowStatusModal(null);
         setShowTrackingModal(null);
         setTrackingNumber(prev => ({ ...prev, [orderId]: '' }));
       } else {
@@ -313,6 +361,16 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
       toast.error('Ошибка при обновлении статуса');
     } finally {
       setUpdatingOrderId(null);
+    }
+  };
+
+  const getStatusActionMessage = (status: string): string => {
+    switch (status) {
+      case 'processing': return 'Заказ подтвержден и передан в обработку';
+      case 'shipped': return 'Заказ отправлен, трек-номер добавлен';
+      case 'delivered': return 'Заказ отмечен как доставленный';
+      case 'cancelled': return 'Заказ отменен';
+      default: return 'Статус заказа обновлен';
     }
   };
 
@@ -518,6 +576,90 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
     });
   };
 
+  // Модальное окно подтверждения статуса
+  const StatusConfirmModal = () => {
+    if (!showStatusModal) return null;
+    
+    const order = masterOrders.find(o => o.id === showStatusModal.orderId);
+    const action = showStatusModal.targetStatus;
+    
+    const getActionText = () => {
+      if (action === 'shipped') return 'отправку заказа';
+      if (action === 'processing') return 'подтверждение заказа';
+      if (action === 'delivered') return 'доставку заказа';
+      if (action === 'cancelled') return 'отмену заказа';
+      return 'изменение статуса';
+    };
+    
+    const getActionButtonText = () => {
+      if (action === 'shipped') return 'Подтвердить отправку';
+      if (action === 'processing') return 'Подтвердить заказ';
+      if (action === 'delivered') return 'Подтвердить доставку';
+      if (action === 'cancelled') return 'Отменить заказ';
+      return 'Подтвердить';
+    };
+    
+    const handleConfirm = () => {
+      if (action === 'shipped') {
+        setShowStatusModal(null);
+        setShowTrackingModal(showStatusModal.orderId);
+      } else if (action) {
+        updateOrderStatus(showStatusModal.orderId, action);
+      }
+    };
+    
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          className="bg-main rounded-2xl max-w-md w-full p-6"
+        >
+          <div className="text-center mb-4">
+            <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-yellow-100 flex items-center justify-center">
+              <span className="text-3xl">⚠️</span>
+            </div>
+            <h3 className="text-xl font-semibold mb-2">Подтверждение действия</h3>
+            <p className="text-firm-gray">
+              Вы уверены, что хотите подтвердить {getActionText()}?
+            </p>
+            {order && (
+              <div className="mt-3 p-3 bg-gray-50 rounded-lg text-left">
+                <p className="text-sm font-medium">Заказ №{order.order_number}</p>
+                <p className="text-xs text-firm-gray mt-1">
+                  Текущий статус: <span className="font-medium">{getStatusText(order.status)}</span>
+                </p>
+                <p className="text-xs text-firm-gray mt-1">
+                  Новый статус: <span className="font-medium text-firm-orange">
+                    {action === 'shipped' ? 'Отправлен' : 
+                     action === 'processing' ? 'В обработке' : 
+                     action === 'delivered' ? 'Доставлен' : 
+                     action === 'cancelled' ? 'Отменен' : action}
+                  </span>
+                </p>
+              </div>
+            )}
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={handleConfirm}
+              className="flex-1 px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition text-sm font-medium"
+            >
+              {getActionButtonText()}
+            </button>
+            <button
+              onClick={() => setShowStatusModal(null)}
+              className="flex-1 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition text-sm"
+            >
+              Отмена
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-center min-h-[60vh]">
@@ -683,7 +825,9 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
                 masterOrders.map((order, idx) => {
                   const isExpanded = expandedOrders.has(order.id);
                   const isUpdating = updatingOrderId === order.id;
-
+                  const availableActions = getAvailableActions(order.status);
+                  const isFinished = order.status === 'delivered' || order.status === 'cancelled';
+                  
                   return (
                     <motion.div
                       key={order.id}
@@ -694,6 +838,7 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
                     >
                       <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
                         <div className="flex-1 min-w-0">
+                          {/* Статус и номер заказа */}
                           <div className="flex flex-wrap items-center gap-2 mb-3">
                             <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                               {getStatusText(order.status)}
@@ -706,6 +851,7 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
                             )}
                           </div>
 
+                          {/* Информация о заказе */}
                           <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs sm:text-sm text-firm-gray">
                             <span className="flex items-center gap-1">
                               <UserIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#737682" size={14} />
@@ -724,6 +870,7 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
                             </span>
                           </div>
 
+                          {/* Адрес доставки */}
                           {order.shipping_city && order.shipping_address && (
                             <div className="flex items-center gap-1 mt-2 text-xs text-firm-gray">
                               <LocateIcon className="w-3 h-3 shrink-0" color="#737682" size={14} />
@@ -731,6 +878,7 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
                             </div>
                           )}
 
+                          {/* Трек-номер */}
                           {order.tracking_number && (
                             <div className="flex items-center gap-1 mt-2 text-xs text-green-600">
                               <span>📮</span>
@@ -740,6 +888,7 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
                         </div>
 
                         <div className="flex flex-row lg:flex-col gap-2 w-full lg:w-auto">
+                          {/* Кнопка подробнее */}
                           <button
                             onClick={() => toggleOrderExpand(order.id)}
                             className="px-3 py-2 text-xs border border-gray-200 rounded-xl hover:bg-gray-50 transition flex items-center justify-center gap-1"
@@ -747,34 +896,44 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
                             {isExpanded ? 'Свернуть ▲' : 'Подробнее ▼'}
                           </button>
 
-                          <select
-                            value={order.status}
-                            onChange={(e) => {
-                              const newStatus = e.target.value;
-                              if (newStatus === 'shipped') {
-                                setShowTrackingModal(order.id);
-                              } else {
-                                updateOrderStatus(order.id, newStatus);
-                              }
-                            }}
-                            disabled={isUpdating}
-                            className="px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-200 rounded-xl focus:border-firm-orange focus:outline-none disabled:opacity-50"
-                          >
-                            <option value="new">🆕 Новый</option>
-                            <option value="processing">⏳ В обработку</option>
-                            <option value="shipped">📦 Отправлен</option>
-                            <option value="delivered">✅ Доставлен</option>
-                            <option value="cancelled">❌ Отменить</option>
-                          </select>
+                          {/* Кнопки действий (только для активных заказов) */}
+                          {!isFinished && !isUpdating && (
+                            <div className="flex gap-2">
+                              {availableActions.map((action) => (
+                                <button
+                                  key={action.type}
+                                  onClick={() => setShowStatusModal({ orderId: order.id, currentStatus: order.status, targetStatus: action.status })}
+                                  className={`px-3 py-2 text-xs rounded-xl transition flex items-center justify-center gap-1 ${
+                                    action.type === 'cancel'
+                                      ? 'border border-red-300 text-red-600 hover:bg-red-50'
+                                      : 'bg-gradient-to-r from-firm-orange to-firm-pink text-main hover:shadow-lg'
+                                  }`}
+                                >
+                                  {action.type === 'next' && '→'}
+                                  {action.type === 'cancel' && '✕'}
+                                  {action.label}
+                                </button>
+                              ))}
+                            </div>
+                          )}
 
+                          {/* Завершенные заказы */}
+                          {isFinished && (
+                            <div className="text-xs text-firm-gray text-center py-2">
+                              {order.status === 'delivered' ? '✅ Заказ выполнен' : '❌ Заказ отменен'}
+                            </div>
+                          )}
+
+                          {/* Индикатор загрузки */}
                           {isUpdating && (
-                            <div className="flex justify-center items-center">
-                              <div className="w-4 h-4 border-2 border-firm-orange border-t-transparent rounded-full animate-spin"></div>
+                            <div className="flex justify-center items-center py-2">
+                              <div className="w-5 h-5 border-2 border-firm-orange border-t-transparent rounded-full animate-spin"></div>
                             </div>
                           )}
                         </div>
                       </div>
 
+                      {/* Развернутая информация */}
                       <AnimatePresence>
                         {isExpanded && (
                           <motion.div
@@ -784,6 +943,47 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
                             transition={{ duration: 0.3 }}
                             className="mt-4 pt-4 border-t border-gray-100"
                           >
+                            {/* Визуальный прогресс статусов */}
+                            <div className="mb-4">
+                              <h4 className="font-semibold text-sm mb-3">Статус заказа:</h4>
+                              <div className="flex items-center justify-between">
+                                {[
+                                  { status: 'new', label: 'Новый', icon: '📝' },
+                                  { status: 'processing', label: 'В обработке', icon: '⏳' },
+                                  { status: 'shipped', label: 'Отправлен', icon: '📦' },
+                                  { status: 'delivered', label: 'Доставлен', icon: '✅' }
+                                ].map((step, stepIdx) => {
+                                  const isCompleted = getStatusOrder(order.status) >= getStatusOrder(step.status);
+                                  const isCurrent = order.status === step.status;
+                                  
+                                  return (
+                                    <div key={step.status} className="flex-1 text-center">
+                                      <div className="relative">
+                                        <div className={`w-8 h-8 mx-auto rounded-full flex items-center justify-center text-sm ${
+                                          isCompleted 
+                                            ? 'bg-green-500 text-white' 
+                                            : isCurrent 
+                                              ? 'bg-firm-orange text-white' 
+                                              : 'bg-gray-200 text-gray-400'
+                                        }`}>
+                                          {isCompleted ? '✓' : step.icon}
+                                        </div>
+                                        {stepIdx < 3 && (
+                                          <div className={`absolute top-4 left-1/2 w-full h-0.5 ${
+                                            getStatusOrder(order.status) > stepIdx ? 'bg-green-500' : 'bg-gray-200'
+                                          }`} />
+                                        )}
+                                      </div>
+                                      <p className={`text-xs mt-2 ${isCurrent ? 'font-semibold text-firm-orange' : 'text-firm-gray'}`}>
+                                        {step.label}
+                                      </p>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Товары */}
                             <div className="mb-4">
                               <h4 className="font-semibold text-sm mb-2">Товары в заказе:</h4>
                               <div className="space-y-2">
@@ -799,6 +999,7 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
                               </div>
                             </div>
 
+                            {/* Данные покупателя и доставка */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                               <div className="bg-gray-50 rounded-lg p-3">
                                 <h4 className="font-semibold text-sm mb-2">👤 Покупатель</h4>
@@ -814,6 +1015,7 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
                               </div>
                             </div>
 
+                            {/* Комментарий */}
                             {order.buyer_comment && (
                               <div className="bg-gray-50 rounded-lg p-3 mb-4">
                                 <h4 className="font-semibold text-sm mb-2">💬 Комментарий покупателя</h4>
@@ -821,9 +1023,11 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
                               </div>
                             )}
 
+                            {/* Итого */}
                             <div className="flex justify-end pt-3 border-t border-gray-100">
                               <div className="text-right">
-                                <p className="text-sm text-firm-gray">Итого к оплате: <span className="font-bold text-firm-orange text-lg">{order.total_amount.toLocaleString()} ₽</span></p>
+                                <p className="text-sm text-firm-gray">Итого к оплате:</p>
+                                <p className="font-bold text-firm-orange text-2xl">{order.total_amount.toLocaleString()} ₽</p>
                               </div>
                             </div>
                           </motion.div>
@@ -835,9 +1039,10 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
               )}
             </div>
 
+            {/* Пагинация */}
             {orderPagination.totalPages > 1 && (
               <div className="p-4 border-t border-gray-200 flex justify-center">
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   <button
                     onClick={() => handleOrderPageChange(orderPage - 1)}
                     disabled={orderPage <= 1}
@@ -846,7 +1051,7 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
                     ←
                   </button>
                   <span className="px-3 py-1 text-sm">
-                    Страница {orderPage} из {orderPagination.totalPages}
+                    {orderPage} / {orderPagination.totalPages}
                   </span>
                   <button
                     onClick={() => handleOrderPageChange(orderPage + 1)}
@@ -916,6 +1121,9 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
       <AddPostModal isOpen={showAddPostModal} onClose={() => setShowAddPostModal(false)} onSuccess={fetchMasterData} session={session} />
       <AddClassModal isOpen={showAddClassModal} onClose={() => setShowAddClassModal(false)} onSuccess={fetchMasterData} />
 
+      {/* Status Confirm Modal */}
+      <StatusConfirmModal />
+
       {/* Tracking Modal */}
       <AnimatePresence>
         {showTrackingModal && (
@@ -924,32 +1132,32 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-main rounded-2xl max-w-md w-full p-4 sm:p-6"
+              className="bg-main rounded-2xl max-w-md w-full p-6"
             >
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg sm:text-xl font-semibold">Отправка заказа</h3>
+                <h3 className="text-xl font-semibold">Отправка заказа</h3>
                 <button onClick={() => setShowTrackingModal(null)} className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
                   <CloseIcon className="w-5 h-5 text-firm-gray" color="#737682" size={20} />
                 </button>
               </div>
-              <p className="text-firm-gray mb-4 text-sm">Укажите трек-номер для отслеживания посылки</p>
+              <p className="text-firm-gray mb-4">Укажите трек-номер для отслеживания посылки</p>
               <input
                 type="text"
                 value={trackingNumber[showTrackingModal] || ''}
                 onChange={(e) => setTrackingNumber(prev => ({ ...prev, [showTrackingModal]: e.target.value }))}
-                placeholder="Трек-номер"
+                placeholder="Введите трек-номер"
                 className="w-full p-3 border border-gray-200 rounded-xl mb-4 focus:border-firm-orange focus:outline-none text-sm"
               />
               <div className="flex gap-3">
                 <button
                   onClick={() => updateOrderStatus(showTrackingModal, 'shipped', trackingNumber[showTrackingModal])}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-colors text-sm font-medium"
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition text-sm font-medium"
                 >
                   Подтвердить отправку
                 </button>
                 <button
                   onClick={() => setShowTrackingModal(null)}
-                  className="flex-1 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors text-sm"
+                  className="flex-1 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition text-sm"
                 >
                   Отмена
                 </button>
