@@ -4,7 +4,6 @@ import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { PostgrestError } from "@supabase/supabase-js";
 
-// Тип для заказа мастера (возвращаемый)
 type MasterOrder = {
     id: string;
     order_number: string;
@@ -18,7 +17,9 @@ type MasterOrder = {
     shipping_phone: string;
     shipping_city: string;
     shipping_address: string;
+    shipping_postal_code: string | null;
     buyer_comment: string | null;
+    tracking_number: string | null;
     items: Array<{
         id: number;
         product_id: string;
@@ -48,11 +49,14 @@ type Order = {
     payment_status: string;
     total_amount: number;
     created_at: string;
+    updated_at: string;
     shipping_full_name: string;
     shipping_phone: string;
     shipping_city: string;
     shipping_address: string;
+    shipping_postal_code: string | null;
     buyer_comment: string | null;
+    tracking_number: string | null;
 };
 
 type Product = {
@@ -70,6 +74,24 @@ type Profile = {
     full_name: string;
 };
 
+const STATUS_MAP: Record<string, string> = {
+    'all': 'all',
+    'new': 'new',
+    'processing': 'processing',
+    'confirmed': 'processing',
+    'shipped': 'shipped',
+    'delivered': 'delivered',
+    'cancelled': 'cancelled'
+};
+
+const STATUS_DISPLAY: Record<string, string> = {
+    'new': 'new',
+    'processing': 'processing',
+    'shipped': 'shipped',
+    'delivered': 'delivered',
+    'cancelled': 'cancelled'
+};
+
 export async function GET(request: Request) {
     try {
         const session = await getServerSession(authOptions);
@@ -80,7 +102,16 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
         }
 
-        // Проверяем роль из таблицы users
+        // Получаем параметры запроса
+        const { searchParams } = new URL(request.url);
+        const statusFilter = searchParams.get('status') || 'all';
+        const page = parseInt(searchParams.get('page') || '1');
+        const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
+        const offset = (page - 1) * limit;
+
+        console.log(`Filters: status=${statusFilter}, page=${page}, limit=${limit}`);
+
+        // Проверяем роль пользователя
         const { data: user, error: userError } = await supabase
             .from('users')
             .select('role, is_banned')
@@ -121,7 +152,8 @@ export async function GET(request: Request) {
         if (productIds.length === 0) {
             return NextResponse.json({
                 orders: [],
-                pagination: { total: 0, page: 1, limit: 50, totalPages: 0 }
+                pagination: { total: 0, page: 1, limit, totalPages: 0 },
+                stats: { new: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0, total: 0 }
             });
         }
 
@@ -139,18 +171,27 @@ export async function GET(request: Request) {
         if (!orderItems || orderItems.length === 0) {
             return NextResponse.json({
                 orders: [],
-                pagination: { total: 0, page: 1, limit: 50, totalPages: 0 }
+                pagination: { total: 0, page: 1, limit, totalPages: 0 },
+                stats: { new: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0, total: 0 }
             });
         }
 
         // Получаем уникальные ID заказов
-        const orderIds = [...new Set(orderItems.map((item: OrderItem) => item.order_id))];
+        const allOrderIds = [...new Set(orderItems.map((item: OrderItem) => item.order_id))];
 
         // Получаем информацию о заказах
-        const { data: orders, error: ordersError } = await supabase
+        let ordersQuery = supabase
             .from('orders')
             .select('*')
-            .in('id', orderIds) as { data: Order[] | null; error: PostgrestError | null };
+            .in('id', allOrderIds);
+
+        // Фильтруем по статусу
+        if (statusFilter !== 'all') {
+            const dbStatus = STATUS_MAP[statusFilter] || statusFilter;
+            ordersQuery = ordersQuery.eq('status', dbStatus);
+        }
+
+        const { data: orders, error: ordersError } = await ordersQuery as { data: Order[] | null; error: PostgrestError | null };
 
         if (ordersError) {
             console.error('Error fetching orders:', ordersError);
@@ -160,12 +201,23 @@ export async function GET(request: Request) {
         if (!orders || orders.length === 0) {
             return NextResponse.json({
                 orders: [],
-                pagination: { total: 0, page: 1, limit: 50, totalPages: 0 }
+                pagination: { total: 0, page: 1, limit, totalPages: 0 },
+                stats: { new: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0, total: 0 }
             });
         }
 
+        // Сортируем заказы по дате (новые сверху)
+        const sortedOrders = [...orders].sort((a, b) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+
+        // Пагинация
+        const total = sortedOrders.length;
+        const totalPages = Math.ceil(total / limit);
+        const paginatedOrders = sortedOrders.slice(offset, offset + limit);
+
         // Получаем информацию о покупателях
-        const buyerIds = [...new Set(orders.map((order: Order) => order.buyer_id))];
+        const buyerIds = [...new Set(paginatedOrders.map((order: Order) => order.buyer_id))];
 
         // Получаем emails из таблицы users
         const { data: users, error: usersError } = await supabase
@@ -195,29 +247,47 @@ export async function GET(request: Request) {
 
         // Создаем карту заказов
         const ordersMap = new Map<string, Order>();
-        orders.forEach((order: Order) => {
+        paginatedOrders.forEach((order: Order) => {
             ordersMap.set(order.id, order);
         });
 
         // Группируем items по заказам
         const itemsByOrder = new Map<string, OrderItem[]>();
         orderItems.forEach((item: OrderItem) => {
-            if (!itemsByOrder.has(item.order_id)) {
-                itemsByOrder.set(item.order_id, []);
-            }
-            const existingItems = itemsByOrder.get(item.order_id);
-            if (existingItems) {
-                existingItems.push(item);
+            if (ordersMap.has(item.order_id)) {
+                if (!itemsByOrder.has(item.order_id)) {
+                    itemsByOrder.set(item.order_id, []);
+                }
+                const existingItems = itemsByOrder.get(item.order_id);
+                if (existingItems) {
+                    existingItems.push(item);
+                }
             }
         });
+
+        // Подсчет статистики по всем заказам (не только текущей страницы)
+        const allOrdersStats = await supabase
+            .from('orders')
+            .select('status')
+            .in('id', allOrderIds);
+
+        const stats = {
+            total: allOrderIds.length,
+            new: allOrdersStats.data?.filter(o => o.status === 'new' || o.status === 'processing').length || 0,
+            processing: allOrdersStats.data?.filter(o => o.status === 'processing').length || 0,
+            shipped: allOrdersStats.data?.filter(o => o.status === 'shipped').length || 0,
+            delivered: allOrdersStats.data?.filter(o => o.status === 'delivered').length || 0,
+            cancelled: allOrdersStats.data?.filter(o => o.status === 'cancelled').length || 0
+        };
 
         // Формируем результат
         const resultOrders: MasterOrder[] = [];
         
-        for (const [orderId, items] of itemsByOrder) {
+        for (const orderId of itemsByOrder.keys()) {
             const order = ordersMap.get(orderId);
             if (!order) continue;
             
+            const items = itemsByOrder.get(orderId) || [];
             const userInfo = userMap.get(order.buyer_id);
             const profileInfo = profileMap.get(order.buyer_id);
             
@@ -228,13 +298,15 @@ export async function GET(request: Request) {
                 payment_status: order.payment_status,
                 total_amount: order.total_amount,
                 created_at: order.created_at,
-                buyer_name: profileInfo?.full_name || 'Покупатель',
+                buyer_name: profileInfo?.full_name || order.shipping_full_name || 'Покупатель',
                 buyer_email: userInfo?.email || '',
                 shipping_full_name: order.shipping_full_name || '',
                 shipping_phone: order.shipping_phone || '',
                 shipping_city: order.shipping_city || '',
                 shipping_address: order.shipping_address || '',
+                shipping_postal_code: order.shipping_postal_code || null,
                 buyer_comment: order.buyer_comment,
+                tracking_number: order.tracking_number || null,
                 items: items.map((item: OrderItem) => ({
                     id: item.id,
                     product_id: item.product_id,
@@ -251,20 +323,34 @@ export async function GET(request: Request) {
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
 
+        console.log(`Returning ${resultOrders.length} orders, total: ${total}`);
+
         return NextResponse.json({
             orders: resultOrders,
             pagination: {
-                total: resultOrders.length,
-                page: 1,
-                limit: 50,
-                totalPages: 1
+                total: total,
+                page: page,
+                limit: limit,
+                totalPages: totalPages,
+                hasMore: offset + limit < total
+            },
+            stats: {
+                new: stats.new,
+                processing: stats.processing,
+                shipped: stats.shipped,
+                delivered: stats.delivered,
+                cancelled: stats.cancelled,
+                total: stats.total
             }
         });
         
     } catch (error) {
         console.error('Unexpected error:', error);
         return NextResponse.json({ 
-            error: 'Внутренняя ошибка сервера'
+            error: 'Внутренняя ошибка сервера',
+            orders: [],
+            pagination: { total: 0, page: 1, limit: 20, totalPages: 0 },
+            stats: { new: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0, total: 0 }
         }, { status: 500 });
     }
 }
