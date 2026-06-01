@@ -9,42 +9,26 @@ import BlogPostCard from "@/components/blog/BlogPostCard";
 import toast from 'react-hot-toast';
 import ConfirmModal from "@/components/ui/ConfirmModal";
 
-// Импорт компонентов модальных окон
 import AddProductModal from "@/components/modals/AddProductModal";
 import AddPostModal from "@/components/modals/AddPostModal";
 import AddClassModal from "@/components/modals/AddClassModal";
 
-// Импорт иконок
 import { CartIcon } from "../icons/CartIcon";
 import { ProductsIcon } from "../icons/ProductsIcon";
 import { BlogIcon } from "../icons/BlogIcon";
 import { NotificateIcon } from "../icons/NotificateIcon";
 import { ChatIcon } from "../icons/ChatIcon";
-import { EditIcon } from "../icons/EditIcon";
-import { DeleteIcon } from "../icons/DeleteIcon";
-import { PlusIcon } from "../icons/PlusIcon";
 import { RefreshIcon } from "../icons/RefreshIcon";
 import { CommentIcon } from "../icons/CommentIcon";
-import { LikeIcon } from "../icons/LikeIcon";
-import { CheckIcon } from "../icons/CheckIcon";
-import { CheckCircleIcon } from "../icons/CheckCircleIcon";
-import { ErrorCircleIcon } from "../icons/ErrorCircleIcon";
 import { LocateIcon } from "../icons/LocateIcon";
 import { CalendarIcon } from "../icons/CalendarIcon";
-import { ClockIcon } from "../icons/ClockIcon";
 import { UserIcon } from "../icons/UserIcon";
-import { MailIcon } from "../icons/MailIcon";
 import { CloseIcon } from "../icons/CloseIcon";
-import { SettingsIcon } from "../icons/SettingsIcon";
-import { SearchIcon } from "../icons/SearchIcon";
+import { ViewsIcon } from "../icons/ViewsIcon";
+import { CatalogPinkIcon } from "../icons/CatalogPinkIcon";
+import { EditIcon } from "../icons/EditIcon";
+import { ClassesIcon } from "../icons/ClassesIcon";
 
-// Временные иконки (нужно создать в библиотеке)
-const EyeIcon = ({ className = "", color = "#242424", size = 20 }: { className?: string; color?: string; size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-    <path d="M12 5C7 5 3.5 10 3.5 10C3.5 10 7 15 12 15C17 15 20.5 10 20.5 10C20.5 10 17 5 12 5Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M12 12.5C13.3807 12.5 14.5 11.3807 14.5 10C14.5 8.61929 13.3807 7.5 12 7.5C10.6193 7.5 9.5 8.61929 9.5 10C9.5 11.3807 10.6193 12.5 12 12.5Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
 
 const FilterIcon = ({ className = "", color = "#242424", size = 20 }: { className?: string; color?: string; size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
@@ -187,55 +171,9 @@ interface MasterOrdersResponse {
   };
 }
 
-const getImageUrl = (
-  img:
-    | string
-    | { id: string; url?: string; image_url?: string; sort_order: number },
-): string => {
-  if (typeof img === "string") {
-    return img;
-  }
-  return img.url || img.image_url || "";
-};
+const normalizePostForCard = (post: BlogPost) => {return {id: post.id, title: post.title, content: post.content, excerpt: post.excerpt || post.content?.substring(0, 200) || "", images: post.images || [], main_image_url: post.main_image_url, created_at: post.created_at, views_count: post.views_count, likes_count: post.likes_count, comments_count: post.comments_count, author_name: post.author_name,  author_avatar: post.author_avatar, master_id: post.master_id,  master_name: post.master_name, master_avatar: post.master_avatar, is_liked: post.is_liked || false, comments: (post.comments || []).map((comment) => ({id: comment.id, content: comment.content, created_at: comment.created_at, updated_at: comment.updated_at || comment.created_at, is_edited: comment.is_edited || false, author_id: comment.author_id || "", author_name: comment.author_name, author_avatar: comment.author_avatar}))}};
 
-const normalizePostForCard = (post: BlogPost) => {
-  return {
-    id: post.id,
-    title: post.title,
-    content: post.content,
-    excerpt: post.excerpt || post.content?.substring(0, 200) || "",
-    images: post.images || [],
-    main_image_url: post.main_image_url,
-    created_at: post.created_at,
-    views_count: post.views_count,
-    likes_count: post.likes_count,
-    comments_count: post.comments_count,
-    author_name: post.author_name,
-    author_avatar: post.author_avatar,
-    master_id: post.master_id,
-    master_name: post.master_name,
-    master_avatar: post.master_avatar,
-    is_liked: post.is_liked || false,
-    comments: (post.comments || []).map((comment) => ({
-      id: comment.id,
-      content: comment.content,
-      created_at: comment.created_at,
-      updated_at: comment.updated_at || comment.created_at,
-      is_edited: comment.is_edited || false,
-      author_id: comment.author_id || "",
-      author_name: comment.author_name,
-      author_avatar: comment.author_avatar,
-    })),
-  };
-};
-
-export default function MasterDashboard({
-  session,
-}: {
-  session: {
-    user: { id: string; name: string; email: string; role: string };
-  } | null;
-}) {
+export default function MasterDashboard({session}: {session: {user: { id: string; name: string; email: string; role: string }} | null}) {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [recentPosts, setRecentPosts] = useState<BlogPost[]>([]);
@@ -243,13 +181,7 @@ export default function MasterDashboard({
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [masterName, setMasterName] = useState("");
   const [masterAvatar, setMasterAvatar] = useState("");
-  const [stats, setStats] = useState<MasterStats>({
-    total_orders: 0,
-    new_orders: 0,
-    total_products: 0,
-    total_views: 0,
-    total_followers: 0,
-  });
+  const [stats, setStats] = useState<MasterStats>({total_orders: 0, new_orders: 0, total_products: 0, total_views: 0, total_followers: 0});
   const [loading, setLoading] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showComments, setShowComments] = useState<string | null>(null);
@@ -265,25 +197,10 @@ export default function MasterDashboard({
   const [showTrackingModal, setShowTrackingModal] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   
-  const [confirmModal, setConfirmModal] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    onConfirm: () => void;
-    postId?: string;
-    type?: 'danger' | 'warning' | 'info';
-  }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    onConfirm: () => {},
-    type: 'danger'
-  });
+  const [confirmModal, setConfirmModal] = useState<{isOpen: boolean; title: string; message: string; onConfirm: () => void; postId?: string; type?: 'danger' | 'warning' | 'info';}>({isOpen: false, title: '',  message: '', onConfirm: () => {}, type: 'danger'})
 
   const [categories, setCategories] = useState<CategoryItem[]>([]);
-  const [yarns, setYarns] = useState<
-    { id: string; name: string; brand: string }[]
-  >([]);
+  const [yarns, setYarns] = useState<{ id: string; name: string; brand: string }[]>([]);
 
   useEffect(() => {
     fetchMasterData();
@@ -317,12 +234,7 @@ export default function MasterDashboard({
 
   const fetchMasterOrders = async () => {
     try {
-        const response = await fetch('/api/master/orders?status=all', {
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        });
+        const response = await fetch('/api/master/orders?status=all', {credentials: 'include', headers: {'Content-Type': 'application/json'}});
         
         if (!response.ok) {
             const errorData = await response.json();
@@ -334,14 +246,7 @@ export default function MasterDashboard({
         
         if (data.orders && Array.isArray(data.orders)) {
             setMasterOrders(data.orders);
-            setStats(prev => ({
-                ...prev,
-                total_orders: data.orders.length,
-                new_orders: data.orders.filter((o: Order) => o.status === 'new').length,
-                total_products: data.orders.reduce((sum: number, order: Order) => 
-                    sum + (order.items?.length || 0), 0
-                )
-            }));
+            setStats(prev => ({...prev, total_orders: data.orders.length, new_orders: data.orders.filter((o: Order) => o.status === 'new').length, total_products: data.orders.reduce((sum: number, order: Order) => sum + (order.items?.length || 0), 0)}));
         } else {
             setMasterOrders([]);
         }
@@ -359,9 +264,7 @@ export default function MasterDashboard({
       try {
         const response = await fetch(`/api/master/orders?status=${status}`);
         const data = await response.json();
-        if (data.orders) {
-          setMasterOrders(data.orders);
-        }
+        if (data.orders) {setMasterOrders(data.orders)}
       } catch (error) {
         console.error('Error filtering orders:', error);
         toast.error('Ошибка фильтрации заказов');
@@ -372,14 +275,7 @@ export default function MasterDashboard({
   const updateOrderStatus = async (orderId: string, newStatus: string, tracking?: string) => {
     setUpdatingOrderId(orderId);
     try {
-        const response = await fetch(`/api/master/orders/${orderId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                status: newStatus,
-                tracking_number: tracking 
-            })
-        });
+        const response = await fetch(`/api/master/orders/${orderId}`, {method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({status: newStatus, tracking_number: tracking })});
 
         if (response.ok) {
             await fetchMasterOrders();
@@ -408,112 +304,47 @@ export default function MasterDashboard({
         return;
       }
 
-      const profileRes = await fetch("/api/master/profile", {
-        credentials: "include",
-      });
+      const profileRes = await fetch("/api/master/profile", {credentials: "include"});
       const profileResponse = await profileRes.json();
 
-      const recentPostsRes = await fetch("/api/blog/posts?limit=4", {
-        credentials: "include",
-      });
+      const recentPostsRes = await fetch("/api/blog/posts?limit=4", {credentials: "include"})
       const recentPostsData = await recentPostsRes.json();
 
       let myPostsArray: BlogPost[] = [];
       try {
-        const myPostsRes = await fetch("/api/master/blog", {
-          credentials: "include",
-        });
+        const myPostsRes = await fetch("/api/master/blog", {credentials: "include"});
 
         if (myPostsRes.ok) {
           const myPostsData = await myPostsRes.json();
-          if (
-            myPostsData &&
-            myPostsData.posts &&
-            Array.isArray(myPostsData.posts)
-          ) {
-            myPostsArray = myPostsData.posts;
-          }
+          if (myPostsData && myPostsData.posts && Array.isArray(myPostsData.posts)) {myPostsArray = myPostsData.posts}
         }
       } catch (apiError) {
         console.error("Ошибка при запросе /api/master/blog:", apiError);
         myPostsArray = [];
       }
 
-      let profileData: {
-        fullname?: string;
-        full_name?: string;
-        avatar_url?: string;
-      } | null = null;
+      let profileData: {fullname?: string;  full_name?: string; avatar_url?: string } | null = null;
       if (profileResponse.success && profileResponse.profile) {
         profileData = profileResponse.profile;
       } else {
         profileData = profileResponse;
       }
 
-      const userFullName =
-        profileData?.fullname ||
-        profileData?.full_name ||
-        session.user.name ||
-        session.user.email?.split("@")[0] ||
-        "Мастер";
+      const userFullName = profileData?.fullname || profileData?.full_name || session.user.name || session.user.email?.split("@")[0] || "Мастер";
       const userAvatar = profileData?.avatar_url || "";
 
       setMasterName(userFullName);
       setMasterAvatar(userAvatar);
 
       let recentPostsArray: BlogPost[] = [];
-      if (
-        recentPostsData &&
-        recentPostsData.posts &&
-        Array.isArray(recentPostsData.posts)
-      ) {
-        recentPostsArray = recentPostsData.posts.map((post: ApiPostData) => ({
-          id: post.id,
-          title: post.title || "Без названия",
-          content: post.content || "",
-          excerpt: post.excerpt || post.content?.substring(0, 200) || "",
-          created_at: post.created_at || new Date().toISOString(),
-          views_count: post.views_count || post.views || 0,
-          likes_count: post.likes_count || 0,
-          comments_count: post.comments_count || 0,
-          master_id: post.master_id || "",
-          author_name: post.author_name || post.master_name || "Мастер",
-          author_avatar: post.author_avatar || post.master_avatar,
-          images: post.images || [],
-          main_image_url: post.main_image_url || "",
-          is_liked: post.is_liked || false,
-          comments: post.comments || [],
-        }));
-      }
+      if ( recentPostsData && recentPostsData.posts &&  Array.isArray(recentPostsData.posts)) {recentPostsArray = recentPostsData.posts.map((post: ApiPostData) => ({id: post.id, itle: post.title || "Без названия", content: post.content || "", excerpt: post.excerpt || post.content?.substring(0, 200) || "", created_at: post.created_at || new Date().toISOString(), views_count: post.views_count || post.views || 0, likes_count: post.likes_count || 0, comments_count: post.comments_count || 0, master_id: post.master_id || "", author_name: post.author_name || post.master_name || "Мастер", author_avatar: post.author_avatar || post.master_avatar, images: post.images || [], main_image_url: post.main_image_url || "", is_liked: post.is_liked || false, comments: post.comments || [] }));}
       setRecentPosts(recentPostsArray);
 
-      const formattedMyPosts: BlogPost[] = myPostsArray.map((post: ApiPostData) => ({
-        id: post.id,
-        title: post.title || "Без названия",
-        content: post.content || "",
-        excerpt: post.excerpt || post.content?.substring(0, 200) || "",
-        created_at: post.created_at || new Date().toISOString(),
-        views_count: post.views || post.views_count || 0,
-        likes_count: post.stats?.likes_count || post.likes_count || 0,
-        comments_count: post.stats?.comments_count || post.comments_count || 0,
-        master_id: post.master_id || session.user.id,
-        author_name: userFullName,
-        author_avatar: userAvatar,
-        images: post.images || [],
-        main_image_url: post.main_image_url || "",
-        is_liked: false,
-        comments: post.comments || [],
-      }));
+      const formattedMyPosts: BlogPost[] = myPostsArray.map((post: ApiPostData) => ({id: post.id, title: post.title || "Без названия", content: post.content || "", excerpt: post.excerpt || post.content?.substring(0, 200) || "", created_at: post.created_at || new Date().toISOString(), views_count: post.views || post.views_count || 0, likes_count: post.stats?.likes_count || post.likes_count || 0, comments_count: post.stats?.comments_count || post.comments_count || 0, master_id: post.master_id || session.user.id, author_name: userFullName, author_avatar: userAvatar, images: post.images || [], main_image_url: post.main_image_url || "", is_liked: false, comments: post.comments || []}));
 
       setMyPosts(formattedMyPosts);
 
-      setStats({
-        total_orders: 0,
-        new_orders: 0,
-        total_products: 0,
-        total_views: 0,
-        total_followers: 0,
-      });
+      setStats({total_orders: 0, new_orders: 0, total_products: 0, total_views: 0, total_followers: 0})
       setOrders([]);
       setNotifications([]);
     } catch (error) {
@@ -545,14 +376,8 @@ export default function MasterDashboard({
 
   const markNotificationAsRead = async (notificationId: string) => {
     try {
-      await fetch(`/api/master/notifications/${notificationId}`, {
-        method: "PATCH",
-      });
-      setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === notificationId ? { ...n, is_read: true } : n,
-        ),
-      );
+      await fetch(`/api/master/notifications/${notificationId}`, {method: "PATCH"})
+      setNotifications((prev) => prev.map((n) =>  n.id === notificationId ? { ...n, is_read: true } : n))
     } catch (error) {
       console.error("Error marking notification as read:", error);
     }
@@ -637,20 +462,10 @@ export default function MasterDashboard({
 
   if (loading) {
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="flex items-center justify-center min-h-[60vh]"
-      >
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto"
-          />
-          <p className="mt-4 font-['Montserrat_Alternates'] text-gray-600">
-            Загрузка кабинета мастера...
-          </p>
+          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto" />
+          <p className="mt-4 font-['Montserrat_Alternates'] text-text"> Загрузка кабинета мастера...</p>
         </div>
       </motion.div>
     );
@@ -660,127 +475,60 @@ export default function MasterDashboard({
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+      <div className="min-h-screen bg-linear-to-br from-gray-50 via-main to-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-          {/* Анимированный заголовок */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="bg-gradient-to-r from-firm-orange to-firm-pink rounded-2xl p-6 sm:p-8 mb-6 sm:mb-8 text-white shadow-xl"
-          >
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="bg-linear-to-r from-firm-orange to-firm-pink rounded-2xl p-6 sm:p-8 mb-6 sm:mb-8 text-main shadow-xl">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex items-center gap-4">
                 {masterAvatar && (
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-white/20 border-2 border-white flex-shrink-0">
-                    <Image
-                      src={masterAvatar}
-                      alt={masterName}
-                      width={64}
-                      height={64}
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-main/20 border-2 border-main shrink-0">
+                    <Image src={masterAvatar} alt={masterName} width={64} height={64} className="w-full h-full object-cover" />
                   </div>
                 )}
                 <div>
-                  <h1 className="font-['Montserrat_Alternates'] text-white font-bold text-xl sm:text-2xl md:text-3xl mb-1 sm:mb-2">
-                    Добро пожаловать,{" "}
-                    {masterName || session?.user?.name || "Мастер"}!
-                  </h1>
-                  <p className="text-white/80 text-sm sm:text-base">
-                    Вот что происходит с вашим магазином сегодня
-                  </p>
+                  <h1 className="font-['Montserrat_Alternates'] text-main font-bold text-xl sm:text-2xl md:text-3xl mb-1 sm:mb-2"> Добро пожаловать,{" "}{masterName || session?.user?.name || "Мастер"}! </h1>
+                  <p className="text-main/80 text-sm sm:text-base">Вот что происходит с вашим магазином сегодня </p>
                 </div>
               </div>
               <div className="flex items-center gap-3 sm:gap-4">
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <Link href="/chats" className="relative block">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
-                      <ChatIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" color="#FFFFFF" size={24} />
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-main/20 backdrop-blur rounded-full flex items-center justify-center hover:bg-main/30 transition-colors">
+                      <ChatIcon className="w-5 h-5 sm:w-6 sm:h-6 text-main" color="#FFFFFF" size={24} />
                     </div>
-                    {stats.total_followers > 0 && (
-                      <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                        {stats.total_followers > 9 ? "9+" : stats.total_followers}
-                      </span>
-                    )}
+                    {stats.total_followers > 0 && (<span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-firm-red text-main text-xs rounded-full flex items-center justify-center">{stats.total_followers > 9 ? "9+" : stats.total_followers}</span>)}
                   </Link>
                 </motion.div>
 
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="relative">
-                  <button
-                    onClick={() => setShowNotifications(!showNotifications)}
-                    className="relative w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
-                  >
-                    <NotificateIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" color="#FFFFFF" size={24} />
-                    {unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-yellow-400 text-white text-xs rounded-full flex items-center justify-center">
-                        {unreadCount > 9 ? "9+" : unreadCount}
-                      </span>
-                    )}
-                  </button>
-
+                  <button onClick={() => setShowNotifications(!showNotifications)} className="relative w-10 h-10 sm:w-12 sm:h-12 bg-main/20 backdrop-blur rounded-full flex items-center justify-center hover:bg-main/30 transition-colors"><NotificateIcon className="w-5 h-5 sm:w-6 sm:h-6 text-main" color="#FFFFFF" size={24} /> {unreadCount > 0 && (<span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-yellow-200 text-main text-xs rounded-full flex items-center justify-center">{unreadCount > 9 ? "9+" : unreadCount}</span>)}</button>
                   <AnimatePresence>
                     {showNotifications && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl shadow-2xl z-50 border border-gray-100 overflow-hidden"
-                      >
-                        <div className="p-4 bg-gradient-to-r from-firm-orange to-firm-pink">
-                          <h3 className="font-semibold text-white">Уведомления</h3>
+                      <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className="absolute right-0 mt-2 w-72 sm:w-80 bg-main rounded-2xl shadow-2xl z-50 border border-gray-100 overflow-hidden">
+                        <div className="p-4 bg-linear-to-r from-firm-orange to-firm-pink">
+                          <h3 className="font-semibold text-main">Уведомления</h3>
                         </div>
                         <div className="max-h-96 overflow-y-auto">
                           {notifications.length === 0 ? (
-                            <div className="p-6 text-center text-gray-500">
-                              Нет уведомлений
-                            </div>
+                            <div className="p-6 text-center text-firm-gray">Нет уведомлений</div>
                           ) : (
                             notifications.map((notif, idx) => (
-                              <motion.div
-                                key={notif.id}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: idx * 0.05 }}
-                                className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-all duration-300 ${
-                                  !notif.is_read ? "bg-gradient-to-r from-firm-orange/5 to-firm-pink/5" : ""
-                                }`}
-                                onClick={() => {
-                                  markNotificationAsRead(notif.id);
-                                  if (notif.link) router.push(notif.link);
-                                  setShowNotifications(false);
-                                }}
-                              >
+                              <motion.div key={notif.id} initial={{ opacity: 0, x: -20 }}  animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.05 }} className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-all duration-300 ${!notif.is_read ? "bg-linear-to-r from-firm-orange/5 to-firm-pink/5" : ""}`} onClick={() => { markNotificationAsRead(notif.id); if (notif.link) router.push(notif.link); setShowNotifications(false)}}>
                                 <div className="flex items-start gap-3">
-                                  <span className="text-firm-orange">
-                                    {getNotificationIcon(notif.type)}
-                                  </span>
+                                  <span className="text-firm-orange">{getNotificationIcon(notif.type)}</span>
                                   <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-sm truncate">
-                                      {notif.title}
-                                    </p>
-                                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                                      {notif.message}
-                                    </p>
-                                    <p className="text-xs text-gray-400 mt-2">
-                                      {new Date(notif.created_at).toLocaleDateString("ru-RU")}
-                                    </p>
+                                    <p className="font-medium text-sm truncate">{notif.title}</p>
+                                    <p className="text-xs text-firm-gray mt-1 line-clamp-2">{notif.message}</p>
+                                    <p className="text-xs text-firm-gray mt-2">{new Date(notif.created_at).toLocaleDateString("ru-RU")}</p>
                                   </div>
-                                  {!notif.is_read && (
-                                    <div className="w-2 h-2 bg-firm-orange rounded-full flex-shrink-0 mt-2"></div>
-                                  )}
+                                  {!notif.is_read && (<div className="w-2 h-2 bg-firm-orange rounded-full shrink-0 mt-2"></div>)}
                                 </div>
                               </motion.div>
                             ))
                           )}
                         </div>
-                        <div className="p-3 bg-gray-50 text-center">
-                          <Link
-                            href="/notifications"
-                            className="text-sm text-firm-orange hover:underline"
-                          >
-                            Все уведомления
-                          </Link>
+                        <div className="p-3 bg-main text-center">
+                          <Link href="/notifications" className="text-sm text-firm-orange hover:underline">Все уведомления</Link>
                         </div>
                       </motion.div>
                     )}
@@ -790,52 +538,13 @@ export default function MasterDashboard({
             </div>
           </motion.div>
 
-          {/* Статистика */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8">
-            {[
-              {
-                label: "Новые заказы",
-                value: stats.new_orders,
-                icon: <CartIcon className="w-6 h-6 sm:w-8 sm:h-8" color="#F97316" size={32} />,
-                color: "from-blue-500 to-blue-600",
-              },
-              {
-                label: "Всего заказов",
-                value: stats.total_orders,
-                icon: <CartIcon className="w-6 h-6 sm:w-8 sm:h-8" color="#22C55E" size={32} />,
-                color: "from-green-500 to-green-600",
-              },
-              {
-                label: "Товаров",
-                value: stats.total_products,
-                icon: <ProductsIcon className="w-6 h-6 sm:w-8 sm:h-8" color="#F97316" size={32} />,
-                color: "from-orange-500 to-orange-600",
-              },
-              {
-                label: "Просмотров",
-                value: stats.total_views,
-                icon: <EyeIcon className="w-6 h-6 sm:w-8 sm:h-8" color="#8B5CF6" size={32} />,
-                color: "from-purple-500 to-purple-600",
-              },
-            ].map((stat, idx) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                whileHover={{ y: -5 }}
-                className="bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-all duration-300"
-              >
+            {[{label: "Новые заказы", value: stats.new_orders, icon: <CartIcon className="w-6 h-6 sm:w-8 sm:h-8" color="#D97C8E" size={32} />, color: "#D97C8E"}, {label: "Всего заказов", value: stats.total_orders, icon: <CartIcon className="w-6 h-6 sm:w-8 sm:h-8" color="#94D06C" size={32} />, color: "#94D06C"},{label: "Товаров", value: stats.total_products, icon: <ProductsIcon className="w-6 h-6 sm:w-8 sm:h-8" color="#F4A67F" size={32} />, color: "#F4A67F" }, {label: "Просмотров", value: stats.total_views, icon: <ViewsIcon className="w-6 h-6 sm:w-8 sm:h-8" color="#D77C7C" size={32} />, color: "#D77C7C"}].map((stat, idx) => (
+              <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.1 }} whileHover={{ y: -5 }} className="bg-main rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-all duration-300">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-500 text-xs sm:text-sm font-['Montserrat_Alternates']">
-                      {stat.label}
-                    </p>
-                    <p
-                      className={`text-xl sm:text-2xl md:text-3xl font-bold mt-1 bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}
-                    >
-                      {stat.value.toLocaleString()}
-                    </p>
+                    <p className="text-firm-gray text-xs sm:text-sm font-['Montserrat_Alternates']">{stat.label}</p>
+                    <p className={`text-xl sm:text-2xl md:text-3xl font-bold mt-1 bg-linear-to-r ${stat.color} bg-clip-text text-transparent`}>{stat.value.toLocaleString()}</p>
                   </div>
                   <div>{stat.icon}</div>
                 </div>
@@ -843,67 +552,19 @@ export default function MasterDashboard({
             ))}
           </div>
 
-          {/* Быстрые действия */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="flex flex-wrap justify-center gap-3 sm:gap-4 mb-8 sm:mb-12"
-          >
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowAddProductModal(true)}
-              className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl font-['Montserrat_Alternates'] font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm sm:text-base"
-            >
-              <PlusIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#FFFFFF" size={20} />
-              Добавить товар
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowAddClassModal(true)}
-              className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-firm-pink to-purple-500 text-white rounded-xl font-['Montserrat_Alternates'] font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm sm:text-base"
-            >
-              <PlusIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#FFFFFF" size={20} />
-              Создать мастер-класс
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowAddPostModal(true)}
-              className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl font-['Montserrat_Alternates'] font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm sm:text-base"
-            >
-              <BlogIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#FFFFFF" size={20} />
-              Написать пост
-            </motion.button>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="flex flex-wrap justify-center gap-3 sm:gap-4 mb-8 sm:mb-12">
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}  onClick={() => setShowAddProductModal(true)} className="px-4 sm:px-6 py-2 sm:py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl font-['Montserrat_Alternates'] font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm sm:text-base"><CatalogPinkIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#F9f9f9" size={20} />Добавить товар</motion.button>
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowAddClassModal(true)} className="px-4 sm:px-6 py-2 sm:py-3 bg-firm-pink text-main rounded-xl font-['Montserrat_Alternates'] font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm sm:text-base"><ClassesIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#F9f9f9" size={20} />Создать мастер-класс</motion.button>
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowAddPostModal(true)} className="px-4 sm:px-6 py-2 sm:py-3 bg-linear-to-r from-firm-pink to-firm-orange text-main rounded-xl font-['Montserrat_Alternates'] font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm sm:text-base"><EditIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#FFFFFF" size={20} />Написать пост</motion.button>
           </motion.div>
 
-          {/* Заказы */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="bg-white rounded-xl sm:rounded-2xl shadow-xl mb-6 sm:mb-8 overflow-hidden"
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="bg-main rounded-xl sm:rounded-2xl shadow-xl mb-6 sm:mb-8 overflow-hidden">
             <div className="p-4 sm:p-6 border-b border-gray-200">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl sm:text-2xl flex items-center gap-2">
-                  <CartIcon className="w-5 h-5 sm:w-6 sm:h-6" color="#242424" size={24} />
-                  Заказы на мои товары
-                  {stats.new_orders > 0 && (
-                    <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                      {stats.new_orders} новых
-                    </span>
-                  )}
-                </h2>
+                <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl sm:text-2xl flex items-center gap-2">Заказы на мои товары {stats.new_orders > 0 && (<span className="bg-firm-red text-main text-xs px-2 py-1 rounded-full">{stats.new_orders} новых</span>)}</h2>
                 <div className="flex gap-2 w-full sm:w-auto">
                   <div className="relative flex-1 sm:flex-initial">
-                    <select 
-                      value={statusFilter}
-                      onChange={(e) => filterOrdersByStatus(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm appearance-none bg-white pr-8"
-                    >
+                    <select  value={statusFilter}  onChange={(e) => filterOrdersByStatus(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm appearance-none bg-main pr-8">
                       <option value="all">Все заказы</option>
                       <option value="new">Новые</option>
                       <option value="confirmed">Подтвержденные</option>
@@ -911,127 +572,61 @@ export default function MasterDashboard({
                       <option value="delivered">Доставленные</option>
                       <option value="cancelled">Отмененные</option>
                     </select>
-                    <FilterIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                    <FilterIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-firm-gray pointer-events-none" />
                   </div>
-                  <button
-                    onClick={fetchMasterOrders}
-                    className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
-                  >
-                    <RefreshIcon className="w-4 h-4" color="#242424" size={16} />
-                  </button>
+                  <button onClick={fetchMasterOrders} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"><RefreshIcon className="w-4 h-4" color="#242424" size={16} /></button>
                 </div>
               </div>
             </div>
             
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-main">
               {masterOrders.length === 0 ? (
-                <div className="p-8 sm:p-12 text-center text-gray-500">
+                <div className="p-8 sm:p-12 text-center text-firm-gray">
                   <div className="flex justify-center mb-4">
-                    <CartIcon className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300" color="#D1D5DB" size={64} />
+                    <CartIcon className="w-12 h-12 sm:w-16 sm:h-16 text-firm-gray" color="#737682" size={64} />
                   </div>
                   <p>У вас пока нет заказов на товары</p>
-                  <Link href="/master/products/add" className="text-firm-orange hover:underline mt-2 inline-block">
-                    Добавить товары →
-                  </Link>
+                  <Link href="/master/products/add" className="text-firm-orange hover:underline mt-2 inline-block">Добавить товары →</Link>
                 </div>
               ) : (
                 masterOrders.map((order, idx) => (
-                  <motion.div
-                    key={order.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    whileHover={{ backgroundColor: "#f9fafb" }}
-                    className="p-4 sm:p-6 transition-all duration-300"
-                  >
+                  <motion.div key={order.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.05 }} whileHover={{ backgroundColor: "#f9f9f9" }} className="p-4 sm:p-6 transition-all duration-300">
                     <div className="flex flex-col md:flex-row justify-between items-start gap-4">
                       <div className="flex-1 w-full min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-3">
-                          <span
-                            className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}
-                          >
-                            {getStatusText(order.status)}
-                          </span>
-                          <span className="text-xs sm:text-sm text-gray-500">
-                            №{order.order_number}
-                          </span>
-                          {order.payment_status && (
-                            <span className={`text-xs px-2 py-1 rounded-full ${
-                              order.payment_status === 'paid' 
-                                ? 'bg-green-100 text-green-700' 
-                                : 'bg-yellow-100 text-yellow-700'
-                            }`}>
-                              {order.payment_status === 'paid' ? 'Оплачен' : 'Ожидает оплаты'}
-                            </span>
-                          )}
+                          <span  className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>{getStatusText(order.status)}</span>
+                          <span className="text-xs sm:text-sm text-firm-gray">№{order.order_number}</span>
+                          {order.payment_status && (<span className={`text-xs px-2 py-1 rounded-full ${order.payment_status === 'paid'  ? 'bg-green-100 text-firm-green'  : 'bg-yellow-100 text-firm-red'}`}>{order.payment_status === 'paid' ? 'Оплачен' : 'Ожидает оплаты'}</span>)}
                         </div>
                         
                         {order.items && order.items.length > 0 && (
                           <div className="mb-3">
                             <p className="font-medium text-sm">Товары в заказе:</p>
                             <div className="flex flex-wrap gap-2 mt-1">
-                              {order.items.map((item, i) => (
-                                <span key={i} className="text-xs sm:text-sm bg-gray-100 px-2 py-1 rounded">
-                                  {item.product_title} x{item.quantity}
-                                </span>
-                              ))}
+                              {order.items.map((item, i) => (<span key={i} className="text-xs sm:text-sm bg-main px-2 py-1 rounded">{item.product_title} x{item.quantity}</span>))}
                             </div>
                           </div>
                         )}
                         
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm text-gray-500">
-                          <span className="flex items-center gap-1">
-                            <UserIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#6B7280" size={14} />
-                            Покупатель: {order.buyer_name || 'Не указан'}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <span className="font-medium">₽</span>
-                            {order.total_amount.toLocaleString()} ₽
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#6B7280" size={14} />
-                            {new Date(order.created_at).toLocaleDateString("ru-RU")}
-                          </span>
-                          {order.shipping_city && order.shipping_address && (
-                            <span className="flex items-center gap-1 sm:col-span-2">
-                              <LocateIcon className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" color="#6B7280" size={14} />
-                              <span className="truncate">{order.shipping_city}, {order.shipping_address}</span>
-                            </span>
-                          )}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm text-firm-gray">
+                          <span className="flex items-center gap-1"><UserIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#737682" size={14} /> Покупатель: {order.buyer_name || 'Не указан'}</span>
+                          <span className="flex items-center gap-1"><span className="font-medium">₽</span>{order.total_amount.toLocaleString()} ₽</span>
+                          <span className="flex items-center gap-1"><CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#737682" size={14} />{new Date(order.created_at).toLocaleDateString("ru-RU")}</span>
+                          {order.shipping_city && order.shipping_address && (<span className="flex items-center gap-1 sm:col-span-2"><LocateIcon className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" color="#737682" size={14} /><span className="truncate">{order.shipping_city}, {order.shipping_address}</span></span>)}
                         </div>
                         
                         {order.buyer_comment && (
-                          <div className="mt-3 p-2 sm:p-3 bg-gray-50 rounded-lg text-xs sm:text-sm">
-                            <span className="font-medium">Комментарий покупателя:</span>
-                            <p className="text-gray-600 mt-1 break-words">{order.buyer_comment}</p>
+                          <div className="mt-3 p-2 sm:p-3 bg-main rounded-lg text-xs sm:text-sm">
+                            <span className="font-medium">Комментарий покупателя:</span><p className="text-text mt-1 wrap-break-words">{order.buyer_comment}</p>
                           </div>
                         )}
                       </div>
                       
-                      <div className="flex flex-row md:flex-col gap-2 w-full md:w-auto md:min-w-[140px]">
-                        <Link href={`/master/orders/${order.id}`} className="flex-1 md:flex-none">
-                          <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="w-full px-3 sm:px-4 py-2 text-xs sm:text-sm border border-firm-orange text-firm-orange rounded-xl hover:bg-firm-orange hover:text-white transition-all duration-300"
-                          >
-                            Подробнее
-                          </motion.button>
-                        </Link>
+                      <div className="flex flex-row md:flex-col gap-2 w-full md:w-auto md:min-w-35">
+                        <Link href={`/master/orders/${order.id}`} className="flex-1 md:flex-none"><motion.button  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full px-3 sm:px-4 py-2 text-xs sm:text-sm border border-firm-orange text-firm-orange rounded-xl hover:bg-firm-orange hover:text-main transition-all duration-300">Подробнее</motion.button></Link>
                         
-                        <select
-                          value={order.status}
-                          onChange={(e) => {
-                              const newStatus = e.target.value;
-                              if (newStatus === 'shipped') {
-                                  setShowTrackingModal(order.id);
-                              } else {
-                                  updateOrderStatus(order.id, newStatus);
-                              }
-                          }}
-                          disabled={updatingOrderId === order.id}
-                          className="flex-1 md:flex-none px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-200 rounded-xl focus:border-firm-orange focus:outline-none"
-                        >
+                        <select value={order.status} onChange={(e) => {const newStatus = e.target.value; if (newStatus === 'shipped') {setShowTrackingModal(order.id)} else {updateOrderStatus(order.id, newStatus)}}} disabled={updatingOrderId === order.id}
+                          className="flex-1 md:flex-none px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-200 rounded-xl focus:border-firm-orange focus:outline-none">
                           <option value="new">Новый</option>
                           <option value="confirmed">Подтвердить</option>
                           <option value="shipped">Отправлен</option>
@@ -1052,199 +647,74 @@ export default function MasterDashboard({
             </div>
           </motion.div>
 
-          {/* Модальное окно для трек-номера */}
           <AnimatePresence>
             {showTrackingModal && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-white rounded-2xl max-w-md w-full p-4 sm:p-6 mx-4"
-                >
+              <div className="fixed inset-0 bg-firm-black/50 flex items-center justify-center z-50 p-4">
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-main rounded-2xl max-w-md w-full p-4 sm:p-6 mx-4">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg sm:text-xl font-semibold">Отправка заказа</h3>
-                    <button onClick={() => setShowTrackingModal(null)} className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
-                      <CloseIcon className="w-5 h-5 text-gray-500" color="#6B7280" size={20} />
-                    </button>
+                    <button onClick={() => setShowTrackingModal(null)} className="p-1 hover:bg-gray-100 rounded-lg transition-colors"><CloseIcon className="w-5 h-5 text-firm-gray" color="#737682" size={20} /></button>
                   </div>
-                  <p className="text-gray-600 mb-4 text-sm">
-                    Укажите трек-номер для отслеживания посылки
-                  </p>
-                  <input
-                    type="text"
-                    value={trackingNumber[showTrackingModal] || ''}
-                    onChange={(e) => setTrackingNumber(prev => ({ ...prev, [showTrackingModal]: e.target.value }))}
-                    placeholder="Трек-номер"
-                    className="w-full p-3 border border-gray-200 rounded-xl mb-4 focus:border-firm-orange focus:outline-none text-sm"
-                  />
+                  <p className="text-firm-gray mb-4 text-sm">Укажите трек-номер для отслеживания посылки</p>
+                  <input type="text" value={trackingNumber[showTrackingModal] || ''} onChange={(e) => setTrackingNumber(prev => ({ ...prev, [showTrackingModal]: e.target.value }))} placeholder="Трек-номер" className="w-full p-3 border border-gray-200 rounded-xl mb-4 focus:border-firm-orange focus:outline-none text-sm" />
                   <div className="flex gap-3">
-                    <button
-                      onClick={() => updateOrderStatus(showTrackingModal, 'shipped', trackingNumber[showTrackingModal])}
-                      className="flex-1 px-4 py-2 bg-firm-orange text-white rounded-xl hover:bg-firm-pink transition-colors text-sm"
-                    >
-                      Подтвердить отправку
-                    </button>
-                    <button
-                      onClick={() => setShowTrackingModal(null)}
-                      className="flex-1 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors text-sm"
-                    >
-                      Отмена
-                    </button>
+                    <button  onClick={() => updateOrderStatus(showTrackingModal, 'shipped', trackingNumber[showTrackingModal])} className="flex-1 px-4 py-2 bg-firm-orange text-main rounded-xl hover:bg-firm-pink transition-colors text-sm">Подтвердить отправку</button>
+                    <button onClick={() => setShowTrackingModal(null)} className="flex-1 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors text-sm">Отмена</button>
                   </div>
                 </motion.div>
               </div>
             )}
           </AnimatePresence>
 
-          {/* Лента новостей */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="bg-white rounded-xl sm:rounded-2xl shadow-xl overflow-hidden"
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="bg-main rounded-xl sm:rounded-2xl shadow-xl overflow-hidden">
             <div className="p-4 sm:p-6 border-gray-200 border-b">
               <div className="flex gap-4 sm:gap-6">
-                <button
-                  onClick={() => setActiveTab("recent")}
-                  className={`pb-2 font-['Montserrat_Alternates'] font-medium transition-all duration-300 relative text-sm sm:text-base ${
-                    activeTab === "recent"
-                      ? "text-firm-orange"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  Свежие посты
-                  {activeTab === "recent" && (
-                    <motion.div
-                      layoutId="underline"
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-firm-orange to-firm-pink"
-                    />
-                  )}
-                </button>
-                <button
-                  onClick={() => setActiveTab("my")}
-                  className={`pb-2 font-['Montserrat_Alternates'] font-medium transition-all duration-300 relative text-sm sm:text-base ${
-                    activeTab === "my"
-                      ? "text-firm-pink"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  Мои посты
-                  {activeTab === "my" && (
-                    <motion.div
-                      layoutId="underline"
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-firm-pink to-firm-orange"
-                    />
-                  )}
-                </button>
+                <button onClick={() => setActiveTab("recent")} className={`pb-2 font-['Montserrat_Alternates'] font-medium transition-all duration-300 relative text-sm sm:text-base ${activeTab === "recent" ? "text-firm-orange" : "text-firm-gray hover:text-text"}`}>Свежие посты {activeTab === "recent" && ( <motion.div layoutId="underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-firm-orange to-firm-pink" /> )}</button>
+                <button onClick={() => setActiveTab("my")} className={`pb-2 font-['Montserrat_Alternates'] font-medium transition-all duration-300 relative text-sm sm:text-base ${activeTab === "my" ? "text-firm-pink" : "text-gray-500 hover:text-text" }`}>Мои посты{activeTab === "my" && (<motion.div layoutId="underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-firm-pink to-firm-orange" />)}</button>
               </div>
             </div>
 
             <AnimatePresence mode="wait">
               {activeTab === "recent" && (
-                <motion.div
-                  key="recent"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="space-y-5 p-4 sm:p-6"
-                >
+                <motion.div key="recent" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }} className="space-y-5 p-4 sm:p-6">
                   {recentPosts.length === 0 ? (
-                    <div className="p-8 sm:p-12 text-center text-gray-500">
-                      <BlogIcon className="w-12 h-12 mx-auto text-gray-300 mb-3" color="#D1D5DB" size={48} />
+                    <div className="p-8 sm:p-12 text-center text-text">
+                      <BlogIcon className="w-12 h-12 mx-auto text-firm-gray mb-3" color="#737682" size={48} />
                       <p>Пока нет постов</p>
                     </div>
                   ) : (
                     recentPosts.map((post) => (
-                      <BlogPostCard
-                        key={post.id}
-                        post={normalizePostForCard(post)}
-                        isOwner={true}
-                        showComments={showComments === post.id}
-                        onEdit={(postId) =>
-                          router.push(`/master/blog/${postId}/edit`)
-                        }
-                        onDelete={() => handleDeletePost(post.id)}
-                      />
-                    ))
+                      <BlogPostCard key={post.id} post={normalizePostForCard(post)} isOwner={true} showComments={showComments === post.id} onEdit={(postId) => router.push(`/master/blog/${postId}/edit`)} onDelete={() => handleDeletePost(post.id)} />))
                   )}
                 </motion.div>
               )}
 
               {activeTab === "my" && (
-                <motion.div
-                  key="my"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="space-y-5 p-4 sm:p-6"
-                >
+                <motion.div key="my" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }} className="space-y-5 p-4 sm:p-6">
                   {myPosts.length === 0 ? (
-                    <div className="p-8 sm:p-12 text-center text-gray-500">
-                      <BlogIcon className="w-12 h-12 mx-auto text-gray-300 mb-3" color="#D1D5DB" size={48} />
+                    <div className="p-8 sm:p-12 text-center text-text">
+                      <BlogIcon className="w-12 h-12 mx-auto text-firm-gray mb-3" color="#D1D5DB" size={48} />
                       <p>У вас пока нет постов</p>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        onClick={() => setShowAddPostModal(true)}
-                        className="text-firm-orange hover:underline mt-2 inline-block"
-                      >
-                        Написать первый пост →
-                      </motion.button>
+                      <motion.button whileHover={{ scale: 1.05 }} onClick={() => setShowAddPostModal(true)} className="text-firm-orange hover:underline mt-2 inline-block">Написать первый пост →</motion.button>
                     </div>
                   ) : (
                     myPosts.map((post) => (
-                      <BlogPostCard
-                        key={post.id}
-                        post={normalizePostForCard(post)}
-                        isOwner={true}
-                        showComments={showComments === post.id}
-                        onEdit={(postId) =>
-                          router.push(`/master/blog/${postId}/edit`)
-                        }
-                        onDelete={() => handleDeletePost(post.id)}
-                      />
-                    ))
+                      <BlogPostCard  key={post.id} post={normalizePostForCard(post)} isOwner={true} showComments={showComments === post.id} onEdit={(postId) => router.push(`/master/blog/${postId}/edit`)} onDelete={() => handleDeletePost(post.id)} />))
                   )}
                 </motion.div>
               )}
             </AnimatePresence>
           </motion.div>
 
-          {/* Модальные окна */}
-          <AddProductModal
-            isOpen={showAddProductModal}
-            onClose={() => setShowAddProductModal(false)}
-            onSuccess={fetchMasterData}
-            categories={categories}
-            yarns={yarns}
-          />
+          <AddProductModal isOpen={showAddProductModal} onClose={() => setShowAddProductModal(false)} onSuccess={fetchMasterData} categories={categories} yarns={yarns} />
 
-          <AddPostModal
-            isOpen={showAddPostModal}
-            onClose={() => setShowAddPostModal(false)}
-            onSuccess={fetchMasterData}
-            session={session}
-          />
+          <AddPostModal isOpen={showAddPostModal}  onClose={() => setShowAddPostModal(false)} onSuccess={fetchMasterData} session={session} />
 
-          <AddClassModal
-            isOpen={showAddClassModal}
-            onClose={() => setShowAddClassModal(false)}
-            onSuccess={fetchMasterData}
-          />
+          <AddClassModal  isOpen={showAddClassModal} onClose={() => setShowAddClassModal(false)} onSuccess={fetchMasterData} />
         </div>
       </div>
 
-      <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        title={confirmModal.title}
-        message={confirmModal.message}
-        type={confirmModal.type}
-        onConfirm={confirmModal.onConfirm}
-        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
-      />
+      <ConfirmModal isOpen={confirmModal.isOpen} title={confirmModal.title} message={confirmModal.message} type={confirmModal.type} onConfirm={confirmModal.onConfirm} onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} />
     </>
   );
 }
