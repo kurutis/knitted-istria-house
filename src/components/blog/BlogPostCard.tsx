@@ -610,7 +610,7 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
 
           <p className="text-gray-600 text-sm sm:text-base mt-3 sm:mt-4 leading-relaxed line-clamp-3">{post.excerpt || post.content?.substring(0, 300)}...</p>
 
-          <Link href={`/blog/${post.id}`} className="inline-flex items-center gap-1.5 sm:gap-2 text-firm-orange hover:text-firm-pink text-xs sm:text-sm font-medium mt-2 sm:mt-3 group transition-colors duration-300"><span>Читать полностью</span><motion.span animate={{ x: [0, 5, 0] }} transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }} className="inline-block text-sm sm:text-base">→</motion.span></Link>
+          <Link href={`/blog/${post.id}`} className="inline-flex items-center gap-1.5 sm:gap-2 text-firm-orange hover:text-firm-pink text-xs sm:text-sm font-medium mt-2 sm:mt-3 group transition-colors duration-300"><span className="text-firm-orange hover:text-firm-pink">Читать полностью</span><motion.span animate={{ x: [0, 5, 0] }} transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }} className="inline-block text-sm sm:text-base text-firm-orange hover:text-firm-pink">→</motion.span></Link>
 
           {renderActions()}
           {renderComments()}
