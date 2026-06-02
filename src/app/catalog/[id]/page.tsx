@@ -667,7 +667,7 @@ export default function ProductPage() {
                                       </div>
                                     </div>
                                     
-                                    {session?.user?.id === review.author_id && (
+                                   {session && session.user?.id === review.author_id && (
                                       <div className="flex gap-2">
                                         <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => startEditingReview(review)} className="text-firm-orange hover:text-firm-pink transition text-xs sm:text-sm flex items-center gap-1"><EditIcon className="w-3.5 h-3.5" color="#F4A67F" /><span className="hidden sm:inline text-firm-orange hover:text-firm-pink">Редактировать</span></motion.button>
                                         <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => handleDeleteReview(review.id)} className="text-firm-red hover:text-red-700 transition text-xs sm:text-sm flex items-center gap-1"><DeleteIcon className="w-3.5 h-3.5" color="#D77C7C" /><span className="hidden sm:inline">Удалить</span></motion.button>
