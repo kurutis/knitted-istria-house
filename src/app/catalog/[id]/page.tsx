@@ -9,6 +9,16 @@ import toast from "react-hot-toast";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import EditProductModal from "@/components/modals/EditProductModal";
 
+// Импорт иконок из библиотеки
+import { CartIcon } from "@/components/icons/CartIcon";
+import { LikeIcon } from "@/components/icons/LikeIcon";
+import { EditIcon } from "@/components/icons/EditIcon";
+import { DeleteIcon } from "@/components/icons/DeleteIcon";
+import { CloseIcon } from "@/components/icons/CloseIcon";
+import { PlusIcon } from "@/components/icons/PlusIcon";
+import { MinusIcon } from "@/components/icons/MinusIcon";
+import { CameraIcon } from "@/components/icons/CameraIcon";
+
 interface Review {
   id: string;
   rating: number;
@@ -71,6 +81,40 @@ interface RawCategory {
   subcategories?: RawCategory[];
 }
 
+// Компонент звездного рейтинга
+const StarRating = ({ rating, onRatingChange, size = "md" }: { rating: number; onRatingChange?: (rating: number) => void; size?: "sm" | "md" | "lg" }) => {
+  const sizeClasses = { sm: "text-lg", md: "text-2xl", lg: "text-3xl" };
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          onClick={() => onRatingChange?.(star)}
+          className={`focus:outline-none transition-transform hover:scale-110 ${!onRatingChange ? "cursor-default" : ""}`}
+        >
+          <span className={star <= rating ? "text-yellow-400" : "text-gray-300"}>
+            ★
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+};
+
+// Компонент миниатюры изображения
+const ImageThumbnail = ({ src, alt, isActive, onClick }: { src: string; alt: string; isActive: boolean; onClick: () => void }) => (
+  <motion.button
+    whileHover={{ scale: 1.05 }}
+    whileTap={{ scale: 0.95 }}
+    onClick={onClick}
+    className={`aspect-square bg-gray-100 rounded-xl overflow-hidden border-2 transition-all ${
+      isActive ? "border-firm-orange shadow-md" : "border-transparent hover:border-gray-300"
+    }`}
+  >
+    <img src={src} alt={alt} className="w-full h-full object-cover" />
+  </motion.button>
+);
+
 export default function ProductPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -82,9 +126,7 @@ export default function ProductPage() {
   const [isInCart, setIsInCart] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [activeTab, setActiveTab] = useState<
-    "specs" | "description" | "care" | "reviews"
-  >("specs");
+  const [activeTab, setActiveTab] = useState<"specs" | "description" | "care" | "reviews">("specs");
   const [updatingCart, setUpdatingCart] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
@@ -94,6 +136,7 @@ export default function ProductPage() {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
   const reviewFileInputRef = useRef<HTMLInputElement>(null);
   
   // Состояния для редактирования отзыва
@@ -120,6 +163,13 @@ export default function ProductPage() {
     onConfirm: () => {},
     type: 'danger'
   });
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   useEffect(() => {
     if (id) {
@@ -156,7 +206,6 @@ export default function ProductPage() {
       const response = await fetch("/api/catalog/categories");
       const data = await response.json();
       const categoriesData = data.categories || [];
-      // Преобразуем в формат CategoryItem
       const transformedCategories: CategoryItem[] = categoriesData.map((cat: RawCategory) => ({
         id: cat.id,
         name: cat.name,
@@ -173,8 +222,7 @@ export default function ProductPage() {
       const response = await fetch("/api/cart");
       const data = await response.json();
       const cartItem = data.items?.find(
-        (item: { product_id: string; quantity: number }) =>
-          item.product_id === id,
+        (item: { product_id: string; quantity: number }) => item.product_id === id
       );
       if (cartItem) {
         setIsInCart(true);
@@ -190,9 +238,7 @@ export default function ProductPage() {
       const response = await fetch("/api/user/favorites");
       const data = await response.json();
       const favoritesList = data.favorites || (Array.isArray(data) ? data : []);
-      const isFav = favoritesList.some(
-        (item: { id: string }) => item.id === id,
-      );
+      const isFav = favoritesList.some((item: { id: string }) => item.id === id);
       setIsFavorite(isFav);
     } catch (error) {
       console.error("Error checking favorite status:", error);
@@ -201,7 +247,7 @@ export default function ProductPage() {
 
   const handleAddToCart = async () => {
     if (!session) {
-      window.location.href = `/auth/signin?callbackUrl=/catalog/${id}`;
+      router.push(`/auth/signin?callbackUrl=/catalog/${id}`);
       return;
     }
 
@@ -227,9 +273,7 @@ export default function ProductPage() {
   const handleRemoveFromCart = async () => {
     setUpdatingCart(true);
     try {
-      const response = await fetch(`/api/cart?productId=${id}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(`/api/cart?productId=${id}`, { method: "DELETE" });
       if (response.ok) {
         setIsInCart(false);
         setQuantity(1);
@@ -256,7 +300,6 @@ export default function ProductPage() {
       });
 
       if (!response.ok) {
-        console.error("Failed to update quantity");
         toast.error("Ошибка при обновлении количества");
       }
     } catch (error) {
@@ -269,15 +312,13 @@ export default function ProductPage() {
 
   const handleToggleFavorite = async () => {
     if (!session) {
-      window.location.href = `/auth/signin?callbackUrl=/catalog/${id}`;
+      router.push(`/auth/signin?callbackUrl=/catalog/${id}`);
       return;
     }
 
     try {
       const method = isFavorite ? "DELETE" : "POST";
-      const url = isFavorite
-        ? `/api/user/favorites?productId=${id}`
-        : "/api/user/favorites";
+      const url = isFavorite ? `/api/user/favorites?productId=${id}` : "/api/user/favorites";
 
       const response = await fetch(url, {
         method,
@@ -468,9 +509,7 @@ export default function ProductPage() {
       onConfirm: async () => {
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
         try {
-          const response = await fetch(`/api/reviews/${reviewId}`, {
-            method: "DELETE"
-          });
+          const response = await fetch(`/api/reviews/${reviewId}`, { method: "DELETE" });
 
           if (response.ok) {
             toast.success("Отзыв удален");
@@ -496,9 +535,7 @@ export default function ProductPage() {
       onConfirm: async () => {
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
         try {
-          const response = await fetch(`/api/master/products/${id}`, {
-            method: "DELETE",
-          });
+          const response = await fetch(`/api/master/products/${id}`, { method: "DELETE" });
 
           if (response.ok) {
             toast.success("Товар удален");
@@ -519,18 +556,29 @@ export default function ProductPage() {
     fetchProduct();
   };
 
-  const isAuthor =
-    session?.user?.id === product?.master_id &&
-    session?.user?.role === "master";
+  const isAuthor = session?.user?.id === product?.master_id && session?.user?.role === "master";
+
+  // Анимации
+  const fadeInUp = {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.5 }
+  };
+
+  const staggerContainer = {
+    animate: { transition: { staggerChildren: 0.1 } }
+  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="mt-4 font-['Montserrat_Alternates'] text-gray-600">
-            Загрузка...
-          </p>
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto"
+          />
+          <p className="mt-4 font-['Montserrat_Alternates'] text-gray-500">Загрузка товара...</p>
         </div>
       </div>
     );
@@ -540,11 +588,8 @@ export default function ProductPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh] px-4">
         <div className="text-center">
-          <p className="text-red-500 mb-4">{error || "Товар не найден"}</p>
-          <Link
-            href="/catalog"
-            className="px-6 py-3 bg-firm-orange text-white rounded-lg inline-block"
-          >
+          <p className="text-firm-red mb-4">{error || "Товар не найден"}</p>
+          <Link href="/catalog" className="inline-block px-6 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300">
             Вернуться в каталог
           </Link>
         </div>
@@ -552,146 +597,120 @@ export default function ProductPage() {
     );
   }
 
-  const displayImages =
-    product.images?.length > 0
-      ? product.images
-      : product.main_image_url
-        ? [
-            {
-              id: "placeholder",
-              image_url: product.main_image_url,
-              sort_order: 0,
-            },
-          ]
-        : [];
+  const displayImages = product.images?.length > 0
+    ? product.images
+    : product.main_image_url
+      ? [{ id: "placeholder", image_url: product.main_image_url, sort_order: 0 }]
+      : [];
 
-  // Кнопки для мастера (вместо корзины и избранного)
+  // Кнопки для мастера
   const MasterActions = () => (
     <div className="flex gap-3">
-      <button
+      <motion.button
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
         onClick={() => setShowEditModal(true)}
-        className="flex-1 px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300"
+        className="flex-1 px-4 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 text-sm sm:text-base"
       >
-        ✏️ Редактировать
-      </button>
-      <button
+        <EditIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#FFFFFF" />
+        <span>Редактировать</span>
+      </motion.button>
+      <motion.button
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
         onClick={handleDeleteProduct}
-        className="flex-1 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:shadow-lg transition-all duration-300"
+        className="flex-1 px-4 py-3 bg-firm-red text-white rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 text-sm sm:text-base"
       >
-        🗑️ Удалить
-      </button>
+        <DeleteIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#FFFFFF" />
+        <span>Удалить</span>
+      </motion.button>
     </div>
   );
 
-  // Кнопки для покупателя (корзина + избранное)
+  // Кнопки для покупателя
   const BuyerActions = () => (
     <div className="flex gap-3">
       <div className="flex-1">
         {isInCart ? (
           <div className="flex items-center justify-between bg-gray-100 rounded-xl p-1">
-            <button
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => handleUpdateQuantity(quantity - 1)}
               disabled={quantity <= 1 || updatingCart}
-              className="w-10 h-10 rounded-lg bg-firm-orange text-white flex items-center justify-center hover:bg-opacity-90 transition disabled:opacity-50"
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-firm-orange text-white flex items-center justify-center hover:bg-opacity-90 transition disabled:opacity-50"
             >
-              -
-            </button>
-            <span className="w-12 text-center font-medium">{quantity}</span>
-            <button
+              <MinusIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#FFFFFF" />
+            </motion.button>
+            <span className="w-10 text-center font-medium text-sm sm:text-base">{quantity}</span>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => handleUpdateQuantity(quantity + 1)}
               disabled={updatingCart}
-              className="w-10 h-10 rounded-lg bg-firm-orange text-white flex items-center justify-center hover:bg-opacity-90 transition disabled:opacity-50"
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-firm-orange text-white flex items-center justify-center hover:bg-opacity-90 transition disabled:opacity-50"
             >
-              +
-            </button>
-            <button
+              <PlusIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#FFFFFF" />
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={handleRemoveFromCart}
-              className="ml-2 px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+              className="ml-2 px-2 sm:px-3 py-1.5 sm:py-2 text-firm-red hover:bg-red-50 rounded-lg transition text-xs sm:text-sm"
             >
               Удалить
-            </button>
+            </motion.button>
           </div>
         ) : (
-          <button
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={handleAddToCart}
             disabled={updatingCart}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-firm-orange text-white rounded-xl hover:bg-opacity-90 transition disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 text-sm sm:text-base"
           >
-            <svg
-              width="24"
-              height="20"
-              viewBox="0 0 46 38"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M2.06369 17.3916C1.9852 17.0783 1.97917 16.7512 2.04607 16.4351C2.11296 16.1191 2.25101 15.8225 2.44973 15.5679C2.64845 15.3132 2.90261 15.1072 3.19289 14.9656C3.48317 14.8239 3.80193 14.7502 4.12494 14.7502H41.1849C41.5077 14.7503 41.8262 14.8239 42.1163 14.9655C42.4064 15.1071 42.6604 15.3128 42.8591 15.5672C43.0578 15.8216 43.1959 16.1179 43.263 16.4337C43.3301 16.7494 43.3243 17.0763 43.2462 17.3895L39.3978 32.7808C39.168 33.7003 38.6374 34.5165 37.8905 35.0998C37.1435 35.6832 36.223 36.0001 35.2753 36.0002H10.0346C9.08684 36.0001 8.16635 35.6832 7.4194 35.0998C6.67244 34.5165 6.14189 33.7003 5.91207 32.7808L2.06369 17.3916Z"
-                stroke="white"
-                strokeWidth="3"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M16.2798 23.2502V27.5002M29.0298 23.2502V27.5002M9.90479 14.7502L18.4048 2.00021M35.4048 14.7502L26.9048 2.00021"
-                stroke="white"
-                strokeWidth="3"
-                strokeLinecap="round"
-              />
-            </svg>
+            <CartIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#FFFFFF" size={20} />
             <span>В корзину</span>
-          </button>
+          </motion.button>
         )}
       </div>
 
-      <button
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
         onClick={handleToggleFavorite}
-        className={`w-12 h-12 rounded-xl border-2 transition-all flex items-center justify-center flex-shrink-0 ${
+        className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl border-2 transition-all flex items-center justify-center flex-shrink-0 ${
           isFavorite
-            ? "border-firm-pink bg-firm-pink text-white"
-            : "border-gray-300 hover:border-firm-pink hover:bg-firm-pink hover:text-white"
+            ? "border-firm-pink bg-firm-pink text-white shadow-md"
+            : "border-gray-300 hover:border-firm-pink hover:bg-firm-pink/10"
         }`}
       >
-        <svg
-          className="w-5 h-5"
-          fill={isFavorite ? "currentColor" : "none"}
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-          />
-        </svg>
-      </button>
+        <LikeIcon isActive={isFavorite} className="w-4 h-4 sm:w-5 sm:h-5" />
+      </motion.button>
     </div>
   );
 
   return (
     <>
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Хлебные крошки */}
-        <div className="text-sm text-gray-500 mb-6">
-          <Link href="/" className="hover:text-firm-orange">
-            Главная
-          </Link>
+        <div className="text-xs sm:text-sm text-firm-gray mb-6">
+          <Link href="/" className="hover:text-firm-orange transition-colors">Главная</Link>
           <span className="mx-2">/</span>
-          <Link href="/catalog" className="hover:text-firm-orange">
-            Каталог
-          </Link>
+          <Link href="/catalog" className="hover:text-firm-orange transition-colors">Каталог</Link>
           <span className="mx-2">/</span>
-          <span className="text-gray-700">{product.title}</span>
+          <span className="text-text truncate">{product.title}</span>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
           {/* Левая колонка - галерея */}
-          <div>
-            <div className="aspect-square bg-gray-100 rounded-2xl overflow-hidden">
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
+            <div className="aspect-square bg-gray-100 rounded-2xl overflow-hidden shadow-lg">
               {displayImages[selectedImage]?.image_url ? (
                 <img
                   src={displayImages[selectedImage].image_url}
                   alt={product.title}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400">
@@ -702,44 +721,37 @@ export default function ProductPage() {
             {displayImages.length > 1 && (
               <div className="grid grid-cols-5 gap-2 mt-4">
                 {displayImages.map((img, index) => (
-                  <button
+                  <ImageThumbnail
                     key={img.id}
+                    src={img.image_url}
+                    alt={`${product.title} - фото ${index + 1}`}
+                    isActive={selectedImage === index}
                     onClick={() => setSelectedImage(index)}
-                    className={`aspect-square bg-gray-100 rounded-lg overflow-hidden border-2 transition-all ${
-                      selectedImage === index
-                        ? "border-firm-orange"
-                        : "border-transparent"
-                    }`}
-                  >
-                    <img
-                      src={img.image_url}
-                      alt={`${product.title} - фото ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
+                  />
                 ))}
               </div>
             )}
-          </div>
+          </motion.div>
 
           {/* Правая колонка - информация */}
-          <div>
-            <h1 className="font-['Montserrat_Alternates'] font-bold text-2xl md:text-3xl mb-2">
+          <motion.div
+            variants={staggerContainer}
+            initial="initial"
+            animate="animate"
+            className="space-y-4"
+          >
+            <motion.h1 variants={fadeInUp} className="font-['Montserrat_Alternates'] font-bold text-2xl sm:text-3xl md:text-4xl text-text">
               {product.title}
-            </h1>
+            </motion.h1>
 
-            <div className="flex flex-wrap items-center gap-3 mb-4">
+            <motion.div variants={fadeInUp} className="flex flex-wrap items-center gap-3">
               <Link
                 href={`/masters/${product.master_id}`}
-                className="flex items-center gap-2 hover:opacity-80 group"
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity group"
               >
                 <div className="w-8 h-8 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-sm font-bold overflow-hidden">
                   {product.master_avatar ? (
-                    <img
-                      src={product.master_avatar}
-                      alt={product.master_name}
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={product.master_avatar} alt={product.master_name} className="w-full h-full object-cover" />
                   ) : (
                     product.master_name?.charAt(0).toUpperCase()
                   )}
@@ -749,224 +761,195 @@ export default function ProductPage() {
                 </span>
               </Link>
               <span className="text-gray-300">|</span>
-              <div className="flex items-center gap-1">
-                <span className="text-yellow-400">★</span>
-                <span className="font-semibold text-sm">
-                  {product.rating || "Нет оценок"}
+              <div className="flex items-center gap-2">
+                <StarRating rating={Math.floor(product.rating || 0)} />
+                <span className="font-semibold text-sm text-text">
+                  {product.rating?.toFixed(1) || "Нет оценок"}
                 </span>
-                <span className="text-gray-400 text-sm">
+                <span className="text-firm-gray text-sm">
                   ({product.reviews_count || 0} отзывов)
                 </span>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="text-3xl font-bold text-firm-orange mb-6">
+            <motion.div variants={fadeInUp} className="text-2xl sm:text-3xl font-bold text-firm-orange">
               {product.price.toLocaleString()} ₽
-            </div>
+            </motion.div>
 
-            {/* Действия: для мастера - редактирование/удаление, для покупателя - корзина/избранное */}
-            {isAuthor ? <MasterActions /> : <BuyerActions />}
+            {/* Действия */}
+            <motion.div variants={fadeInUp}>
+              {isAuthor ? <MasterActions /> : <BuyerActions />}
+            </motion.div>
 
             {/* Характеристики */}
-            <div className="my-6">
+            <motion.div variants={fadeInUp} className="space-y-2">
               {product.category && (
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <p className="text-gray-400 text-xs mb-1">Категория</p>
-                  <p className="font-medium text-sm">{product.category}</p>
+                <div className="bg-gray-50 rounded-xl p-3 transition-all hover:shadow-md">
+                  <p className="text-firm-gray text-xs mb-1">Категория</p>
+                  <p className="font-medium text-sm text-text">{product.category}</p>
                 </div>
               )}
               {product.technique && (
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <p className="text-gray-400 text-xs mb-1">Техника вязания</p>
-                  <p className="font-medium text-sm">{product.technique}</p>
+                <div className="bg-gray-50 rounded-xl p-3 transition-all hover:shadow-md">
+                  <p className="text-firm-gray text-xs mb-1">Техника вязания</p>
+                  <p className="font-medium text-sm text-text">{product.technique}</p>
                 </div>
               )}
               {product.size && product.size !== "Не применимо" && (
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <p className="text-gray-400 text-xs mb-1">Размер</p>
-                  <p className="font-medium text-sm">{product.size}</p>
+                <div className="bg-gray-50 rounded-xl p-3 transition-all hover:shadow-md">
+                  <p className="text-firm-gray text-xs mb-1">Размер</p>
+                  <p className="font-medium text-sm text-text">{product.size}</p>
                 </div>
               )}
               {product.color && (
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <p className="text-gray-400 text-xs mb-1">Цвет</p>
+                <div className="bg-gray-50 rounded-xl p-3 transition-all hover:shadow-md">
+                  <p className="text-firm-gray text-xs mb-1">Цвет</p>
                   <div className="flex items-center gap-2">
                     <div
-                      className="w-4 h-4 rounded-full border border-gray-300"
+                      className="w-4 h-4 rounded-full border border-gray-300 shadow-sm"
                       style={{ backgroundColor: product.color.toLowerCase() }}
                     />
-                    <p className="font-medium text-sm">{product.color}</p>
+                    <p className="font-medium text-sm text-text">{product.color}</p>
                   </div>
                 </div>
               )}
-            </div>
+            </motion.div>
 
-            {/* Описание / Уход / Отзывы */}
-            <div className="border-t border-gray-200 pt-4">
-              <div className="flex gap-4 mb-4">
-                <button
-                  onClick={() => setActiveTab("specs")}
-                  className={`pb-2 font-['Montserrat_Alternates'] text-sm transition-colors ${
-                    activeTab === "specs"
-                      ? "border-b-2 border-firm-orange text-firm-orange"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  Характеристики
-                </button>
-                <button
-                  onClick={() => setActiveTab("description")}
-                  className={`pb-2 font-['Montserrat_Alternates'] text-sm transition-colors ${
-                    activeTab === "description"
-                      ? "border-b-2 border-firm-pink text-firm-pink"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  Описание
-                </button>
-                {product.care_instructions && (
+            {/* Табы */}
+            <motion.div variants={fadeInUp} className="border-t border-gray-200 pt-4">
+              <div className="flex flex-wrap gap-4 mb-4">
+                {[
+                  { id: "specs", label: "Характеристики", color: "firm-orange" },
+                  { id: "description", label: "Описание", color: "firm-pink" },
+                  ...(product.care_instructions ? [{ id: "care", label: "Уход", color: "firm-orange" }] : []),
+                  { id: "reviews", label: `Отзывы (${product.reviews_count || 0})`, color: "firm-pink" }
+                ].map((tab) => (
                   <button
-                    onClick={() => setActiveTab("care")}
-                    className={`pb-2 font-['Montserrat_Alternates'] text-sm transition-colors ${
-                      activeTab === "care"
-                        ? "border-b-2 border-firm-orange text-firm-orange"
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                    className={`pb-2 font-['Montserrat_Alternates'] text-sm transition-all duration-300 ${
+                      activeTab === tab.id
+                        ? `border-b-2 border-${tab.color} text-${tab.color}`
                         : "text-gray-500 hover:text-gray-700"
                     }`}
                   >
-                    Уход
+                    {tab.label}
                   </button>
-                )}
-                <button
-                  onClick={() => setActiveTab("reviews")}
-                  className={`pb-2 font-['Montserrat_Alternates'] text-sm transition-colors ${
-                    activeTab === "reviews"
-                      ? "border-b-2 border-firm-pink text-firm-pink"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  Отзывы ({product.reviews_count || 0})
-                </button>
+                ))}
               </div>
 
-              <div className="py-2">
-                {activeTab === "specs" && (
-                  <div className="space-y-3 w-full">
-                    {/* ... содержимое specs ... */}
-                  </div>
-                )}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="py-2"
+                >
+                  {activeTab === "description" && (
+                    <p className="text-text whitespace-pre-line text-sm leading-relaxed">
+                      {product.description}
+                    </p>
+                  )}
 
-                {activeTab === "description" && (
-                  <p className="text-gray-700 whitespace-pre-line text-sm leading-relaxed">
-                    {product.description}
-                  </p>
-                )}
+                  {activeTab === "care" && product.care_instructions && (
+                    <p className="text-text text-sm leading-relaxed">
+                      {product.care_instructions}
+                    </p>
+                  )}
 
-                {activeTab === "care" && product.care_instructions && (
-                  <p className="text-gray-700 text-sm leading-relaxed">
-                    {product.care_instructions}
-                  </p>
-                )}
-
-                {activeTab === "reviews" && (
-                  <div>
-                    {session &&
-                      session.user?.role !== "master" &&
-                      !isAuthor && (
-                        <button
+                  {activeTab === "reviews" && (
+                    <div>
+                      {session && session.user?.role !== "master" && !isAuthor && (
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
                           onClick={() => setShowReviewModal(true)}
-                          className="mb-4 px-4 py-2 bg-firm-orange text-white rounded-lg text-sm hover:bg-opacity-90 transition"
+                          className="mb-4 px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl text-sm hover:shadow-lg transition-all duration-300"
                         >
                           Написать отзыв
-                        </button>
+                        </motion.button>
                       )}
 
-                    {product.reviews && product.reviews.length > 0 ? (
-                      <div className="space-y-4">
-                        {product.reviews.map((review) => (
-                          <div
-                            key={review.id}
-                            className="border-b border-gray-100 pb-4"
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden">
-                                {review.author_avatar ? (
-                                  <img
-                                    src={review.author_avatar}
-                                    alt={review.author_name}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  review.author_name?.charAt(0).toUpperCase()
-                                )}
-                              </div>
-                              <div className="flex-1">
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <p className="font-semibold text-sm">
-                                      {review.author_name}
-                                    </p>
-                                    <div className="flex items-center gap-1 mt-0.5">
-                                      {[...Array(5)].map((_, i) => (
-                                        <span
-                                          key={i}
-                                          className={i < review.rating ? "text-yellow-400 text-xs" : "text-gray-300 text-xs"}
-                                        >
-                                          ★
+                      {product.reviews && product.reviews.length > 0 ? (
+                        <div className="space-y-4">
+                          {product.reviews.map((review, idx) => (
+                            <motion.div
+                              key={review.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: idx * 0.05 }}
+                              className="border-b border-gray-100 pb-4 last:border-0"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden flex-shrink-0">
+                                  {review.author_avatar ? (
+                                    <img src={review.author_avatar} alt={review.author_name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    review.author_name?.charAt(0).toUpperCase()
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex flex-wrap justify-between items-start gap-2">
+                                    <div>
+                                      <p className="font-semibold text-sm text-text">{review.author_name}</p>
+                                      <div className="flex items-center gap-2 mt-0.5">
+                                        <StarRating rating={review.rating} size="sm" />
+                                        <span className="text-xs text-firm-gray">
+                                          {new Date(review.created_at).toLocaleDateString("ru-RU")}
                                         </span>
-                                      ))}
-                                      <span className="text-xs text-gray-400 ml-2">
-                                        {new Date(review.created_at).toLocaleDateString("ru-RU")}
-                                      </span>
+                                      </div>
                                     </div>
+                                    
+                                    {session?.user?.id === review.author_id && (
+                                      <div className="flex gap-2">
+                                        <motion.button
+                                          whileHover={{ scale: 1.1 }}
+                                          whileTap={{ scale: 0.95 }}
+                                          onClick={() => startEditingReview(review)}
+                                          className="text-firm-orange hover:text-firm-pink transition text-xs sm:text-sm flex items-center gap-1"
+                                        >
+                                          <EditIcon className="w-3.5 h-3.5" color="#F4A67F" />
+                                          <span className="hidden sm:inline">Редактировать</span>
+                                        </motion.button>
+                                        <motion.button
+                                          whileHover={{ scale: 1.1 }}
+                                          whileTap={{ scale: 0.95 }}
+                                          onClick={() => handleDeleteReview(review.id)}
+                                          className="text-firm-red hover:text-red-700 transition text-xs sm:text-sm flex items-center gap-1"
+                                        >
+                                          <DeleteIcon className="w-3.5 h-3.5" color="#D77C7C" />
+                                          <span className="hidden sm:inline">Удалить</span>
+                                        </motion.button>
+                                      </div>
+                                    )}
                                   </div>
+                                  <p className="text-text text-sm mt-2 leading-relaxed">{review.comment}</p>
                                   
-                                  {/* Кнопки редактирования/удаления для автора */}
-                                  {session?.user?.id === review.author_id && (
-                                    <div className="flex gap-2">
-                                      <button
-                                        onClick={() => startEditingReview(review)}
-                                        className="text-xs text-blue-500 hover:text-blue-700"
-                                      >
-                                        ✏️ Редактировать
-                                      </button>
-                                      <button
-                                        onClick={() => handleDeleteReview(review.id)}
-                                        className="text-xs text-red-500 hover:text-red-700"
-                                      >
-                                        🗑️ Удалить
-                                      </button>
+                                  {review.images && review.images.length > 0 && (
+                                    <div className="flex gap-2 mt-3 flex-wrap">
+                                      {review.images.map((img, imgIdx) => (
+                                        <motion.img
+                                          key={imgIdx}
+                                          whileHover={{ scale: 1.05 }}
+                                          src={img}
+                                          alt={`Фото к отзыву ${imgIdx + 1}`}
+                                          className="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition"
+                                          onClick={() => window.open(img, '_blank')}
+                                        />
+                                      ))}
                                     </div>
                                   )}
                                 </div>
-                                <p className="text-gray-600 text-sm mt-2">{review.comment}</p>
-                                
-                                {/* Изображения в отзыве */}
-                                {review.images && review.images.length > 0 && (
-                                  <div className="flex gap-2 mt-3">
-                                    {review.images.map((img, idx) => (
-                                      <img
-                                        key={idx}
-                                        src={img}
-                                        alt={`Фото к отзыву ${idx + 1}`}
-                                        className="w-16 h-16 object-cover rounded-lg cursor-pointer hover:opacity-80"
-                                        onClick={() => window.open(img, '_blank')}
-                                      />
-                                    ))}
-                                  </div>
-                                )}
                               </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 bg-gray-50 rounded-lg">
-                        <p className="text-gray-500 text-sm">
-                          Пока нет отзывов
-                        </p>
-                        {session &&
-                          session.user?.role !== "master" &&
-                          !isAuthor && (
+                            </motion.div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 bg-gray-50 rounded-xl">
+                          <p className="text-firm-gray text-sm">Пока нет отзывов</p>
+                          {session && session.user?.role !== "master" && !isAuthor && (
                             <button
                               onClick={() => setShowReviewModal(true)}
                               className="mt-2 text-firm-orange hover:underline text-sm"
@@ -974,13 +957,14 @@ export default function ProductPage() {
                               Будьте первым
                             </button>
                           )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </motion.div>
+          </motion.div>
         </div>
       </div>
 
@@ -991,46 +975,29 @@ export default function ProductPage() {
             className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
             onClick={() => setShowReviewModal(false)}
           >
-            <div
-              className="bg-white rounded-2xl max-w-md w-full p-6"
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="font-['Montserrat_Alternates'] font-semibold text-xl mb-4">
-                Написать отзыв
-              </h3>
-
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-2 text-sm">
-                  Оценка
-                </label>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      onClick={() => setReviewRating(star)}
-                      className="text-2xl focus:outline-none"
-                    >
-                      <span
-                        className={
-                          star <= reviewRating
-                            ? "text-yellow-400"
-                            : "text-gray-300"
-                        }
-                      >
-                        ★
-                      </span>
-                    </button>
-                  ))}
-                </div>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-['Montserrat_Alternates'] font-semibold text-xl text-text">Написать отзыв</h3>
+                <button onClick={() => setShowReviewModal(false)} className="p-1 hover:bg-gray-100 rounded-lg transition">
+                  <CloseIcon className="w-5 h-5" color="#737682" />
+                </button>
               </div>
 
-              {/* Изображения для отзыва */}
               <div className="mb-4">
-                <label className="block text-gray-700 mb-2 text-sm">
-                  Фотографии (до 5 шт.)
-                </label>
+                <label className="block text-text mb-2 text-sm font-['Montserrat_Alternates']">Оценка</label>
+                <StarRating rating={reviewRating} onRatingChange={setReviewRating} size="lg" />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-text mb-2 text-sm font-['Montserrat_Alternates']">Фотографии (до 5 шт.)</label>
                 <div
-                  className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-firm-orange transition cursor-pointer"
+                  className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-firm-orange transition cursor-pointer"
                   onClick={() => reviewFileInputRef.current?.click()}
                 >
                   <input
@@ -1041,23 +1008,19 @@ export default function ProductPage() {
                     onChange={handleReviewImageSelect}
                     className="hidden"
                   />
-                  <div className="flex flex-col items-center gap-2">
-                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <span className="text-gray-500 text-sm">Добавить фото</span>
-                    <span className="text-xs text-gray-400">JPG, PNG, WEBP до 5MB</span>
-                  </div>
+                  <CameraIcon className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                  <span className="text-gray-500 text-sm">Добавить фото</span>
+                  <p className="text-xs text-gray-400 mt-1">JPG, PNG, WEBP до 5MB</p>
                 </div>
                 {reviewImagePreviews.length > 0 && (
                   <div className="flex gap-2 mt-3 flex-wrap">
                     {reviewImagePreviews.map((preview, idx) => (
-                      <div key={idx} className="relative w-16 h-16">
+                      <div key={idx} className="relative w-14 h-14">
                         <img src={preview} alt="preview" className="w-full h-full object-cover rounded-lg" />
                         <button
                           type="button"
                           onClick={() => removeReviewImage(idx)}
-                          className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center"
+                          className="absolute -top-2 -right-2 w-5 h-5 bg-firm-red text-white rounded-full text-xs flex items-center justify-center hover:scale-110 transition"
                         >
                           ✕
                         </button>
@@ -1068,34 +1031,36 @@ export default function ProductPage() {
               </div>
 
               <div className="mb-6">
-                <label className="block text-gray-700 mb-2 text-sm">
-                  Комментарий
-                </label>
+                <label className="block text-text mb-2 text-sm font-['Montserrat_Alternates']">Комментарий</label>
                 <textarea
                   value={reviewComment}
                   onChange={(e) => setReviewComment(e.target.value)}
                   rows={4}
-                  className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange text-sm"
+                  className="w-full p-3 rounded-xl bg-forms outline-none focus:ring-2 focus:ring-firm-orange text-sm resize-none"
                   placeholder="Поделитесь впечатлениями о товаре..."
                 />
               </div>
 
               <div className="flex gap-3">
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={handleSubmitReview}
                   disabled={submittingReview}
-                  className="flex-1 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition disabled:opacity-50 font-medium"
+                  className="flex-1 py-2.5 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition disabled:opacity-50 font-medium text-sm"
                 >
                   {submittingReview ? "Отправка..." : "Отправить"}
-                </button>
-                <button
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setShowReviewModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition"
+                  className="px-4 py-2.5 border border-gray-300 rounded-xl hover:bg-gray-50 transition text-sm"
                 >
                   Отмена
-                </button>
+                </motion.button>
               </div>
-            </div>
+            </motion.div>
           </div>
         )}
       </AnimatePresence>
@@ -1107,53 +1072,36 @@ export default function ProductPage() {
             className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
             onClick={cancelEditingReview}
           >
-            <div
-              className="bg-white rounded-2xl max-w-md w-full p-6"
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="font-['Montserrat_Alternates'] font-semibold text-xl mb-4">
-                Редактировать отзыв
-              </h3>
-
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-2 text-sm">
-                  Оценка
-                </label>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      onClick={() => setEditReviewRating(star)}
-                      className="text-2xl focus:outline-none"
-                    >
-                      <span
-                        className={
-                          star <= editReviewRating
-                            ? "text-yellow-400"
-                            : "text-gray-300"
-                        }
-                      >
-                        ★
-                      </span>
-                    </button>
-                  ))}
-                </div>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-['Montserrat_Alternates'] font-semibold text-xl text-text">Редактировать отзыв</h3>
+                <button onClick={cancelEditingReview} className="p-1 hover:bg-gray-100 rounded-lg transition">
+                  <CloseIcon className="w-5 h-5" color="#737682" />
+                </button>
               </div>
 
-              {/* Существующие изображения */}
+              <div className="mb-4">
+                <label className="block text-text mb-2 text-sm font-['Montserrat_Alternates']">Оценка</label>
+                <StarRating rating={editReviewRating} onRatingChange={setEditReviewRating} size="lg" />
+              </div>
+
               {existingReviewImages.length > 0 && (
                 <div className="mb-4">
-                  <label className="block text-gray-700 mb-2 text-sm">
-                    Текущие фотографии
-                  </label>
+                  <label className="block text-text mb-2 text-sm font-['Montserrat_Alternates']">Текущие фотографии</label>
                   <div className="flex gap-2 flex-wrap">
                     {existingReviewImages.map((img, idx) => (
-                      <div key={idx} className="relative w-16 h-16">
+                      <div key={idx} className="relative w-14 h-14">
                         <img src={img} alt="review" className="w-full h-full object-cover rounded-lg" />
                         <button
                           type="button"
                           onClick={() => removeExistingReviewImage(idx)}
-                          className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center"
+                          className="absolute -top-2 -right-2 w-5 h-5 bg-firm-red text-white rounded-full text-xs flex items-center justify-center hover:scale-110 transition"
                         >
                           ✕
                         </button>
@@ -1163,13 +1111,10 @@ export default function ProductPage() {
                 </div>
               )}
 
-              {/* Новые изображения */}
               <div className="mb-4">
-                <label className="block text-gray-700 mb-2 text-sm">
-                  Добавить новые фотографии
-                </label>
+                <label className="block text-text mb-2 text-sm font-['Montserrat_Alternates']">Добавить новые фотографии</label>
                 <div
-                  className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-firm-orange transition cursor-pointer"
+                  className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-firm-orange transition cursor-pointer"
                   onClick={() => editReviewFileInputRef.current?.click()}
                 >
                   <input
@@ -1180,22 +1125,18 @@ export default function ProductPage() {
                     onChange={handleEditReviewImageSelect}
                     className="hidden"
                   />
-                  <div className="flex flex-col items-center gap-2">
-                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <span className="text-gray-500 text-sm">Добавить фото</span>
-                  </div>
+                  <CameraIcon className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                  <span className="text-gray-500 text-sm">Добавить фото</span>
                 </div>
                 {editReviewImagePreviews.length > 0 && (
                   <div className="flex gap-2 mt-3 flex-wrap">
                     {editReviewImagePreviews.map((preview, idx) => (
-                      <div key={idx} className="relative w-16 h-16">
+                      <div key={idx} className="relative w-14 h-14">
                         <img src={preview} alt="preview" className="w-full h-full object-cover rounded-lg" />
                         <button
                           type="button"
                           onClick={() => removeEditReviewImage(idx)}
-                          className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center"
+                          className="absolute -top-2 -right-2 w-5 h-5 bg-firm-red text-white rounded-full text-xs flex items-center justify-center hover:scale-110 transition"
                         >
                           ✕
                         </button>
@@ -1206,33 +1147,35 @@ export default function ProductPage() {
               </div>
 
               <div className="mb-6">
-                <label className="block text-gray-700 mb-2 text-sm">
-                  Комментарий
-                </label>
+                <label className="block text-text mb-2 text-sm font-['Montserrat_Alternates']">Комментарий</label>
                 <textarea
                   value={editReviewComment}
                   onChange={(e) => setEditReviewComment(e.target.value)}
                   rows={4}
-                  className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange text-sm"
+                  className="w-full p-3 rounded-xl bg-forms outline-none focus:ring-2 focus:ring-firm-orange text-sm resize-none"
                 />
               </div>
 
               <div className="flex gap-3">
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={handleUpdateReview}
                   disabled={editReviewLoading}
-                  className="flex-1 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition disabled:opacity-50 font-medium"
+                  className="flex-1 py-2.5 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition disabled:opacity-50 font-medium text-sm"
                 >
                   {editReviewLoading ? "Сохранение..." : "Сохранить изменения"}
-                </button>
-                <button
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={cancelEditingReview}
-                  className="px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition"
+                  className="px-4 py-2.5 border border-gray-300 rounded-xl hover:bg-gray-50 transition text-sm"
                 >
                   Отмена
-                </button>
+                </motion.button>
               </div>
-            </div>
+            </motion.div>
           </div>
         )}
       </AnimatePresence>
@@ -1258,7 +1201,7 @@ export default function ProductPage() {
         />
       )}
 
-      {/* Кастомное модальное окно подтверждения удаления */}
+      {/* ConfirmModal */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
         title={confirmModal.title}
