@@ -110,13 +110,10 @@ export async function GET(
 
         const imagesList: ProductImage[] = images || [];
 
-        // ИСПРАВЛЕНО: Получаем данные мастера напрямую из таблицы users и profiles
-        // master_id в products ссылается на user_id из users
         let masterName = 'Мастер';
         let masterAvatar: string | null = null;
         let masterCity = '';
 
-        // Получаем профиль мастера по user_id (который равен product.master_id)
         const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('full_name, avatar_url, city')

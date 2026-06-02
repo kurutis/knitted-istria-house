@@ -90,8 +90,7 @@ const StarRating = ({ rating, onRatingChange, size = "md" }: { rating: number; o
   );
 };
 
-const ImageThumbnail = ({ src, alt, isActive, onClick }: { src: string; alt: string; isActive: boolean; onClick: () => void }) => (
-  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={onClick} className={`aspect-square bg-gray-100 rounded-xl overflow-hidden border-2 transition-all ${isActive ? "border-firm-orange shadow-md" : "border-transparent hover:border-firm-gray" }`}><img src={src} alt={alt} className="w-full h-full object-cover" /></motion.button>);
+const ImageThumbnail = ({ src, alt, isActive, onClick }: { src: string; alt: string; isActive: boolean; onClick: () => void }) => (<motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={onClick} className={`aspect-square bg-gray-100 rounded-xl overflow-hidden border-2 transition-all ${isActive ? "border-firm-orange shadow-md" : "border-transparent hover:border-firm-gray" }`}><img src={src} alt={alt} className="w-full h-full object-cover" /></motion.button>);
 
 export default function ProductPage() {
   const { id } = useParams();
@@ -542,11 +541,11 @@ export default function ProductPage() {
             <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleRemoveFromCart} className="ml-2 px-2 sm:px-3 py-1.5 sm:py-2 text-firm-red hover:bg-red-50 rounded-lg transition text-xs sm:text-sm">Удалить</motion.button>
           </div>
         ) : (
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleAddToCart} disabled={updatingCart} className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-linear-to-r from-firm-orange to-firm-pink text-mian rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 text-sm sm:text-base"><CartIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#f9f9f9" size={20} /><span className="text-mian">В корзину</span></motion.button>
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleAddToCart} disabled={updatingCart} className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-linear-to-r from-firm-orange to-firm-pink text-mian rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 text-sm sm:text-base"><CartIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#f9f9f9" size={20} /><span className="text-main">В корзину</span></motion.button>
         )}
       </div>
 
-      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleToggleFavorite} className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl border-2 transition-all flex items-center justify-center wrap-flex-shrink-0 ${isFavorite ? "border-firm-pink bg-firm-pink text-main shadow-md" : "border-gray-300 hover:border-firm-pink hover:bg-firm-pink/10"}`}><LikeIcon color={isFavorite ? "#D97C8E" : "#737682"} className="w-4 h-4 sm:w-5 sm:h-5" /></motion.button>
+      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleToggleFavorite} className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl border-2 transition-all flex items-center justify-center wrap-flex-shrink-0 ${isFavorite ? "border-firm-pink bg-firm-pink text-main shadow-md" : "border-gray-300 hover:border-firm-pink hover:bg-firm-pink/10"}`}><LikeIcon color={isFavorite ? "#f9f9f9" : "#737682"} className="w-4 h-4 sm:w-5 sm:h-5" /></motion.button>
     </div>
   );
 
@@ -562,7 +561,6 @@ export default function ProductPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-          {/* Левая колонка - галерея */}
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
             <div className="aspect-square bg-gray-100 rounded-2xl overflow-hidden shadow-lg">
               {displayImages[selectedImage]?.image_url ? (
@@ -647,14 +645,14 @@ export default function ProductPage() {
 
                   {activeTab === "reviews" && (
                     <div>
-                      {session && session.user?.role !== "master" && !isAuthor && (<motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowReviewModal(true)} className="mb-4 px-4 py-2 bg-linear-to-r from-firm-orange to-firm-pink text-mian rounded-xl text-sm hover:shadow-lg transition-all duration-300">Написать отзыв</motion.button>)}
+                      {session && session.user?.role !== "master" && !isAuthor && (<motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowReviewModal(true)} className="mb-4 px-4 py-2 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl text-sm hover:shadow-lg transition-all duration-300">Написать отзыв</motion.button>)}
 
                       {product.reviews && product.reviews.length > 0 ? (
                         <div className="space-y-4">
                           {product.reviews.map((review, idx) => (
                             <motion.div key={review.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} className="border-b border-gray-100 pb-4 last:border-0">
                               <div className="flex items-start gap-3">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-mian font-bold overflow-hidden flex-shrink-0">
+                                <div className="w-10 h-10 rounded-full bg-linear-to-r from-firm-orange to-firm-pink text-main flex items-center justify-center text-mian font-bold overflow-hidden flex-shrink-0">
                                   {review.author_avatar ? (<img src={review.author_avatar} alt={review.author_name} className="w-full h-full object-cover" />) : (review.author_name?.charAt(0).toUpperCase())}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -670,7 +668,7 @@ export default function ProductPage() {
                                    {session && session.user?.id === review.author_id && (
                                       <div className="flex gap-2">
                                         <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => startEditingReview(review)} className="text-firm-orange hover:text-firm-pink transition text-xs sm:text-sm flex items-center gap-1"><EditIcon className="w-3.5 h-3.5" color="#F4A67F" /><span className="hidden sm:inline text-firm-orange hover:text-firm-pink">Редактировать</span></motion.button>
-                                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => handleDeleteReview(review.id)} className="text-firm-red hover:text-red-700 transition text-xs sm:text-sm flex items-center gap-1"><DeleteIcon className="w-3.5 h-3.5" color="#D77C7C" /><span className="hidden sm:inline">Удалить</span></motion.button>
+                                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => handleDeleteReview(review.id)} className="text-firm-red hover:text-red-700 transition text-xs sm:text-sm flex items-center gap-1"><DeleteIcon className="w-3.5 h-3.5" color="#D77C7C" /><span className="hidden sm:inline text-firm-red hover:text-red-700 ">Удалить</span></motion.button>
                                       </div>
                                     )}
                                   </div>
