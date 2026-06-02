@@ -575,8 +575,8 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
 
         {isOwner && (
           <div className="flex gap-1 sm:gap-2 ml-auto">
-            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleEditPost} className="flex items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1 text-xs sm:text-sm text-text hover:text-firm-orange rounded-lg hover:bg-gray-100 transition-all duration-300"><EditIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#737682" size={16} /><span className="hidden sm:inline">Редактировать</span></motion.button>
-            {onDelete && (<motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => onDelete(post.id)} className="flex items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1 text-xs sm:text-sm text-text hover:text-firm-red rounded-lg hover:bg-red-50 transition-all duration-300"><DeleteIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#D77C7C" size={16} /><span className="hidden sm:inline">Удалить</span></motion.button>)}
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleEditPost} className="flex items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1 text-xs sm:text-sm text-text hover:text-firm-orange rounded-lg hover:bg-gray-100 transition-all duration-300"><EditIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#737682" size={16} /><span className="hidden sm:inline text-firm-gray">Редактировать</span></motion.button>
+            {onDelete && (<motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => onDelete(post.id)} className="flex items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1 text-xs sm:text-sm text-text hover:text-firm-red rounded-lg hover:bg-red-50 transition-all duration-300"><DeleteIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#D77C7C" size={16} /><span className="hidden sm:inline text-firm-red">Удалить</span></motion.button>)}
           </div>
         )}
 
