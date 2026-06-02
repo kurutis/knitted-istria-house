@@ -176,6 +176,7 @@ export async function GET(
                     rating: r.rating,
                     comment: r.comment || '',
                     created_at: r.created_at,
+                    author_id: r.author_id,
                     author_name: profile?.full_name || 'Пользователь',
                     author_avatar: profile?.avatar_url || null
                 };
