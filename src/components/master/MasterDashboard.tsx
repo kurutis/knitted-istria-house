@@ -170,10 +170,10 @@ const getStatusOrder = (status: string): number => {
 const getStatusIcon = (status: string) => {
   switch (status) {
     case 'new': return <CartIcon className="w-3 h-3" color="#3B82F6" size={12} />;
-    case 'processing': return <ClockIcon className="w-3 h-3" color="#EAB308" size={12} />;
-    case 'shipped': return <TruckIcon className="w-3 h-3" color="#8B5CF6" size={12} />;
-    case 'delivered': return <CheckCircleIcon className="w-3 h-3" color="#22C55E" size={12} />;
-    case 'cancelled': return <CloseIcon className="w-3 h-3" color="#EF4444" size={12} />;
+    case 'processing': return <ClockIcon className="w-3 h-3" color="#F4A67F" size={12} />;
+    case 'shipped': return <TruckIcon className="w-3 h-3" color="#D97C8E" size={12} />;
+    case 'delivered': return <CheckCircleIcon className="w-3 h-3" color="#94D06C" size={12} />;
+    case 'cancelled': return <CloseIcon className="w-3 h-3" color="#D77C7C" size={12} />;
     default: return null;
   }
 };
@@ -427,17 +427,17 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
   const getStatusColor = (status: string) => {
     switch (status) {
       case "new":
-        return "bg-blue-50 text-blue-700 border-blue-200";
+        return "bg-blue-50 text-blue-600 border-blue-200";
       case "processing":
-        return "bg-yellow-50 text-yellow-700 border-yellow-200";
+        return "bg-orange-50 text-firm-orange border-orange-200";
       case "shipped":
-        return "bg-purple-50 text-purple-700 border-purple-200";
+        return "bg-pink-50 text-firm-pink border-pink-200";
       case "delivered":
-        return "bg-green-50 text-green-700 border-green-200";
+        return "bg-green-50 text-firm-green border-green-200";
       case "cancelled":
-        return "bg-red-50 text-red-700 border-red-200";
+        return "bg-red-50 text-firm-red border-red-200";
       default:
-        return "bg-gray-50 text-gray-700 border-gray-200";
+        return "bg-gray-50 text-firm-gray border-gray-200";
     }
   };
 
