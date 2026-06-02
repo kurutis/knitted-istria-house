@@ -581,7 +581,7 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
         )}
 
         <div className="flex items-center gap-1 sm:gap-1.5 ml-auto">
-          <ViewsIcon />
+          <ViewsIcon color="#737682" />
           <span className="font-['Raleway'] text-xs sm:text-sm text-gray-500">{post.views_count}</span>
         </div>
       </div>
