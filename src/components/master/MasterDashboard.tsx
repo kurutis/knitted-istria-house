@@ -461,11 +461,11 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
   const getPaymentStatusIcon = (status: string) => {
     switch (status) {
       case 'paid':
-        return <CheckCircleIcon className="w-3 h-3" color="#22C55E" size={12} />;
+        return <CheckCircleIcon className="w-3 h-3" color="#94D06C" size={12} />;
       case 'pending':
-        return <ClockIcon className="w-3 h-3" color="#EAB308" size={12} />;
+        return <ClockIcon className="w-3 h-3" color="#F4A67F" size={12} />;
       default:
-        return <CloseIcon className="w-3 h-3" color="#EF4444" size={12} />;
+        return <CloseIcon className="w-3 h-3" color="#D77C7C" size={12} />;
     }
   };
 
