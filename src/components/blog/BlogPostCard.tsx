@@ -501,7 +501,7 @@ export default function BlogPostCard({ post, showComments: externalShowComments,
                       ) : (
                         <>
                           <SendIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#f9f9f9" size={16} />
-                          <span>Отправить</span>
+                          <span className="text-main">Отправить</span>
                         </>
                       )}
                     </motion.button>
