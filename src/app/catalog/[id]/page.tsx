@@ -685,7 +685,7 @@ export default function ProductPage() {
             : "border-gray-300 hover:border-firm-pink hover:bg-firm-pink/10"
         }`}
       >
-        <LikeIcon isActive={isFavorite} className="w-4 h-4 sm:w-5 sm:h-5" />
+        <LikeIcon color={isFavorite ? "#D97C8E" : "#737682"} className="w-4 h-4 sm:w-5 sm:h-5" />
       </motion.button>
     </div>
   );
