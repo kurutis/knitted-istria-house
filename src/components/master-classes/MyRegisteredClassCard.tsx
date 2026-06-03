@@ -1,4 +1,3 @@
-// src/components/master-classes/MyRegisteredClassCard.tsx
 'use client'
 
 import { useState } from 'react'

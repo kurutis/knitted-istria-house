@@ -22,12 +22,8 @@ function MediaGalleryModal({ media, initialIndex, title, onClose }: MediaGallery
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') onClose()
-            if (e.key === 'ArrowLeft') {
-                setCurrentIndex(prev => (prev - 1 + media.length) % media.length)
-            }
-            if (e.key === 'ArrowRight') {
-                setCurrentIndex(prev => (prev + 1) % media.length)
-            }
+            if (e.key === 'ArrowLeft') {setCurrentIndex(prev => (prev - 1 + media.length) % media.length)}
+            if (e.key === 'ArrowRight') {setCurrentIndex(prev => (prev + 1) % media.length)}
         }
         window.addEventListener('keydown', handleKeyDown)
         document.body.style.overflow = 'hidden'
@@ -70,7 +66,7 @@ function MediaGalleryModal({ media, initialIndex, title, onClose }: MediaGallery
                         {media.map((_, idx) => (<button key={idx} onClick={() => setCurrentIndex(idx)} className={`h-1.5 rounded-full transition-all ${idx === currentIndex ? 'bg-main w-6' : 'bg-main/50 w-1.5'}`} />))}
                     </div>
 
-                    <div className="absolute top-4 left-4 bg-black/50 px-2 py-1 rounded text-white text-sm">
+                    <div className="absolute top-4 left-4 bg-main-black/50 px-2 py-1 rounded text-main text-sm">
                         {currentIndex + 1} / {media.length}
                     </div>
                 </div>

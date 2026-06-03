@@ -36,19 +36,7 @@ export default function MasterClassesPage() {
     const [showEditModal, setShowEditModal] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
     
-    const [confirmModal, setConfirmModal] = useState<{
-        isOpen: boolean;
-        title: string;
-        message: string;
-        onConfirm: () => void;
-        type?: 'danger' | 'warning' | 'info';
-    }>({
-        isOpen: false,
-        title: '',
-        message: '',
-        onConfirm: () => {},
-        type: 'danger'
-    })
+    const [confirmModal, setConfirmModal] = useState<{isOpen: boolean; title: string; message: string; onConfirm: () => void; type?: 'danger' | 'warning' | 'info'}>({isOpen: false, title: '', message: '', onConfirm: () => {}, type: 'danger'})
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768)
@@ -75,9 +63,8 @@ export default function MasterClassesPage() {
             const response = await fetch('/api/master-classes')
             const data = await response.json()
             
-            console.log('API Response:', data) // Для отладки
+            console.log('API Response:', data)
             
-            // Правильное извлечение данных из ответа API
             let classes = []
             if (data.success && data.master_classes) {
                 classes = data.master_classes
@@ -89,7 +76,7 @@ export default function MasterClassesPage() {
                 classes = data.classes
             }
             
-            console.log('Extracted classes:', classes) // Для отладки
+            console.log('Extracted classes:', classes)
             setMasterClasses(classes)
         } catch (error) {
             console.error('Error fetching master classes:', error)
@@ -105,7 +92,6 @@ export default function MasterClassesPage() {
             const response = await fetch('/api/master-classes/my')
             const data = await response.json()
             
-            // Определяем тип для регистрации
             interface Registration {
                 id: string;
                 payment_status: string;
@@ -115,11 +101,9 @@ export default function MasterClassesPage() {
                 master_class: MasterClass;
             }
             
-            // Извлекаем master_class из каждого объекта регистрации
             let classes: MasterClass[] = []
             
             if (Array.isArray(data)) {
-                // data - массив регистраций
                 const registrations = data as Registration[]
                 classes = registrations.map(item => item.master_class).filter(Boolean)
             } else if (data.registrations && Array.isArray(data.registrations)) {
@@ -186,9 +170,7 @@ export default function MasterClassesPage() {
             onConfirm: async () => {
                 setConfirmModal(prev => ({ ...prev, isOpen: false }))
                 try {
-                    const response = await fetch(`/api/master-classes/${classId}/cancel`, {
-                        method: 'DELETE'
-                    })
+                    const response = await fetch(`/api/master-classes/${classId}/cancel`, {method: 'DELETE'})
 
                     if (response.ok) {
                         toast.success('Запись отменена')
@@ -296,7 +278,7 @@ export default function MasterClassesPage() {
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'draft':
-                return <span className="px-2 py-1 bg-gray-200 text-gray-700 rounded-full text-xs">Черновик</span>
+                return <span className="px-2 py-1 bg-gray-200 text-text rounded-full text-xs">Черновик</span>
             case 'moderation':
                 return <span className="px-2 py-1 bg-yellow-100 text-firm-orange rounded-full text-xs">На модерации</span>
             case 'published':
@@ -333,9 +315,7 @@ export default function MasterClassesPage() {
             <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="text-center">
                     <div className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full animate-spin mx-auto" />
-                    <p className="mt-4 font-['Montserrat_Alternates'] text-gray-600">
-                        Загрузка мастер-классов...
-                    </p>
+                    <p className="mt-4 font-['Montserrat_Alternates'] text-firm-gray">Загрузка мастер-классов...</p>
                 </div>
             </div>
         )
@@ -344,66 +324,19 @@ export default function MasterClassesPage() {
     return (
         <>
             <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
-                {/* Заголовок */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-                    <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl lg:text-4xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent flex items-center gap-3">
-                        Мастер-классы
-                    </h1>
-                    {isMaster && (
-                        <button
-                            onClick={() => setShowCreateModal(true)}
-                            className="px-5 py-2.5 bg-linear-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition flex items-center gap-2 text-sm font-medium"
-                        >
-                            <span className="text-lg">+</span>
-                            <span>Создать мастер-класс</span>
-                        </button>
-                    )}
+                    <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl lg:text-4xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent flex items-center gap-3">Мастер-классы</h1>
+                    {isMaster && (<button onClick={() => setShowCreateModal(true)} className="px-5 py-2.5 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition flex items-center gap-2 text-sm font-medium"><span className="text-lg">+</span><span>Создать мастер-класс</span></button>)}
                 </div>
 
-                {/* Вкладки */}
                 <div className="flex gap-2 sm:gap-6 mb-8 border-b border-gray-200">
-                    {[
-                        { id: 'all', label: 'Все мастер-классы', icon: <ClassesIcon size={20} color={activeTab === 'all' ? "#F4A67F" : "#737682"} /> },
-                        ...(session?.user ? [{ id: 'my', label: 'Мои записи', icon: <CalendarIcon size={18} color={activeTab === 'my' ? "#F4A67F" : "#737682"} />, count: myRegisteredClasses.length }] : []),
-                        ...(isMaster ? [{ id: 'created', label: 'Мои мастер-классы', icon: <EditIcon className="w-4 h-4" color={activeTab === 'created' ? "#F4A67F" : "#737682"} />, count: myCreatedClasses.length }] : [])
-                    ].map((tab) => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as 'all' | 'my' | 'created')}
-                            className={`pb-3 px-2 sm:px-4 font-medium transition-all duration-300 relative flex items-center gap-2 text-sm sm:text-base ${
-                                activeTab === tab.id 
-                                    ? 'text-firm-orange' 
-                                    : 'text-gray-500 hover:text-gray-700'
-                            }`}
-                        >
-                            <span className="w-5 h-5">{tab.icon}</span>
-                            <span className="hidden sm:inline">{tab.label}</span>
-                            <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
-                            {tab.count !== undefined && tab.count > 0 && (
-                                <span className="ml-1.5 px-2 py-0.5 bg-firm-orange text-white text-xs rounded-full min-w-5 text-center">
-                                    {tab.count}
-                                </span>
-                            )}
-                            {activeTab === tab.id && (
-                                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-firm-orange to-firm-pink rounded-full" />
-                            )}
-                        </button>
-                    ))}
+                    {[{ id: 'all', label: 'Все мастер-классы', icon: <ClassesIcon size={20} color={activeTab === 'all' ? "#F4A67F" : "#737682"} /> }, ...(session?.user ? [{ id: 'my', label: 'Мои записи', icon: <CalendarIcon size={18} color={activeTab === 'my' ? "#F4A67F" : "#737682"} />, count: myRegisteredClasses.length }] : []), ...(isMaster ? [{ id: 'created', label: 'Мои мастер-классы', icon: <EditIcon className="w-4 h-4" color={activeTab === 'created' ? "#F4A67F" : "#737682"} />, count: myCreatedClasses.length }] : [])].map((tab) => (<button key={tab.id} onClick={() => setActiveTab(tab.id as 'all' | 'my' | 'created')} className={`pb-3 px-2 sm:px-4 font-medium transition-all duration-300 relative flex items-center gap-2 text-sm sm:text-base ${activeTab === tab.id ? 'text-firm-orange' : 'text-gray-500 hover:text-firm-gray'}`} ><span className="w-5 h-5">{tab.icon}</span><span className="hidden sm:inline">{tab.label}</span><span className="sm:hidden">{tab.label.split(' ')[0]}</span>{tab.count !== undefined && tab.count > 0 && (<span className="ml-1.5 px-2 py-0.5 bg-firm-orange text-main text-xs rounded-full min-w-5 text-center">{tab.count}</span>)}{activeTab === tab.id && (<div className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-firm-orange to-firm-pink rounded-full" />)}</button> ))}
                 </div>
 
                 <AnimatePresence mode="wait">
-                    {/* Вкладка "Все мастер-классы" */}
                     {activeTab === 'all' && (
-                        <motion.div
-                            key="all"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.3 }}
-                            className="flex flex-col lg:flex-row gap-6"
-                        >
-                            {/* Календарь - на мобильных не фиксированный */}
-                            <div className={`w-full lg:w-1/3 xl:w-1/4 bg-white rounded-2xl shadow-lg p-5 ${!isMobile ? 'sticky top-24' : ''}`}>
+                        <motion.div key="all" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }} className="flex flex-col lg:flex-row gap-6">
+                            <div className={`w-full lg:w-1/3 xl:w-1/4 bg-main rounded-2xl shadow-lg p-5 ${!isMobile ? 'sticky top-24' : ''}`}>
                                 <div className="flex justify-between items-center mb-5">
                                     <button onClick={() => changeMonth(-1)} className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-gray-100 transition text-gray-600">←</button>
                                     <h2 className="font-semibold text-base sm:text-lg text-gray-800">{monthNames[month]} {year}</h2>
@@ -412,10 +345,9 @@ export default function MasterClassesPage() {
 
                                 <div className="grid grid-cols-7 gap-1 text-center mb-3">
                                     {weekDays.map(day => (
-                                        <div key={day} className="text-xs sm:text-sm font-medium text-gray-500 py-1">
+                                        <div key={day} className="text-xs sm:text-sm font-medium text-firm-gray py-1">
                                             {isMobile ? day.charAt(0) : day}
-                                        </div>
-                                    ))}
+                                        </div>))}
                                 </div>
 
                                 <div className="grid grid-cols-7 gap-1">
@@ -425,25 +357,11 @@ export default function MasterClassesPage() {
                                         const classesOnDate = date ? getClassesForDate(date) : []
                                         
                                         return (
-                                            <button
-                                                key={idx}
-                                                onClick={() => date && setSelectedDate(date)}
-                                                className={`
-                                                    aspect-square p-1 rounded-full text-sm transition-all relative
-                                                    ${!date ? 'bg-gray-50' : 'hover:bg-gray-100 cursor-pointer'}
-                                                    ${isToday ? 'bg-firm-orange/15 font-bold ring-2 ring-firm-orange/50' : ''}
-                                                    ${isSelected ? 'ring-2 ring-firm-orange shadow-md bg-firm-orange/5' : ''}
-                                                `}
-                                                disabled={!date}
-                                            >
+                                            <button key={idx} onClick={() => date && setSelectedDate(date)} className={`aspect-square p-1 rounded-full text-sm transition-all relative ${!date ? 'bg-gray-50' : 'hover:bg-gray-100 cursor-pointer'} ${isToday ? 'bg-firm-orange/15 font-bold ring-2 ring-firm-orange/50' : ''} ${isSelected ? 'ring-2 ring-firm-orange shadow-md bg-firm-orange/5' : ''}`} disabled={!date}>
                                                 {date && (
                                                     <>
-                                                        <span className={classesOnDate.length > 0 ? 'text-firm-orange font-semibold' : 'text-gray-700'}>
-                                                            {date.getDate()}
-                                                        </span>
-                                                        {classesOnDate.length > 0 && (
-                                                            <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-firm-orange rounded-full" />
-                                                        )}
+                                                        <span className={classesOnDate.length > 0 ? 'text-firm-orange font-semibold' : 'text-firm-gray'}>{date.getDate()} </span>
+                                                        {classesOnDate.length > 0 && (<div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-firm-orange rounded-full" />)}
                                                     </>
                                                 )}
                                             </button>
@@ -452,14 +370,11 @@ export default function MasterClassesPage() {
                                 </div>
                             </div>
 
-                            {/* Список мастер-классов */}
                             <div className="flex-1 space-y-4">
                                 {selectedDate && (
                                     <div className="bg-linear-to-r from-firm-orange/10 to-firm-pink/10 rounded-xl p-3 flex items-center gap-2">
                                         <CalendarIcon size={18} color="#F4A67F" />
-                                        <p className="text-gray-600 text-sm">
-                                            Мастер-классы на {selectedDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
-                                        </p>
+                                        <p className="text-firm-gray text-sm">Мастер-классы на {selectedDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}</p>
                                     </div>
                                 )}
 
@@ -478,39 +393,21 @@ export default function MasterClassesPage() {
                                         )
                                     }
                                     
-                                    return classesToShow.map((mc) => (
-                                        <MasterClassCard
-                                            key={mc.id}
-                                            masterClass={mc}
-                                            session={session}
-                                            onRegister={handleRegister}
-                                            onCancel={handleCancelRegistration}
-                                        />
-                                    ))
+                                    return classesToShow.map((mc) => (<MasterClassCard key={mc.id} masterClass={mc} session={session} onRegister={handleRegister} onCancel={handleCancelRegistration} />))
                                 })()}
                             </div>
                         </motion.div>
                     )}
 
-                    {/* Вкладка "Мои записи" */}
                     {activeTab === 'my' && (
-                        <motion.div
-                            key="my"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.3 }}
-                            className="space-y-4"
-                        >
+                        <motion.div key="my" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }} className="space-y-4">
                             {!session ? (
                                 <div className="text-center py-16 bg-gray-50 rounded-xl">
                                     <div className="mb-4 flex justify-center">
                                         <LockIcon size={64} color="#D4D4D4" />
                                     </div>
-                                    <p className="text-gray-500 mb-4">Для просмотра ваших мастер-классов необходимо авторизоваться</p>
-                                    <Link href="/auth/signin" className="inline-block px-6 py-3 bg-linear-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition">
-                                        Войти
-                                    </Link>
+                                    <p className="text-firm-gray mb-4">Для просмотра ваших мастер-классов необходимо авторизоваться</p>
+                                    <Link href="/auth/signin" className="inline-block px-6 py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition">Войти</Link>
                                 </div>
                             ) : myRegisteredClasses.length === 0 ? (
                                 <div className="text-center py-16 bg-gray-50 rounded-xl">
@@ -518,95 +415,38 @@ export default function MasterClassesPage() {
                                         <NoRegistrationsIcon size={80} color="#D4D4D4" />
                                     </div>
                                     <p className="text-gray-400 text-base">Вы еще не записаны ни на один мастер-класс</p>
-                                    <button onClick={() => setActiveTab('all')} className="text-firm-orange hover:underline mt-2">
-                                        Посмотреть доступные →
-                                    </button>
+                                    <button onClick={() => setActiveTab('all')} className="text-firm-orange hover:underline mt-2">Посмотреть доступные →</button>
                                 </div>
                             ) : (
-                                myRegisteredClasses.map((mc) => (
-                                    <MyRegisteredClassCard
-                                        key={mc.id}
-                                        masterClass={mc}
-                                        onCancel={handleCancelRegistration}
-                                    />
-                                ))
+                                myRegisteredClasses.map((mc) => (<MyRegisteredClassCard key={mc.id} masterClass={mc} onCancel={handleCancelRegistration} /> ))
                             )}
                         </motion.div>
                     )}
 
-                    {/* Вкладка "Мои мастер-классы" */}
                     {activeTab === 'created' && isMaster && (
-                        <motion.div
-                            key="created"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.3 }}
-                            className="space-y-4"
-                        >
+                        <motion.div key="created" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }} className="space-y-4">
                             {myCreatedClasses.length === 0 ? (
                                 <div className="text-center py-16 bg-gray-50 rounded-xl">
                                     <div className="mb-4 flex justify-center">
                                         <NoCreatedIcon size={80} color="#D4D4D4" />
                                     </div>
                                     <p className="text-gray-400 text-base">У вас нет созданных мастер-классов</p>
-                                    <button onClick={() => setShowCreateModal(true)} className="text-firm-orange hover:underline mt-2">
-                                        Создать первый мастер-класс →
-                                    </button>
+                                    <button onClick={() => setShowCreateModal(true)} className="text-firm-orange hover:underline mt-2"> Создать первый мастер-класс →</button>
                                 </div>
                             ) : (
-                                myCreatedClasses.map((mc) => (
-                                    <MyCreatedClassCard
-                                        key={mc.id}
-                                        masterClass={mc}
-                                        getStatusBadge={getStatusBadge}
-                                        onEdit={handleEditClass}
-                                        onDelete={handleDeleteClass}
-                                        onCancel={handleCancelClass}
-                                        onViewParticipants={handleViewParticipants}
-                                        isPast={new Date(mc.date_time) < new Date()}
-                                    />
+                                myCreatedClasses.map((mc) => (<MyCreatedClassCard key={mc.id} masterClass={mc} getStatusBadge={getStatusBadge} onEdit={handleEditClass} onDelete={handleDeleteClass} onCancel={handleCancelClass} onViewParticipants={handleViewParticipants} isPast={new Date(mc.date_time) < new Date()} />
                                 ))
                             )}
                         </motion.div>
                     )}
                 </AnimatePresence>
 
-                {/* Модальные окна */}
-                <AddClassModal
-                    isOpen={showCreateModal}
-                    onClose={() => setShowCreateModal(false)}
-                    onSuccess={() => {
-                        fetchMyCreatedClasses()
-                        setShowCreateModal(false)
-                    }}
-                />
+                <AddClassModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} onSuccess={() => {fetchMyCreatedClasses(); setShowCreateModal(false)}} />
 
-                {editingClass && (
-                    <EditClassModal
-                        isOpen={showEditModal}
-                        onClose={() => {
-                            setShowEditModal(false)
-                            setEditingClass(null)
-                        }}
-                        onSuccess={() => {
-                            fetchMyCreatedClasses()
-                            setShowEditModal(false)
-                            setEditingClass(null)
-                        }}
-                        masterClass={editingClass}
-                    />
-                )}
+                {editingClass && (<EditClassModal isOpen={showEditModal} onClose={() => {setShowEditModal(false); setEditingClass(null)}} onSuccess={() => {fetchMyCreatedClasses(); setShowEditModal(false); setEditingClass(null)}} masterClass={editingClass} />)}
             </div>
 
-            <ConfirmModal
-                isOpen={confirmModal.isOpen}
-                title={confirmModal.title}
-                message={confirmModal.message}
-                type={confirmModal.type}
-                onConfirm={confirmModal.onConfirm}
-                onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
-            />
+            <ConfirmModal isOpen={confirmModal.isOpen} title={confirmModal.title} message={confirmModal.message} type={confirmModal.type} onConfirm={confirmModal.onConfirm} onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} />
         </>
     )
 }

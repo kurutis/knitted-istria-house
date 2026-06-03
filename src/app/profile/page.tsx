@@ -1,4 +1,3 @@
-// src/app/profile/page.tsx
 "use client";
 
 import BuyerProfile from "@/components/profile/BuyerProfile";
@@ -29,15 +28,11 @@ function ProfileContent() {
     if (status === "unauthenticated") {
       router.push("/auth/signin");
     }
-  }, [status, router]);
+  }, [status, router])
 
-  if (loading) {
-    return <LoadingSpinner />;
-  }
+  if (loading) {return <LoadingSpinner />}
 
-  if (!isAuthenticated || !session) {
-    return null;
-  }
+  if (!isAuthenticated || !session) {return null}
 
   const userRole = session?.user?.role;
 
@@ -45,18 +40,7 @@ function ProfileContent() {
     return <MasterProfile session={session as AdaptedSession} />;
   }
   
-  return (
-    <BuyerProfile
-      session={session as AdaptedSession}
-      initialTab={tabParam === "profile" ? "profile" : undefined}
-    />
-  );
+  return (<BuyerProfile session={session as AdaptedSession} initialTab={tabParam === "profile" ? "profile" : undefined} />);
 }
 
-export default function ProfilePage() {
-  return (
-    <Suspense fallback={<LoadingSpinner />}>
-      <ProfileContent />
-    </Suspense>
-  );
-}
+export default function ProfilePage() {return (<Suspense fallback={<LoadingSpinner />}><ProfileContent /></Suspense>)}

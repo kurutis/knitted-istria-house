@@ -8,7 +8,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import EditProductModal from "@/components/modals/EditProductModal";
-
 import { CartIcon } from "@/components/icons/CartIcon";
 import { LikeIcon } from "@/components/icons/LikeIcon";
 import { EditIcon } from "@/components/icons/EditIcon";
