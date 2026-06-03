@@ -373,13 +373,17 @@ export default function MasterPage() {
         
         setEditReviewLoading(true)
         try {
+            // Создаем FormData для отправки файлов
+            const formData = new FormData()
+            formData.append('rating', editReviewRating.toString())
+            formData.append('comment', editReviewComment)
+            
+            // Если нужно добавить новые изображения (опционально)
+            // formData.append('newImages', imageFile)
+            
             const response = await fetch(`/api/reviews/${editingReview.id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    rating: editReviewRating,
-                    comment: editReviewComment
-                })
+                body: formData  // ← Важно: отправляем FormData, не JSON!
             })
 
             if (response.ok) {
