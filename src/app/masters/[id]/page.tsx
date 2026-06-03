@@ -67,8 +67,7 @@ const StarRating = ({ rating, size = "md" }: { rating: number; size?: "sm" | "md
     )
 }
 
-const FollowButton = ({ isFollowing, onClick, loading }: { isFollowing: boolean; onClick: () => void; loading: boolean }) => (
-    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onClick} disabled={loading} className={`px-5 sm:px-6 py-2 rounded-xl transition-all duration-300 flex items-center gap-2 ${isFollowing ? 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200' : 'bg-linear-to-r from-firm-orange to-firm-pink text-main hover:shadow-lg'}`}><LikeIcon color={isFollowing ? "#D97C8E" : "#f9f9f9"} className="w-4 h-4" /><span className="text-sm text-main">{loading ? '...' : (isFollowing ? 'Отписаться' : 'Подписаться')}</span></motion.button>)
+const FollowButton = ({ isFollowing, onClick, loading }: { isFollowing: boolean; onClick: () => void; loading: boolean }) => (<motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onClick} disabled={loading} className={`px-5 sm:px-6 py-2 rounded-xl transition-all duration-300 flex items-center gap-2 ${isFollowing  ? 'bg-gray-100 text-firm-pink hover:bg-gray-200 border border-gray-200' : 'bg-linear-to-r from-firm-orange to-firm-pink text-main hover:shadow-lg'}`} ><LikeIcon color={isFollowing ? "#D97C8E" : "#f9f9f9"} className="w-4 h-4" /><span className={`text-sm ${isFollowing ? 'text-firm-pink' : 'text-main'}`}>{loading ? '...' : (isFollowing ? 'Отписаться' : 'Подписаться')}</span> </motion.button>)
 
 export default function MasterPage() {
     const { id } = useParams()
