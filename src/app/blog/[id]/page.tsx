@@ -160,7 +160,7 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
       <motion.img initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }} src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`} alt={userName || "Profile"} className="rounded-full object-cover ring-2 ring-firm-orange/30" style={{ width: size, height: size }} onError={() => setAvatarError(true)} />)}
 
   return (
-    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }} className="rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center text-mian font-bold shadow-md" style={{ width: size, height: size, fontSize: size * 0.4 }}>{getInitials()}</motion.div>);
+    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }} className="rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold shadow-md" style={{ width: size, height: size, fontSize: size * 0.4 }}>{getInitials()}</motion.div>);
 };
 
 export default function BlogPostPage() {
