@@ -65,7 +65,7 @@ interface Order {
 }
 
 const StarRating = ({ rating, size = "md", interactive = false, onRatingChange }: { rating: number; size?: "sm" | "md" | "lg"; interactive?: boolean; onRatingChange?: (rating: number) => void }) => {
-    const sizeClasses = { sm: "text-xs", md: "text-sm", lg: "text-base" }
+    const sizeClasses = { sm: "text-xs", md: "text-sm", lg: "text-2xl" }
     const [hoverRating, setHoverRating] = useState(0)
     
     const displayRating = interactive ? (hoverRating || rating) : rating
@@ -79,7 +79,7 @@ const StarRating = ({ rating, size = "md", interactive = false, onRatingChange }
                     onClick={() => interactive && onRatingChange && onRatingChange(i + 1)}
                     onMouseEnter={() => interactive && setHoverRating(i + 1)}
                     onMouseLeave={() => interactive && setHoverRating(0)}
-                    className={interactive ? "cursor-pointer transition-transform hover:scale-110" : ""}
+                    className={interactive ? "cursor-pointer transition-transform hover:scale-110" : "cursor-default"}
                     disabled={!interactive}
                 >
                     <span className={`${i < displayRating ? "text-yellow-400" : "text-gray-300"} ${sizeClasses[size]}`}>
@@ -98,7 +98,7 @@ const FollowButton = ({ isFollowing, onClick, loading }: { isFollowing: boolean;
         whileTap={{ scale: 0.98 }} 
         onClick={onClick} 
         disabled={loading} 
-        className={`px-5 sm:px-6 py-2 rounded-xl transition-all duration-300 flex items-center gap-2 ${isFollowing ? 'bg-gray-100 text-firm-pink hover:bg-gray-200 border border-gray-200' : 'bg-linear-to-r from-firm-orange to-firm-pink text-main hover:shadow-lg'}`}
+        className={`px-5 sm:px-6 py-2 rounded-xl transition-all duration-300 flex items-center gap-2 ${isFollowing ? 'bg-gray-100 text-firm-pink hover:bg-gray-200 border border-gray-200' : 'bg-gradient-to-r from-firm-orange to-firm-pink text-main hover:shadow-lg'}`}
     >
         <LikeIcon color={isFollowing ? "#D97C8E" : "#f9f9f9"} className="w-4 h-4" />
         <span className={`text-sm ${isFollowing ? 'text-firm-pink' : 'text-main'}`}>{loading ? '...' : (isFollowing ? 'Отписаться' : 'Подписаться')}</span>
@@ -246,6 +246,9 @@ export default function MasterPage() {
             if (data.canReview) {
                 setCanReview(true)
                 setPendingOrders(data.orders || [])
+                if (data.orders?.length === 1) {
+                    setSelectedOrderId(data.orders[0].id)
+                }
             } else {
                 setCanReview(false)
                 setPendingOrders([])
@@ -316,6 +319,11 @@ export default function MasterPage() {
             return
         }
 
+        if (pendingOrders.length > 1 && !selectedOrderId) {
+            toast.error('Выберите заказ, для которого оставляете отзыв')
+            return
+        }
+
         setSubmittingReview(true)
         try {
             const response = await fetch('/api/reviews', {
@@ -323,7 +331,7 @@ export default function MasterPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     master_id: id,
-                    order_id: selectedOrderId,
+                    order_id: selectedOrderId || undefined,
                     rating: reviewRating,
                     comment: reviewComment
                 })
@@ -335,8 +343,8 @@ export default function MasterPage() {
                 setReviewRating(5)
                 setReviewComment('')
                 setSelectedOrderId('')
-                fetchReviews() // Обновляем список отзывов
-                setCanReview(false) // Скрываем кнопку для повторного отзыва
+                fetchReviews()
+                setCanReview(false)
             } else {
                 const error = await response.json()
                 toast.error(error.error || 'Ошибка при отправке отзыва')
@@ -377,6 +385,14 @@ export default function MasterPage() {
         }
     }
 
+    const openReviewModal = () => {
+        if (pendingOrders.length === 0) {
+            toast.error('У вас нет завершенных заказов у этого мастера')
+            return
+        }
+        setShowReviewModal(true)
+    }
+
     const fadeInUp = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.5 } }
     const staggerContainer = { animate: { transition: { staggerChildren: 0.1 } } }
 
@@ -394,6 +410,7 @@ export default function MasterPage() {
     return (
         <>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+                {/* Хлебные крошки */}
                 <div className="text-xs sm:text-sm text-firm-gray mb-6">
                     <Link href="/" className="hover:text-firm-orange transition-colors">Главная</Link>
                     <span className="mx-2">/</span>
@@ -402,13 +419,14 @@ export default function MasterPage() {
                     <span className="text-text truncate">{master.name}</span>
                 </div>
 
+                {/* Профиль мастера */}
                 <div className="flex flex-col md:flex-row gap-6 sm:gap-8 mb-10 sm:mb-12">
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 0.1 }} className="shrink-0 self-center md:self-start">
-                        <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center overflow-hidden shadow-lg ring-4 ring-white">
+                        <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center overflow-hidden shadow-lg ring-4 ring-white">
                             {master.avatar_url ? (
                                 <img src={master.avatar_url} alt={master.name} className="w-full h-full object-cover" onError={(e) => {(e.target as HTMLImageElement).style.display = 'none'}} />
                             ) : (
-                                <span className="text-4xl sm:text-5xl md:text-6xl font-['Montserrat_Alternates'] font-bold text-main">{master.name?.charAt(0).toUpperCase()}</span>
+                                <span className="text-4xl sm:text-5xl md:text-6xl font-['Montserrat_Alternates'] font-bold text-white">{master.name?.charAt(0).toUpperCase()}</span>
                             )}
                         </div>
                     </motion.div>
@@ -416,8 +434,18 @@ export default function MasterPage() {
                     <motion.div variants={staggerContainer} initial="initial" animate="animate" className="flex-1 text-center md:text-left">
                         <motion.div variants={fadeInUp} className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-3">
                             <h1 className="font-['Montserrat_Alternates'] font-bold text-2xl sm:text-3xl text-text">{master.name}</h1>
-                            {master.is_verified && (<span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-firm-green rounded-full text-xs"><CheckCircleIcon className="w-3 h-3" color="#94D06C" />Верифицирован</span>)}
-                            {master.is_partner && (<span className="inline-flex items-center gap-1 px-2 py-0.5 bg-firm-orange/10 text-firm-orange rounded-full text-xs"><StarIcon className="w-3 h-3" color="#F4A67F" />Партнер фабрики</span>)}
+                            {master.is_verified && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">
+                                    <CheckCircleIcon className="w-3 h-3" color="#94D06C" />
+                                    Верифицирован
+                                </span>
+                            )}
+                            {master.is_partner && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-firm-orange/10 text-firm-orange rounded-full text-xs">
+                                    <StarIcon className="w-3 h-3" color="#F4A67F" />
+                                    Партнер фабрики
+                                </span>
+                            )}
                         </motion.div>
 
                         <motion.div variants={fadeInUp} className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-4">
@@ -441,17 +469,18 @@ export default function MasterPage() {
                         <motion.p variants={fadeInUp} className="text-firm-gray text-sm sm:text-base mb-6 leading-relaxed">{master.description || 'Мастер пока не добавил описание.'}</motion.p>
 
                         <motion.div variants={fadeInUp} className="flex flex-wrap justify-center md:justify-start gap-3">
-                            {session && !isCurrentUserMaster && (<FollowButton isFollowing={isFollowing} onClick={handleFollow} loading={followLoading} />)}
+                            {session && !isCurrentUserMaster && (
+                                <FollowButton isFollowing={isFollowing} onClick={handleFollow} loading={followLoading} />
+                            )}
                             {master.custom_orders_enabled && (
-                                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowCustomModal(true)} className="px-5 sm:px-6 py-2 border-2 border-firm-pink text-firm-pink rounded-xl hover:bg-firm-pink hover:text-main transition-all duration-300 flex items-center gap-2">
+                                <motion.button 
+                                    whileHover={{ scale: 1.02 }} 
+                                    whileTap={{ scale: 0.98 }} 
+                                    onClick={() => setShowCustomModal(true)} 
+                                    className="px-5 sm:px-6 py-2 border-2 border-firm-pink text-firm-pink rounded-xl hover:bg-firm-pink hover:text-white transition-all duration-300 flex items-center gap-2"
+                                >
                                     <Productslcon className="w-4 h-4" color="currentColor" />
                                     <span className="text-sm">Обсудить заказ</span>
-                                </motion.button>
-                            )}
-                            {canReview && session && !isCurrentUserMaster && (
-                                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowReviewModal(true)} className="px-5 sm:px-6 py-2 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300 flex items-center gap-2">
-                                    <StarIcon className="w-4 h-4" color="#f9f9f9" />
-                                    <span className="text-sm">Оставить отзыв</span>
                                 </motion.button>
                             )}
                         </motion.div>
@@ -466,7 +495,13 @@ export default function MasterPage() {
                         { label: "Рейтинг", value: master.rating, color: "#F4A67F", icon: <StarIcon className="w-5 h-5" color="#F4A67F" /> }, 
                         { label: "Отзывов", value: reviews.length, color: "#D97C8E", icon: <CartIcon className="w-5 h-5" color="#D97C8E" /> }
                     ].map((stat, idx) => (
-                        <motion.div key={stat.label} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3 + idx * 0.1 }} className="text-center p-3 rounded-xl bg-gray-50/50 hover:bg-gray-50 transition-all duration-300">
+                        <motion.div 
+                            key={stat.label} 
+                            initial={{ scale: 0.8, opacity: 0 }} 
+                            animate={{ scale: 1, opacity: 1 }} 
+                            transition={{ delay: 0.3 + idx * 0.1 }} 
+                            className="text-center p-3 rounded-xl bg-gray-50/50 hover:bg-gray-50 transition-all duration-300"
+                        >
                             <div className="flex justify-center mb-2">{stat.icon}</div>
                             <p className="text-2xl sm:text-3xl font-bold" style={{ color: stat.color }}>{typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}</p>
                             <p className="text-xs sm:text-sm text-firm-gray mt-1">{stat.label}</p>
@@ -475,15 +510,42 @@ export default function MasterPage() {
                 </motion.div>
 
                 {/* Табы */}
-                <div className="flex gap-4 sm:gap-6 mb-6 border-b border-gray-100">
-                    <button onClick={() => setActiveTab('products')} className={`pb-3 px-1 font-['Montserrat_Alternates'] text-sm sm:text-base transition-all duration-300 relative ${activeTab === 'products' ? 'text-firm-orange' : 'text-firm-gray hover:text-text'}`}>
-                        Работы мастера ({products.length})
-                        {activeTab === 'products' && (<motion.div layoutId="tabIndicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-firm-orange to-firm-pink rounded-full" />)}
-                    </button>
-                    <button onClick={() => setActiveTab('reviews')} className={`pb-3 px-1 font-['Montserrat_Alternates'] text-sm sm:text-base transition-all duration-300 relative ${activeTab === 'reviews' ? 'text-firm-pink' : 'text-firm-gray hover:text-text'}`}>
-                        Отзывы ({reviews.length})
-                        {activeTab === 'reviews' && (<motion.div layoutId="tabIndicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-firm-pink to-firm-orange rounded-full" />)}
-                    </button>
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-6 border-b border-gray-100">
+                    <div className="flex gap-4 sm:gap-6">
+                        <button 
+                            onClick={() => setActiveTab('products')} 
+                            className={`pb-3 px-1 font-['Montserrat_Alternates'] text-sm sm:text-base transition-all duration-300 relative ${activeTab === 'products' ? 'text-firm-orange' : 'text-firm-gray hover:text-text'}`}
+                        >
+                            Работы мастера ({products.length})
+                            {activeTab === 'products' && (
+                                <motion.div layoutId="tabIndicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-firm-orange to-firm-pink rounded-full" />
+                            )}
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('reviews')} 
+                            className={`pb-3 px-1 font-['Montserrat_Alternates'] text-sm sm:text-base transition-all duration-300 relative ${activeTab === 'reviews' ? 'text-firm-pink' : 'text-firm-gray hover:text-text'}`}
+                        >
+                            Отзывы ({reviews.length})
+                            {activeTab === 'reviews' && (
+                                <motion.div layoutId="tabIndicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-firm-pink to-firm-orange rounded-full" />
+                            )}
+                        </button>
+                    </div>
+                    
+                    {/* Кнопка "Оставить отзыв" на вкладке отзывов */}
+                    {activeTab === 'reviews' && canReview && session && !isCurrentUserMaster && (
+                        <motion.button 
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            whileHover={{ scale: 1.02 }} 
+                            whileTap={{ scale: 0.98 }} 
+                            onClick={openReviewModal} 
+                            className="px-4 sm:px-5 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 flex items-center gap-2 text-sm"
+                        >
+                            <StarIcon className="w-4 h-4" color="#FFFFFF" />
+                            <span>Оставить отзыв</span>
+                        </motion.button>
+                    )}
                 </div>
 
                 {/* Контент табов */}
@@ -507,7 +569,8 @@ export default function MasterPage() {
                                     {products.length > 8 && (
                                         <div className="text-center mt-8">
                                             <Link href={`/catalog?master=${master.id}`} className="inline-flex items-center gap-2 text-firm-orange hover:text-firm-pink text-sm font-medium transition-colors duration-300">
-                                                <span>Все работы мастера</span><span>→</span>
+                                                <span>Все работы мастера</span>
+                                                <span>→</span>
                                             </Link>
                                         </div>
                                     )}
@@ -521,18 +584,32 @@ export default function MasterPage() {
                             {reviews.length === 0 ? (
                                 <div className="text-center py-12 sm:py-16 bg-gray-50 rounded-xl">
                                     <StarIcon className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-                                    <p className="text-firm-gray">Пока нет отзывов</p>
-                                    {session && session.user?.role !== 'master' && !canReview && (
-                                        <Link href={`/catalog?master=${master.id}`} className="mt-4 inline-block text-firm-orange hover:underline text-sm">Оставить отзыв после покупки</Link>
+                                    <p className="text-firm-gray mb-3">Пока нет отзывов</p>
+                                    {session && session.user?.role !== 'master' && !isCurrentUserMaster && (
+                                        <p className="text-sm text-firm-gray">
+                                            {canReview 
+                                                ? 'Вы можете оставить отзыв о работе мастера'
+                                                : 'Оставить отзыв можно после получения заказа от этого мастера'}
+                                        </p>
                                     )}
                                 </div>
                             ) : (
                                 <div className="space-y-4">
                                     {reviews.map((review, idx) => (
-                                        <motion.div key={review.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} className="bg-main rounded-xl p-4 sm:p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
+                                        <motion.div 
+                                            key={review.id} 
+                                            initial={{ opacity: 0, y: 10 }} 
+                                            animate={{ opacity: 1, y: 0 }} 
+                                            transition={{ delay: idx * 0.05 }} 
+                                            className="bg-white rounded-xl p-4 sm:p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300"
+                                        >
                                             <div className="flex items-start gap-3">
-                                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold text-sm sm:text-base shrink-0">
-                                                    {review.author_avatar ? (<img src={review.author_avatar} alt={review.author_name} className="w-full h-full object-cover rounded-full" />) : (review.author_name?.charAt(0).toUpperCase())}
+                                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold text-sm sm:text-base shrink-0">
+                                                    {review.author_avatar ? (
+                                                        <img src={review.author_avatar} alt={review.author_name} className="w-full h-full object-cover rounded-full" />
+                                                    ) : (
+                                                        review.author_name?.charAt(0).toUpperCase()
+                                                    )}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -540,7 +617,9 @@ export default function MasterPage() {
                                                         <StarRating rating={review.rating} size="sm" />
                                                     </div>
                                                     <p className="text-firm-gray text-sm sm:text-base leading-relaxed">{review.comment}</p>
-                                                    <p className="text-xs text-gray-400 mt-2">{new Date(review.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                                                    <p className="text-xs text-gray-400 mt-2">
+                                                        {new Date(review.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                    </p>
                                                 </div>
                                             </div>
                                         </motion.div>
@@ -555,8 +634,8 @@ export default function MasterPage() {
             {/* Модальное окно индивидуального заказа */}
             <AnimatePresence>
                 {showCustomModal && (
-                    <div className="fixed inset-0 bg-main-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowCustomModal(false)}>
-                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-main rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowCustomModal(false)}>
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
                             <div className="p-5 sm:p-6">
                                 <div className="flex justify-between items-center mb-5">
                                     <h3 className="font-['Montserrat_Alternates'] font-semibold text-xl text-text">Индивидуальный заказ</h3>
@@ -581,9 +660,9 @@ export default function MasterPage() {
                                         <label className="block text-sm text-text mb-1.5 font-medium">Примерный бюджет (₽)</label>
                                         <input type="number" value={customRequest.budget} onChange={(e) => setCustomRequest(prev => ({ ...prev, budget: e.target.value }))} className="w-full px-4 py-2.5 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm" placeholder="Например, 5000" />
                                     </div>
-                                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" className="w-full py-2.5 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 font-medium">
-                                        <SendIcon className="w-4 h-4" color="#f9f9f9" />
-                                        <span className='text-main'>Отправить запрос</span>
+                                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" className="w-full py-2.5 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 font-medium">
+                                        <SendIcon className="w-4 h-4" color="#FFFFFF" />
+                                        <span>Отправить запрос</span>
                                     </motion.button>
                                 </form>
                             </div>
@@ -595,8 +674,8 @@ export default function MasterPage() {
             {/* Модальное окно для отзыва */}
             <AnimatePresence>
                 {showReviewModal && (
-                    <div className="fixed inset-0 bg-main-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowReviewModal(false)}>
-                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-main rounded-2xl max-w-md w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowReviewModal(false)}>
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-2xl max-w-md w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
                             <div className="p-5 sm:p-6">
                                 <div className="flex justify-between items-center mb-5">
                                     <h3 className="font-['Montserrat_Alternates'] font-semibold text-xl text-text">Оставить отзыв</h3>
@@ -646,13 +725,13 @@ export default function MasterPage() {
                                         whileTap={{ scale: 0.98 }} 
                                         type="submit" 
                                         disabled={submittingReview || (pendingOrders.length > 1 && !selectedOrderId)}
-                                        className="w-full py-2.5 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-full py-2.5 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {submittingReview ? (
                                             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                         ) : (
                                             <>
-                                                <SendIcon className="w-4 h-4" color="#f9f9f9" />
+                                                <SendIcon className="w-4 h-4" color="#FFFFFF" />
                                                 <span>Отправить отзыв</span>
                                             </>
                                         )}
