@@ -8,7 +8,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import ProductCard from '@/components/catalog/ProductCard'
 
-// Импорт иконок из библиотеки
 import { LocateIcon } from '@/components/icons/LocateIcon'
 import { StarIcon } from '@/components/icons/StarIcon'
 import { LikeIcon } from '@/components/icons/LikeIcon'
@@ -57,17 +56,54 @@ interface Review {
     author_name: string
     author_avatar: string
 }
-const StarRating = ({ rating, size = "md" }: { rating: number; size?: "sm" | "md" | "lg" }) => {
+
+interface Order {
+    id: string
+    order_number: string
+    status: string
+    created_at: string
+}
+
+const StarRating = ({ rating, size = "md", interactive = false, onRatingChange }: { rating: number; size?: "sm" | "md" | "lg"; interactive?: boolean; onRatingChange?: (rating: number) => void }) => {
     const sizeClasses = { sm: "text-xs", md: "text-sm", lg: "text-base" }
+    const [hoverRating, setHoverRating] = useState(0)
+    
+    const displayRating = interactive ? (hoverRating || rating) : rating
+    
     return (
         <div className="flex items-center gap-0.5">
-            {[...Array(5)].map((_, i) => (<span key={i} className={i < Math.floor(rating) ? "text-yellow-400" : "text-gray-300"}></span>))}
-            <span className={`ml-1 font-semibold ${sizeClasses[size]} text-text`}>{rating.toFixed(1)}</span>
+            {[...Array(5)].map((_, i) => (
+                <button
+                    key={i}
+                    type="button"
+                    onClick={() => interactive && onRatingChange && onRatingChange(i + 1)}
+                    onMouseEnter={() => interactive && setHoverRating(i + 1)}
+                    onMouseLeave={() => interactive && setHoverRating(0)}
+                    className={interactive ? "cursor-pointer transition-transform hover:scale-110" : ""}
+                    disabled={!interactive}
+                >
+                    <span className={`${i < displayRating ? "text-yellow-400" : "text-gray-300"} ${sizeClasses[size]}`}>
+                        ★
+                    </span>
+                </button>
+            ))}
+            {!interactive && <span className={`ml-1 font-semibold ${sizeClasses[size]} text-text`}>{rating.toFixed(1)}</span>}
         </div>
     )
 }
 
-const FollowButton = ({ isFollowing, onClick, loading }: { isFollowing: boolean; onClick: () => void; loading: boolean }) => (<motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={onClick} disabled={loading} className={`px-5 sm:px-6 py-2 rounded-xl transition-all duration-300 flex items-center gap-2 ${isFollowing  ? 'bg-gray-100 text-firm-pink hover:bg-gray-200 border border-gray-200' : 'bg-linear-to-r from-firm-orange to-firm-pink text-main hover:shadow-lg'}`} ><LikeIcon color={isFollowing ? "#D97C8E" : "#f9f9f9"} className="w-4 h-4" /><span className={`text-sm ${isFollowing ? 'text-firm-pink' : 'text-main'}`}>{loading ? '...' : (isFollowing ? 'Отписаться' : 'Подписаться')}</span> </motion.button>)
+const FollowButton = ({ isFollowing, onClick, loading }: { isFollowing: boolean; onClick: () => void; loading: boolean }) => (
+    <motion.button 
+        whileHover={{ scale: 1.02 }} 
+        whileTap={{ scale: 0.98 }} 
+        onClick={onClick} 
+        disabled={loading} 
+        className={`px-5 sm:px-6 py-2 rounded-xl transition-all duration-300 flex items-center gap-2 ${isFollowing ? 'bg-gray-100 text-firm-pink hover:bg-gray-200 border border-gray-200' : 'bg-linear-to-r from-firm-orange to-firm-pink text-main hover:shadow-lg'}`}
+    >
+        <LikeIcon color={isFollowing ? "#D97C8E" : "#f9f9f9"} className="w-4 h-4" />
+        <span className={`text-sm ${isFollowing ? 'text-firm-pink' : 'text-main'}`}>{loading ? '...' : (isFollowing ? 'Отписаться' : 'Подписаться')}</span>
+    </motion.button>
+)
 
 export default function MasterPage() {
     const { id } = useParams()
@@ -78,13 +114,22 @@ export default function MasterPage() {
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState<'products' | 'reviews'>('products')
     const [showCustomModal, setShowCustomModal] = useState(false)
+    const [showReviewModal, setShowReviewModal] = useState(false)
     const [isFollowing, setIsFollowing] = useState(false)
     const [followLoading, setFollowLoading] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
+    const [canReview, setCanReview] = useState(false)
+    const [pendingOrders, setPendingOrders] = useState<Order[]>([])
+    const [selectedOrderId, setSelectedOrderId] = useState<string>('')
+    const [reviewRating, setReviewRating] = useState(5)
+    const [reviewComment, setReviewComment] = useState('')
+    const [submittingReview, setSubmittingReview] = useState(false)
+    
     const [customRequest, setCustomRequest] = useState({ name: '', email: '', description: '', budget: ''})
 
     const isMaster = session?.user?.role === 'master'
     const currentMasterId = session?.user?.id
+    const isCurrentUserMaster = currentMasterId === id
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768)
@@ -98,10 +143,17 @@ export default function MasterPage() {
             fetchMaster()
             fetchProducts()
             fetchReviews()
+            if (session) {
+                checkCanReview()
+            }
         }
     }, [id])
 
-    useEffect(() => {if (id && session) {checkFollowStatus()}}, [id, session])
+    useEffect(() => {
+        if (id && session) {
+            checkFollowStatus()
+        }
+    }, [id, session])
 
     const fetchMaster = async () => {
         try {
@@ -117,7 +169,24 @@ export default function MasterPage() {
                 masterData = data
             }
             
-            const formattedMaster: Master = {id: masterData.id, name: masterData.name || masterData.full_name || 'Мастер', email: masterData.email || '', phone: masterData.phone || '', city: masterData.city || '', description: masterData.description || '', avatar_url: masterData.avatar_url || masterData.avatar || '', is_verified: masterData.is_verified || false, is_partner: masterData.is_partner || false, rating: masterData.rating || 0, total_sales: masterData.total_sales || 0, member_since: masterData.member_since || masterData.created_at, pieces_created: masterData.pieces_created || masterData.products_count || 0, followers_count: masterData.followers_count || 0, custom_orders_enabled: masterData.custom_orders_enabled || false, is_following: masterData.is_following || false }
+            const formattedMaster: Master = {
+                id: masterData.id, 
+                name: masterData.name || masterData.full_name || 'Мастер', 
+                email: masterData.email || '', 
+                phone: masterData.phone || '', 
+                city: masterData.city || '', 
+                description: masterData.description || '', 
+                avatar_url: masterData.avatar_url || masterData.avatar || '', 
+                is_verified: masterData.is_verified || false, 
+                is_partner: masterData.is_partner || false, 
+                rating: masterData.rating || 0, 
+                total_sales: masterData.total_sales || 0, 
+                member_since: masterData.member_since || masterData.created_at, 
+                pieces_created: masterData.pieces_created || masterData.products_count || 0, 
+                followers_count: masterData.followers_count || 0, 
+                custom_orders_enabled: masterData.custom_orders_enabled || false, 
+                is_following: masterData.is_following || false 
+            }
             
             setMaster(formattedMaster)
             setIsFollowing(formattedMaster.is_following || false)
@@ -169,6 +238,23 @@ export default function MasterPage() {
         }
     }
 
+    const checkCanReview = async () => {
+        try {
+            const response = await fetch(`/api/masters/${id}/can-review`)
+            const data = await response.json()
+            
+            if (data.canReview) {
+                setCanReview(true)
+                setPendingOrders(data.orders || [])
+            } else {
+                setCanReview(false)
+                setPendingOrders([])
+            }
+        } catch (error) {
+            console.error('Error checking review eligibility:', error)
+        }
+    }
+
     const checkFollowStatus = async () => {
         try {
             const response = await fetch(`/api/masters/${id}/follow-status`)
@@ -192,7 +278,11 @@ export default function MasterPage() {
         setFollowLoading(true)
         try {
             const method = isFollowing ? 'DELETE' : 'POST'
-            const response = await fetch('/api/masters/follow', {method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ masterId: id })})
+            const response = await fetch('/api/masters/follow', {
+                method, 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ masterId: id })
+            })
 
             if (response.ok) {
                 const data = await response.json()
@@ -200,7 +290,7 @@ export default function MasterPage() {
                 setMaster(prev => prev ? { ...prev, followers_count: data.followers_count } : prev)
                 toast.success(isFollowing ? 'Вы отписались от мастера' : 'Вы подписались на мастера')
                 
-                setTimeout(() => {checkFollowStatus()}, 1000)
+                setTimeout(() => { checkFollowStatus() }, 1000)
             } else {
                 const error = await response.json()
                 toast.error(error.error || 'Ошибка при подписке')
@@ -213,6 +303,52 @@ export default function MasterPage() {
         }
     }
 
+    const handleSubmitReview = async (e: React.FormEvent) => {
+        e.preventDefault()
+        
+        if (!session) {
+            window.location.href = `/auth/signin?callbackUrl=/masters/${id}`
+            return
+        }
+
+        if (!reviewComment.trim()) {
+            toast.error('Напишите текст отзыва')
+            return
+        }
+
+        setSubmittingReview(true)
+        try {
+            const response = await fetch('/api/reviews', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    master_id: id,
+                    order_id: selectedOrderId,
+                    rating: reviewRating,
+                    comment: reviewComment
+                })
+            })
+
+            if (response.ok) {
+                toast.success('Спасибо за отзыв!')
+                setShowReviewModal(false)
+                setReviewRating(5)
+                setReviewComment('')
+                setSelectedOrderId('')
+                fetchReviews() // Обновляем список отзывов
+                setCanReview(false) // Скрываем кнопку для повторного отзыва
+            } else {
+                const error = await response.json()
+                toast.error(error.error || 'Ошибка при отправке отзыва')
+            }
+        } catch (error) {
+            console.error('Error submitting review:', error)
+            toast.error('Ошибка при отправке отзыва')
+        } finally {
+            setSubmittingReview(false)
+        }
+    }
+
     const handleCustomRequest = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!session) {
@@ -221,7 +357,11 @@ export default function MasterPage() {
         }
 
         try {
-            const response = await fetch('/api/custom-requests', {method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ masterId: id, ...customRequest })})
+            const response = await fetch('/api/custom-requests', {
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ masterId: id, ...customRequest })
+            })
 
             if (response.ok) {
                 toast.success('Запрос отправлен! Мастер свяжется с вами в течение 48 часов.')
@@ -237,9 +377,8 @@ export default function MasterPage() {
         }
     }
 
-    const fadeInUp = {initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.5 }}
-
-    const staggerContainer = {animate: { transition: { staggerChildren: 0.1 } }}
+    const fadeInUp = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.5 } }
+    const staggerContainer = { animate: { transition: { staggerChildren: 0.1 } } }
 
     if (loading || !master) {
         return (
@@ -274,15 +413,9 @@ export default function MasterPage() {
                         </div>
                     </motion.div>
 
-                    {/* Информация */}
-                    <motion.div 
-                        variants={staggerContainer}
-                        initial="initial"
-                        animate="animate"
-                        className="flex-1 text-center md:text-left"
-                    >
+                    <motion.div variants={staggerContainer} initial="initial" animate="animate" className="flex-1 text-center md:text-left">
                         <motion.div variants={fadeInUp} className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-3">
-                            <h1 className="font-['Montserrat_Alternates'] font-bold text-2xl sm:text-3xl text-text"> {master.name}</h1>
+                            <h1 className="font-['Montserrat_Alternates'] font-bold text-2xl sm:text-3xl text-text">{master.name}</h1>
                             {master.is_verified && (<span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-firm-green rounded-full text-xs"><CheckCircleIcon className="w-3 h-3" color="#94D06C" />Верифицирован</span>)}
                             {master.is_partner && (<span className="inline-flex items-center gap-1 px-2 py-0.5 bg-firm-orange/10 text-firm-orange rounded-full text-xs"><StarIcon className="w-3 h-3" color="#F4A67F" />Партнер фабрики</span>)}
                         </motion.div>
@@ -308,26 +441,52 @@ export default function MasterPage() {
                         <motion.p variants={fadeInUp} className="text-firm-gray text-sm sm:text-base mb-6 leading-relaxed">{master.description || 'Мастер пока не добавил описание.'}</motion.p>
 
                         <motion.div variants={fadeInUp} className="flex flex-wrap justify-center md:justify-start gap-3">
-                            {session && currentMasterId !== master.id && (<FollowButton isFollowing={isFollowing} onClick={handleFollow} loading={followLoading} />)}
-                            {master.custom_orders_enabled && (<motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowCustomModal(true)} className="px-5 sm:px-6 py-2 border-2 border-firm-pink text-firm-pink rounded-xl hover:bg-firm-pink hover:text-main transition-all duration-300 flex items-center gap-2"><Productslcon className="w-4 h-4" color="currentColor" /><span className="text-sm">Обсудить заказ</span></motion.button> )}
+                            {session && !isCurrentUserMaster && (<FollowButton isFollowing={isFollowing} onClick={handleFollow} loading={followLoading} />)}
+                            {master.custom_orders_enabled && (
+                                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowCustomModal(true)} className="px-5 sm:px-6 py-2 border-2 border-firm-pink text-firm-pink rounded-xl hover:bg-firm-pink hover:text-main transition-all duration-300 flex items-center gap-2">
+                                    <Productslcon className="w-4 h-4" color="currentColor" />
+                                    <span className="text-sm">Обсудить заказ</span>
+                                </motion.button>
+                            )}
+                            {canReview && session && !isCurrentUserMaster && (
+                                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowReviewModal(true)} className="px-5 sm:px-6 py-2 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300 flex items-center gap-2">
+                                    <StarIcon className="w-4 h-4" color="#f9f9f9" />
+                                    <span className="text-sm">Оставить отзыв</span>
+                                </motion.button>
+                            )}
                         </motion.div>
                     </motion.div>
                 </div>
 
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 py-6 sm:py-8 border-t border-b border-gray-100 mb-8 sm:mb-12" >
-                    {[{ label: "Работ", value: master.pieces_created || master.total_sales || products.length, color: "#F4A67F", icon: <Productslcon className="w-5 h-5" color="#F4A67F" /> }, { label: "Подписчиков", value: master.followers_count || 0, color: "#D97C8E", icon: <LikeIcon className="w-5 h-5" color="#D97C8E" /> }, { label: "Рейтинг", value: master.rating, color: "#F4A67F", icon: <StarIcon className="w-5 h-5" color="#F4A67F" /> }, { label: "Отзывов", value: reviews.length, color: "#D97C8E", icon: <CartIcon className="w-5 h-5" color="#D97C8E" /> }].map((stat, idx) => (
+                {/* Статистика */}
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 py-6 sm:py-8 border-t border-b border-gray-100 mb-8 sm:mb-12">
+                    {[
+                        { label: "Работ", value: master.pieces_created || master.total_sales || products.length, color: "#F4A67F", icon: <Productslcon className="w-5 h-5" color="#F4A67F" /> }, 
+                        { label: "Подписчиков", value: master.followers_count || 0, color: "#D97C8E", icon: <LikeIcon className="w-5 h-5" color="#D97C8E" /> }, 
+                        { label: "Рейтинг", value: master.rating, color: "#F4A67F", icon: <StarIcon className="w-5 h-5" color="#F4A67F" /> }, 
+                        { label: "Отзывов", value: reviews.length, color: "#D97C8E", icon: <CartIcon className="w-5 h-5" color="#D97C8E" /> }
+                    ].map((stat, idx) => (
                         <motion.div key={stat.label} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3 + idx * 0.1 }} className="text-center p-3 rounded-xl bg-gray-50/50 hover:bg-gray-50 transition-all duration-300">
                             <div className="flex justify-center mb-2">{stat.icon}</div>
-                            <p className="text-2xl sm:text-3xl font-bold" style={{ color: stat.color }}>{typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}</p><p className="text-xs sm:text-sm text-firm-gray mt-1">{stat.label}</p>
+                            <p className="text-2xl sm:text-3xl font-bold" style={{ color: stat.color }}>{typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}</p>
+                            <p className="text-xs sm:text-sm text-firm-gray mt-1">{stat.label}</p>
                         </motion.div>
                     ))}
                 </motion.div>
 
+                {/* Табы */}
                 <div className="flex gap-4 sm:gap-6 mb-6 border-b border-gray-100">
-                    <button onClick={() => setActiveTab('products')} className={`pb-3 px-1 font-['Montserrat_Alternates'] text-sm sm:text-base transition-all duration-300 relative ${activeTab === 'products' ? 'text-firm-orange' : 'text-firm-gray hover:text-text'}`}>Работы мастера ({products.length}){activeTab === 'products' && (<motion.div layoutId="tabIndicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-firm-orange to-firm-pink rounded-full" />)}</button>
-                    <button onClick={() => setActiveTab('reviews')} className={`pb-3 px-1 font-['Montserrat_Alternates'] text-sm sm:text-base transition-all duration-300 relative ${activeTab === 'reviews' ? 'text-firm-pink' : 'text-firm-gray hover:text-text'}`}>Отзывы ({reviews.length}){activeTab === 'reviews' && (<motion.div layoutId="tabIndicator"  className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-firm-pink to-firm-orange rounded-full" />)}</button>
+                    <button onClick={() => setActiveTab('products')} className={`pb-3 px-1 font-['Montserrat_Alternates'] text-sm sm:text-base transition-all duration-300 relative ${activeTab === 'products' ? 'text-firm-orange' : 'text-firm-gray hover:text-text'}`}>
+                        Работы мастера ({products.length})
+                        {activeTab === 'products' && (<motion.div layoutId="tabIndicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-firm-orange to-firm-pink rounded-full" />)}
+                    </button>
+                    <button onClick={() => setActiveTab('reviews')} className={`pb-3 px-1 font-['Montserrat_Alternates'] text-sm sm:text-base transition-all duration-300 relative ${activeTab === 'reviews' ? 'text-firm-pink' : 'text-firm-gray hover:text-text'}`}>
+                        Отзывы ({reviews.length})
+                        {activeTab === 'reviews' && (<motion.div layoutId="tabIndicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-firm-pink to-firm-orange rounded-full" />)}
+                    </button>
                 </div>
 
+                {/* Контент табов */}
                 <AnimatePresence mode="wait">
                     {activeTab === 'products' && (
                         <motion.div key="products" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
@@ -347,7 +506,9 @@ export default function MasterPage() {
                                     </div>
                                     {products.length > 8 && (
                                         <div className="text-center mt-8">
-                                            <Link href={`/catalog?master=${master.id}`} className="inline-flex items-center gap-2 text-firm-orange hover:text-firm-pink text-sm font-medium transition-colors duration-300"><span>Все работы мастера</span><span>→</span></Link>
+                                            <Link href={`/catalog?master=${master.id}`} className="inline-flex items-center gap-2 text-firm-orange hover:text-firm-pink text-sm font-medium transition-colors duration-300">
+                                                <span>Все работы мастера</span><span>→</span>
+                                            </Link>
                                         </div>
                                     )}
                                 </>
@@ -361,7 +522,9 @@ export default function MasterPage() {
                                 <div className="text-center py-12 sm:py-16 bg-gray-50 rounded-xl">
                                     <StarIcon className="w-12 h-12 mx-auto text-gray-300 mb-3" />
                                     <p className="text-firm-gray">Пока нет отзывов</p>
-                                    {session && session.user?.role !== 'master' && ( <Link href={`/catalog?master=${master.id}`} className="mt-4 inline-block text-firm-orange hover:underline text-sm">Оставить отзыв после покупки</Link>)}
+                                    {session && session.user?.role !== 'master' && !canReview && (
+                                        <Link href={`/catalog?master=${master.id}`} className="mt-4 inline-block text-firm-orange hover:underline text-sm">Оставить отзыв после покупки</Link>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="space-y-4">
@@ -374,9 +537,7 @@ export default function MasterPage() {
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex flex-wrap items-center gap-2 mb-1">
                                                         <span className="font-semibold text-sm sm:text-base text-text">{review.author_name}</span>
-                                                        <div className="flex items-center gap-0.5">
-                                                            {[...Array(5)].map((_, i) => (<span key={i} className={i < review.rating ? 'text-yellow-400 text-xs sm:text-sm' : 'text-gray-300 text-xs sm:text-sm'}>★</span>))}
-                                                        </div>
+                                                        <StarRating rating={review.rating} size="sm" />
                                                     </div>
                                                     <p className="text-firm-gray text-sm sm:text-base leading-relaxed">{review.comment}</p>
                                                     <p className="text-xs text-gray-400 mt-2">{new Date(review.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
@@ -391,14 +552,17 @@ export default function MasterPage() {
                 </AnimatePresence>
             </div>
 
+            {/* Модальное окно индивидуального заказа */}
             <AnimatePresence>
                 {showCustomModal && (
                     <div className="fixed inset-0 bg-main-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowCustomModal(false)}>
-                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}  exit={{ opacity: 0, scale: 0.95 }}  className="bg-main rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-main rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
                             <div className="p-5 sm:p-6">
                                 <div className="flex justify-between items-center mb-5">
                                     <h3 className="font-['Montserrat_Alternates'] font-semibold text-xl text-text">Индивидуальный заказ</h3>
-                                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => setShowCustomModal(false)} className="p-1 rounded-lg hover:bg-gray-100 transition-colors"><CloseIcon className="w-5 h-5" color="#737682" /> </motion.button>
+                                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => setShowCustomModal(false)} className="p-1 rounded-lg hover:bg-gray-100 transition-colors">
+                                        <CloseIcon className="w-5 h-5" color="#737682" />
+                                    </motion.button>
                                 </div>
                                 <form onSubmit={handleCustomRequest} className="space-y-4">
                                     <div>
@@ -415,9 +579,84 @@ export default function MasterPage() {
                                     </div>
                                     <div>
                                         <label className="block text-sm text-text mb-1.5 font-medium">Примерный бюджет (₽)</label>
-                                        <input type="number" value={customRequest.budget} onChange={(e) => setCustomRequest(prev => ({ ...prev, budget: e.target.value }))} className="w-full px-4 py-2.5 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm" placeholder="Например, 5000"  />
+                                        <input type="number" value={customRequest.budget} onChange={(e) => setCustomRequest(prev => ({ ...prev, budget: e.target.value }))} className="w-full px-4 py-2.5 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm" placeholder="Например, 5000" />
                                     </div>
-                                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" className="w-full py-2.5 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 font-medium"><SendIcon className="w-4 h-4" color="#f9f9f9" /><span className='text-main'>Отправить запрос</span></motion.button>
+                                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" className="w-full py-2.5 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 font-medium">
+                                        <SendIcon className="w-4 h-4" color="#f9f9f9" />
+                                        <span className='text-main'>Отправить запрос</span>
+                                    </motion.button>
+                                </form>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Модальное окно для отзыва */}
+            <AnimatePresence>
+                {showReviewModal && (
+                    <div className="fixed inset-0 bg-main-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowReviewModal(false)}>
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-main rounded-2xl max-w-md w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                            <div className="p-5 sm:p-6">
+                                <div className="flex justify-between items-center mb-5">
+                                    <h3 className="font-['Montserrat_Alternates'] font-semibold text-xl text-text">Оставить отзыв</h3>
+                                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => setShowReviewModal(false)} className="p-1 rounded-lg hover:bg-gray-100 transition-colors">
+                                        <CloseIcon className="w-5 h-5" color="#737682" />
+                                    </motion.button>
+                                </div>
+                                
+                                {pendingOrders.length > 1 && (
+                                    <div className="mb-4">
+                                        <label className="block text-sm text-text mb-1.5 font-medium">Выберите заказ</label>
+                                        <select 
+                                            value={selectedOrderId} 
+                                            onChange={(e) => setSelectedOrderId(e.target.value)}
+                                            className="w-full px-4 py-2.5 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm"
+                                        >
+                                            <option value="">Выберите заказ</option>
+                                            {pendingOrders.map(order => (
+                                                <option key={order.id} value={order.id}>
+                                                    Заказ №{order.order_number} от {new Date(order.created_at).toLocaleDateString('ru-RU')}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+
+                                <form onSubmit={handleSubmitReview} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm text-text mb-1.5 font-medium">Ваша оценка</label>
+                                        <StarRating rating={reviewRating} size="lg" interactive={true} onRatingChange={setReviewRating} />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm text-text mb-1.5 font-medium">Ваш отзыв *</label>
+                                        <textarea 
+                                            rows={4} 
+                                            required 
+                                            value={reviewComment} 
+                                            onChange={(e) => setReviewComment(e.target.value)} 
+                                            className="w-full px-4 py-2.5 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm resize-none" 
+                                            placeholder="Поделитесь впечатлениями о работе мастера..." 
+                                        />
+                                    </div>
+
+                                    <motion.button 
+                                        whileHover={{ scale: 1.02 }} 
+                                        whileTap={{ scale: 0.98 }} 
+                                        type="submit" 
+                                        disabled={submittingReview || (pendingOrders.length > 1 && !selectedOrderId)}
+                                        className="w-full py-2.5 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {submittingReview ? (
+                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                        ) : (
+                                            <>
+                                                <SendIcon className="w-4 h-4" color="#f9f9f9" />
+                                                <span>Отправить отзыв</span>
+                                            </>
+                                        )}
+                                    </motion.button>
                                 </form>
                             </div>
                         </motion.div>
