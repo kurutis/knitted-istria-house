@@ -16,6 +16,8 @@ import { Productslcon } from '@/components/icons/Productslcon'
 import { CloseIcon } from '@/components/icons/CloseIcon'
 import { SendIcon } from '@/components/icons/SendIcon'
 import { CheckCircleIcon } from '@/components/icons/CheckCircleIcon'
+import { EditIcon } from '@/components/icons/EditIcon'
+import { DeleteIcon } from '@/components/icons/DeleteIcon'
 
 interface Master {
     id: string
@@ -53,6 +55,9 @@ interface Review {
     rating: number
     comment: string
     created_at: string
+    updated_at?: string
+    is_edited?: boolean
+    author_id: string
     author_name: string
     author_avatar: string
 }
@@ -125,6 +130,12 @@ export default function MasterPage() {
     const [reviewComment, setReviewComment] = useState('')
     const [submittingReview, setSubmittingReview] = useState(false)
     
+    // Состояния для редактирования отзыва
+    const [editingReview, setEditingReview] = useState<Review | null>(null)
+    const [editReviewRating, setEditReviewRating] = useState(5)
+    const [editReviewComment, setEditReviewComment] = useState('')
+    const [editReviewLoading, setEditReviewLoading] = useState(false)
+    
     const [customRequest, setCustomRequest] = useState({ name: '', email: '', description: '', budget: ''})
 
     const isMaster = session?.user?.role === 'master'
@@ -180,7 +191,7 @@ export default function MasterPage() {
                 is_verified: masterData.is_verified || false, 
                 is_partner: masterData.is_partner || false, 
                 rating: masterData.rating || 0, 
-                total_sales: masterData.total_sales || 0, 
+                total_sales: masterData.total_sales || masterData.sales_count || 0, 
                 member_since: masterData.member_since || masterData.created_at, 
                 pieces_created: masterData.pieces_created || masterData.products_count || 0, 
                 followers_count: masterData.followers_count || 0, 
@@ -357,6 +368,71 @@ export default function MasterPage() {
         }
     }
 
+    const handleUpdateReview = async () => {
+        if (!editingReview) return
+        
+        setEditReviewLoading(true)
+        try {
+            const response = await fetch(`/api/reviews/${editingReview.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    rating: editReviewRating,
+                    comment: editReviewComment
+                })
+            })
+
+            if (response.ok) {
+                toast.success('Отзыв обновлен')
+                await fetchReviews()
+                setEditingReview(null)
+                setEditReviewRating(5)
+                setEditReviewComment('')
+            } else {
+                const error = await response.json()
+                toast.error(error.error || 'Ошибка при обновлении отзыва')
+            }
+        } catch (error) {
+            console.error('Error updating review:', error)
+            toast.error('Ошибка при обновлении отзыва')
+        } finally {
+            setEditReviewLoading(false)
+        }
+    }
+
+    const handleDeleteReview = async (reviewId: string) => {
+        if (!confirm('Вы уверены, что хотите удалить этот отзыв?')) return
+        
+        try {
+            const response = await fetch(`/api/reviews/${reviewId}`, {
+                method: 'DELETE'
+            })
+
+            if (response.ok) {
+                toast.success('Отзыв удален')
+                await fetchReviews()
+            } else {
+                const error = await response.json()
+                toast.error(error.error || 'Ошибка при удалении отзыва')
+            }
+        } catch (error) {
+            console.error('Error deleting review:', error)
+            toast.error('Ошибка при удалении отзыва')
+        }
+    }
+
+    const startEditReview = (review: Review) => {
+        setEditingReview(review)
+        setEditReviewRating(review.rating)
+        setEditReviewComment(review.comment)
+    }
+
+    const cancelEditReview = () => {
+        setEditingReview(null)
+        setEditReviewRating(5)
+        setEditReviewComment('')
+    }
+
     const handleCustomRequest = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!session) {
@@ -426,7 +502,7 @@ export default function MasterPage() {
                             {master.avatar_url ? (
                                 <img src={master.avatar_url} alt={master.name} className="w-full h-full object-cover" onError={(e) => {(e.target as HTMLImageElement).style.display = 'none'}} />
                             ) : (
-                                <span className="text-4xl sm:text-5xl md:text-6xl font-['Montserrat_Alternates'] font-bold text-white">{master.name?.charAt(0).toUpperCase()}</span>
+                                <span className="text-4xl sm:text-5xl md:text-6xl font-['Montserrat_Alternates'] font-bold text-main">{master.name?.charAt(0).toUpperCase()}</span>
                             )}
                         </div>
                     </motion.div>
@@ -453,7 +529,7 @@ export default function MasterPage() {
                             <span className="text-gray-300">|</span>
                             <div className="flex items-center gap-1 text-firm-gray text-sm">
                                 <CartIcon className="w-4 h-4" color="#737682" />
-                                <span>{master.total_sales} продаж</span>
+                                <span>{master.total_sales || 0} продаж</span>
                             </div>
                             {master.city && (
                                 <>
@@ -477,7 +553,7 @@ export default function MasterPage() {
                                     whileHover={{ scale: 1.02 }} 
                                     whileTap={{ scale: 0.98 }} 
                                     onClick={() => setShowCustomModal(true)} 
-                                    className="px-5 sm:px-6 py-2 border-2 border-firm-pink text-firm-pink rounded-xl hover:bg-firm-pink hover:text-white transition-all duration-300 flex items-center gap-2"
+                                    className="px-5 sm:px-6 py-2 border-2 border-firm-pink text-firm-pink rounded-xl hover:bg-firm-pink hover:text-main transition-all duration-300 flex items-center gap-2"
                                 >
                                     <Productslcon className="w-4 h-4" color="currentColor" />
                                     <span className="text-sm">Обсудить заказ</span>
@@ -540,10 +616,10 @@ export default function MasterPage() {
                             whileHover={{ scale: 1.02 }} 
                             whileTap={{ scale: 0.98 }} 
                             onClick={openReviewModal} 
-                            className="px-4 sm:px-5 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 flex items-center gap-2 text-sm"
+                            className="px-4 sm:px-5 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300 flex items-center gap-2 text-sm"
                         >
-                            <StarIcon className="w-4 h-4" color="#FFFFFF" />
-                            <span>Оставить отзыв</span>
+                            <StarIcon className="w-4 h-4" color="#f9f9f9" />
+                            <span className="text-main">Оставить отзыв</span>
                         </motion.button>
                     )}
                 </div>
@@ -595,35 +671,103 @@ export default function MasterPage() {
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    {reviews.map((review, idx) => (
-                                        <motion.div 
-                                            key={review.id} 
-                                            initial={{ opacity: 0, y: 10 }} 
-                                            animate={{ opacity: 1, y: 0 }} 
-                                            transition={{ delay: idx * 0.05 }} 
-                                            className="bg-white rounded-xl p-4 sm:p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300"
-                                        >
-                                            <div className="flex items-start gap-3">
-                                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold text-sm sm:text-base shrink-0">
-                                                    {review.author_avatar ? (
-                                                        <img src={review.author_avatar} alt={review.author_name} className="w-full h-full object-cover rounded-full" />
-                                                    ) : (
-                                                        review.author_name?.charAt(0).toUpperCase()
-                                                    )}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                                                        <span className="font-semibold text-sm sm:text-base text-text">{review.author_name}</span>
-                                                        <StarRating rating={review.rating} size="sm" />
+                                    {reviews.map((review, idx) => {
+                                        const isAuthor = session?.user?.id === review.author_id
+                                        const isEditing = editingReview?.id === review.id
+                                        
+                                        return (
+                                            <motion.div 
+                                                key={review.id} 
+                                                initial={{ opacity: 0, y: 10 }} 
+                                                animate={{ opacity: 1, y: 0 }} 
+                                                transition={{ delay: idx * 0.05 }} 
+                                                className="bg-white rounded-xl p-4 sm:p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300"
+                                            >
+                                                <div className="flex items-start gap-3">
+                                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold text-sm sm:text-base shrink-0">
+                                                        {review.author_avatar ? (
+                                                            <img src={review.author_avatar} alt={review.author_name} className="w-full h-full object-cover rounded-full" />
+                                                        ) : (
+                                                            review.author_name?.charAt(0).toUpperCase()
+                                                        )}
                                                     </div>
-                                                    <p className="text-firm-gray text-sm sm:text-base leading-relaxed">{review.comment}</p>
-                                                    <p className="text-xs text-gray-400 mt-2">
-                                                        {new Date(review.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                                    </p>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <span className="font-semibold text-sm sm:text-base text-text">{review.author_name}</span>
+                                                                <StarRating rating={review.rating} size="sm" />
+                                                                {review.is_edited && (
+                                                                    <span className="text-xs text-firm-gray">(ред.)</span>
+                                                                )}
+                                                            </div>
+                                                            
+                                                            {/* Кнопки редактирования/удаления для автора */}
+                                                            {isAuthor && !isEditing && (
+                                                                <div className="flex gap-2">
+                                                                    <button
+                                                                        onClick={() => startEditReview(review)}
+                                                                        className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                                                                    >
+                                                                        <EditIcon className="w-4 h-4" color="#6B7280" />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleDeleteReview(review.id)}
+                                                                        className="p-1 rounded-lg hover:bg-red-50 transition-colors"
+                                                                    >
+                                                                        <DeleteIcon className="w-4 h-4" color="#EF4444" />
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        
+                                                        {/* Режим редактирования */}
+                                                        {isEditing ? (
+                                                            <div className="mt-3 space-y-3">
+                                                                <div>
+                                                                    <label className="block text-sm text-text mb-1.5 font-medium">Оценка</label>
+                                                                    <StarRating rating={editReviewRating} size="lg" interactive={true} onRatingChange={setEditReviewRating} />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-sm text-text mb-1.5 font-medium">Комментарий</label>
+                                                                    <textarea 
+                                                                        value={editReviewComment} 
+                                                                        onChange={(e) => setEditReviewComment(e.target.value)} 
+                                                                        rows={3} 
+                                                                        className="w-full px-4 py-2.5 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm resize-none" 
+                                                                    />
+                                                                </div>
+                                                                <div className="flex gap-2">
+                                                                    <button
+                                                                        onClick={handleUpdateReview}
+                                                                        disabled={editReviewLoading}
+                                                                        className="px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300 text-sm disabled:opacity-50"
+                                                                    >
+                                                                        {editReviewLoading ? 'Сохранение...' : 'Сохранить'}
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={cancelEditReview}
+                                                                        className="px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-300 text-sm"
+                                                                    >
+                                                                        Отмена
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <p className="text-firm-gray text-sm sm:text-base leading-relaxed mt-2">{review.comment}</p>
+                                                                <p className="text-xs text-gray-400 mt-2">
+                                                                    {new Date(review.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                                    {review.updated_at && review.updated_at !== review.created_at && (
+                                                                        <span className="ml-2">(обновлено {new Date(review.updated_at).toLocaleDateString('ru-RU')})</span>
+                                                                    )}
+                                                                </p>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </motion.div>
-                                    ))}
+                                            </motion.div>
+                                        )
+                                    })}
                                 </div>
                             )}
                         </motion.div>
@@ -660,9 +804,9 @@ export default function MasterPage() {
                                         <label className="block text-sm text-text mb-1.5 font-medium">Примерный бюджет (₽)</label>
                                         <input type="number" value={customRequest.budget} onChange={(e) => setCustomRequest(prev => ({ ...prev, budget: e.target.value }))} className="w-full px-4 py-2.5 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm" placeholder="Например, 5000" />
                                     </div>
-                                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" className="w-full py-2.5 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 font-medium">
-                                        <SendIcon className="w-4 h-4" color="#FFFFFF" />
-                                        <span>Отправить запрос</span>
+                                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" className="w-full py-2.5 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 font-medium">
+                                        <SendIcon className="w-4 h-4" color="#f9f9f9" />
+                                        <span className="text-main">Отправить запрос</span>
                                     </motion.button>
                                 </form>
                             </div>
@@ -725,14 +869,14 @@ export default function MasterPage() {
                                         whileTap={{ scale: 0.98 }} 
                                         type="submit" 
                                         disabled={submittingReview || (pendingOrders.length > 1 && !selectedOrderId)}
-                                        className="w-full py-2.5 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-full py-2.5 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {submittingReview ? (
-                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                            <div className="w-5 h-5 border-2 border-firm-orange border-t-transparent rounded-full animate-spin" />
                                         ) : (
                                             <>
-                                                <SendIcon className="w-4 h-4" color="#FFFFFF" />
-                                                <span>Отправить отзыв</span>
+                                                <SendIcon className="w-4 h-4" color="#f9f9f9" />
+                                                <span className="text-main">Отправить отзыв</span>
                                             </>
                                         )}
                                     </motion.button>
