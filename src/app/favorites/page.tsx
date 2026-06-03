@@ -124,9 +124,7 @@ export default function FavoritesPage() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
                 <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}  className="mb-8 sm:mb-10">
                     <h1 className="font-['Montserrat_Alternates'] font-bold text-2xl sm:text-3xl lg:text-4xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Избранное</h1>
-                    <p className="text-firm-gray mt-2 text-sm sm:text-base">
-                        {favorites.length} {favorites.length === 1 ? 'товар' : favorites.length > 1 && favorites.length < 5 ? 'товара' : 'товаров'}
-                    </p>
+                    <p className="text-firm-gray mt-2 text-sm sm:text-base">{favorites.length} {favorites.length === 1 ? 'товар' : favorites.length > 1 && favorites.length < 5 ? 'товара' : 'товаров'}</p>
                 </motion.div>
 
                 <AnimatePresence mode="wait">
@@ -140,7 +138,7 @@ export default function FavoritesPage() {
                             <Link href="/catalog" className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300 font-['Montserrat_Alternates'] text-sm sm:text-base"><CartIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#f9f9f9" />Перейти в каталог</Link>
                         </motion.div>
                     ) : (
-                        <motion.div key="products" variants={staggerContainer} initial="initial" animate="animate" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+                        <motion.div key="products" variants={staggerContainer} initial="initial" animate="animate" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
                             {favorites.map((product, index) => (
                                 <motion.div key={product.id || index} variants={fadeInUp} whileHover={{ y: -5 }} className="group">
                                     <div className="bg-main rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-100">
@@ -154,11 +152,7 @@ export default function FavoritesPage() {
                                             )}
                                             
                                             <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => handleRemoveFromFavorites(product.id)} disabled={removingId === product.id} className="absolute top-2 right-2 w-7 h-7 sm:w-8 sm:h-8 bg-main rounded-full shadow-md flex items-center justify-center text-firm-red hover:bg-firm-red hover:text-main transition-all duration-300 opacity-0 group-hover:opacity-100 disabled:opacity-50">
-                                                {removingId === product.id ? (
-                                                    <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-firm-red border-t-transparent rounded-full animate-spin" />
-                                                ) : (
-                                                    <CloseIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#D77C7C" />
-                                                )}
+                                                {removingId === product.id ? (<div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-firm-red border-t-transparent rounded-full animate-spin" />) : (<CloseIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#D77C7C" />)}
                                             </motion.button>
                                             
                                             {product.in_stock === false && (
