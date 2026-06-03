@@ -14,6 +14,7 @@ import EditProductModal from "@/components/modals/EditProductModal";
 import BlogPostCard from "@/components/blog/BlogPostCard";
 import EditPostModal from "@/components/modals/EditPostModal";
 import EditClassModal from "@/components/modals/EditClassModal";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 import { DashboardIcon } from "@/components/icons/DashboardIcon";
 import { ProductsIcon } from "@/components/icons/ProductsIcon";
@@ -36,6 +37,8 @@ import { PriceIcon } from "@/components/icons/PriceIcon";
 import { UsersIcon } from "@/components/icons/UsersIcon";
 import { PlusIcon } from "@/components/icons/PlusIcon";
 import { DeleteIcon } from "@/components/icons/DeleteIcon";
+import { SaveIcon } from "@/components/icons/SaveIcon";
+import { MasterIcon } from "@/components/icons/MasterIcon";
 
 interface MasterProfileProps {
   session: {
@@ -245,6 +248,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
       payment_status: string;
     }>;
   } | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [showAddPostModal, setShowAddPostModal] = useState(false);
@@ -289,6 +293,21 @@ export default function MasterProfile({ session }: MasterProfileProps) {
     monthly_revenue: 0,
   });
 
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type?: 'danger' | 'warning' | 'info';
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {}, type: 'warning' });
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
   useEffect(() => {
     fetchMasterData();
     loadCategories();
@@ -307,7 +326,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
         fetch("/api/master/master-classes"),
       ]);
 
-      // Profile
       let profileDataObj = {
         fullname: "",
         email: "",
@@ -345,7 +363,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
       }
       setProfileData(profileDataObj);
 
-      // Products
       let productsList: Product[] = [];
       if (productRes.ok) {
         const productJson: ProductsApiResponse = await productRes.json();
@@ -353,7 +370,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
       }
       setProducts(productsList);
 
-      // Orders
       let ordersList: Order[] = [];
       if (ordersRes.ok) {
         const ordersJson: OrdersApiResponse = await ordersRes.json();
@@ -361,7 +377,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
       }
       setOrders(ordersList);
 
-      // Blog
       let blogList: BlogPost[] = [];
       if (blogRes.ok) {
         const blogData = await blogRes.json();
@@ -386,7 +401,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
       }
       setBlogPosts(blogList);
 
-      // Master Classes
       let classesList: MasterClass[] = [];
       if (classesRes.ok) {
         const classesJson: MasterClassesApiResponse = await classesRes.json();
@@ -394,7 +408,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
       }
       setMasterClasses(classesList);
 
-      // Stats
       const totalViews = productsList.reduce((sum: number, p: Product) => sum + (p.views || 0), 0);
       const totalRevenue = ordersList.reduce((sum: number, o: Order) => sum + (o.total_amount || 0), 0);
 
@@ -484,14 +497,39 @@ export default function MasterProfile({ session }: MasterProfileProps) {
     }
   };
 
+  const handleCustomOrdersToggle = async () => {
+    const newValue = !profileData.custom_orders_enabled;
+    setProfileData(prev => ({ ...prev, custom_orders_enabled: newValue }));
+
+    try {
+      const formData = new FormData();
+      formData.append("custom_orders_enabled", String(newValue));
+
+      const response = await fetch("/api/master/profile", {
+        method: "PUT",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        setProfileData(prev => ({ ...prev, custom_orders_enabled: !newValue }));
+        const error = await response.json();
+        toast.error(error.error || 'Ошибка обновления статуса');
+      } else {
+        toast.success(newValue
+          ? '✓ Вы теперь принимаете индивидуальные заказы'
+          : '✗ Вы больше не принимаете индивидуальные заказы'
+        );
+        await fetchMasterData();
+      }
+    } catch (error) {
+      setProfileData(prev => ({ ...prev, custom_orders_enabled: !newValue }));
+      toast.error('Ошибка при обновлении статуса');
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setProfileData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setProfileData((prev) => ({ ...prev, [name]: checked }));
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -555,43 +593,95 @@ export default function MasterProfile({ session }: MasterProfileProps) {
   };
 
   const handleCancelMasterClass = async (classId: string) => {
-    if (!confirm("Отменить мастер-класс? Участники получат уведомление.")) return;
-
-    try {
-      const response = await fetch(`/api/master/master-classes/${classId}/cancel`, { method: "POST" });
-
-      if (response.ok) {
-        fetchMasterData();
-        toast.success("Мастер-класс отменен");
-      } else {
-        toast.error("Ошибка при отмене мастер-класса");
+    setConfirmModal({
+      isOpen: true,
+      title: 'Отмена мастер-класса',
+      message: 'Отменить мастер-класс? Участники получат уведомление.',
+      type: 'warning',
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        try {
+          const response = await fetch(`/api/master/master-classes/${classId}/cancel`, { method: "POST" });
+          if (response.ok) {
+            fetchMasterData();
+            toast.success("Мастер-класс отменен");
+          } else {
+            toast.error("Ошибка при отмене мастер-класса");
+          }
+        } catch (error) {
+          console.error("Error canceling master class:", error);
+          toast.error("Ошибка при отмене мастер-класса");
+        }
       }
-    } catch (error) {
-      console.error("Error canceling master class:", error);
-      toast.error("Ошибка при отмене мастер-класса");
-    }
+    });
   };
 
   const handleDeleteMasterClass = async (classId: string) => {
-    if (!confirm("Удалить мастер-класс? Это действие нельзя отменить.")) return;
-
-    try {
-      const response = await fetch(`/api/master/master-classes/${classId}`, { method: "DELETE" });
-
-      if (response.ok) {
-        fetchMasterData();
-        toast.success("Мастер-класс удален");
-      } else {
-        toast.error("Ошибка при удалении мастер-класса");
+    setConfirmModal({
+      isOpen: true,
+      title: 'Удаление мастер-класса',
+      message: 'Вы уверены, что хотите удалить этот мастер-класс? Это действие нельзя отменить.',
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        try {
+          const response = await fetch(`/api/master/master-classes/${classId}`, { method: "DELETE" });
+          if (response.ok) {
+            fetchMasterData();
+            toast.success("Мастер-класс удален");
+          } else {
+            toast.error("Ошибка при удалении мастер-класса");
+          }
+        } catch (error) {
+          console.error("Error deleting master class:", error);
+          toast.error("Ошибка при удалении мастер-класса");
+        }
       }
-    } catch (error) {
-      console.error("Error deleting master class:", error);
-      toast.error("Ошибка при удалении мастер-класса");
-    }
+    });
   };
 
-  const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+  const handleProductDelete = async (productId: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Удаление товара',
+      message: 'Вы уверены, что хотите удалить этот товар? Это действие нельзя отменить.',
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        try {
+          const response = await fetch(`/api/master/products/${productId}`, { method: "DELETE" });
+          if (response.ok) {
+            setProducts((prev) => prev.filter((p: Product) => p.id !== productId));
+            toast.success("Товар удален");
+          }
+        } catch (error) {
+          console.error("Error deleting product:", error);
+          toast.error("Ошибка при удалении товара");
+        }
+      }
+    });
+  };
+
+  const handleBlogPostDelete = async (postId: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Удаление поста',
+      message: 'Вы уверены, что хотите удалить этот пост? Это действие нельзя отменить.',
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        try {
+          const response = await fetch(`/api/master/blog/${postId}`, { method: "DELETE" });
+          if (response.ok) {
+            setBlogPosts((prev) => prev.filter((p: BlogPost) => p.id !== postId));
+            toast.success("Пост удален");
+          }
+        } catch (error) {
+          console.error("Error deleting blog post:", error);
+          toast.error("Ошибка при удалении поста");
+        }
+      }
+    });
   };
 
   const handleOrderStatusChange = async (orderId: string, newStatus: string) => {
@@ -614,34 +704,16 @@ export default function MasterProfile({ session }: MasterProfileProps) {
     }
   };
 
-  const handleProductDelete = async (productId: string) => {
-    if (confirm("Вы уверены, что хотите удалить товар?")) {
-      try {
-        const response = await fetch(`/api/master/products/${productId}`, { method: "DELETE" });
-        if (response.ok) {
-          setProducts((prev) => prev.filter((p: Product) => p.id !== productId));
-          toast.success("Товар удален");
-        }
-      } catch (error) {
-        console.error("Error deleting product:", error);
-        toast.error("Ошибка при удалении товара");
-      }
-    }
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
   };
 
-  const handleBlogPostDelete = async (postId: string) => {
-    if (confirm("Вы уверены, что хотите удалить пост?")) {
-      try {
-        const response = await fetch(`/api/master/blog/${postId}`, { method: "DELETE" });
-        if (response.ok) {
-          setBlogPosts((prev) => prev.filter((p: BlogPost) => p.id !== postId));
-          toast.success("Пост удален");
-        }
-      } catch (error) {
-        console.error("Error deleting blog post:", error);
-        toast.error("Ошибка при удалении поста");
-      }
-    }
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("ru-RU", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   };
 
   const getStatusColor = (status: string) => {
@@ -674,58 +746,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("ru-RU", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  };
-
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("ru-RU", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  // Добавьте эту функцию в компонент MasterProfile
-  const handleCustomOrdersToggle = async () => {
-      const newValue = !profileData.custom_orders_enabled;
-      
-      // Оптимистичное обновление UI
-      setProfileData(prev => ({ ...prev, custom_orders_enabled: newValue }));
-      
-      try {
-          const response = await fetch('/api/master/profile/custom-orders', {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ custom_orders_enabled: newValue })
-          });
-
-          if (!response.ok) {
-              // Откатываем при ошибке
-              setProfileData(prev => ({ ...prev, custom_orders_enabled: !newValue }));
-              const error = await response.json();
-              toast.error(error.error || 'Ошибка обновления статуса');
-          } else {
-              toast.success(newValue 
-                  ? '✓ Вы теперь принимаете индивидуальные заказы' 
-                  : '✗ Вы больше не принимаете индивидуальные заказы'
-              );
-              // Обновляем данные профиля
-              await fetchMasterData();
-          }
-      } catch (error) {
-          setProfileData(prev => ({ ...prev, custom_orders_enabled: !newValue }));
-          toast.error('Ошибка при обновлении статуса');
-      }
-  };
-
-  // Навигационные пункты
   const navItems = [
     { id: "dashboard", icon: <DashboardIcon className="w-5 h-5" />, label: "Панель управления", count: null },
     { id: "products", icon: <ProductsIcon className="w-5 h-5" />, label: "Мои товары", count: products.length },
@@ -815,6 +835,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
         </motion.div>
 
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+          {/* Sidebar */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -876,7 +897,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                 {navItems.map((item) => (
                   <motion.button
                     key={item.id}
-                    whileHover={{ scale: 1.02 }}
+                    whileHover={{ x: 5 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setActiveTab(item.id)}
                     className={`w-full text-left px-4 py-2.5 rounded-xl transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-3 text-sm ${
@@ -906,7 +927,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                 <div className="border-t border-gray-100 my-2 pt-2" />
 
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
+                  whileHover={{ x: 5 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => signOut({ callbackUrl: "/" })}
                   className="w-full text-left px-4 py-2.5 rounded-xl transition-all duration-300 font-['Montserrat_Alternates'] flex items-center gap-3 text-sm text-firm-red hover:bg-red-50"
@@ -958,7 +979,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => setShowAddProductModal(true)}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl text-sm hover:shadow-lg transition"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl text-sm hover:shadow-lg transition"
                       >
                         <PlusIcon className="w-4 h-4" color="#f9f9f9" />
                         Добавить товар
@@ -967,7 +988,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => setShowAddPostModal(true)}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 text-main rounded-xl text-sm hover:shadow-lg transition"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl text-sm hover:shadow-lg transition"
                       >
                         <PlusIcon className="w-4 h-4" color="#f9f9f9" />
                         Новая запись
@@ -976,7 +997,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => setShowAddClassModal(true)}
-                        className="inline-flex items-center gap-2 px-4 py-2 border-2 border-firm-orange text-firm-orange rounded-xl text-sm hover:bg-firm-orange hover:text-main transition"
+                        className="inline-flex items-center gap-2 px-4 py-2 border-2 border-firm-orange text-firm-orange rounded-xl text-sm hover:bg-firm-orange hover:text-white transition"
                       >
                         <PlusIcon className="w-4 h-4" color="#F4A67F" />
                         Создать МК
@@ -1030,7 +1051,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setShowAddProductModal(true)}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl text-sm hover:shadow-lg transition"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl text-sm hover:shadow-lg transition"
                     >
                       <PlusIcon className="w-4 h-4" color="#f9f9f9" />
                       Добавить товар
@@ -1094,7 +1115,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                                     whileHover={{ scale: 1.02 }}
                                     whileTap={{ scale: 0.98 }}
                                     onClick={() => handleOrderStatusChange(order.id, "confirmed")}
-                                    className="px-3 py-1 bg-firm-green text-main rounded-lg text-xs hover:shadow-md transition"
+                                    className="px-3 py-1 bg-firm-green text-white rounded-lg text-xs hover:shadow-md transition"
                                   >
                                     Подтвердить
                                   </motion.button>
@@ -1102,7 +1123,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                                     whileHover={{ scale: 1.02 }}
                                     whileTap={{ scale: 0.98 }}
                                     onClick={() => handleOrderStatusChange(order.id, "cancelled")}
-                                    className="px-3 py-1 bg-firm-red text-main rounded-lg text-xs hover:shadow-md transition"
+                                    className="px-3 py-1 bg-firm-red text-white rounded-lg text-xs hover:shadow-md transition"
                                   >
                                     Отклонить
                                   </motion.button>
@@ -1113,7 +1134,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                                   whileHover={{ scale: 1.02 }}
                                   whileTap={{ scale: 0.98 }}
                                   onClick={() => handleOrderStatusChange(order.id, "shipped")}
-                                  className="px-3 py-1 bg-firm-pink text-main rounded-lg text-xs hover:shadow-md transition"
+                                  className="px-3 py-1 bg-firm-pink text-white rounded-lg text-xs hover:shadow-md transition"
                                 >
                                   Отправить
                                 </motion.button>
@@ -1144,7 +1165,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setShowAddPostModal(true)}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 text-main rounded-xl text-sm hover:shadow-lg transition"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl text-sm hover:shadow-lg transition"
                     >
                       <PlusIcon className="w-4 h-4" color="#f9f9f9" />
                       Новая запись
@@ -1213,7 +1234,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setShowAddClassModal(true)}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-firm-pink to-purple-500 text-main rounded-xl text-sm hover:shadow-lg transition"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-firm-pink to-purple-500 text-white rounded-xl text-sm hover:shadow-lg transition"
                     >
                       <PlusIcon className="w-4 h-4" color="#f9f9f9" />
                       Создать МК
@@ -1311,7 +1332,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                                       whileHover={{ scale: 1.02 }}
                                       whileTap={{ scale: 0.98 }}
                                       onClick={() => handleCancelMasterClass(mc.id)}
-                                      className="px-3 py-1 border border-firm-red text-firm-red rounded-lg text-xs hover:bg-firm-red hover:text-main transition"
+                                      className="px-3 py-1 border border-firm-red text-firm-red rounded-lg text-xs hover:bg-firm-red hover:text-white transition"
                                     >
                                       Отменить
                                     </motion.button>
@@ -1322,7 +1343,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                                         whileHover={{ scale: 1.02 }}
                                         whileTap={{ scale: 0.98 }}
                                         onClick={() => handleEditClass(mc)}
-                                        className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-lg text-xs hover:shadow-md transition"
+                                        className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-lg text-xs hover:shadow-md transition"
                                       >
                                         <EditIcon className="w-3 h-3" color="#f9f9f9" />
                                         Редактировать
@@ -1331,7 +1352,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                                         whileHover={{ scale: 1.02 }}
                                         whileTap={{ scale: 0.98 }}
                                         onClick={() => handleDeleteMasterClass(mc.id)}
-                                        className="inline-flex items-center gap-1 px-3 py-1 bg-firm-red text-main rounded-lg text-xs hover:shadow-md transition"
+                                        className="inline-flex items-center gap-1 px-3 py-1 bg-firm-red text-white rounded-lg text-xs hover:shadow-md transition"
                                       >
                                         <DeleteIcon className="w-3 h-3" color="#f9f9f9" />
                                         Удалить
@@ -1365,7 +1386,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => setIsEditing(true)}
-                        className="inline-flex items-center gap-2 px-4 py-2 border-2 border-firm-pink text-firm-pink rounded-xl text-sm hover:bg-firm-pink hover:text-main transition"
+                        className="inline-flex items-center gap-2 px-4 py-2 border-2 border-firm-pink text-firm-pink rounded-xl text-sm hover:bg-firm-pink hover:text-white transition"
                       >
                         <EditIcon className="w-4 h-4" color="#D97C8E" />
                         Редактировать
@@ -1379,7 +1400,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                           setAvatarFile(null);
                           setAvatarPreview(null);
                         }}
-                        className="px-4 py-2 bg-firm-gray text-main rounded-xl text-sm hover:bg-opacity-80 transition"
+                        className="px-4 py-2 bg-firm-gray text-white rounded-xl text-sm hover:bg-opacity-80 transition"
                       >
                         Отмена
                       </motion.button>
@@ -1433,35 +1454,35 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                       {/* Тумблер для индивидуальных заказов */}
                       <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                         <div>
-                            <p className="font-['Montserrat_Alternates'] font-medium text-text">Индивидуальные заказы</p>
-                            <p className="text-xs text-firm-gray">Принимать заказы на индивидуальные изделия</p>
-                            {profileData.custom_orders_enabled && (
-                                <p className="text-xs text-firm-green mt-1">
-                                    ✓ На странице мастера появится кнопка &quot;Обсудить заказ&quot;
-                                </p>
-                            )}
+                          <p className="font-['Montserrat_Alternates'] font-medium text-text">Индивидуальные заказы</p>
+                          <p className="text-xs text-firm-gray">Принимать заказы на индивидуальные изделия</p>
+                          {profileData.custom_orders_enabled && (
+                            <p className="text-xs text-firm-green mt-1">
+                              ✓ На странице мастера появится кнопка &quot;Обсудить заказ&quot;
+                            </p>
+                          )}
                         </div>
                         <button
-                            type="button"
-                            onClick={handleCustomOrdersToggle}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-firm-orange focus:ring-offset-2 ${
-                                profileData.custom_orders_enabled ? "bg-firm-orange" : "bg-gray-300"
-                            }`}
+                          type="button"
+                          onClick={handleCustomOrdersToggle}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-firm-orange focus:ring-offset-2 ${
+                            profileData.custom_orders_enabled ? "bg-firm-orange" : "bg-gray-300"
+                          }`}
                         >
-                            <span
-                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                    profileData.custom_orders_enabled ? "translate-x-6" : "translate-x-1"
-                                }`}
-                            />
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              profileData.custom_orders_enabled ? "translate-x-6" : "translate-x-1"
+                            }`}
+                          />
                         </button>
-                    </div>
+                      </div>
 
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         type="submit"
                         disabled={saving}
-                        className="w-full py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50 text-sm"
+                        className="w-full py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50 text-sm"
                       >
                         {saving ? "Сохранение..." : "Сохранить изменения"}
                       </motion.button>
@@ -1491,7 +1512,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                       <div className="bg-gray-50 rounded-xl p-4 md:col-span-2">
                         <p className="text-firm-gray text-sm">Индивидуальные заказы</p>
                         <p className="font-medium text-text">
-                          {profileData.custom_orders_enabled ? "✅ Принимаю" : "❌ Не принимаю"}
+                          {profileData.custom_orders_enabled ? "Принимаю" : "Не принимаю"}
                         </p>
                       </div>
                     </div>
@@ -1511,7 +1532,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                     Настройки
                   </h2>
 
-                  {/* Смена пароля */}
                   <div className="mb-8">
                     <h3 className="font-semibold text-lg text-text mb-4 flex items-center gap-2">
                       <SettingsIcon className="w-5 h-5" />
@@ -1536,14 +1556,13 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        className="px-6 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl text-sm font-medium hover:shadow-lg transition"
+                        className="px-6 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl text-sm font-medium hover:shadow-lg transition"
                       >
                         Изменить пароль
                       </motion.button>
                     </form>
                   </div>
 
-                  {/* Опасная зона */}
                   <div className="border-t border-gray-200 pt-6">
                     <h3 className="font-semibold text-lg mb-3 text-firm-red flex items-center gap-2">
                       <DeleteIcon className="w-5 h-5" color="#D77C7C" />
@@ -1552,7 +1571,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className="px-4 py-2 border-2 border-firm-red text-firm-red rounded-lg text-sm hover:bg-firm-red hover:text-main transition"
+                      className="px-4 py-2 border-2 border-firm-red text-firm-red rounded-lg text-sm hover:bg-firm-red hover:text-white transition"
                     >
                       Удалить аккаунт
                     </motion.button>
@@ -1673,6 +1692,15 @@ export default function MasterProfile({ session }: MasterProfileProps) {
           </div>
         )}
       </AnimatePresence>
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }

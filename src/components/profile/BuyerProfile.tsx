@@ -2,7 +2,6 @@
 
 import { signOut } from "next-auth/react";
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
