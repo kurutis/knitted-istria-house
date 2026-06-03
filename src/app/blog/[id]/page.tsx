@@ -3,15 +3,23 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import MediaGallery from "@/components/blog/MediaGallery";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+
 import { EditIcon } from "@/components/icons/EditIcon";
 import { DeleteIcon } from "@/components/icons/DeleteIcon";
 import { PasswordIcon } from "@/components/icons/PasswordIcon";
+import { LikeIcon } from "@/components/icons/LikeIcon";
+import { CommentIcon } from "@/components/icons/CommentIcon";
+import { ViewsIcon } from "@/components/icons/ViewsIcon";
+import { CalendarIcon } from "@/components/icons/CalendarIcon";
+import { SendIcon } from "@/components/icons/SendIcon";
+import { CloseIcon } from "@/components/icons/CloseIcon";
+import { CheckCircleIcon } from "@/components/icons/CheckCircleIcon";
+import { ShareIcon } from "@/components/icons/ShareIcon";
 
 interface Comment {
   id: string;
@@ -44,32 +52,29 @@ interface BlogPost {
   images?: Array<{ id: string; url: string; sort_order: number }>;
 }
 
-const LikeIcon = ({ isActive }: { isActive: boolean }) => (
-  <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M23.2002 1.25C27.3399 1.25011 30.7498 4.79098 30.75 9.59082C30.75 12.501 29.5561 15.2315 27.25 18.3066C24.9278 21.4031 21.584 24.7143 17.4414 28.8086L17.4395 28.8105L16 30.2383L14.5605 28.8105L14.5586 28.8086C10.416 24.7143 7.07223 21.4031 4.75 18.3066C2.44386 15.2315 1.25 12.501 1.25 9.59082C1.25022 4.79098 4.6601 1.25011 8.7998 1.25C11.164 1.25 13.487 2.4569 15.0176 4.40039L16 5.64746L16.9824 4.40039C18.513 2.4569 20.836 1.25 23.2002 1.25Z" stroke={isActive ? "#D97C8E" : "#737682"} strokeWidth="2.5" fill={isActive ? "#D97C8E" : "none"} />
-  </svg>
+const LikeButton = ({ isActive, onClick }: { isActive: boolean; onClick: () => void }) => (
+  <motion.button 
+    whileHover={{ scale: 1.1 }}
+    whileTap={{ scale: 0.95 }}
+    onClick={onClick} 
+    className="flex items-center gap-1.5 transition-all duration-300"
+  >
+    <LikeIcon color={isActive ? "#D97C8E" : "#737682"} className="w-5 h-5 sm:w-6 sm:h-6" />
+  </motion.button>
 );
 
-const CommentIcon = ({ isActive }: { isActive: boolean }) => (
-  <svg width="24" height="24" viewBox="0 0 37 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="2.32349" cy="2.32349" r="2.32349" transform="matrix(1 0 0 -1 9.62622 19.897)" fill={isActive ? "#F4A67F" : "#737682"}/>
-    <circle cx="2.32349" cy="2.32349" r="2.32349" transform="matrix(1 0 0 -1 16.9839 19.897)" fill={isActive ? "#F4A67F" : "#737682"}/>
-    <circle cx="2.32349" cy="2.32349" r="2.32349" transform="matrix(1 0 0 -1 24.729 19.897)" fill={isActive ? "#F4A67F" : "#737682"}/>
-    <path d="M19.6262 32.0648C28.4628 32.0648 35.6262 25.1667 35.6262 16.6574C35.6262 8.14813 28.4628 1.25 19.6262 1.25C10.7897 1.25 3.62622 8.14813 3.62622 16.6574C3.62622 20.4012 5.01285 23.8331 7.31853 26.5029C6.91254 29.643 5.86044 31.0025 3.62622 33.25C6.96012 32.6917 8.71604 32.0376 11.6262 30.0036C13.9796 31.3145 16.7119 32.0648 19.6262 32.0648Z" stroke={isActive ? "#F4A67F" : "#737682"} strokeWidth="2.5"/>
-  </svg>
-);
-
-const ViewsIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#737682" strokeWidth="1.5">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-  </svg>
-);
-
-const ShareIcon = () => (
-  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-  </svg>
+const CommentButton = ({ isActive, onClick, count }: { isActive: boolean; onClick: () => void; count: number }) => (
+  <motion.button 
+    whileHover={{ scale: 1.1 }}
+    whileTap={{ scale: 0.95 }}
+    onClick={onClick} 
+    className="flex items-center gap-1.5 transition-all duration-300"
+  >
+    <CommentIcon color={isActive ? "#F4A67F" : "#737682"} className="w-5 h-5 sm:w-6 sm:h-6" />
+    <span className={`text-xs sm:text-sm font-medium ${isActive ? 'text-firm-orange' : 'text-gray-500'}`}>
+      {count}
+    </span>
+  </motion.button>
 );
 
 const UserAvatar = ({ name, avatarUrl, size = 48 }: { name?: string; avatarUrl?: string | null; size?: number }) => {
@@ -87,12 +92,30 @@ const UserAvatar = ({ name, avatarUrl, size = 48 }: { name?: string; avatarUrl?:
   };
 
   if (avatarUrl && !avatarError) {
-    return (<img  src={getProxiedUrl(avatarUrl)} alt={name || "Avatar"} className="rounded-full object-cover" style={{ width: size, height: size }} onError={() => setAvatarError(true)}  />)}
+    return (
+      <motion.img 
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ type: "spring" }}
+        src={getProxiedUrl(avatarUrl)} 
+        alt={name || "Avatar"} 
+        className="rounded-full object-cover ring-2 ring-white shadow-md" 
+        style={{ width: size, height: size }} 
+        onError={() => setAvatarError(true)}  
+      />
+    );
+  }
 
   return (
-    <div className="rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold" style={{ width: size, height: size, fontSize: size * 0.4 }}>
+    <motion.div 
+      initial={{ scale: 0 }}
+      animate={{ scale: 1 }}
+      transition={{ type: "spring" }}
+      className="rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold shadow-md" 
+      style={{ width: size, height: size, fontSize: size * 0.4 }}
+    >
       {getInitials()}
-    </div>
+    </motion.div>
   );
 };
 
@@ -176,14 +199,29 @@ const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
 
   if (avatarUrl && !avatarError) {
     return (
-      <img src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`} alt={userName || "Profile"} className="rounded-full object-cover" style={{ width: size, height: size }} onError={() => setAvatarError(true)} />
+      <motion.img 
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ type: "spring" }}
+        src={`/api/proxy/avatar?url=${encodeURIComponent(avatarUrl)}`} 
+        alt={userName || "Profile"} 
+        className="rounded-full object-cover ring-2 ring-firm-orange/30" 
+        style={{ width: size, height: size }} 
+        onError={() => setAvatarError(true)} 
+      />
     );
   }
 
   return (
-    <div className="rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold" style={{ width: size, height: size, fontSize: size * 0.4 }}>
+    <motion.div 
+      initial={{ scale: 0 }}
+      animate={{ scale: 1 }}
+      transition={{ type: "spring" }}
+      className="rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold shadow-md" 
+      style={{ width: size, height: size, fontSize: size * 0.4 }}
+    >
       {getInitials()}
-    </div>
+    </motion.div>
   );
 };
 
@@ -347,7 +385,7 @@ export default function BlogPostPage() {
     setConfirmModal({
       isOpen: true,
       title: 'Удаление комментария',
-      message: 'Вы уверены, что хотите удалить этот комментарий?',
+      message: 'Вы уверены, что хотите удалить этот комментарий? Это действие нельзя отменить.',
       type: 'danger',
       onConfirm: async () => {
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
@@ -359,6 +397,9 @@ export default function BlogPostPage() {
             setComments(comments.filter((c) => c.id !== commentId));
             setCommentsCount(commentsCount - 1);
             toast.success("Комментарий удален");
+          } else {
+            const error = await response.json();
+            toast.error(error.error || "Ошибка при удалении комментария");
           }
         } catch (error) {
           console.error("Error deleting comment:", error);
@@ -436,11 +477,12 @@ export default function BlogPostPage() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diff = Math.floor((now.getTime() - date.getTime()) / 1000 / 60 / 60);
-
+    const diff = Math.floor((now.getTime() - date.getTime()) / 1000 / 60);
+    
     if (diff < 1) return "только что";
-    if (diff < 24) return `${diff} ч назад`;
-    return date.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    if (diff < 60) return `${diff} мин назад`;
+    if (diff < 1440) return `${Math.floor(diff / 60)} ч назад`;
+    return date.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
   };
 
   const blogTags = ["Мастер-класс", "Обзор пряжи", "Новая коллекция", "Советы", "Вдохновение", "История создания", "Техника вязания", "Новости"];
@@ -448,10 +490,14 @@ export default function BlogPostPage() {
 
   if (loading) {
     return (
-      <div className="mt-5 flex items-center justify-center min-h-[60vh]">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <motion.div className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} />
-          <p className="mt-4 font-['Montserrat_Alternates'] text-text">Загрузка...</p>
+          <motion.div 
+            animate={{ rotate: 360 }} 
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }} 
+            className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto" 
+          />
+          <p className="mt-4 font-['Montserrat_Alternates'] text-gray-500">Загрузка поста...</p>
         </div>
       </div>
     );
@@ -459,10 +505,12 @@ export default function BlogPostPage() {
 
   if (error || !post) {
     return (
-      <div className="mt-5 flex items-center justify-center min-h-[60vh] px-4">
+      <div className="flex items-center justify-center min-h-[60vh] px-4">
         <div className="text-center">
           <p className="text-firm-red mb-4">{error || "Пост не найден"}</p>
-          <Link href="/blog" className="px-6 py-3 bg-firm-orange text-main rounded-lg inline-block">Вернуться в блог</Link>
+          <Link href="/blog" className="inline-block px-6 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300">
+            Вернуться в блог
+          </Link>
         </div>
       </div>
     );
@@ -470,177 +518,352 @@ export default function BlogPostPage() {
 
   if (isEditing) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <h1 className="font-['Montserrat_Alternates'] font-bold text-2xl sm:text-3xl mb-6">Редактирование поста</h1>
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-4xl mx-auto px-4 py-6 sm:py-8"
+      >
+        <h1 className="font-['Montserrat_Alternates'] font-bold text-2xl sm:text-3xl mb-6 text-text">Редактирование поста</h1>
 
-        <form onSubmit={handleUpdatePost} className="space-y-6">
+        <form onSubmit={handleUpdatePost} className="space-y-5">
           <div>
-            <label className="block text-text mb-1 font-['Montserrat_Alternates'] font-medium">Заголовок <span className="text-firm-red">*</span></label>
-            <input type="text" value={editForm.title} onChange={(e) => setEditForm((prev) => ({ ...prev, title: e.target.value }))} required className="w-full p-3 rounded-lg bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all" />
+            <label className="block text-text mb-1 font-['Montserrat_Alternates'] font-medium text-sm">Заголовок <span className="text-firm-red">*</span></label>
+            <input type="text" value={editForm.title} onChange={(e) => setEditForm((prev) => ({ ...prev, title: e.target.value }))} required className="w-full p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all" />
           </div>
 
           <div>
-            <label className="block text-text mb-1 font-['Montserrat_Alternates'] font-medium">Категория</label>
-            <select value={editForm.category} onChange={(e) => setEditForm((prev) => ({ ...prev, category: e.target.value }))} className="w-full p-3 rounded-lg bg-main border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all">
+            <label className="block text-text mb-1 font-['Montserrat_Alternates'] font-medium text-sm">Категория</label>
+            <select value={editForm.category} onChange={(e) => setEditForm((prev) => ({ ...prev, category: e.target.value }))} className="w-full p-3 rounded-xl bg-white border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all">
               <option value="">Выберите категорию</option>
               {blogTags.map((tag) => (<option key={tag} value={tag}>{tag}</option>))}
             </select>
           </div>
 
           <div>
-            <label className="block text-text mb-1 font-['Montserrat_Alternates'] font-medium">Теги (через запятую)</label>
-            <input type="text" value={editForm.tags} onChange={(e) => setEditForm((prev) => ({ ...prev, tags: e.target.value }))} className="w-full p-3 rounded-lg bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all" placeholder="Мастер-класс, Советы, Обзор" />
+            <label className="block text-text mb-1 font-['Montserrat_Alternates'] font-medium text-sm">Теги (через запятую)</label>
+            <input type="text" value={editForm.tags} onChange={(e) => setEditForm((prev) => ({ ...prev, tags: e.target.value }))} className="w-full p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all" placeholder="Мастер-класс, Советы, Обзор" />
           </div>
 
           <div>
-            <label className="block text-text mb-1 font-['Montserrat_Alternates'] font-medium">Содержание <span className="text-firm-red">*</span></label>
-            <textarea value={editForm.content} onChange={(e) => setEditForm((prev) => ({ ...prev, content: e.target.value }))} rows={15} required className="w-full p-3 rounded-lg bg-main border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all" />
+            <label className="block text-text mb-1 font-['Montserrat_Alternates'] font-medium text-sm">Содержание <span className="text-firm-red">*</span></label>
+            <textarea value={editForm.content} onChange={(e) => setEditForm((prev) => ({ ...prev, content: e.target.value }))} rows={15} required className="w-full p-3 rounded-xl bg-white border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all" />
           </div>
 
-          <div className="flex gap-3">
-            <button type="submit" className="px-6 py-2 bg-firm-orange text-main rounded-lg hover:bg-opacity-90 transition" >Сохранить</button>
-            <button type="button" onClick={() => setIsEditing(false)} className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition"> Отмена </button>
+          <div className="flex gap-3 pt-4">
+            <motion.button 
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="submit" 
+              className="px-6 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300"
+            >
+              Сохранить
+            </motion.button>
+            <motion.button 
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="button" 
+              onClick={() => setIsEditing(false)} 
+              className="px-6 py-2 border border-gray-300 rounded-xl hover:bg-gray-100 transition-all duration-300"
+            >
+              Отмена
+            </motion.button>
           </div>
         </form>
-      </div>
+      </motion.div>
     );
   }
 
   return (
     <>
-      <div className="max-w-4xl mx-auto px-4 py-8 ">
-        <div className="text-sm text-firm-gray mb-6 w-full">
-          <Link href="/" className="hover:text-firm-orange">Главная</Link>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {/* Хлебные крошки */}
+        <div className="text-xs sm:text-sm text-firm-gray mb-6">
+          <Link href="/" className="hover:text-firm-orange transition-colors">Главная</Link>
           <span className="mx-2">/</span>
-          <Link href="/blog" className="hover:text-firm-orange">Блог</Link>
+          <Link href="/blog" className="hover:text-firm-orange transition-colors">Блог</Link>
           <span className="mx-2">/</span>
-          <span className="text-text">{post.title}</span>
+          <span className="text-text truncate">{post.title}</span>
         </div>
 
+        {/* Кнопки для автора */}
         {isAuthor && (
-          <div className="flex justify-end gap-3 mb-4">
-            <button onClick={() => setIsEditing(true)} className="px-4 py-2 text-sm bg-firm-orange text-main rounded-lg hover:bg-opacity-90 transition flex items-center gap-2"><EditIcon className="w-4 h-4" color="#f9f9f9" />Редактировать</button>
-            <button onClick={handleDeletePost}  disabled={deleting} className="px-4 py-2 text-sm bg-firm-red text-main rounded-lg hover:bg-firm-red transition disabled:opacity-50 flex items-center gap-2"><DeleteIcon className="w-4 h-4" color="#f9f9f9" />{deleting ? "Удаление..." : "Удалить"}</button>
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex justify-end gap-3 mb-6"
+          >
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setIsEditing(true)} 
+              className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 flex items-center gap-2"
+            >
+              <EditIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" color="#FFFFFF" />
+              <span className="hidden sm:inline">Редактировать</span>
+            </motion.button>
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleDeletePost} 
+              disabled={deleting} 
+              className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-firm-red text-white rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center gap-2"
+            >
+              <DeleteIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" color="#FFFFFF" />
+              <span className="hidden sm:inline">{deleting ? "Удаление..." : "Удалить"}</span>
+            </motion.button>
+          </motion.div>
         )}
 
-        <Link href={`/masters/${post.master_id}`} className="flex items-center gap-3 group mb-6">
-          <UserAvatar name={post.master_name} avatarUrl={post.master_avatar} size={48} />
+        {/* Автор */}
+        <Link href={`/masters/${post.master_id}`} className="flex items-center gap-3 sm:gap-4 group mb-6">
+          <UserAvatar name={post.master_name} avatarUrl={post.master_avatar} size={isMobile ? 44 : 56} />
           <div>
-            <p className="font-semibold group-hover:text-firm-orange transition-colors">{post.master_name}</p>
-            <p className="text-xs text-firm-gray">{formatDate(post.created_at)}</p>
+            <p className="font-semibold text-text group-hover:text-firm-orange transition-colors text-sm sm:text-base">
+              {post.master_name}
+            </p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <CalendarIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" color="#9CA3AF" />
+              <p className="text-[10px] sm:text-xs text-gray-400">{formatDate(post.created_at)}</p>
+            </div>
           </div>
         </Link>
 
+        {/* Категории и теги */}
         <div className="flex flex-wrap gap-2 mb-4">
-          {post.category && (<span className="px-2 py-1 bg-firm-orange/10 text-firm-orange rounded-full text-xs sm:text-sm">{post.category}</span>)}
-          {post.tags?.map((tag, idx) => (<span key={idx} className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs sm:text-sm">#{tag}</span>))}
+          {post.category && (
+            <motion.span 
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="px-2 py-1 bg-firm-orange/10 text-firm-orange rounded-full text-xs sm:text-sm"
+            >
+              {post.category}
+            </motion.span>
+          )}
+          {post.tags?.map((tag, idx) => (
+            <motion.span 
+              key={idx}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: idx * 0.05 }}
+              className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs sm:text-sm"
+            >
+              #{tag}
+            </motion.span>
+          ))}
         </div>
 
-        <h1 className="font-['Montserrat_Alternates'] font-bold text-2xl sm:text-3xl md:text-4xl mb-6">{post.title}</h1>
+        {/* Заголовок */}
+        <motion.h1 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="font-['Montserrat_Alternates'] font-bold text-2xl sm:text-3xl md:text-4xl mb-6 text-text"
+        >
+          {post.title}
+        </motion.h1>
 
-        {(post.images?.length || 0) > 0 || post.main_image_url ? (<div className="mb-8"><MediaGallery images={post.images || []} mainImageUrl={post.main_image_url} video={null} title={post.title} /></div>) : null}
+        {/* Изображения */}
+        {(post.images?.length || 0) > 0 || post.main_image_url ? (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 }}
+            className="mb-8"
+          >
+            <MediaGallery images={post.images || []} mainImageUrl={post.main_image_url} video={null} title={post.title} />
+          </motion.div>
+        ) : null}
 
-        <div className="mb-8">
-          <div className="text-text whitespace-pre-wrap leading-relaxed text-sm sm:text-base">{post.content}</div>
-        </div>
+        {/* Контент */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mb-8"
+        >
+          <div className="text-text whitespace-pre-wrap leading-relaxed text-sm sm:text-base prose prose-sm max-w-none">
+            {post.content}
+          </div>
+        </motion.div>
 
-        <div className="flex items-center gap-6 py-4 border-t border-b border-gray-200 mb-8">
-          <button onClick={handleLike} className="flex items-center gap-1.5 transition-all duration-300 hover:scale-110">
-            <LikeIcon isActive={isLiked} />
-            <span className={`text-sm ${isLiked ? 'text-firm-pink' : 'text-firm-gray'}`}>{likesCount}</span>
-          </button>
+        {/* Действия */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="flex flex-wrap items-center gap-4 sm:gap-6 py-4 border-t border-b border-gray-100 mb-8"
+        >
+          <div className="flex items-center gap-1">
+            <LikeButton isActive={isLiked} onClick={handleLike} />
+            <span className={`text-xs sm:text-sm font-medium ${isLiked ? 'text-firm-pink' : 'text-gray-500'}`}>
+              {likesCount}
+            </span>
+          </div>
 
-          <button onClick={() => setShowCommentsState(!showCommentsState)} className="flex items-center gap-1.5 transition-all duration-300 hover:scale-110">
-            <CommentIcon isActive={showCommentsState} />
-            <span className={`text-sm ${showCommentsState ? 'text-firm-orange' : 'text-firm-gray'}`}>{commentsCount}</span>
-          </button>
+          <CommentButton 
+            isActive={showCommentsState} 
+            onClick={() => setShowCommentsState(!showCommentsState)} 
+            count={commentsCount}
+          />
 
           <div className="flex-1"></div>
 
-          <div className="flex items-center gap-4">
-            <button onClick={handleShare} className="text-firm-gray hover:text-firm-orange transition">
-              <ShareIcon />
-            </button>
+          <div className="flex items-center gap-3 sm:gap-4">
+            <motion.button 
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleShare} 
+              className="text-gray-400 hover:text-firm-orange transition-colors"
+            >
+              <ShareIcon className="w-5 h-5" color="#737682" />
+            </motion.button>
             <div className="flex items-center gap-1.5">
               <ViewsIcon />
-              <span className="text-sm text-firm-gray">{post.views_count}</span>
+              <span className="text-xs sm:text-sm text-gray-500">{post.views_count}</span>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div>
-          <h3 className="font-['Montserrat_Alternates'] font-semibold text-xl mb-6">Комментарии ({commentsCount})</h3>
+        {/* Комментарии */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg sm:text-xl mb-5 text-text">
+            Комментарии ({commentsCount})
+          </h3>
 
           {session ? (
-            <div className="flex gap-3 mb-8">
-              <CurrentUserAvatar size={40} />
+            <div className="flex flex-col sm:flex-row gap-3 mb-8">
+              <div className="hidden sm:block">
+                <CurrentUserAvatar size={44} />
+              </div>
               <div className="flex-1">
-                <textarea  value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Написать комментарий..." rows={3} className="w-full p-3 rounded-xl bg-forms border-2 border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all duration-300 text-sm placeholder:text-firm-gray resize-none" />
+                <textarea 
+                  value={commentText} 
+                  onChange={(e) => setCommentText(e.target.value)} 
+                  placeholder="Написать комментарий..." 
+                  rows={isMobile ? 3 : 2} 
+                  className="w-full p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all duration-300 text-sm placeholder:text-gray-400 resize-none"
+                />
                 <div className="flex justify-end mt-2">
-                  <button onClick={handleComment} disabled={commentLoading || !commentText.trim()} className="flex items-center gap-2 px-5 py-2 bg-linear-to-r from-firm-orange to-firm-pink rounded-xl text-sm font-['Montserrat_Alternates'] font-medium hover:shadow-lg hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:hover:scale-100" style={{ color: '#f9f9f9' }} >
+                  <motion.button 
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleComment} 
+                    disabled={commentLoading || !commentText.trim()} 
+                    className="flex items-center gap-2 px-4 sm:px-5 py-1.5 sm:py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl text-xs sm:text-sm font-['Montserrat_Alternates'] font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:hover:scale-100"
+                  >
                     {commentLoading ? (
                       <>
-                        <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
+                        <motion.div 
+                          animate={{ rotate: 360 }} 
+                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full" 
+                        />
                         <span>Отправка...</span>
                       </>
                     ) : (
                       <>
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                        </svg>
+                        <SendIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#FFFFFF" />
                         <span>Отправить</span>
                       </>
                     )}
-                  </button>
+                  </motion.button>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="bg-main rounded-xl p-6 text-center mb-8 border border-gray-200">
-              <p className="text-firm-gray text-sm mb-3 flex items-center justify-center gap-2">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="bg-white rounded-xl p-6 text-center mb-8 border border-gray-100 shadow-sm"
+            >
+              <p className="text-gray-500 text-sm mb-3 flex items-center justify-center gap-2">
                 <PasswordIcon color="#737682" className="w-4 h-4" />
                 Чтобы оставить комментарий, необходимо авторизоваться
               </p>
-              <Link href={`/auth/signin?callbackUrl=/blog/${id}`} className="inline-block px-5 py-2 bg-firm-orange text-main rounded-lg text-sm hover:bg-opacity-90 transition">Войти</Link>
-            </div>
+              <Link href={`/auth/signin?callbackUrl=/blog/${id}`} className="inline-block px-5 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl text-sm hover:shadow-lg transition-all duration-300">
+                Войти
+              </Link>
+            </motion.div>
           )}
 
           <AnimatePresence mode="wait">
             {showCommentsState && (
-              <div className="space-y-5">
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-4 sm:space-y-5"
+              >
                 {comments.length === 0 ? (
-                  <p className="text-firm-gray text-center py-8 text-sm">Будьте первым, кто оставит комментарий</p>
+                  <p className="text-gray-400 text-sm text-center py-8">💬 Будьте первым, кто оставит комментарий</p>
                 ) : (
                   comments.map((comment, idx) => (
-                    <div key={comment.id} className="flex gap-3 group">
-                      <UserAvatar name={comment.author_name} avatarUrl={comment.author_avatar} size={40} />
-                      <div className="flex-1">
-                        <div className="bg-main rounded-xl p-4 shadow-sm border border-gray-100">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="font-semibold text-sm">{comment.author_name}</p>
-                              <p className="text-xs text-firm-gray mt-0.5">
-                                {formatDate(comment.created_at)}
-                                {comment.is_edited && <span className="ml-2 text-firm-gray text-xs">(ред.)</span>}
-                              </p>
+                    <motion.div 
+                      key={comment.id} 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="flex gap-3 group"
+                    >
+                      <UserAvatar name={comment.author_name} avatarUrl={comment.author_avatar} size={isMobile ? 32 : 40} />
+                      <div className="flex-1 min-w-0">
+                        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100">
+                          <div className="flex flex-wrap justify-between items-start gap-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-sm text-gray-800 truncate">{comment.author_name}</p>
+                              <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                                <CalendarIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3" color="#9CA3AF" />
+                                <p className="text-[10px] sm:text-xs text-gray-400">{formatDate(comment.created_at)}</p>
+                                {comment.is_edited && <span className="text-[10px] sm:text-xs text-gray-400">(ред.)</span>}
+                              </div>
                             </div>
 
                             {(session?.user?.id === comment.author_id || isAuthor) && (
-                              <div className={`flex gap-2 ${!isMobile ? 'opacity-0 group-hover:opacity-100' : ''} transition-opacity`}>
+                              <div className={`flex gap-1 ${!isMobile ? 'opacity-0 group-hover:opacity-100' : ''} transition-opacity`}>
                                 {session?.user?.id === comment.author_id && editingCommentId === comment.id ? (
                                   <>
-                                    <button onClick={() => handleUpdateComment(comment.id)} disabled={updatingComment} className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform disabled:opacity-50"><Image src="/save.svg" alt="Сохранить" width={16} height={16} /></button>
-                                    <button onClick={() => {setEditingCommentId(null); setEditingCommentText("")}} className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"><Image src="/delete.svg" alt="Отмена" width={16} height={16} /></button>
+                                    <motion.button 
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.95 }}
+                                      onClick={() => handleUpdateComment(comment.id)} 
+                                      disabled={updatingComment} 
+                                      className="p-1 rounded-lg hover:bg-green-50 transition-colors disabled:opacity-50"
+                                    >
+                                      <CheckCircleIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" color="#22C55E" />
+                                    </motion.button>
+                                    <motion.button 
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.95 }}
+                                      onClick={() => {setEditingCommentId(null); setEditingCommentText("")}} 
+                                      className="p-1 rounded-lg hover:bg-red-50 transition-colors"
+                                    >
+                                      <CloseIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" color="#EF4444" />
+                                    </motion.button>
                                   </>
                                 ) : (
                                   <>
                                     {session?.user?.id === comment.author_id && (
-                                      <button onClick={() => {setEditingCommentId(comment.id); setEditingCommentText(comment.content)}}className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform"><Image src="/edit.svg" alt="Редактировать" width={16} height={16} /> </button>)}
-                                    <button onClick={() => handleDeleteComment(comment.id)} disabled={deletingCommentId === comment.id} className="w-5 h-5 flex items-center justify-center hover:scale-110 transition-transform disabled:opacity-50"><Image src="/delete.svg" alt="Удалить" width={16} height={16} /></button>
+                                      <motion.button 
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => {setEditingCommentId(comment.id); setEditingCommentText(comment.content)}}
+                                        className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                                      >
+                                        <EditIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" color="#6B7280" />
+                                      </motion.button>
+                                    )}
+                                    <motion.button 
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.95 }}
+                                      onClick={() => handleDeleteComment(comment.id)} 
+                                      disabled={deletingCommentId === comment.id} 
+                                      className="p-1 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+                                    >
+                                      <DeleteIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" color="#EF4444" />
+                                    </motion.button>
                                   </>
                                 )}
                               </div>
@@ -648,22 +871,35 @@ export default function BlogPostPage() {
                           </div>
 
                           {editingCommentId === comment.id ? (
-                            <textarea value={editingCommentText} onChange={(e) => setEditingCommentText(e.target.value)} className="w-full p-2 mt-2 rounded-lg bg-main border border-gray-200 outline-firm-orange text-sm" rows={3} autoFocus />
+                            <textarea 
+                              value={editingCommentText} 
+                              onChange={(e) => setEditingCommentText(e.target.value)} 
+                              className="w-full p-2 mt-2 rounded-lg bg-gray-50 border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-1 focus:ring-firm-orange text-sm" 
+                              rows={isMobile ? 4 : 3} 
+                              autoFocus 
+                            />
                           ) : (
-                            <p className="text-text text-sm mt-2">{comment.content}</p>
+                            <p className="text-gray-700 text-xs sm:text-sm mt-2 leading-relaxed break-words">{comment.content}</p>
                           )}
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   ))
                 )}
-              </div>
+              </motion.div>
             )}
           </AnimatePresence>
-        </div>
+        </motion.div>
       </div>
 
-      <ConfirmModal isOpen={confirmModal.isOpen} title={confirmModal.title} message={confirmModal.message} type={confirmModal.type} onConfirm={confirmModal.onConfirm} onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} />
+      <ConfirmModal 
+        isOpen={confirmModal.isOpen} 
+        title={confirmModal.title} 
+        message={confirmModal.message} 
+        type={confirmModal.type} 
+        onConfirm={confirmModal.onConfirm} 
+        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} 
+      />
     </>
   );
 }
