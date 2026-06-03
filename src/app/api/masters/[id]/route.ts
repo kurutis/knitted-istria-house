@@ -11,6 +11,15 @@ function isValidUUID(uuid: string): boolean {
     return uuidRegex.test(uuid);
 }
 
+interface OrderItemData {
+    quantity: number;
+    product_id: string;
+    orders: Array<{
+        status: string;
+        payment_status: string;
+    }>;
+}
+
 export async function GET(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -58,7 +67,7 @@ export async function GET(
                 throw new Error('MASTER_BANNED');
             }
 
-            // 2. Получаем профиль из таблицы profiles через user_id
+            // 2. Получаем профиль из таблицы profiles
             const { data: profile, error: profileError } = await supabase
                 .from('profiles')
                 .select('full_name, phone, city, avatar_url')
@@ -69,10 +78,10 @@ export async function GET(
                 logError('Error fetching profile in master API', profileError, 'warning');
             }
 
-            // 3. Получаем данные мастера из таблицы masters через user_id
+            // 3. Получаем данные мастера
             const { data: masterData, error: masterError } = await supabase
                 .from('masters')
-                .select('description, is_verified, is_partner, rating, total_sales, custom_orders_enabled, moderation_status')
+                .select('description, is_verified, is_partner, rating, custom_orders_enabled, moderation_status')
                 .eq('user_id', user.id)
                 .maybeSingle();
 
@@ -101,7 +110,47 @@ export async function GET(
                 logError('Error fetching products count', productsError, 'warning');
             }
 
-            // 6. Получаем средний рейтинг из отзывов
+            // ========== 6. РАСЧЕТ ПРОДАЖ ==========
+            // Получаем все товары мастера
+            const { data: masterProducts, error: masterProductsError } = await supabase
+                .from('products')
+                .select('id, price')
+                .eq('master_id', user.id);
+
+            let totalSales = 0;
+            let totalRevenue = 0;
+            
+            if (!masterProductsError && masterProducts && masterProducts.length > 0) {
+                const productIds = masterProducts.map(p => p.id);
+                const productPriceMap = new Map(masterProducts.map(p => [p.id, parseFloat(p.price) || 0]));
+                
+                // Получаем все order_items для товаров мастера
+                const { data: orderItems, error: itemsError } = await supabase
+                    .from('order_items')
+                    .select(`
+                        quantity,
+                        product_id,
+                        orders!inner (
+                            status,
+                            payment_status
+                        )
+                    `)
+                    .in('product_id', productIds);
+
+                if (!itemsError && orderItems) {
+                    // Фильтруем только оплаченные и не отмененные заказы
+                    for (const item of orderItems as unknown as OrderItemData[]) {
+                        const order = item.orders?.[0];
+                        if (order && order.status !== 'cancelled' && order.payment_status === 'paid') {
+                            totalSales += item.quantity || 0;
+                            const price = productPriceMap.get(item.product_id) || 0;
+                            totalRevenue += price * (item.quantity || 0);
+                        }
+                    }
+                }
+            }
+
+            // 7. Получаем средний рейтинг из отзывов
             const { data: reviews, error: reviewsError } = await supabase
                 .from('reviews')
                 .select('rating')
@@ -117,7 +166,7 @@ export async function GET(
                 averageRating = ratingSum / totalReviews;
             }
 
-            // 7. Получаем топ-3 товаров мастера для превью
+            // 8. Получаем топ-3 товаров мастера
             const { data: topProducts, error: topProductsError } = await supabase
                 .from('products')
                 .select('id, title, price, main_image_url, views')
@@ -144,11 +193,12 @@ export async function GET(
                 is_verified: masterData?.is_verified || false,
                 is_partner: masterData?.is_partner || false,
                 rating: parseFloat(averageRating.toFixed(1)),
-                total_sales: masterData?.total_sales || 0,
+                total_sales: totalSales,
+                total_revenue: Math.round(totalRevenue),
                 custom_orders_enabled: masterData?.custom_orders_enabled || false,
                 followers_count: followersCount || 0,
                 products_count: productsCount || 0,
-                pieces_created: masterData?.total_sales || 0,
+                pieces_created: totalSales,
                 total_reviews: totalReviews,
                 moderation_status: masterData?.moderation_status || 'approved',
                 top_products: topProducts?.map(p => ({
@@ -159,7 +209,7 @@ export async function GET(
                     views: p.views || 0
                 })) || []
             };
-        }, 300); // Кэшируем на 5 минут
+        }, 300);
 
         logApiRequest('GET', `/api/masters/${id}`, 200, Date.now() - startTime);
 
