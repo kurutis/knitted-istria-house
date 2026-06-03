@@ -9,7 +9,6 @@ import toast from "react-hot-toast";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import EditProductModal from "@/components/modals/EditProductModal";
 
-// Импорт иконок из библиотеки
 import { CartIcon } from "@/components/icons/CartIcon";
 import { LikeIcon } from "@/components/icons/LikeIcon";
 import { EditIcon } from "@/components/icons/EditIcon";
@@ -86,33 +85,12 @@ const StarRating = ({ rating, onRatingChange, size = "md" }: { rating: number; o
   const sizeClasses = { sm: "text-lg", md: "text-2xl", lg: "text-3xl" };
   return (
     <div className="flex gap-1">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <button
-          key={star}
-          onClick={() => onRatingChange?.(star)}
-          className={`focus:outline-none transition-transform hover:scale-110 ${!onRatingChange ? "cursor-default" : ""}`}
-        >
-          <span className={star <= rating ? "text-yellow-400" : "text-gray-300"}>
-            ★
-          </span>
-        </button>
-      ))}
+      {[1, 2, 3, 4, 5].map((star) => (<button key={star} onClick={() => onRatingChange?.(star)} className={`focus:outline-none transition-transform hover:scale-110 ${!onRatingChange ? "cursor-default" : ""}`}><span className={star <= rating ? "text-yellow-400" : "text-gray-300"}>★</span></button>))}
     </div>
   );
 };
 
-const ImageThumbnail = ({ src, alt, isActive, onClick }: { src: string; alt: string; isActive: boolean; onClick: () => void }) => (
-  <motion.button
-    whileHover={{ scale: 1.05 }}
-    whileTap={{ scale: 0.95 }}
-    onClick={onClick}
-    className={`aspect-square bg-gray-100 rounded-xl overflow-hidden border-2 transition-all ${
-      isActive ? "border-firm-orange shadow-md" : "border-transparent hover:border-gray-300"
-    }`}
-  >
-    <img src={src} alt={alt} className="w-full h-full object-cover" />
-  </motion.button>
-);
+const ImageThumbnail = ({ src, alt, isActive, onClick }: { src: string; alt: string; isActive: boolean; onClick: () => void }) => (<motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={onClick} className={`aspect-square bg-gray-100 rounded-xl overflow-hidden border-2 transition-all ${isActive ? "border-firm-orange shadow-md" : "border-transparent hover:border-gray-300" }`}><img src={src} alt={alt} className="w-full h-full object-cover" /></motion.button>);
 
 export default function ProductPage() {
   const { id } = useParams();
@@ -147,13 +125,7 @@ export default function ProductPage() {
   const [editReviewLoading, setEditReviewLoading] = useState(false);
   const editReviewFileInputRef = useRef<HTMLInputElement>(null);
   
-  const [confirmModal, setConfirmModal] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    onConfirm: () => void;
-    type?: 'danger' | 'warning' | 'info';
-  }>({ isOpen: false, title: '', message: '', onConfirm: () => {}, type: 'danger' });
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; type?: 'danger' | 'warning' | 'info';}>({ isOpen: false, title: '', message: '', onConfirm: () => {}, type: 'danger' });
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -563,12 +535,8 @@ export default function ProductPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto"
-          />
-          <p className="mt-4 font-['Montserrat_Alternates'] text-gray-500">Загрузка товара...</p>
+          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto" />
+          <p className="mt-4 font-['Montserrat_Alternates'] text-firm-gray">Загрузка товара...</p>
         </div>
       </div>
     );
@@ -579,43 +547,18 @@ export default function ProductPage() {
       <div className="flex items-center justify-center min-h-[60vh] px-4">
         <div className="text-center">
           <p className="text-firm-red mb-4">{error || "Товар не найден"}</p>
-          <Link
-            href="/catalog"
-            className="inline-block px-6 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300"
-          >
-            Вернуться в каталог
-          </Link>
+          <Link href="/catalog" className="inline-block px-6 py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300">Вернуться в каталог</Link>
         </div>
       </div>
     );
   }
 
-  const displayImages = product.images?.length > 0
-    ? product.images
-    : product.main_image_url
-      ? [{ id: "placeholder", image_url: product.main_image_url, sort_order: 0 }]
-      : [];
+  const displayImages = product.images?.length > 0 ? product.images : product.main_image_url ? [{ id: "placeholder", image_url: product.main_image_url, sort_order: 0 }] : [];
 
   const MasterActions = () => (
     <div className="flex gap-3">
-      <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        onClick={() => setShowEditModal(true)}
-        className="flex-1 px-4 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 text-sm sm:text-base"
-      >
-        <EditIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#FFFFFF" />
-        <span>Редактировать</span>
-      </motion.button>
-      <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        onClick={handleDeleteProduct}
-        className="flex-1 px-4 py-3 bg-firm-red text-white rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 text-sm sm:text-base"
-      >
-        <DeleteIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#FFFFFF" />
-        <span>Удалить</span>
-      </motion.button>
+      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowEditModal(true)} className="flex-1 px-4 py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 text-sm sm:text-base"><EditIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#f9f9f9" /><span className="text-main">Редактировать</span></motion.button>
+      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleDeleteProduct} className="flex-1 px-4 py-3 bg-firm-red text-main rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 text-sm sm:text-base"><DeleteIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#f9f9f9" /><span className="text-main">Удалить</span></motion.button>
     </div>
   );
 
@@ -624,89 +567,36 @@ export default function ProductPage() {
       <div className="flex-1">
         {isInCart ? (
           <div className="flex items-center justify-between bg-gray-100 rounded-xl p-1">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleUpdateQuantity(quantity - 1)}
-              disabled={quantity <= 1 || updatingCart}
-              className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-firm-orange text-white flex items-center justify-center hover:bg-opacity-90 transition disabled:opacity-50"
-            >
-              <MinusIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#FFFFFF" />
-            </motion.button>
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => handleUpdateQuantity(quantity - 1)} disabled={quantity <= 1 || updatingCart} className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-firm-orange text-main flex items-center justify-center hover:bg-opacity-90 transition disabled:opacity-50"><MinusIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#f9f9f9" /></motion.button>
             <span className="w-10 text-center font-medium text-sm sm:text-base text-text">{quantity}</span>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleUpdateQuantity(quantity + 1)}
-              disabled={updatingCart}
-              className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-firm-orange text-white flex items-center justify-center hover:bg-opacity-90 transition disabled:opacity-50"
-            >
-              <PlusIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#FFFFFF" />
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleRemoveFromCart}
-              className="ml-2 px-2 sm:px-3 py-1.5 sm:py-2 text-firm-red hover:bg-red-50 rounded-lg transition text-xs sm:text-sm"
-            >
-              Удалить
-            </motion.button>
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => handleUpdateQuantity(quantity + 1)} disabled={updatingCart} className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-firm-orange text-main flex items-center justify-center hover:bg-opacity-90 transition disabled:opacity-50"><PlusIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#f9f9f9" /></motion.button>
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleRemoveFromCart} className="ml-2 px-2 sm:px-3 py-1.5 sm:py-2 text-firm-red hover:bg-red-50 rounded-lg transition text-xs sm:text-sm">Удалить</motion.button>
           </div>
         ) : (
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleAddToCart}
-            disabled={updatingCart}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 text-sm sm:text-base"
-          >
-            <CartIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#FFFFFF" size={20} />
-            <span>В корзину</span>
-          </motion.button>
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleAddToCart} disabled={updatingCart} className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 text-sm sm:text-base"><CartIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#f9f9f9" size={20} /><span className="text-main">В корзину</span></motion.button>
         )}
       </div>
 
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={handleToggleFavorite}
-        className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl border-2 transition-all flex items-center justify-center flex-shrink-0 ${
-          isFavorite
-            ? "border-firm-pink bg-firm-pink text-white shadow-md"
-            : "border-gray-300 hover:border-firm-pink hover:bg-firm-pink/10"
-        }`}
-      >
-        <LikeIcon color={isFavorite ? "#FFFFFF" : "#737682"} className="w-4 h-4 sm:w-5 sm:h-5" />
-      </motion.button>
+      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleToggleFavorite} className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl border-2 transition-all flex items-center justify-center shrink-0 ${isFavorite ? "border-firm-pink bg-firm-pink text-white shadow-md" : "border-gray-300 hover:border-firm-pink hover:bg-firm-pink/10"}`}><LikeIcon color={isFavorite ? "#f9f9f9" : "#737682"} className="w-4 h-4 sm:w-5 sm:h-5" /></motion.button>
     </div>
   );
 
   return (
     <>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* Хлебные крошки */}
         <div className="text-xs sm:text-sm text-firm-gray mb-6">
-          <Link href="/" className="hover:text-firm-orange transition-colors">
-            Главная
-          </Link>
+          <Link href="/" className="hover:text-firm-orange transition-colors">Главная</Link>
           <span className="mx-2">/</span>
-          <Link href="/catalog" className="hover:text-firm-orange transition-colors">
-            Каталог
-          </Link>
+          <Link href="/catalog" className="hover:text-firm-orange transition-colors">Каталог</Link>
           <span className="mx-2">/</span>
           <span className="text-text truncate">{product.title}</span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-          {/* Левая колонка - галерея */}
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
             <div className="aspect-square bg-gray-100 rounded-2xl overflow-hidden shadow-lg">
               {displayImages[selectedImage]?.image_url ? (
-                <img
-                  src={displayImages[selectedImage].image_url}
-                  alt={product.title}
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                />
+                <img src={displayImages[selectedImage].image_url} alt={product.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-firm-gray">
                   Нет фото
@@ -716,32 +606,16 @@ export default function ProductPage() {
             {displayImages.length > 1 && (
               <div className="grid grid-cols-5 gap-2 mt-4">
                 {displayImages.map((img, index) => (
-                  <ImageThumbnail
-                    key={img.id}
-                    src={img.image_url}
-                    alt={`${product.title} - фото ${index + 1}`}
-                    isActive={selectedImage === index}
-                    onClick={() => setSelectedImage(index)}
-                  />
-                ))}
+                  <ImageThumbnail key={img.id} src={img.image_url} alt={`${product.title} - фото ${index + 1}`} isActive={selectedImage === index} onClick={() => setSelectedImage(index)} />))}
               </div>
             )}
           </motion.div>
 
-          {/* Правая колонка - информация */}
           <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-4">
-            <motion.h1
-              variants={fadeInUp}
-              className="font-['Montserrat_Alternates'] font-bold text-2xl sm:text-3xl md:text-4xl text-text"
-            >
-              {product.title}
-            </motion.h1>
+            <motion.h1 variants={fadeInUp} className="font-['Montserrat_Alternates'] font-bold text-2xl sm:text-3xl md:text-4xl text-text">{product.title}</motion.h1>
 
             <motion.div variants={fadeInUp} className="flex flex-wrap items-center gap-3">
-              <Link
-                href={`/masters/${product.master_id}`}
-                className="flex items-center gap-2 hover:opacity-80 transition-opacity group"
-              >
+              <Link href={`/masters/${product.master_id}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity group" >
                 <div className="w-8 h-8 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-sm font-bold overflow-hidden">
                   {product.master_avatar ? (
                     <img src={product.master_avatar} alt={product.master_name} className="w-full h-full object-cover" />
@@ -756,12 +630,8 @@ export default function ProductPage() {
               <span className="text-gray-300">|</span>
               <div className="flex items-center gap-2">
                 <StarRating rating={Math.floor(product.rating || 0)} />
-                <span className="font-semibold text-sm text-text">
-                  {product.rating?.toFixed(1) || "Нет оценок"}
-                </span>
-                <span className="text-firm-gray text-sm">
-                  ({product.reviews_count || 0} отзывов)
-                </span>
+                <span className="font-semibold text-sm text-text">{product.rating?.toFixed(1) || "Нет оценок"}</span>
+                <span className="text-firm-gray text-sm">({product.reviews_count || 0} отзывов)</span>
               </div>
             </motion.div>
 
@@ -773,7 +643,6 @@ export default function ProductPage() {
               {isAuthor ? <MasterActions /> : <BuyerActions />}
             </motion.div>
 
-            {/* Характеристики */}
             <motion.div variants={fadeInUp} className="space-y-2">
               {product.category && product.category !== "Не применимо" && (
                 <div className="bg-gray-50 rounded-xl p-3 transition-all hover:shadow-md">
@@ -800,16 +669,12 @@ export default function ProductPage() {
                 <div className="bg-gray-50 rounded-xl p-3 transition-all hover:shadow-md">
                   <p className="text-firm-gray text-xs mb-1 font-['Montserrat_Alternates']">Цвет</p>
                   <div className="flex items-center gap-2">
-                    <div
-                      className="w-5 h-5 rounded-full border border-gray-300 shadow-sm"
-                      style={{ backgroundColor: product.color.toLowerCase() }}
-                    />
+                    <div className="w-5 h-5 rounded-full border border-gray-300 shadow-sm" style={{ backgroundColor: product.color.toLowerCase() }} />
                     <p className="font-medium text-sm text-text">{product.color}</p>
                   </div>
                 </div>
               )}
               
-              {/* Сообщение, если нет характеристик */}
               {(!product.category || product.category === "Не применимо") && 
                (!product.technique || product.technique === "Не применимо") && 
                (!product.size || product.size === "Не применимо" || product.size === "") && 
@@ -820,87 +685,27 @@ export default function ProductPage() {
               )}
             </motion.div>
 
-            {/* Табы - только Описание, Уход (если есть), Отзывы */}
             <motion.div variants={fadeInUp} className="border-t border-gray-200 pt-4">
               <div className="flex flex-wrap gap-4 mb-4">
-                <button
-                  onClick={() => setActiveTab("description")}
-                  className={`pb-2 font-['Montserrat_Alternates'] text-sm transition-all duration-300 ${
-                    activeTab === "description"
-                      ? "border-b-2 border-firm-pink text-firm-pink"
-                      : "text-firm-gray hover:text-text"
-                  }`}
-                >
-                  Описание
-                </button>
-                {product.care_instructions && (
-                  <button
-                    onClick={() => setActiveTab("care")}
-                    className={`pb-2 font-['Montserrat_Alternates'] text-sm transition-all duration-300 ${
-                      activeTab === "care"
-                        ? "border-b-2 border-firm-orange text-firm-orange"
-                        : "text-firm-gray hover:text-text"
-                    }`}
-                  >
-                    Уход
-                  </button>
-                )}
-                <button
-                  onClick={() => setActiveTab("reviews")}
-                  className={`pb-2 font-['Montserrat_Alternates'] text-sm transition-all duration-300 ${
-                    activeTab === "reviews"
-                      ? "border-b-2 border-firm-pink text-firm-pink"
-                      : "text-firm-gray hover:text-text"
-                  }`}
-                >
-                  Отзывы ({product.reviews_count || 0})
-                </button>
+                <button onClick={() => setActiveTab("description")} className={`pb-2 font-['Montserrat_Alternates'] text-sm transition-all duration-300 ${activeTab === "description" ? "border-b-2 border-firm-pink text-firm-pink" : "text-firm-gray hover:text-text"}`}>Описание</button>
+                {product.care_instructions && ( <button onClick={() => setActiveTab("care")} className={`pb-2 font-['Montserrat_Alternates'] text-sm transition-all duration-300 ${activeTab === "care" ? "border-b-2 border-firm-orange text-firm-orange" : "text-firm-gray hover:text-text"}`}>Уход</button>)}
+                <button onClick={() => setActiveTab("reviews")} className={`pb-2 font-['Montserrat_Alternates'] text-sm transition-all duration-300 ${activeTab === "reviews" ? "border-b-2 border-firm-pink text-firm-pink" : "text-firm-gray hover:text-text"}`}>Отзывы ({product.reviews_count || 0})</button>
               </div>
 
               <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                  className="py-2"
-                >
-                  {activeTab === "description" && (
-                    <p className="text-text whitespace-pre-line text-sm leading-relaxed">
-                      {product.description}
-                    </p>
-                  )}
+                <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="py-2">
+                  {activeTab === "description" && (<p className="text-text whitespace-pre-line text-sm leading-relaxed">{product.description}</p>)}
 
-                  {activeTab === "care" && product.care_instructions && (
-                    <p className="text-text text-sm leading-relaxed">
-                      {product.care_instructions}
-                    </p>
-                  )}
+                  {activeTab === "care" && product.care_instructions && (<p className="text-text text-sm leading-relaxed">{product.care_instructions}</p>)}
 
                   {activeTab === "reviews" && (
                     <div>
-                      {session && session.user?.role !== "master" && !isAuthor && (
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => setShowReviewModal(true)}
-                          className="mb-4 px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl text-sm hover:shadow-lg transition-all duration-300"
-                        >
-                          Написать отзыв
-                        </motion.button>
-                      )}
+                      {session && session.user?.role !== "master" && !isAuthor && (<motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowReviewModal(true)} className="mb-4 px-4 py-2 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl text-sm hover:shadow-lg transition-all duration-300">Написать отзыв</motion.button>)}
 
                       {product.reviews && product.reviews.length > 0 ? (
                         <div className="space-y-4">
                           {product.reviews.map((review, idx) => (
-                            <motion.div
-                              key={review.id}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: idx * 0.05 }}
-                              className="border-b border-gray-100 pb-4 last:border-0"
-                            >
+                            <motion.div key={review.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} className="border-b border-gray-100 pb-4 last:border-0">
                               <div className="flex items-start gap-3">
                                 <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold text-sm sm:text-base flex-shrink-0">
                                   {review.author_avatar ? (
@@ -915,32 +720,14 @@ export default function ProductPage() {
                                       <p className="font-semibold text-sm text-text">{review.author_name}</p>
                                       <div className="flex items-center gap-2 mt-0.5">
                                         <StarRating rating={review.rating} size="sm" />
-                                        <span className="text-xs text-firm-gray">
-                                          {new Date(review.created_at).toLocaleDateString("ru-RU")}
-                                        </span>
+                                        <span className="text-xs text-firm-gray">{new Date(review.created_at).toLocaleDateString("ru-RU")}</span>
                                       </div>
                                     </div>
                                     
                                     {session && session.user?.id === review.author_id && (
                                       <div className="flex gap-2">
-                                        <motion.button
-                                          whileHover={{ scale: 1.1 }}
-                                          whileTap={{ scale: 0.95 }}
-                                          onClick={() => startEditingReview(review)}
-                                          className="text-firm-orange hover:text-firm-pink transition text-xs sm:text-sm flex items-center gap-1"
-                                        >
-                                          <EditIcon className="w-3.5 h-3.5" color="#F4A67F" />
-                                          <span className="hidden sm:inline">Редактировать</span>
-                                        </motion.button>
-                                        <motion.button
-                                          whileHover={{ scale: 1.1 }}
-                                          whileTap={{ scale: 0.95 }}
-                                          onClick={() => handleDeleteReview(review.id)}
-                                          className="text-firm-red hover:text-red-700 transition text-xs sm:text-sm flex items-center gap-1"
-                                        >
-                                          <DeleteIcon className="w-3.5 h-3.5" color="#D77C7C" />
-                                          <span className="hidden sm:inline">Удалить</span>
-                                        </motion.button>
+                                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => startEditingReview(review)} className="text-firm-orange hover:text-firm-pink transition text-xs sm:text-sm flex items-center gap-1"><EditIcon className="w-3.5 h-3.5" color="#F4A67F" /><span className="hidden sm:inline">Редактировать</span></motion.button>
+                                        <motion.button  whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => handleDeleteReview(review.id)} className="text-firm-red hover:text-red-700 transition text-xs sm:text-sm flex items-center gap-1"><DeleteIcon className="w-3.5 h-3.5" color="#D77C7C" /><span className="hidden sm:inline">Удалить</span></motion.button>
                                       </div>
                                     )}
                                   </div>
@@ -948,16 +735,7 @@ export default function ProductPage() {
                                   
                                   {review.images && review.images.length > 0 && (
                                     <div className="flex gap-2 mt-3 flex-wrap">
-                                      {review.images.map((img, imgIdx) => (
-                                        <motion.img
-                                          key={imgIdx}
-                                          whileHover={{ scale: 1.05 }}
-                                          src={img}
-                                          alt={`Фото к отзыву ${imgIdx + 1}`}
-                                          className="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition"
-                                          onClick={() => window.open(img, '_blank')}
-                                        />
-                                      ))}
+                                      {review.images.map((img, imgIdx) => (<motion.img key={imgIdx} whileHover={{ scale: 1.05 }} src={img} alt={`Фото к отзыву ${imgIdx + 1}`} className="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition"  onClick={() => window.open(img, '_blank')} /> ))}
                                     </div>
                                   )}
                                 </div>
@@ -969,14 +747,7 @@ export default function ProductPage() {
                         <div className="text-center py-8 bg-gray-50 rounded-xl">
                           <StarIcon className="w-12 h-12 mx-auto text-gray-300 mb-3" />
                           <p className="text-firm-gray text-sm">Пока нет отзывов</p>
-                          {session && session.user?.role !== "master" && !isAuthor && (
-                            <button
-                              onClick={() => setShowReviewModal(true)}
-                              className="mt-2 text-firm-orange hover:underline text-sm"
-                            >
-                              Будьте первым
-                            </button>
-                          )}
+                          {session && session.user?.role !== "master" && !isAuthor && (<button onClick={() => setShowReviewModal(true)} className="mt-2 text-firm-orange hover:underline text-sm">Будьте первым</button>)}
                         </div>
                       )}
                     </div>
@@ -988,25 +759,13 @@ export default function ProductPage() {
         </div>
       </div>
 
-      {/* Модальное окно добавления отзыва */}
       <AnimatePresence>
         {showReviewModal && (
-          <div
-            className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
-            onClick={() => setShowReviewModal(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
+          <div className="fixed inset-0 z-50 bg-mian-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowReviewModal(false)}>
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-main rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-['Montserrat_Alternates'] font-semibold text-xl text-text">Написать отзыв</h3>
-                <button onClick={() => setShowReviewModal(false)} className="p-1 hover:bg-gray-100 rounded-lg transition">
-                  <CloseIcon className="w-5 h-5" color="#737682" />
-                </button>
+                <button onClick={() => setShowReviewModal(false)} className="p-1 hover:bg-gray-100 rounded-lg transition"><CloseIcon className="w-5 h-5" color="#737682" /></button>
               </div>
 
               <div className="mb-4">
@@ -1016,18 +775,8 @@ export default function ProductPage() {
 
               <div className="mb-4">
                 <label className="block text-text mb-2 text-sm font-['Montserrat_Alternates']">Фотографии (до 5 шт.)</label>
-                <div
-                  className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-firm-orange transition cursor-pointer"
-                  onClick={() => reviewFileInputRef.current?.click()}
-                >
-                  <input
-                    ref={reviewFileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleReviewImageSelect}
-                    className="hidden"
-                  />
+                <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-firm-orange transition cursor-pointer" onClick={() => reviewFileInputRef.current?.click()} >
+                  <input ref={reviewFileInputRef} type="file" accept="image/*" multiple onChange={handleReviewImageSelect} />
                   <CameraIcon className="w-8 h-8 mx-auto text-firm-gray mb-2" color="#737682" />
                   <span className="text-firm-gray text-sm">Добавить фото</span>
                   <p className="text-xs text-firm-gray mt-1">JPG, PNG, WEBP до 5MB</p>
@@ -1037,13 +786,7 @@ export default function ProductPage() {
                     {reviewImagePreviews.map((preview, idx) => (
                       <div key={idx} className="relative w-14 h-14">
                         <img src={preview} alt="preview" className="w-full h-full object-cover rounded-lg" />
-                        <button
-                          type="button"
-                          onClick={() => removeReviewImage(idx)}
-                          className="absolute -top-2 -right-2 w-5 h-5 bg-firm-red text-white rounded-full text-xs flex items-center justify-center hover:scale-110 transition"
-                        >
-                          ✕
-                        </button>
+                        <button type="button" onClick={() => removeReviewImage(idx)}>✕</button>
                       </div>
                     ))}
                   </div>
@@ -1052,40 +795,18 @@ export default function ProductPage() {
 
               <div className="mb-6">
                 <label className="block text-text mb-2 text-sm font-['Montserrat_Alternates']">Комментарий</label>
-                <textarea
-                  value={reviewComment}
-                  onChange={(e) => setReviewComment(e.target.value)}
-                  rows={4}
-                  className="w-full p-3 rounded-xl bg-forms outline-none focus:ring-2 focus:ring-firm-orange text-sm resize-none"
-                  placeholder="Поделитесь впечатлениями о товаре..."
-                />
+                <textarea value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} rows={4} className="w-full p-3 rounded-xl bg-forms outline-none focus:ring-2 focus:ring-firm-orange text-sm resize-none" placeholder="Поделитесь впечатлениями о товаре..." />
               </div>
 
               <div className="flex gap-3">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleSubmitReview}
-                  disabled={submittingReview}
-                  className="flex-1 py-2.5 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition disabled:opacity-50 font-medium text-sm"
-                >
-                  {submittingReview ? "Отправка..." : "Отправить"}
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setShowReviewModal(false)}
-                  className="px-4 py-2.5 border border-gray-300 rounded-xl hover:bg-gray-50 transition text-sm"
-                >
-                  Отмена
-                </motion.button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleSubmitReview} disabled={submittingReview} className="flex-1 py-2.5 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition disabled:opacity-50 font-medium text-sm">{submittingReview ? "Отправка..." : "Отправить"}</motion.button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowReviewModal(false)} className="px-4 py-2.5 border border-gray-300 rounded-xl hover:bg-gray-50 transition text-sm">Отмена</motion.button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      {/* Модальное окно редактирования отзыва */}
       <AnimatePresence>
         {editingReview && (
           <div
@@ -1101,9 +822,7 @@ export default function ProductPage() {
             >
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-['Montserrat_Alternates'] font-semibold text-xl text-text">Редактировать отзыв</h3>
-                <button onClick={cancelEditingReview} className="p-1 hover:bg-gray-100 rounded-lg transition">
-                  <CloseIcon className="w-5 h-5" color="#737682" />
-                </button>
+                <button onClick={cancelEditingReview} className="p-1 hover:bg-gray-100 rounded-lg transition"><CloseIcon className="w-5 h-5" color="#737682" /></button>
               </div>
 
               <div className="mb-4">
@@ -1118,13 +837,7 @@ export default function ProductPage() {
                     {existingReviewImages.map((img, idx) => (
                       <div key={idx} className="relative w-14 h-14">
                         <img src={img} alt="review" className="w-full h-full object-cover rounded-lg" />
-                        <button
-                          type="button"
-                          onClick={() => removeExistingReviewImage(idx)}
-                          className="absolute -top-2 -right-2 w-5 h-5 bg-firm-red text-white rounded-full text-xs flex items-center justify-center hover:scale-110 transition"
-                        >
-                          ✕
-                        </button>
+                        <button  type="button" onClick={() => removeExistingReviewImage(idx)} className="absolute -top-2 -right-2 w-5 h-5 bg-firm-red text-main rounded-full text-xs flex items-center justify-center hover:scale-110 transition">✕</button>
                       </div>
                     ))}
                   </div>
@@ -1133,33 +846,17 @@ export default function ProductPage() {
 
               <div className="mb-4">
                 <label className="block text-text mb-2 text-sm font-['Montserrat_Alternates']">Добавить новые фотографии</label>
-                <div
-                  className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-firm-orange transition cursor-pointer"
-                  onClick={() => editReviewFileInputRef.current?.click()}
-                >
-                  <input
-                    ref={editReviewFileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleEditReviewImageSelect}
-                    className="hidden"
-                  />
-                  <CameraIcon className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-                  <span className="text-gray-500 text-sm">Добавить фото</span>
+                <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center hover:border-firm-orange transition cursor-pointer" onClick={() => editReviewFileInputRef.current?.click()}>
+                  <input ref={editReviewFileInputRef} type="file" accept="image/*" multiple onChange={handleEditReviewImageSelect} className="hidden" />
+                  <CameraIcon className="w-8 h-8 mx-auto text-firm-gray mb-2" />
+                  <span className="text-firm-gray text-sm">Добавить фото</span>
                 </div>
                 {editReviewImagePreviews.length > 0 && (
                   <div className="flex gap-2 mt-3 flex-wrap">
                     {editReviewImagePreviews.map((preview, idx) => (
                       <div key={idx} className="relative w-14 h-14">
                         <img src={preview} alt="preview" className="w-full h-full object-cover rounded-lg" />
-                        <button
-                          type="button"
-                          onClick={() => removeEditReviewImage(idx)}
-                          className="absolute -top-2 -right-2 w-5 h-5 bg-firm-red text-white rounded-full text-xs flex items-center justify-center hover:scale-110 transition"
-                        >
-                          ✕
-                        </button>
+                        <button type="button" onClick={() => removeEditReviewImage(idx)} className="absolute -top-2 -right-2 w-5 h-5 bg-firm-red text-main rounded-full text-xs flex items-center justify-center hover:scale-110 transition">✕</button>
                       </div>
                     ))}
                   </div>
@@ -1168,68 +865,21 @@ export default function ProductPage() {
 
               <div className="mb-6">
                 <label className="block text-text mb-2 text-sm font-['Montserrat_Alternates']">Комментарий</label>
-                <textarea
-                  value={editReviewComment}
-                  onChange={(e) => setEditReviewComment(e.target.value)}
-                  rows={4}
-                  className="w-full p-3 rounded-xl bg-forms outline-none focus:ring-2 focus:ring-firm-orange text-sm resize-none"
-                />
+                <textarea value={editReviewComment} onChange={(e) => setEditReviewComment(e.target.value)} rows={4} className="w-full p-3 rounded-xl bg-forms outline-none focus:ring-2 focus:ring-firm-orange text-sm resize-none" />
               </div>
 
               <div className="flex gap-3">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleUpdateReview}
-                  disabled={editReviewLoading}
-                  className="flex-1 py-2.5 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition disabled:opacity-50 font-medium text-sm"
-                >
-                  {editReviewLoading ? "Сохранение..." : "Сохранить изменения"}
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={cancelEditingReview}
-                  className="px-4 py-2.5 border border-gray-300 rounded-xl hover:bg-gray-50 transition text-sm"
-                >
-                  Отмена
-                </motion.button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleUpdateReview} disabled={editReviewLoading}  className="flex-1 py-2.5 bg-linear-to-r from-firm-orange to-firm-pink text-mian rounded-xl hover:shadow-lg transition disabled:opacity-50 font-medium text-sm">{editReviewLoading ? "Сохранение..." : "Сохранить изменения"}</motion.button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={cancelEditingReview} className="px-4 py-2.5 border border-gray-300 rounded-xl hover:bg-gray-50 transition text-sm">Отмена</motion.button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      {/* Модальное окно редактирования товара */}
-      {product && (
-        <EditProductModal
-          isOpen={showEditModal}
-          onClose={() => setShowEditModal(false)}
-          onSuccess={handleProductUpdated}
-          product={{
-            id: product.id,
-            title: product.title,
-            description: product.description,
-            price: product.price,
-            category: product.category,
-            technique: product.technique,
-            size: product.size,
-            care_instructions: product.care_instructions,
-            color: product.color
-          }}
-          categories={categories}
-        />
-      )}
+      {product && (<EditProductModal isOpen={showEditModal} onClose={() => setShowEditModal(false)} onSuccess={handleProductUpdated} product={{id: product.id, title: product.title, description: product.description, price: product.price, category: product.category, technique: product.technique, size: product.size, care_instructions: product.care_instructions, color: product.color }} categories={categories} />)}
 
-      {/* ConfirmModal */}
-      <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        title={confirmModal.title}
-        message={confirmModal.message}
-        type={confirmModal.type}
-        onConfirm={confirmModal.onConfirm}
-        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
-      />
+      <ConfirmModal isOpen={confirmModal.isOpen} title={confirmModal.title} message={confirmModal.message} type={confirmModal.type} onConfirm={confirmModal.onConfirm} onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} />
     </>
   );
 }
