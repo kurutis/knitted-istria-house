@@ -4,8 +4,14 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import toast from "react-hot-toast"
+
+import { CartIcon } from "@/components/icons/CartIcon"
+import { LikeIcon } from "@/components/icons/LikeIcon"
+import { CloseIcon } from "@/components/icons/CloseIcon"
+import { Productslcon } from "@/components/icons/Productslcon"
+import { UserIcon } from "@/components/icons/UserIcon"
 
 interface FavoriteProduct {
     id: string
@@ -25,6 +31,14 @@ export default function FavoritesPage() {
     const [favorites, setFavorites] = useState<FavoriteProduct[]>([])
     const [loading, setLoading] = useState(true)
     const [removingId, setRemovingId] = useState<string | null>(null)
+    const [isMobile, setIsMobile] = useState(false)
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768)
+        checkMobile()
+        window.addEventListener('resize', checkMobile)
+        return () => window.removeEventListener('resize', checkMobile)
+    }, [])
 
     useEffect(() => {
         if (status === 'unauthenticated') {
@@ -44,8 +58,6 @@ export default function FavoritesPage() {
             if (!response.ok) throw new Error('Failed to load favorites')
             
             const data = await response.json()
-            
-            console.log('Favorites API response:', data)
             
             if (data && data.success && Array.isArray(data.favorites)) {
                 setFavorites(data.favorites)
@@ -68,9 +80,7 @@ export default function FavoritesPage() {
         
         setRemovingId(productId)
         try {
-            const response = await fetch(`/api/user/favorites?productId=${productId}`, {
-                method: 'DELETE'
-            })
+            const response = await fetch(`/api/user/favorites?productId=${productId}`, {method: 'DELETE'})
             
             if (response.ok) {
                 setFavorites(prev => prev.filter(item => item.id !== productId))
@@ -94,134 +104,94 @@ export default function FavoritesPage() {
         return new Intl.NumberFormat('ru-RU').format(numPrice)
     }
 
+    const fadeInUp = {initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.5 }}
+
+    const staggerContainer = {animate: { transition: { staggerChildren: 0.05 } }}
+
     if (loading) {
         return (
-            <div className="mt-5 flex items-center justify-center min-h-[60vh]">
+            <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full animate-spin mx-auto"></div>
-                    <p className="mt-4 font-['Montserrat_Alternates'] text-gray-600">Загрузка...</p>
+                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto"  />
+                    <p className="mt-4 font-['Montserrat_Alternates'] text-firm-gray">Загрузка избранного...</p>
                 </div>
             </div>
         )
     }
 
     return (
-        <div className="mt-5 flex items-start justify-center px-4">
-            <div className="flex flex-col gap-5 w-full max-w-7xl">
-                {/* Header */}
-                <div>
-                    <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
-                        Избранное
-                    </h1>
-                    <p className="text-gray-500 mt-1 text-sm sm:text-base">
+        <div className="min-h-screen bg-main">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+                <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}  className="mb-8 sm:mb-10">
+                    <h1 className="font-['Montserrat_Alternates'] font-bold text-2xl sm:text-3xl lg:text-4xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Избранное</h1>
+                    <p className="text-firm-gray mt-2 text-sm sm:text-base">
                         {favorites.length} {favorites.length === 1 ? 'товар' : favorites.length > 1 && favorites.length < 5 ? 'товара' : 'товаров'}
                     </p>
-                </div>
+                </motion.div>
 
-                {!favorites || favorites.length === 0 ? (
-                    <motion.div 
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-white rounded-2xl shadow-xl p-12 text-center"
-                    >
-                        <div className="text-6xl mb-4">❤️</div>
-                        <p className="text-gray-500 mb-4 font-['Montserrat_Alternates'] text-lg">
-                            В избранном пока нет товаров
-                        </p>
-                        <p className="text-gray-400 mb-6 text-sm">
-                            Добавляйте товары в избранное, чтобы не потерять понравившиеся
-                        </p>
-                        <Link 
-                            href="/catalog" 
-                            className="inline-block px-6 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 font-['Montserrat_Alternates']"
-                        >
-                            🛍️ Перейти в каталог
-                        </Link>
-                    </motion.div>
-                ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
-                        {favorites.map((product, index) => (
-                            <motion.div
-                                key={product.id || index}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.05 }}
-                                whileHover={{ y: -5 }}
-                                className="group"
-                            >
-                                <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300">
-                                    {/* Image */}
-                                    <Link href={`/catalog/${product.id}`} className="block relative aspect-square overflow-hidden bg-gray-100">
-                                        {product.main_image_url ? (
-                                            <img
-                                                src={product.main_image_url}
-                                                alt={product.title || 'Товар'}
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                                onError={(e) => {
-                                                    (e.target as HTMLImageElement).style.display = 'none'
-                                                }}
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                                <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                </svg>
-                                            </div>
-                                        )}
-                                        
-                                        {/* Remove button */}
-                                        <button
-                                            onClick={() => handleRemoveFromFavorites(product.id)}
-                                            disabled={removingId === product.id}
-                                            className="absolute top-2 right-2 w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center text-red-500 hover:bg-red-500 hover:text-white transition-all duration-300 opacity-0 group-hover:opacity-100 disabled:opacity-50"
-                                        >
-                                            {removingId === product.id ? (
-                                                <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                <AnimatePresence mode="wait">
+                    {!favorites || favorites.length === 0 ? (
+                        <motion.div key="empty" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-main rounded-2xl shadow-xl p-8 sm:p-12 text-center border border-gray-100">
+                            <div className="flex justify-center mb-4">
+                                <LikeIcon color="#D1D5DB" className="w-16 h-16 sm:w-20 sm:h-20" />
+                            </div>
+                            <p className="text-firm-gray mb-3 font-['Montserrat_Alternates'] text-lg sm:text-xl">В избранном пока нет товаров</p>
+                            <p className="text-firm-gray/70 mb-6 text-sm sm:text-base"> Добавляйте товары в избранное, чтобы не потерять понравившиеся</p>
+                            <Link href="/catalog" className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300 font-['Montserrat_Alternates'] text-sm sm:text-base"><CartIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#f9f9f9" />Перейти в каталог</Link>
+                        </motion.div>
+                    ) : (
+                        <motion.div key="products" variants={staggerContainer} initial="initial" animate="animate" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+                            {favorites.map((product, index) => (
+                                <motion.div key={product.id || index} variants={fadeInUp} whileHover={{ y: -5 }} className="group">
+                                    <div className="bg-main rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-100">
+                                        <Link href={`/catalog/${product.id}`} className="block relative aspect-square overflow-hidden bg-gray-100">
+                                            {product.main_image_url ? (
+                                                <img src={product.main_image_url} alt={product.title || 'Товар'} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={(e) => {(e.target as HTMLImageElement).style.display = 'none'}} />
                                             ) : (
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
+                                                <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                                                    <Productslcon className="w-10 h-10 sm:w-12 sm:h-12" color="#D1D5DB" />
+                                                </div>
                                             )}
-                                        </button>
-                                    </Link>
-                                    
-                                    {/* Content */}
-                                    <div className="p-3 sm:p-4">
-                                        <Link href={`/catalog/${product.id}`}>
-                                            <h3 className="font-['Montserrat_Alternates'] font-medium text-sm sm:text-base line-clamp-2 hover:text-firm-orange transition-colors">
-                                                {product.title || 'Без названия'}
-                                            </h3>
+                                            
+                                            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => handleRemoveFromFavorites(product.id)} disabled={removingId === product.id} className="absolute top-2 right-2 w-7 h-7 sm:w-8 sm:h-8 bg-main rounded-full shadow-md flex items-center justify-center text-firm-red hover:bg-firm-red hover:text-main transition-all duration-300 opacity-0 group-hover:opacity-100 disabled:opacity-50">
+                                                {removingId === product.id ? (
+                                                    <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-firm-red border-t-transparent rounded-full animate-spin" />
+                                                ) : (
+                                                    <CloseIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#D77C7C" />
+                                                )}
+                                            </motion.button>
+                                            
+                                            {product.in_stock === false && (
+                                                <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-main-black/70 text-main text-xs rounded-lg">
+                                                    Нет в наличии
+                                                </div>
+                                            )}
                                         </Link>
                                         
-                                        {product.master_name && (
-                                            <p className="text-xs text-gray-400 mt-1 line-clamp-1">
-                                                от {product.master_name}
-                                            </p>
-                                        )}
-                                        
-                                        <div className="flex items-center justify-between mt-2">
-                                            <span className="font-['Montserrat_Alternates'] font-bold text-firm-pink text-base sm:text-lg">
-                                                {formatPrice(product.price)} ₽
-                                            </span>
-                                            
+                                        <div className="p-3 sm:p-4">
                                             <Link href={`/catalog/${product.id}`}>
-                                                <button className="px-3 py-1 text-xs bg-gray-100 text-gray-600 rounded-lg hover:bg-firm-orange hover:text-white transition-all duration-300">
-                                                    Подробнее
-                                                </button>
+                                                <h3 className="font-['Montserrat_Alternates'] font-semibold text-sm sm:text-base line-clamp-2 hover:text-firm-orange transition-colors text-text">{product.title || 'Без названия'}</h3>
                                             </Link>
+                                            
+                                            {product.master_name && (
+                                                <div className="flex items-center gap-1 mt-1">
+                                                    <UserIcon className="w-3 h-3" color="#737682" />
+                                                    <p className="text-xs text-firm-gray line-clamp-1">{product.master_name}</p>
+                                                </div>
+                                            )}
+                                            
+                                            <div className="flex items-center justify-between mt-3">
+                                                <span className="font-['Montserrat_Alternates'] font-bold text-firm-pink text-sm sm:text-base md:text-lg">{formatPrice(product.price)} ₽</span>
+                                                
+                                                <Link href={`/catalog/${product.id}`}><motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-2.5 sm:px-3 py-1 text-xs bg-gray-100 text-firm-gray rounded-lg hover:bg-linear-to-r hover:from-firm-orange hover:to-firm-pink hover:text-main transition-all duration-300">Подробнее</motion.button></Link>
+                                            </div>
                                         </div>
-                                        
-                                        {product.in_stock === false && (
-                                            <span className="inline-block mt-2 text-xs text-red-500">
-                                                Нет в наличии
-                                            </span>
-                                        )}
                                     </div>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </div>
-                )}
+                                </motion.div>
+                            ))}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     )
