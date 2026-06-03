@@ -9,16 +9,15 @@ import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import ProductCard from '@/components/catalog/ProductCard'
 
-// Импорт иконок из библиотеки (исправленные названия)
-import { LocateIcon } from '@/components/icons/LocateIcon'      // вместо LocationIcon
+// Импорт иконок из библиотеки
+import { LocateIcon } from '@/components/icons/LocateIcon'
 import { StarIcon } from '@/components/icons/StarIcon'
-import { LikeIcon } from '@/components/icons/LikeIcon'          // вместо HeartIcon
-import { CartIcon } from '@/components/icons/CartIcon'          // вместо ShoppingBagIcon
-import { BriefcaseIcon } from '@/components/icons/BriefcaseIcon'
+import { LikeIcon } from '@/components/icons/LikeIcon'
+import { CartIcon } from '@/components/icons/CartIcon'
+import { Productslcon } from '@/components/icons/Productslcon'
 import { CloseIcon } from '@/components/icons/CloseIcon'
 import { SendIcon } from '@/components/icons/SendIcon'
 import { CheckCircleIcon } from '@/components/icons/CheckCircleIcon'
-import { UserIcon } from '@/components/icons/UserIcon'
 
 interface Master {
     id: string
@@ -425,7 +424,7 @@ export default function MasterPage() {
                                     onClick={() => setShowCustomModal(true)}
                                     className="px-5 sm:px-6 py-2 border-2 border-firm-pink text-firm-pink rounded-xl hover:bg-firm-pink hover:text-white transition-all duration-300 flex items-center gap-2"
                                 >
-                                    <BriefcaseIcon className="w-4 h-4" color="currentColor" />
+                                    <Productslcon className="w-4 h-4" color="currentColor" />
                                     <span className="text-sm">Обсудить заказ</span>
                                 </motion.button>
                             )}
@@ -441,7 +440,7 @@ export default function MasterPage() {
                     className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 py-6 sm:py-8 border-t border-b border-gray-100 mb-8 sm:mb-12"
                 >
                     {[
-                        { label: "Работ", value: master.pieces_created || master.total_sales || products.length, color: "#F4A67F", icon: <BriefcaseIcon className="w-5 h-5" color="#F4A67F" /> },
+                        { label: "Работ", value: master.pieces_created || master.total_sales || products.length, color: "#F4A67F", icon: <Productslcon className="w-5 h-5" color="#F4A67F" /> },
                         { label: "Подписчиков", value: master.followers_count || 0, color: "#D97C8E", icon: <LikeIcon className="w-5 h-5" color="#D97C8E" /> },
                         { label: "Рейтинг", value: master.rating, color: "#F4A67F", icon: <StarIcon className="w-5 h-5" color="#F4A67F" /> },
                         { label: "Отзывов", value: reviews.length, color: "#D97C8E", icon: <CartIcon className="w-5 h-5" color="#D97C8E" /> }
@@ -510,7 +509,7 @@ export default function MasterPage() {
                         >
                             {products.length === 0 ? (
                                 <div className="text-center py-12 sm:py-16 bg-gray-50 rounded-xl">
-                                    <BriefcaseIcon className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                                    <Productslcon className="w-12 h-12 mx-auto text-gray-300 mb-3" />
                                     <p className="text-gray-500">У мастера пока нет работ</p>
                                 </div>
                             ) : (
