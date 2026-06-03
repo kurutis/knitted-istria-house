@@ -36,6 +36,7 @@ import { OnlineIcon } from "@/components/icons/OnlineIcon";
 import { PlusIcon } from "@/components/icons/PlusIcon";
 import { UsersIcon } from "@/components/icons/UsersIcon";
 import { MasterIcon } from "@/components/icons/MasterIcon";
+import { CatalogPinkIcon } from "@/components/icons/CatalogPinkIcon";
 
 interface MasterProfileProps {
   session: {
@@ -513,8 +514,8 @@ export default function MasterProfile({ session }: MasterProfileProps) {
         toast.error(error.error || 'Ошибка обновления статуса');
       } else {
         toast.success(newValue
-          ? '✓ Вы теперь принимаете индивидуальные заказы'
-          : '✗ Вы больше не принимаете индивидуальные заказы'
+          ? 'Вы теперь принимаете индивидуальные заказы'
+          : 'Вы больше не принимаете индивидуальные заказы'
         );
         await fetchMasterData();
       }
@@ -752,9 +753,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
     { id: "settings", icon: <SettingsIcon className="w-5 h-5" />, label: "Настройки", count: null },
   ];
 
-  const fadeInUp = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.5 } };
-  const staggerContainer = { animate: { transition: { staggerChildren: 0.05 } } };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -789,7 +787,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   Панель мастера
                 </h1>
                 <p className="text-firm-gray mt-1 sm:mt-2 text-xs sm:text-sm">
-                  Добро пожаловать, {profileData.fullname || "Мастер"}!
+                  Добро пожаловать, {profileData.fullname || session?.user?.name || "Мастер"}!
                 </p>
                 <div className="flex flex-wrap gap-2 mt-2">
                   {profileData.is_verified && (
@@ -842,14 +840,14 @@ export default function MasterProfile({ session }: MasterProfileProps) {
             >
               <div className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 sticky top-5 border border-gray-100">
                 <div className="flex flex-col items-center mb-4 sm:mb-6">
-                  <motion.div whileHover={{ scale: 1.05 }} className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center overflow-hidden border-4 border-main shadow-lg group cursor-pointer">
+                  <div className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center overflow-hidden border-4 border-main shadow-lg group">
                     {avatarPreview ? (
                       <img src={avatarPreview} alt="avatar preview" className="w-full h-full object-cover" />
                     ) : profileData.avatarUrl ? (
                       <img src={`/api/proxy/avatar?url=${encodeURIComponent(profileData.avatarUrl)}`} alt="avatar" className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-2xl sm:text-3xl md:text-4xl font-montserrat font-bold text-main">
-                        {profileData.fullname?.charAt(0).toUpperCase() || "М"}
+                        {profileData.fullname?.charAt(0).toUpperCase() || session?.user?.name?.charAt(0).toUpperCase() || "М"}
                       </span>
                     )}
 
@@ -859,11 +857,11 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                         <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
                       </label>
                     )}
-                  </motion.div>
+                  </div>
                   <h3 className="mt-3 sm:mt-4 font-montserrat font-semibold text-base sm:text-lg md:text-xl text-center line-clamp-1">
-                    {profileData.fullname}
+                    {profileData.fullname || session?.user?.name}
                   </h3>
-                  <p className="text-xs sm:text-sm text-firm-gray text-center line-clamp-1">{profileData.email}</p>
+                  <p className="text-xs sm:text-sm text-firm-gray text-center line-clamp-1">{profileData.email || session?.user?.email}</p>
                   {profileData.city && (
                     <p className="text-[10px] sm:text-xs text-firm-gray mt-1 sm:mt-2 flex items-center gap-1">
                       <LocateIcon color="#D97C8E" className="w-2 h-2 sm:w-3 sm:h-3" />
@@ -940,7 +938,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
               className="md:w-2/3 lg:w-3/4"
             >
               <AnimatePresence mode="wait">
-                {/* Dashboard Tab */}
                 {activeTab === "dashboard" && (
                   <motion.div
                     key="dashboard"
@@ -1029,7 +1026,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   </motion.div>
                 )}
 
-                {/* Products Tab */}
                 {activeTab === "products" && (
                   <motion.div
                     key="products"
@@ -1065,7 +1061,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   </motion.div>
                 )}
 
-                {/* Orders Tab */}
                 {activeTab === "orders" && (
                   <motion.div
                     key="orders"
@@ -1074,7 +1069,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                     exit={{ opacity: 0, y: -20 }}
                     className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8"
                   >
-                    <h2 className="font-montserrat font-semibold text-xl sm:text-2xl mb-6 bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
+                    <h2 className="font-montserrat font-semibold text-xl sm:text-2xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
                       Заказы
                     </h2>
 
@@ -1150,7 +1145,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   </motion.div>
                 )}
 
-                {/* Blog Tab */}
                 {activeTab === "blog" && (
                   <motion.div
                     key="blog"
@@ -1220,7 +1214,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   </motion.div>
                 )}
 
-                {/* Master Classes Tab */}
                 {activeTab === "master-classes" && (
                   <motion.div
                     key="master-classes"
@@ -1372,7 +1365,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   </motion.div>
                 )}
 
-                {/* Profile Tab */}
                 {activeTab === "profile" && (
                   <motion.div
                     key="profile"
@@ -1473,7 +1465,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                             <p className="text-xs text-firm-gray">Принимать заказы на индивидуальные изделия</p>
                             {profileData.custom_orders_enabled && (
                               <p className="text-xs text-firm-green mt-1">
-                                ✓ На странице мастера появится кнопка &quot;Обсудить заказ&quot;
+                                На странице мастера появится кнопка &quot;Обсудить заказ&quot;
                               </p>
                             )}
                           </div>
@@ -1538,7 +1530,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   </motion.div>
                 )}
 
-                {/* Settings Tab */}
                 {activeTab === "settings" && (
                   <motion.div
                     key="settings"
