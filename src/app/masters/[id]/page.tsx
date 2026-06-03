@@ -3,9 +3,22 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useSession } from 'next-auth/react'
+import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import ProductCard from '@/components/catalog/ProductCard'
+
+// Импорт иконок из библиотеки (исправленные названия)
+import { LocateIcon } from '@/components/icons/LocateIcon'      // вместо LocationIcon
+import { StarIcon } from '@/components/icons/StarIcon'
+import { LikeIcon } from '@/components/icons/LikeIcon'          // вместо HeartIcon
+import { CartIcon } from '@/components/icons/CartIcon'          // вместо ShoppingBagIcon
+import { BriefcaseIcon } from '@/components/icons/BriefcaseIcon'
+import { CloseIcon } from '@/components/icons/CloseIcon'
+import { SendIcon } from '@/components/icons/SendIcon'
+import { CheckCircleIcon } from '@/components/icons/CheckCircleIcon'
+import { UserIcon } from '@/components/icons/UserIcon'
 
 interface Master {
     id: string
@@ -47,6 +60,41 @@ interface Review {
     author_avatar: string
 }
 
+// Компонент звездного рейтинга
+const StarRating = ({ rating, size = "md" }: { rating: number; size?: "sm" | "md" | "lg" }) => {
+    const sizeClasses = { sm: "text-xs", md: "text-sm", lg: "text-base" }
+    return (
+        <div className="flex items-center gap-0.5">
+            {[...Array(5)].map((_, i) => (
+                <span key={i} className={i < Math.floor(rating) ? "text-yellow-400" : "text-gray-300"}>
+                    ★
+                </span>
+            ))}
+            <span className={`ml-1 font-semibold ${sizeClasses[size]} text-text`}>{rating.toFixed(1)}</span>
+        </div>
+    )
+}
+
+// Кнопка подписки (используем LikeIcon)
+const FollowButton = ({ isFollowing, onClick, loading }: { isFollowing: boolean; onClick: () => void; loading: boolean }) => (
+    <motion.button
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={onClick}
+        disabled={loading}
+        className={`px-5 sm:px-6 py-2 rounded-xl transition-all duration-300 flex items-center gap-2 ${
+            isFollowing
+                ? 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-200'
+                : 'bg-gradient-to-r from-firm-orange to-firm-pink text-white hover:shadow-lg'
+        }`}
+    >
+        <LikeIcon color={isFollowing ? "#EF4444" : "#FFFFFF"} className="w-4 h-4" />
+        <span className="text-sm">
+            {loading ? '...' : (isFollowing ? 'Отписаться' : 'Подписаться')}
+        </span>
+    </motion.button>
+)
+
 export default function MasterPage() {
     const { id } = useParams()
     const { data: session } = useSession()
@@ -58,6 +106,7 @@ export default function MasterPage() {
     const [showCustomModal, setShowCustomModal] = useState(false)
     const [isFollowing, setIsFollowing] = useState(false)
     const [followLoading, setFollowLoading] = useState(false)
+    const [isMobile, setIsMobile] = useState(false)
     const [customRequest, setCustomRequest] = useState({
         name: '',
         email: '',
@@ -67,6 +116,13 @@ export default function MasterPage() {
 
     const isMaster = session?.user?.role === 'master'
     const currentMasterId = session?.user?.id
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768)
+        checkMobile()
+        window.addEventListener('resize', checkMobile)
+        return () => window.removeEventListener('resize', checkMobile)
+    }, [])
 
     useEffect(() => {
         if (id) {
@@ -87,9 +143,6 @@ export default function MasterPage() {
             const response = await fetch(`/api/masters/${id}`)
             const data = await response.json()
             
-            console.log('API response:', data) // Для отладки
-            
-            // Исправлено: API возвращает { success: true, data: {...} }
             let masterData
             if (data.success && data.data) {
                 masterData = data.data
@@ -99,7 +152,6 @@ export default function MasterPage() {
                 masterData = data
             }
             
-            // Преобразуем поля в нужный формат
             const formattedMaster: Master = {
                 id: masterData.id,
                 name: masterData.name || masterData.full_name || 'Мастер',
@@ -132,9 +184,6 @@ export default function MasterPage() {
             const response = await fetch(`/api/masters/${id}/products`)
             const data = await response.json()
             
-            console.log('Products API response:', data)
-            
-            // API возвращает { success: true, products: [], pagination: {} }
             let productsList: Product[] = []
             if (data.success && data.products) {
                 productsList = data.products
@@ -154,8 +203,6 @@ export default function MasterPage() {
         try {
             const response = await fetch(`/api/masters/${id}/reviews`)
             const data = await response.json()
-            
-            console.log('Reviews API response:', data)
             
             let reviewsList: Review[] = []
             if (data.success && data.reviews) {
@@ -179,8 +226,6 @@ export default function MasterPage() {
             const response = await fetch(`/api/masters/${id}/follow-status`)
             const data = await response.json()
             
-            console.log('Follow status API response:', data)
-            
             if (data.success) {
                 setIsFollowing(data.is_following || false)
                 setMaster(prev => prev ? { ...prev, followers_count: data.followers_count || 0 } : prev)
@@ -191,41 +236,40 @@ export default function MasterPage() {
     }
 
     const handleFollow = async () => {
-    if (!session) {
-        window.location.href = `/auth/signin?callbackUrl=/masters/${id}`
-        return
-    }
-
-    setFollowLoading(true)
-    try {
-        const method = isFollowing ? 'DELETE' : 'POST'
-        const response = await fetch('/api/masters/follow', {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ masterId: id })
-        })
-
-        if (response.ok) {
-            const data = await response.json()
-            setIsFollowing(data.is_following)
-            setMaster(prev => prev ? { ...prev, followers_count: data.followers_count } : prev)
-            toast.success(isFollowing ? 'Вы отписались от мастера' : 'Вы подписались на мастера')
-            
-            // Принудительно обновляем статус подписки через 1 секунду
-            setTimeout(() => {
-                checkFollowStatus()
-            }, 1000)
-        } else {
-            const error = await response.json()
-            toast.error(error.error || 'Ошибка при подписке')
+        if (!session) {
+            window.location.href = `/auth/signin?callbackUrl=/masters/${id}`
+            return
         }
-    } catch (error) {
-        console.error('Error toggling follow:', error)
-        toast.error('Ошибка при подписке')
-    } finally {
-        setFollowLoading(false)
+
+        setFollowLoading(true)
+        try {
+            const method = isFollowing ? 'DELETE' : 'POST'
+            const response = await fetch('/api/masters/follow', {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ masterId: id })
+            })
+
+            if (response.ok) {
+                const data = await response.json()
+                setIsFollowing(data.is_following)
+                setMaster(prev => prev ? { ...prev, followers_count: data.followers_count } : prev)
+                toast.success(isFollowing ? 'Вы отписались от мастера' : 'Вы подписались на мастера')
+                
+                setTimeout(() => {
+                    checkFollowStatus()
+                }, 1000)
+            } else {
+                const error = await response.json()
+                toast.error(error.error || 'Ошибка при подписке')
+            }
+        } catch (error) {
+            console.error('Error toggling follow:', error)
+            toast.error('Ошибка при подписке')
+        } finally {
+            setFollowLoading(false)
+        }
     }
-}
 
     const handleCustomRequest = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -255,285 +299,407 @@ export default function MasterPage() {
         }
     }
 
+    const fadeInUp = {
+        initial: { opacity: 0, y: 20 },
+        animate: { opacity: 1, y: 0 },
+        transition: { duration: 0.5 }
+    }
+
+    const staggerContainer = {
+        animate: { transition: { staggerChildren: 0.1 } }
+    }
+
     if (loading || !master) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full animate-spin mx-auto"></div>
-                    <p className="mt-4 font-['Montserrat_Alternates'] text-gray-600">Загрузка...</p>
+                    <motion.div 
+                        animate={{ rotate: 360 }} 
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }} 
+                        className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto" 
+                    />
+                    <p className="mt-4 font-['Montserrat_Alternates'] text-gray-500">Загрузка профиля...</p>
                 </div>
             </div>
         )
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-8">
-            {/* Профиль мастера */}
-            <div className="flex flex-col md:flex-row gap-8 mb-12">
-                {/* Аватар */}
-                <div className="flex-shrink-0">
-                    <div className="w-48 h-48 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center overflow-hidden">
-                        {master.avatar_url ? (
-                            <img 
-                                src={master.avatar_url} 
-                                alt={master.name} 
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                    (e.target as HTMLImageElement).style.display = 'none'
-                                }}
-                            />
-                        ) : (
-                            <span className="text-6xl font-['Montserrat_Alternates'] font-bold text-white">
-                                {master.name?.charAt(0).toUpperCase()}
-                            </span>
-                        )}
-                    </div>
+        <>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+                {/* Хлебные крошки */}
+                <div className="text-xs sm:text-sm text-firm-gray mb-6">
+                    <Link href="/" className="hover:text-firm-orange transition-colors">Главная</Link>
+                    <span className="mx-2">/</span>
+                    <Link href="/catalog" className="hover:text-firm-orange transition-colors">Мастера</Link>
+                    <span className="mx-2">/</span>
+                    <span className="text-text truncate">{master.name}</span>
                 </div>
 
-                {/* Информация */}
-                <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-3 mb-2">
-                        <h1 className="font-['Montserrat_Alternates'] font-bold text-3xl">{master.name}</h1>
-                        {master.is_verified && (
-                            <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs flex items-center gap-1">
-                                ✓ Верифицирован
-                            </span>
-                        )}
-                        {master.is_partner && (
-                            <span className="px-2 py-1 bg-firm-orange bg-opacity-10 text-firm-orange rounded-full text-xs flex items-center gap-1">
-                                ⭐ Партнер фабрики
-                            </span>
-                        )}
-                    </div>
-
-                    <div className="flex items-center gap-4 mb-4">
-                        <div className="flex items-center gap-1">
-                            <span className="text-yellow-400">★</span>
-                            <span className="font-semibold">{master.rating}</span>
-                        </div>
-                        <span className="text-gray-300">|</span>
-                        <span className="text-gray-600">{master.total_sales} продаж</span>
-                        {master.city && (
-                            <>
-                                <span className="text-gray-300">|</span>
-                                <span className="text-gray-600">📍 {master.city}</span>
-                            </>
-                        )}
-                    </div>
-
-                    <p className="text-gray-700 mb-6 leading-relaxed">
-                        {master.description || 'Мастер пока не добавил описание.'}
-                    </p>
-
-                    <div className="flex gap-4">
-                        {session && currentMasterId !== master.id && (
-                            <button
-                                onClick={handleFollow}
-                                disabled={followLoading}
-                                className={`px-6 py-2 rounded-lg transition ${
-                                    isFollowing
-                                        ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                        : 'bg-firm-orange text-white hover:bg-opacity-90'
-                                }`}
-                            >
-                                {followLoading ? '...' : (isFollowing ? 'Отписаться' : 'Подписаться')}
-                            </button>
-                        )}
-                        {master.custom_orders_enabled && (
-                            <button
-                                onClick={() => setShowCustomModal(true)}
-                                className="px-6 py-2 border-2 border-firm-pink text-firm-pink rounded-lg hover:bg-firm-pink hover:text-white transition"
-                            >
-                                Обсудить заказ
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Статистика */}
-            <div className="grid grid-cols-4 gap-4 py-8 border-t border-b border-gray-200 mb-12">
-                <div className="text-center">
-                    <p className="text-2xl font-bold text-firm-orange">
-                        {master.pieces_created || master.total_sales || products.length}
-                    </p>
-                    <p className="text-sm text-gray-500">Работ</p>
-                </div>
-                <div className="text-center">
-                    <p className="text-2xl font-bold text-firm-pink">
-                        {master.followers_count || 0}
-                    </p>
-                    <p className="text-sm text-gray-500">Подписчиков</p>
-                </div>
-                <div className="text-center">
-                    <p className="text-2xl font-bold text-firm-orange">
-                        {master.rating}
-                    </p>
-                    <p className="text-sm text-gray-500">Рейтинг</p>
-                </div>
-                <div className="text-center">
-                    <p className="text-2xl font-bold text-firm-pink">
-                        {reviews.length}
-                    </p>
-                    <p className="text-sm text-gray-500">Отзывов</p>
-                </div>
-            </div>
-
-            {/* Вкладки */}
-            <div className="flex gap-6 mb-6">
-                <button
-                    onClick={() => setActiveTab('products')}
-                    className={`pb-3 px-1 font-['Montserrat_Alternates'] transition-colors ${
-                        activeTab === 'products'
-                            ? 'border-b-2 border-firm-orange text-firm-orange'
-                            : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                >
-                    Работы мастера ({products.length})
-                </button>
-                <button
-                    onClick={() => setActiveTab('reviews')}
-                    className={`pb-3 px-1 font-['Montserrat_Alternates'] transition-colors ${
-                        activeTab === 'reviews'
-                            ? 'border-b-2 border-firm-pink text-firm-pink'
-                            : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                >
-                    Отзывы ({reviews.length})
-                </button>
-            </div>
-
-            {/* Работы мастера */}
-            {activeTab === 'products' && (
-                <>
-                    {products.length === 0 ? (
-                        <div className="text-center py-12 bg-gray-50 rounded-lg">
-                            <p className="text-gray-500">У мастера пока нет работ</p>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {products.map((product) => (
-                                <ProductCard key={product.id} product={product} />
-                            ))}
-                        </div>
-                    )}
-                    {products.length > 8 && (
-                        <div className="text-center mt-8">
-                            <Link href={`/catalog?master=${master.id}`} className="text-firm-orange hover:underline">
-                                Все работы мастера →
-                            </Link>
-                        </div>
-                    )}
-                </>
-            )}
-
-            {/* Отзывы */}
-            {activeTab === 'reviews' && (
-                <>
-                    {reviews.length === 0 ? (
-                        <div className="text-center py-12 bg-gray-50 rounded-lg">
-                            <p className="text-gray-500">Пока нет отзывов</p>
-                            {session && session.user?.role !== 'master' && (
-                                <Link href={`/catalog?master=${master.id}`} className="mt-4 inline-block text-firm-orange hover:underline">
-                                    Оставить отзыв после покупки
-                                </Link>
+                {/* Профиль мастера */}
+                <div className="flex flex-col md:flex-row gap-6 sm:gap-8 mb-10 sm:mb-12">
+                    {/* Аватар */}
+                    <motion.div 
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring", delay: 0.1 }}
+                        className="flex-shrink-0 self-center md:self-start"
+                    >
+                        <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center overflow-hidden shadow-lg ring-4 ring-white">
+                            {master.avatar_url ? (
+                                <img 
+                                    src={master.avatar_url} 
+                                    alt={master.name} 
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none'
+                                    }}
+                                />
+                            ) : (
+                                <span className="text-4xl sm:text-5xl md:text-6xl font-['Montserrat_Alternates'] font-bold text-white">
+                                    {master.name?.charAt(0).toUpperCase()}
+                                </span>
                             )}
                         </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {reviews.map((review) => (
-                                <div key={review.id} className="border-b border-gray-200 pb-4 last:border-0">
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold">
-                                            {review.author_name?.charAt(0).toUpperCase()}
+                    </motion.div>
+
+                    {/* Информация */}
+                    <motion.div 
+                        variants={staggerContainer}
+                        initial="initial"
+                        animate="animate"
+                        className="flex-1 text-center md:text-left"
+                    >
+                        <motion.div variants={fadeInUp} className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-3">
+                            <h1 className="font-['Montserrat_Alternates'] font-bold text-2xl sm:text-3xl text-text">
+                                {master.name}
+                            </h1>
+                            {master.is_verified && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">
+                                    <CheckCircleIcon className="w-3 h-3" color="#22C55E" />
+                                    Верифицирован
+                                </span>
+                            )}
+                            {master.is_partner && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-firm-orange/10 text-firm-orange rounded-full text-xs">
+                                    <StarIcon className="w-3 h-3" color="#F4A67F" />
+                                    Партнер фабрики
+                                </span>
+                            )}
+                        </motion.div>
+
+                        <motion.div variants={fadeInUp} className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-4">
+                            <StarRating rating={master.rating} size="md" />
+                            <span className="text-gray-300">|</span>
+                            <div className="flex items-center gap-1 text-gray-600 text-sm">
+                                <CartIcon className="w-4 h-4" color="#737682" />
+                                <span>{master.total_sales} продаж</span>
+                            </div>
+                            {master.city && (
+                                <>
+                                    <span className="text-gray-300">|</span>
+                                    <div className="flex items-center gap-1 text-gray-600 text-sm">
+                                        <LocateIcon className="w-4 h-4" color="#737682" />
+                                        <span>{master.city}</span>
+                                    </div>
+                                </>
+                            )}
+                        </motion.div>
+
+                        <motion.p variants={fadeInUp} className="text-gray-600 text-sm sm:text-base mb-6 leading-relaxed">
+                            {master.description || 'Мастер пока не добавил описание.'}
+                        </motion.p>
+
+                        <motion.div variants={fadeInUp} className="flex flex-wrap justify-center md:justify-start gap-3">
+                            {session && currentMasterId !== master.id && (
+                                <FollowButton 
+                                    isFollowing={isFollowing} 
+                                    onClick={handleFollow} 
+                                    loading={followLoading} 
+                                />
+                            )}
+                            {master.custom_orders_enabled && (
+                                <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => setShowCustomModal(true)}
+                                    className="px-5 sm:px-6 py-2 border-2 border-firm-pink text-firm-pink rounded-xl hover:bg-firm-pink hover:text-white transition-all duration-300 flex items-center gap-2"
+                                >
+                                    <BriefcaseIcon className="w-4 h-4" color="currentColor" />
+                                    <span className="text-sm">Обсудить заказ</span>
+                                </motion.button>
+                            )}
+                        </motion.div>
+                    </motion.div>
+                </div>
+
+                {/* Статистика */}
+                <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 py-6 sm:py-8 border-t border-b border-gray-100 mb-8 sm:mb-12"
+                >
+                    {[
+                        { label: "Работ", value: master.pieces_created || master.total_sales || products.length, color: "#F4A67F", icon: <BriefcaseIcon className="w-5 h-5" color="#F4A67F" /> },
+                        { label: "Подписчиков", value: master.followers_count || 0, color: "#D97C8E", icon: <LikeIcon className="w-5 h-5" color="#D97C8E" /> },
+                        { label: "Рейтинг", value: master.rating, color: "#F4A67F", icon: <StarIcon className="w-5 h-5" color="#F4A67F" /> },
+                        { label: "Отзывов", value: reviews.length, color: "#D97C8E", icon: <CartIcon className="w-5 h-5" color="#D97C8E" /> }
+                    ].map((stat, idx) => (
+                        <motion.div 
+                            key={stat.label}
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ delay: 0.3 + idx * 0.1 }}
+                            className="text-center p-3 rounded-xl bg-gray-50/50 hover:bg-gray-50 transition-all duration-300"
+                        >
+                            <div className="flex justify-center mb-2">{stat.icon}</div>
+                            <p className="text-2xl sm:text-3xl font-bold" style={{ color: stat.color }}>
+                                {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
+                            </p>
+                            <p className="text-xs sm:text-sm text-gray-500 mt-1">{stat.label}</p>
+                        </motion.div>
+                    ))}
+                </motion.div>
+
+                {/* Вкладки */}
+                <div className="flex gap-4 sm:gap-6 mb-6 border-b border-gray-100">
+                    <button
+                        onClick={() => setActiveTab('products')}
+                        className={`pb-3 px-1 font-['Montserrat_Alternates'] text-sm sm:text-base transition-all duration-300 relative ${
+                            activeTab === 'products'
+                                ? 'text-firm-orange'
+                                : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                    >
+                        Работы мастера ({products.length})
+                        {activeTab === 'products' && (
+                            <motion.div 
+                                layoutId="tabIndicator"
+                                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-firm-orange to-firm-pink rounded-full"
+                            />
+                        )}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('reviews')}
+                        className={`pb-3 px-1 font-['Montserrat_Alternates'] text-sm sm:text-base transition-all duration-300 relative ${
+                            activeTab === 'reviews'
+                                ? 'text-firm-pink'
+                                : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                    >
+                        Отзывы ({reviews.length})
+                        {activeTab === 'reviews' && (
+                            <motion.div 
+                                layoutId="tabIndicator"
+                                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-firm-pink to-firm-orange rounded-full"
+                            />
+                        )}
+                    </button>
+                </div>
+
+                {/* Работы мастера */}
+                <AnimatePresence mode="wait">
+                    {activeTab === 'products' && (
+                        <motion.div
+                            key="products"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            {products.length === 0 ? (
+                                <div className="text-center py-12 sm:py-16 bg-gray-50 rounded-xl">
+                                    <BriefcaseIcon className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                                    <p className="text-gray-500">У мастера пока нет работ</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+                                        {products.slice(0, 8).map((product, idx) => (
+                                            <motion.div
+                                                key={product.id}
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: idx * 0.05 }}
+                                            >
+                                                <ProductCard product={product} />
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                    {products.length > 8 && (
+                                        <div className="text-center mt-8">
+                                            <Link 
+                                                href={`/catalog?master=${master.id}`} 
+                                                className="inline-flex items-center gap-2 text-firm-orange hover:text-firm-pink text-sm font-medium transition-colors duration-300"
+                                            >
+                                                <span>Все работы мастера</span>
+                                                <span>→</span>
+                                            </Link>
                                         </div>
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="font-semibold">{review.author_name}</span>
-                                                <div className="flex items-center gap-0.5">
-                                                    {[...Array(5)].map((_, i) => (
-                                                        <span key={i} className={i < review.rating ? 'text-yellow-400' : 'text-gray-300'}>
-                                                            ★
+                                    )}
+                                </>
+                            )}
+                        </motion.div>
+                    )}
+
+                    {/* Отзывы */}
+                    {activeTab === 'reviews' && (
+                        <motion.div
+                            key="reviews"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            {reviews.length === 0 ? (
+                                <div className="text-center py-12 sm:py-16 bg-gray-50 rounded-xl">
+                                    <StarIcon className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+                                    <p className="text-gray-500">Пока нет отзывов</p>
+                                    {session && session.user?.role !== 'master' && (
+                                        <Link 
+                                            href={`/catalog?master=${master.id}`} 
+                                            className="mt-4 inline-block text-firm-orange hover:underline text-sm"
+                                        >
+                                            Оставить отзыв после покупки
+                                        </Link>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {reviews.map((review, idx) => (
+                                        <motion.div 
+                                            key={review.id} 
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: idx * 0.05 }}
+                                            className="bg-white rounded-xl p-4 sm:p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300"
+                                        >
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold text-sm sm:text-base flex-shrink-0">
+                                                    {review.author_avatar ? (
+                                                        <img src={review.author_avatar} alt={review.author_name} className="w-full h-full object-cover rounded-full" />
+                                                    ) : (
+                                                        review.author_name?.charAt(0).toUpperCase()
+                                                    )}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                                                        <span className="font-semibold text-sm sm:text-base text-text">
+                                                            {review.author_name}
                                                         </span>
-                                                    ))}
+                                                        <div className="flex items-center gap-0.5">
+                                                            {[...Array(5)].map((_, i) => (
+                                                                <span key={i} className={i < review.rating ? 'text-yellow-400 text-xs sm:text-sm' : 'text-gray-300 text-xs sm:text-sm'}>
+                                                                    ★
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
+                                                        {review.comment}
+                                                    </p>
+                                                    <p className="text-xs text-gray-400 mt-2">
+                                                        {new Date(review.created_at).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                    </p>
                                                 </div>
                                             </div>
-                                            <p className="text-gray-700">{review.comment}</p>
-                                            <p className="text-xs text-gray-400 mt-2">
-                                                {new Date(review.created_at).toLocaleDateString('ru-RU')}
-                                            </p>
-                                        </div>
-                                    </div>
+                                        </motion.div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
+                            )}
+                        </motion.div>
                     )}
-                </>
-            )}
+                </AnimatePresence>
+            </div>
 
             {/* Модальное окно заказа */}
-            {showCustomModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowCustomModal(false)}>
-                    <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                        <div className="p-6">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-['Montserrat_Alternates'] font-semibold text-xl">Индивидуальный заказ</h3>
-                                <button onClick={() => setShowCustomModal(false)} className="text-gray-500 hover:text-gray-700">
-                                    ✕
-                                </button>
+            <AnimatePresence>
+                {showCustomModal && (
+                    <div 
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" 
+                        onClick={() => setShowCustomModal(false)}
+                    >
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl" 
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="p-5 sm:p-6">
+                                <div className="flex justify-between items-center mb-5">
+                                    <h3 className="font-['Montserrat_Alternates'] font-semibold text-xl text-text">
+                                        Индивидуальный заказ
+                                    </h3>
+                                    <motion.button 
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => setShowCustomModal(false)} 
+                                        className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                                    >
+                                        <CloseIcon className="w-5 h-5" color="#737682" />
+                                    </motion.button>
+                                </div>
+                                <form onSubmit={handleCustomRequest} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm text-text mb-1.5 font-medium">Ваше имя *</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={customRequest.name}
+                                            onChange={(e) => setCustomRequest(prev => ({ ...prev, name: e.target.value }))}
+                                            className="w-full px-4 py-2.5 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm"
+                                            placeholder="Введите ваше имя"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-text mb-1.5 font-medium">Email *</label>
+                                        <input
+                                            type="email"
+                                            required
+                                            value={customRequest.email}
+                                            onChange={(e) => setCustomRequest(prev => ({ ...prev, email: e.target.value }))}
+                                            className="w-full px-4 py-2.5 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm"
+                                            placeholder="example@mail.ru"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-text mb-1.5 font-medium">Описание желаемого изделия *</label>
+                                        <textarea
+                                            rows={4}
+                                            required
+                                            value={customRequest.description}
+                                            onChange={(e) => setCustomRequest(prev => ({ ...prev, description: e.target.value }))}
+                                            className="w-full px-4 py-2.5 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm resize-none"
+                                            placeholder="Опишите цвет, размер, технику, предпочтения..."
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-text mb-1.5 font-medium">Примерный бюджет (₽)</label>
+                                        <input
+                                            type="number"
+                                            value={customRequest.budget}
+                                            onChange={(e) => setCustomRequest(prev => ({ ...prev, budget: e.target.value }))}
+                                            className="w-full px-4 py-2.5 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm"
+                                            placeholder="Например, 5000"
+                                        />
+                                    </div>
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        type="submit"
+                                        className="w-full py-2.5 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 font-medium"
+                                    >
+                                        <SendIcon className="w-4 h-4" color="#FFFFFF" />
+                                        <span>Отправить запрос</span>
+                                    </motion.button>
+                                </form>
                             </div>
-                            <form onSubmit={handleCustomRequest} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm text-gray-700 mb-1">Ваше имя *</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={customRequest.name}
-                                        onChange={(e) => setCustomRequest(prev => ({ ...prev, name: e.target.value }))}
-                                        className="w-full p-2 rounded-lg bg-[#EAEAEA] outline-firm-orange"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm text-gray-700 mb-1">Email *</label>
-                                    <input
-                                        type="email"
-                                        required
-                                        value={customRequest.email}
-                                        onChange={(e) => setCustomRequest(prev => ({ ...prev, email: e.target.value }))}
-                                        className="w-full p-2 rounded-lg bg-[#EAEAEA] outline-firm-pink"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm text-gray-700 mb-1">Описание желаемого изделия *</label>
-                                    <textarea
-                                        rows={4}
-                                        required
-                                        value={customRequest.description}
-                                        onChange={(e) => setCustomRequest(prev => ({ ...prev, description: e.target.value }))}
-                                        className="w-full p-2 rounded-lg bg-[#EAEAEA] outline-firm-orange"
-                                        placeholder="Опишите цвет, размер, технику..."
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm text-gray-700 mb-1">Примерный бюджет (₽)</label>
-                                    <input
-                                        type="number"
-                                        value={customRequest.budget}
-                                        onChange={(e) => setCustomRequest(prev => ({ ...prev, budget: e.target.value }))}
-                                        className="w-full p-2 rounded-lg bg-[#EAEAEA] outline-firm-pink"
-                                    />
-                                </div>
-                                <button
-                                    type="submit"
-                                    className="w-full py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition"
-                                >
-                                    Отправить запрос
-                                </button>
-                            </form>
-                        </div>
+                        </motion.div>
                     </div>
-                </div>
-            )}
-        </div>
+                )}
+            </AnimatePresence>
+        </>
     )
 }
