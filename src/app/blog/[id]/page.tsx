@@ -71,10 +71,10 @@ const UserAvatar = ({ name, avatarUrl, size = 48 }: { name?: string; avatarUrl?:
   };
 
   if (avatarUrl && !avatarError) {
-    return (<motion.img initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }} src={getProxiedUrl(avatarUrl)} alt={name || "Avatar"} className="rounded-full object-cover ring-2 ring-mian shadow-md" style={{ width: size, height: size }} onError={() => setAvatarError(true)} />);}
+    return (<motion.img initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }} src={getProxiedUrl(avatarUrl)} alt={name || "Avatar"} className="rounded-full object-cover ring-2 ring-main shadow-md" style={{ width: size, height: size }} onError={() => setAvatarError(true)} />);}
 
   return (
-    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }} className="rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center text-mian font-bold shadow-md" style={{ width: size, height: size, fontSize: size * 0.4 }}>{getInitials()}</motion.div>);
+    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }} className="rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold shadow-md" style={{ width: size, height: size, fontSize: size * 0.4 }}>{getInitials()}</motion.div>);
 };
 
 const CurrentUserAvatar = ({ size = 32 }: { size?: number }) => {
@@ -555,7 +555,7 @@ export default function BlogPostPage() {
                     ) : (
                       <>
                         <SendIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#f9f9f9" />
-                        <span>Отправить</span>
+                        <span className="text-main">Отправить</span>
                       </>
                     )}
                   </motion.button>
@@ -563,8 +563,8 @@ export default function BlogPostPage() {
               </div>
             </div>
           ) : (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white rounded-xl p-6 text-center mb-8 border border-gray-100 shadow-sm">
-              <p className="text-gray-500 text-sm mb-3 flex items-center justify-center gap-2"><PasswordIcon color="#737682" className="w-4 h-4" />Чтобы оставить комментарий, необходимо авторизоваться</p>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-main rounded-xl p-6 text-center mb-8 border border-gray-100 shadow-sm">
+              <p className="text-firm-gray text-sm mb-3 flex items-center justify-center gap-2"><PasswordIcon color="#737682" className="w-4 h-4" />Чтобы оставить комментарий, необходимо авторизоваться</p>
               <Link href={`/auth/signin?callbackUrl=/blog/${id}`} className="inline-block px-5 py-2 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl text-sm hover:shadow-lg transition-all duration-300">Войти</Link>
             </motion.div>
           )}
@@ -573,7 +573,7 @@ export default function BlogPostPage() {
             {showCommentsState && (
               <motion.div  initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="space-y-4 sm:space-y-5">
                 {comments.length === 0 ? (
-                  <p className="text-gray-400 text-sm text-center py-8">Будьте первым, кто оставит комментарий</p>
+                  <p className="text-firm-gray text-sm text-center py-8">Будьте первым, кто оставит комментарий</p>
                 ) : (
                   comments.map((comment, idx) => (
                     <motion.div key={comment.id}  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} className="flex gap-3 group" >
