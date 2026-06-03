@@ -110,6 +110,7 @@ export async function GET(
                     rating: review.rating,
                     comment: review.comment,
                     created_at: review.created_at,
+                    author_id: review.author_id,
                     author_name: profile?.full_name || 'Пользователь',
                     author_avatar: profile?.avatar_url || null
                 };

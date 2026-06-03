@@ -119,7 +119,7 @@ export async function GET(
 
             let totalSales = 0;
             let totalRevenue = 0;
-            
+
             if (!masterProductsError && masterProducts && masterProducts.length > 0) {
                 const productIds = masterProducts.map(p => p.id);
                 const productPriceMap = new Map(masterProducts.map(p => [p.id, parseFloat(p.price) || 0]));
@@ -130,17 +130,28 @@ export async function GET(
                     .select(`
                         quantity,
                         product_id,
-                        orders!inner (
-                            status,
-                            payment_status
-                        )
+                        order_id
                     `)
                     .in('product_id', productIds);
 
-                if (!itemsError && orderItems) {
-                    // Фильтруем только оплаченные и не отмененные заказы
-                    for (const item of orderItems as unknown as OrderItemData[]) {
-                        const order = item.orders?.[0];
+                if (!itemsError && orderItems && orderItems.length > 0) {
+                    // Получаем все уникальные order_id
+                    const orderIds = [...new Set(orderItems.map(item => item.order_id))];
+                    
+                    // Получаем статусы заказов
+                    const { data: orders, error: ordersError } = await supabase
+                        .from('orders')
+                        .select('id, status, payment_status')
+                        .in('id', orderIds);
+                    
+                    const orderStatusMap = new Map();
+                    orders?.forEach(order => {
+                        orderStatusMap.set(order.id, order);
+                    });
+                    
+                    // Фильтруем только оплаченные и доставленные/обработанные заказы
+                    for (const item of orderItems) {
+                        const order = orderStatusMap.get(item.order_id);
                         if (order && order.status !== 'cancelled' && order.payment_status === 'paid') {
                             totalSales += item.quantity || 0;
                             const price = productPriceMap.get(item.product_id) || 0;
