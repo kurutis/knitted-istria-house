@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import EditProductModal from "@/components/modals/EditProductModal";
 
+// Импорт иконок из библиотеки
 import { CartIcon } from "@/components/icons/CartIcon";
 import { LikeIcon } from "@/components/icons/LikeIcon";
 import { EditIcon } from "@/components/icons/EditIcon";
@@ -124,7 +125,7 @@ export default function ProductPage() {
   const [isInCart, setIsInCart] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [activeTab, setActiveTab] = useState<"specs" | "description" | "care" | "reviews">("specs");
+  const [activeTab, setActiveTab] = useState<"description" | "care" | "reviews">("description");
   const [updatingCart, setUpdatingCart] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
@@ -819,27 +820,41 @@ export default function ProductPage() {
               )}
             </motion.div>
 
-            {/* Табы */}
+            {/* Табы - только Описание, Уход (если есть), Отзывы */}
             <motion.div variants={fadeInUp} className="border-t border-gray-200 pt-4">
               <div className="flex flex-wrap gap-4 mb-4">
-                {[
-                  { id: "specs", label: "Характеристики", color: "firm-orange" },
-                  { id: "description", label: "Описание", color: "firm-pink" },
-                  ...(product.care_instructions ? [{ id: "care", label: "Уход", color: "firm-orange" }] : []),
-                  { id: "reviews", label: `Отзывы (${product.reviews_count || 0})`, color: "firm-pink" }
-                ].map((tab) => (
+                <button
+                  onClick={() => setActiveTab("description")}
+                  className={`pb-2 font-['Montserrat_Alternates'] text-sm transition-all duration-300 ${
+                    activeTab === "description"
+                      ? "border-b-2 border-firm-pink text-firm-pink"
+                      : "text-firm-gray hover:text-text"
+                  }`}
+                >
+                  Описание
+                </button>
+                {product.care_instructions && (
                   <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                    onClick={() => setActiveTab("care")}
                     className={`pb-2 font-['Montserrat_Alternates'] text-sm transition-all duration-300 ${
-                      activeTab === tab.id
-                        ? `border-b-2 border-${tab.color} text-${tab.color}`
+                      activeTab === "care"
+                        ? "border-b-2 border-firm-orange text-firm-orange"
                         : "text-firm-gray hover:text-text"
                     }`}
                   >
-                    {tab.label}
+                    Уход
                   </button>
-                ))}
+                )}
+                <button
+                  onClick={() => setActiveTab("reviews")}
+                  className={`pb-2 font-['Montserrat_Alternates'] text-sm transition-all duration-300 ${
+                    activeTab === "reviews"
+                      ? "border-b-2 border-firm-pink text-firm-pink"
+                      : "text-firm-gray hover:text-text"
+                  }`}
+                >
+                  Отзывы ({product.reviews_count || 0})
+                </button>
               </div>
 
               <AnimatePresence mode="wait">
@@ -861,49 +876,6 @@ export default function ProductPage() {
                     <p className="text-text text-sm leading-relaxed">
                       {product.care_instructions}
                     </p>
-                  )}
-
-                  {activeTab === "specs" && (
-                    <div className="space-y-3">
-                      {product.category && product.category !== "Не применимо" && (
-                        <div className="flex justify-between py-2 border-b border-gray-100">
-                          <span className="text-firm-gray text-sm">Категория</span>
-                          <span className="text-text text-sm font-medium">{product.category}</span>
-                        </div>
-                      )}
-                      {product.technique && product.technique !== "Не применимо" && (
-                        <div className="flex justify-between py-2 border-b border-gray-100">
-                          <span className="text-firm-gray text-sm">Техника вязания</span>
-                          <span className="text-text text-sm font-medium">{product.technique}</span>
-                        </div>
-                      )}
-                      {product.size && product.size !== "Не применимо" && product.size !== "" && (
-                        <div className="flex justify-between py-2 border-b border-gray-100">
-                          <span className="text-firm-gray text-sm">Размер</span>
-                          <span className="text-text text-sm font-medium">{product.size}</span>
-                        </div>
-                      )}
-                      {product.color && product.color !== "Не применимо" && product.color !== "" && (
-                        <div className="flex justify-between py-2 border-b border-gray-100">
-                          <span className="text-firm-gray text-sm">Цвет</span>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-4 h-4 rounded-full border border-gray-300"
-                              style={{ backgroundColor: product.color.toLowerCase() }}
-                            />
-                            <span className="text-text text-sm font-medium">{product.color}</span>
-                          </div>
-                        </div>
-                      )}
-                      {(!product.category || product.category === "Не применимо") && 
-                       (!product.technique || product.technique === "Не применимо") && 
-                       (!product.size || product.size === "Не применимо" || product.size === "") && 
-                       (!product.color || product.color === "Не применимо" || product.color === "") && (
-                        <div className="text-center py-4">
-                          <p className="text-firm-gray text-sm">Характеристики не указаны</p>
-                        </div>
-                      )}
-                    </div>
                   )}
 
                   {activeTab === "reviews" && (
