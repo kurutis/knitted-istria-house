@@ -663,11 +663,7 @@ export default function MasterDashboard({ session }: { session: { user: { id: st
           </motion.div>
 
           <motion.div variants={staggerContainer} initial="initial" animate="animate" className="flex flex-wrap justify-center gap-3 sm:gap-4 mb-8 sm:mb-12">
-            <motion.button
-              variants={fadeInUp}
-              whileHover={{ scale: 1.05, y: -3 }}
-              whileTap={{ scale: 0.95 }} onClick={() => setShowAddProductModal(true)} className="px-4 sm:px-6 py-2 sm:py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl font-['Montserrat_Alternates'] font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm sm:text-base">
-              <CatalogPinkIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#f9f9f9" size={20} />Добавить товар </motion.button>
+            <motion.button variants={fadeInUp} whileHover={{ scale: 1.05, y: -3 }} whileTap={{ scale: 0.95 }} onClick={() => setShowAddProductModal(true)} className="px-4 sm:px-6 py-2 sm:py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl font-['Montserrat_Alternates'] font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm sm:text-base"><CatalogPinkIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#f9f9f9" size={20} />Добавить товар </motion.button>
             <motion.button variants={fadeInUp} whileHover={{ scale: 1.05, y: -3 }} whileTap={{ scale: 0.95 }} onClick={() => setShowAddClassModal(true)} className="px-4 sm:px-6 py-2 sm:py-3 bg-firm-pink text-main rounded-xl font-['Montserrat_Alternates'] font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm sm:text-base"><ClassesIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#f9f9f9" size={20} />Создать мастер-класс</motion.button>
             <motion.button variants={fadeInUp} whileHover={{ scale: 1.05, y: -3 }} whileTap={{ scale: 0.95 }} onClick={() => setShowAddPostModal(true)} className="px-4 sm:px-6 py-2 sm:py-3 bg-linear-to-r from-firm-pink to-firm-orange text-main rounded-xl font-['Montserrat_Alternates'] font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm sm:text-base"><EditIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#f9f9f9" size={20} />Написать пост</motion.button></motion.div>
 

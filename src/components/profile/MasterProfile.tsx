@@ -709,133 +709,76 @@ export default function MasterProfile({ session }: MasterProfileProps) {
               </div>
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="md:w-2/3 lg:w-3/4"
-            >
+            <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.2 }} className="md:w-2/3 lg:w-3/4">
               <AnimatePresence mode="wait">
                 {activeTab === "dashboard" && (
-                  <motion.div
-                    key="dashboard"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8"
-                  >
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
-                      <div className="bg-main rounded-xl p-3 sm:p-4 border border-gray-100">
-                        <p className="text-firm-gray text-xs sm:text-sm">Просмотры</p>
-                        <p className="text-xl sm:text-2xl font-bold text-firm-orange">{stats.total_views.toLocaleString()}</p>
-                      </div>
-                      <div className="bg-main rounded-xl p-3 sm:p-4 border border-gray-100">
-                        <p className="text-firm-gray text-xs sm:text-sm">Заказы</p>
-                        <p className="text-xl sm:text-2xl font-bold text-firm-pink">{stats.total_orders}</p>
-                      </div>
-                      <div className="bg-main rounded-xl p-3 sm:p-4 border border-gray-100">
-                        <p className="text-firm-gray text-xs sm:text-sm">Выручка</p>
-                        <p className="text-xl sm:text-2xl font-bold text-firm-green">{stats.total_revenue.toLocaleString()} ₽</p>
-                      </div>
-                      <div className="bg-main rounded-xl p-3 sm:p-4 border border-gray-100">
-                        <p className="text-firm-gray text-xs sm:text-sm">Подписчики</p>
-                        <p className="text-xl sm:text-2xl font-bold text-firm-orange">{stats.total_followers}</p>
-                      </div>
+                  <motion.div key="dashboard" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8">
+                      {[{ label: "Новые заказы", value: orderStats.new, icon: <CartIcon className="w-6 h-6 sm:w-8 sm:h-8" color="#D97C8E" size={32} />, color: "#D97C8E", bg: "bg-pink-50" }, { label: "Всего заказов", value: orderStats.total, icon: <CartIcon className="w-6 h-6 sm:w-8 sm:h-8" color="#94D06C" size={32} />, color: "#94D06C", bg: "bg-green-50" }, { label: "Товаров", value: stats.total_products, icon: <ProductsIcon className="w-6 h-6 sm:w-8 sm:h-8" color="#F4A67F" size={32} />, color: "#F4A67F", bg: "bg-orange-50" }, { label: "Просмотров", value: stats.total_views, icon: <ViewsIcon className="w-6 h-6 sm:w-8 sm:h-8" color="#D77C7C" size={32} />, color: "#D77C7C", bg: "bg-red-50" }].map((stat, idx) => (
+                        <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.1 }} whileHover={{ y: -5 }} className={`bg-main rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-all duration-300 ${stat.bg} border border-gray-100`}>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-firm-gray text-xs sm:text-sm font-['Montserrat_Alternates']">{stat.label}</p>
+                              <motion.p initial={{ scale: 0.5 }} animate={{ scale: 1 }} transition={{ delay: idx * 0.1, type: "spring" }} className="text-xl sm:text-2xl md:text-3xl font-bold mt-1" style={{ color: stat.color }}>{stat.value.toLocaleString()}</motion.p>
+                            </div>
+                            <div className="opacity-80">{stat.icon}</div>
+                          </div>
+                        </motion.div>
+                      ))}
                     </div>
 
                     <div className="bg-main rounded-xl p-4 sm:p-6 border border-gray-100 mb-6">
                       <h3 className="font-montserrat font-semibold text-lg text-text mb-4">Быстрые действия</h3>
                       <div className="flex flex-wrap gap-3">
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => setShowAddProductModal(true)}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl text-sm hover:shadow-lg transition"
-                        >
-                          <PlusIcon className="w-4 h-4" color="#f9f9f9" />
-                          Добавить товар
-                        </motion.button>
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => setShowAddPostModal(true)}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 text-main rounded-xl text-sm hover:shadow-lg transition"
-                        >
-                          <PlusIcon className="w-4 h-4" color="#f9f9f9" />
-                          Новая запись
-                        </motion.button>
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => setShowAddClassModal(true)}
-                          className="inline-flex items-center gap-2 px-4 py-2 border-2 border-firm-orange text-firm-orange rounded-xl text-sm hover:bg-firm-orange hover:text-main transition"
-                        >
-                          <PlusIcon className="w-4 h-4" color="#F4A67F" />
-                          Создать МК
-                        </motion.button>
+                        <motion.button whileHover={{ scale: 1.05, y: -3 }} whileTap={{ scale: 0.95 }} onClick={() => setShowAddProductModal(true)} className="px-4 sm:px-6 py-2 sm:py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl font-montserrat font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm sm:text-base"><CatalogPinkIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#f9f9f9" size={20} />Добавить товар</motion.button>
+                        <motion.button whileHover={{ scale: 1.05, y: -3 }} whileTap={{ scale: 0.95 }} onClick={() => setShowAddClassModal(true)} className="px-4 sm:px-6 py-2 sm:py-3 bg-firm-pink text-main rounded-xl font-montserrat font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm sm:text-base"><ClassesIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#f9f9f9" size={20} />Создать мастер-класс</motion.button>
+                        <motion.button whileHover={{ scale: 1.05, y: -3 }} whileTap={{ scale: 0.95 }} onClick={() => setShowAddPostModal(true)} className="px-4 sm:px-6 py-2 sm:py-3 bg-linear-to-r from-gray-600 to-gray-700 text-main rounded-xl font-montserrat font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 text-sm sm:text-base"><EditIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#f9f9f9" size={20} />Написать пост</motion.button>
                       </div>
                     </div>
 
                     <div className="bg-main rounded-xl p-4 sm:p-6 border border-gray-100">
-                      <h3 className="font-montserrat font-semibold text-lg text-text mb-4">Последние заказы</h3>
-                      <div className="space-y-3">
-                        {orders.slice(0, 5).map((order, idx) => (
-                          <motion.div
-                            key={order.id}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: idx * 0.05 }}
-                            className="border-b border-gray-100 pb-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2"
-                          >
-                            <div>
-                              <p className="font-medium text-text">{order.product_title}</p>
-                              <p className="text-xs text-firm-gray">{order.buyer_name}</p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(order.status)}`}>
-                                {getStatusText(order.status)}
-                              </span>
-                              <p className="font-semibold text-firm-orange text-sm">{order.total_amount.toLocaleString()} ₽</p>
-                            </div>
-                          </motion.div>
-                        ))}
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="font-montserrat font-semibold text-lg text-text">Последние заказы</h3>
+                        <button onClick={() => setActiveTab("orders")} className="text-xs text-firm-orange hover:underline">Все заказы →</button>
                       </div>
+                      
+                      {orders.slice(0, 5).length === 0 ? (
+                        <div className="text-center py-8">
+                          <CartIcon className="w-12 h-12 mx-auto text-firm-gray opacity-50" />
+                          <p className="text-firm-gray mt-2 text-sm">У вас пока нет заказов</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {orders.slice(0, 5).map((order, idx) => (
+                            <motion.div key={order.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.05 }} className="border-b border-gray-100 pb-3 last:border-0">
+                              <div className="flex justify-between items-start mb-1">
+                                <div>
+                                  <p className="font-medium text-text text-sm">Заказ #{order.order_number}</p>
+                                  <p className="text-xs text-firm-gray mt-0.5">{order.buyer_name}</p>
+                                </div>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(order.status)}`}>{getStatusText(order.status)}</span>
+                              </div>
+                              <div className="flex justify-between items-center mt-2">
+                                <p className="text-sm text-text line-clamp-1 flex-1 mr-4">{order.product_title}</p>
+                                <p className="font-semibold text-firm-orange text-sm">{order.total_amount.toLocaleString()} ₽</p>
+                              </div>
+                              <p className="text-[10px] text-firm-gray mt-1">{new Date(order.created_at).toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric"})}</p>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 )}
 
                 {activeTab === "products" && (
-                  <motion.div
-                    key="products"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8"
-                  >
+                  <motion.div key="products" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                      <h2 className="font-montserrat font-semibold text-xl sm:text-2xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
-                        Мои товары
-                      </h2>
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setShowAddProductModal(true)}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl text-sm hover:shadow-lg transition"
-                      >
-                        <PlusIcon className="w-4 h-4" color="#f9f9f9" />
-                        Добавить товар
-                      </motion.button>
+                      <h2 className="font-montserrat font-semibold text-xl sm:text-2xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Мои товары</h2>
+                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowAddProductModal(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl text-sm hover:shadow-lg transition"><PlusIcon className="w-4 h-4" color="#f9f9f9" />Добавить товар</motion.button>
                     </div>
 
-                    <MasterProductsList
-                      products={products}
-                      onDelete={handleProductDelete}
-                      onProductAdded={fetchMasterData}
-                      masterName={profileData.fullname}
-                      loading={false}
-                      categories={categories}
-                      yarns={yarns}
-                    />
+                    <MasterProductsList products={products} onDelete={handleProductDelete} onProductAdded={fetchMasterData} masterName={profileData.fullname} loading={false} categories={categories} yarns={yarns} />
                   </motion.div>
                 )}
 
