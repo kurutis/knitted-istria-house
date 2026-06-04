@@ -9,6 +9,7 @@ import { ViewsIcon } from "@/components/icons/ViewsIcon"
 import { CalendarIcon } from "@/components/icons/CalendarIcon"
 import { Productslcon } from "@/components/icons/Productslcon"
 import AddProductModal from "@/components/modals/AddProductModal"
+import EditProductModal from "@/components/modals/EditProductModal"
 
 export interface Product {
   id: string;
@@ -72,15 +73,40 @@ const getStatusText = (status: string) => {
     }
 }
 
-const formatDate = (dateString: string) => {return new Date(dateString).toLocaleDateString('ru-RU', {day: '2-digit', month: '2-digit', year: 'numeric'})}
+const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    })
+}
 
-export default function MasterProductsList({products, onDelete, onProductAdded, masterName, loading = false, categories = [], yarns = []}: MasterProductsListProps) {
+export default function MasterProductsList({
+    products, 
+    onDelete, 
+    onProductAdded, 
+    masterName, 
+    loading = false, 
+    categories = [], 
+    yarns = []
+}: MasterProductsListProps) {
     const [showAddModal, setShowAddModal] = useState(false)
-    
+    const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+
+    const handleEditClick = (product: Product) => {
+        setEditingProduct(product)
+        setIsEditModalOpen(true)
+    }
+
     if (loading) {
         return (
             <div className="flex justify-center py-12">
-                <motion.div  animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-8 h-8 border-2 border-firm-orange border-t-transparent rounded-full" />
+                <motion.div 
+                    animate={{ rotate: 360 }} 
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }} 
+                    className="w-8 h-8 border-2 border-firm-orange border-t-transparent rounded-full" 
+                />
             </div>
         )
     }
@@ -88,29 +114,54 @@ export default function MasterProductsList({products, onDelete, onProductAdded, 
     if (products.length === 0) {
         return (
             <>
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center py-12 bg-gray-50 rounded-xl">
+                <motion.div 
+                    initial={{ opacity: 0, y: 20 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    className="text-center py-12 bg-gray-50 rounded-xl"
+                >
                     <Productslcon className="w-16 h-16 mx-auto text-firm-gray mb-4" />
                     <p className="text-firm-gray mb-4">У вас пока нет товаров</p>
-                    <button onClick={() => setShowAddModal(true)} className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300"> Добавить первый товар →</button>
+                    <button 
+                        onClick={() => setShowAddModal(true)} 
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300"
+                    >
+                        Добавить первый товар →
+                    </button>
                 </motion.div>
                 
-                <AddProductModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} onSuccess={() => {setShowAddModal(false); if (onProductAdded) onProductAdded()}} categories={categories} yarns={yarns} />
+                <AddProductModal 
+                    isOpen={showAddModal} 
+                    onClose={() => setShowAddModal(false)} 
+                    onSuccess={() => {
+                        setShowAddModal(false);
+                        if (onProductAdded) onProductAdded()
+                    }} 
+                    categories={categories} 
+                    yarns={yarns} 
+                />
             </>
         )
     }
 
     return (
         <>
-            <div className="mb-6 flex justify-end">
-                <button onClick={() => setShowAddModal(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300 text-sm">Добавить товар</button>
-            </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-5">
                 {products.map((product, index) => (
-                    <motion.div key={product.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} whileHover={{ y: -5 }} className="bg-main rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group border border-gray-100">
+                    <motion.div
+                        key={product.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        whileHover={{ y: -5 }}
+                        className="bg-main rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group border border-gray-100"
+                    >
                         <Link href={`/catalog/${product.id}`} className="block relative aspect-square bg-gray-100">
                             {product.main_image_url ? (
-                                <img src={product.main_image_url} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                <img
+                                    src={product.main_image_url}
+                                    alt={product.title}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center">
                                     <Productslcon className="w-12 h-12" color="#D1D5DB" />
@@ -118,20 +169,41 @@ export default function MasterProductsList({products, onDelete, onProductAdded, 
                             )}
                             
                             <div className="absolute top-3 left-3">
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(product.status)}`}>{getStatusText(product.status)}</span>
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(product.status)}`}>
+                                    {getStatusText(product.status)}
+                                </span>
                             </div>
                         </Link>
 
                         <div className="p-4">
                             <Link href={`/catalog/${product.id}`}>
-                                <h3 className="font-['Montserrat_Alternates'] font-semibold text-base mb-0.5 line-clamp-1 hover:text-firm-orange transition-colors text-text">{product.title}</h3></Link>
-                            <p className="text-xs text-firm-gray mb-2 line-clamp-1">{product.master_name || masterName}</p>
+                                <h3 className="font-['Montserrat_Alternates'] font-semibold text-base mb-0.5 line-clamp-1 hover:text-firm-orange transition-colors text-text">
+                                    {product.title}
+                                </h3>
+                            </Link>
+                            <p className="text-xs text-firm-gray mb-2 line-clamp-1">
+                                {product.master_name || masterName}
+                            </p>
                             <div className="flex justify-between items-center">
-                                <span className="font-['Montserrat_Alternates'] font-bold text-lg text-firm-pink">{product.price.toLocaleString()} ₽</span>
+                                <span className="font-['Montserrat_Alternates'] font-bold text-lg text-firm-pink">
+                                    {product.price.toLocaleString()} ₽
+                                </span>
                                 
                                 <div className="flex gap-2">
-                                    <Link href={`/master/products/${product.id}/edit`} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-lg hover:shadow-md transition-all duration-300"><EditIcon className="w-3.5 h-3.5" color="#f9f9f9" /><span className="hidden sm:inline">Ред.</span> </Link>
-                                    <button onClick={() => onDelete(product.id)} className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-firm-red text-main rounded-lg hover:shadow-md transition-all duration-300"><DeleteIcon className="w-3.5 h-3.5" color="#f9f9f9" /><span className="hidden sm:inline">Удалить</span></button>
+                                    <button
+                                        onClick={() => handleEditClick(product)}
+                                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-firm-orange text-firm-orange rounded-lg hover:bg-firm-orange hover:text-white transition-all duration-300"
+                                    >
+                                        <EditIcon className="w-3.5 h-3.5" color="#F4A67F" />
+                                        <span className="hidden sm:inline">Редактировать</span>
+                                    </button>
+                                    <button
+                                        onClick={() => onDelete(product.id)}
+                                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-red-300 text-red-500 rounded-lg hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-300"
+                                    >
+                                        <DeleteIcon className="w-3.5 h-3.5" color="#D77C7C" />
+                                        <span className="hidden sm:inline">Удалить</span>
+                                    </button>
                                 </div>
                             </div>
         
@@ -150,7 +222,51 @@ export default function MasterProductsList({products, onDelete, onProductAdded, 
                 ))}
             </div>
 
-            <AddProductModal isOpen={showAddModal}  onClose={() => setShowAddModal(false)} onSuccess={() => {setShowAddModal(false); if (onProductAdded) onProductAdded()}} categories={categories} yarns={yarns} />
+            <AddProductModal
+                isOpen={showAddModal}
+                onClose={() => setShowAddModal(false)}
+                onSuccess={() => {
+                    setShowAddModal(false);
+                    if (onProductAdded) onProductAdded()
+                }}
+                categories={categories}
+                yarns={yarns}
+            />
+
+            <EditProductModal
+                isOpen={isEditModalOpen}
+                onClose={() => {
+                    setIsEditModalOpen(false)
+                    setEditingProduct(null)
+                }}
+                onSuccess={() => {
+                    setIsEditModalOpen(false)
+                    setEditingProduct(null)
+                    if (onProductAdded) onProductAdded()
+                }}
+                product={editingProduct ? {
+                    id: editingProduct.id,
+                    title: editingProduct.title,
+                    description: editingProduct.description || "",
+                    price: editingProduct.price,
+                    category: editingProduct.category || "",
+                    technique: editingProduct.technique || "",
+                    size: editingProduct.size || "",
+                    care_instructions: editingProduct.care_instructions || "",
+                    color: editingProduct.color || ""
+                } : {
+                    id: "",
+                    title: "",
+                    description: "",
+                    price: 0,
+                    category: "",
+                    technique: "",
+                    size: "",
+                    care_instructions: "",
+                    color: ""
+                }}
+                categories={categories}
+            />
         </>
     )
 }
