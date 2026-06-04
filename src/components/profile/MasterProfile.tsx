@@ -282,12 +282,13 @@ export default function MasterProfile({ session }: MasterProfileProps) {
 
       const [profileRes, productRes, ordersRes, blogRes, classesRes] = await Promise.all([fetch("/api/master/profile"), fetch("/api/master/products"), fetch("/api/master/orders"), fetch("/api/master/blog"), fetch("/api/master/master-classes")]);
 
-      let profileDataObj = { fullname: "", email: "", phone: "", city: "", address: "", avatarUrl: null as string | null, description: "", is_verified: false, is_partner: false, rating: 0, total_sales: 0, custom_orders_enabled: false, followers: 0};
+      let profileDataObj = {fullname: "", email: "", phone: "", city: "", address: "", avatarUrl: null as string | null, description: "", is_verified: false, is_partner: false, rating: 0, total_sales: 0, custom_orders_enabled: false, followers: 0};
 
       if (profileRes.ok) {
         const profileJson: ProfileApiResponse = await profileRes.json();
         const p = profileJson.profile;
-        profileDataObj = {fullname: p.fullname || "", email: p.email || "", phone: p.phone || "", city: p.city || "", address: p.address || "", avatarUrl: p.avatar_url || null, description: p.description || "", is_verified: p.is_verified || false, is_partner: p.is_partner || false, rating: p.rating || 0, total_sales: p.total_sales || 0, custom_orders_enabled: p.custom_orders_enabled || false, followers: p.followers || 0}}
+        profileDataObj = {fullname: p.fullname || "", email: p.email || "", phone: p.phone || "", city: p.city || "", address: p.address || "", avatarUrl: p.avatar_url || null, description: p.description || "", is_verified: p.is_verified || false, is_partner: p.is_partner || false, rating: p.rating || 0, total_sales: p.total_sales || 0, custom_orders_enabled: p.custom_orders_enabled || false, followers: p.followers || 0}
+      }
       setProfileData(profileDataObj);
 
       let productsList: Product[] = [];
@@ -304,14 +305,17 @@ export default function MasterProfile({ session }: MasterProfileProps) {
       }
       setOrders(ordersList);
 
+      const totalSoldItems = ordersList.reduce((sum, order) => {return sum + (order.items?.reduce((itemSum, item) => itemSum + (item.quantity || 0), 0) || 0)}, 0);
+
+      setProfileData(prev => ({...prev, total_sales: totalSoldItems}));
+
       const orderStatsObj = {new: ordersList.filter((o: Order) => o.status === 'new').length, processing: ordersList.filter((o: Order) => o.status === 'processing').length, shipped: ordersList.filter((o: Order) => o.status === 'shipped').length, delivered: ordersList.filter((o: Order) => o.status === 'delivered').length, cancelled: ordersList.filter((o: Order) => o.status === 'cancelled').length, total: ordersList.length};
       setOrderStats(orderStatsObj);
 
       let blogList: BlogPost[] = [];
       if (blogRes.ok) {
         const blogData = await blogRes.json();
-        if (blogData.posts && Array.isArray(blogData.posts)) {
-          blogList = blogData.posts.map((post: BlogPostFromApi) => ({ id: post.id, title: post.title, status: post.status, created_at: post.created_at, excerpt: post.excerpt || post.content?.substring(0, 200), content: post.content, views_count: post.views || 0, comments_count: post.stats?.comments_count || 0, likes_count: post.stats?.likes_count || 0, category: "", tags: "", main_image_url: post.main_image_url}));
+        if (blogData.posts && Array.isArray(blogData.posts)) {blogList = blogData.posts.map((post: BlogPostFromApi) => ({id: post.id, title: post.title,  status: post.status, created_at: post.created_at, excerpt: post.excerpt || post.content?.substring(0, 200), content: post.content, views_count: post.views || 0, comments_count: post.stats?.comments_count || 0, likes_count: post.stats?.likes_count || 0, category: "", tags: "", main_image_url: post.main_image_url}));
         } else if (Array.isArray(blogData)) {
           blogList = blogData;
         }
@@ -334,7 +338,18 @@ export default function MasterProfile({ session }: MasterProfileProps) {
       const monthlyOrders = ordersList.filter((o: Order) => new Date(o.created_at) > thirtyDaysAgo);
       const monthlyRevenue = monthlyOrders.reduce((sum: number, o: Order) => sum + (o.total_amount || 0), 0);
 
-      setStats({total_views: totalViews, total_orders: ordersList.length, total_revenue: totalRevenue, total_followers: profileDataObj.followers, monthly_views: Math.round(totalViews * 0.3), monthly_orders: monthlyOrders.length, monthly_revenue: monthlyRevenue, total_products: productsList.length});
+      let followersCount = profileDataObj.followers;
+      try {
+        const followersRes = await fetch(`/api/masters/${session?.user?.id}/followers-count`);
+        if (followersRes.ok) {
+          const followersData = await followersRes.json();
+          followersCount = followersData.count || followersData.followers_count || 0;
+        }
+      } catch (error) {
+        console.error("Error fetching followers count:", error);
+      }
+
+      setStats({total_views: totalViews, total_orders: ordersList.length, total_revenue: totalRevenue, total_followers: followersCount, monthly_views: Math.round(totalViews * 0.3), monthly_orders: monthlyOrders.length, monthly_revenue: monthlyRevenue, total_products: productsList.length});
     } catch (error) {
       console.error("Error fetching master data:", error);
       setProducts([]);
