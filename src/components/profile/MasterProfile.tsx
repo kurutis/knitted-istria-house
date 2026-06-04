@@ -88,15 +88,6 @@ interface OrderItem {
   total: number;
 }
 
-interface OrderStats {
-  new: number;
-  processing: number;
-  shipped: number;
-  delivered: number;
-  cancelled: number;
-  total: number;
-}
-
 interface OrderPagination {
   total: number;
   page: number;
@@ -512,10 +503,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
         formData.append("avatar", avatarFile);
       }
 
-      const response = await fetch("/api/master/profile", {
-        method: "PUT",
-        body: formData,
-      });
+      const response = await fetch("/api/master/profile", {method: "PUT", body: formData});
 
       if (response.ok) {
         setIsEditing(false);
@@ -536,12 +524,12 @@ export default function MasterProfile({ session }: MasterProfileProps) {
   };
 
   const handleCustomOrdersToggle = async () => {
-  const newValue = !profileData.custom_orders_enabled;
-  
-  setProfileData(prev => ({ ...prev, custom_orders_enabled: newValue }));
+    const newValue = !profileData.custom_orders_enabled;
+    
+    setProfileData(prev => ({ ...prev, custom_orders_enabled: newValue }));
 
-  try {
-    const response = await fetch("/api/master/profile/custom-orders", {method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ custom_orders_enabled: newValue })});
+    try {
+      const response = await fetch("/api/master/profile/custom-orders", {method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ custom_orders_enabled: newValue })});
 
       const data = await response.json();
 
@@ -556,7 +544,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
       setProfileData(prev => ({ ...prev, custom_orders_enabled: !newValue }));
       toast.error('Ошибка при обновлении статуса');
     }
-};
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
