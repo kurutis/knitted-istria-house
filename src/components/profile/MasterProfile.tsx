@@ -459,8 +459,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
     }
   };
 
-  const handleEditProduct = (product: Product) => {setEditingProduct({id: product.id, title: product.title, description: product.description || "", price: product.price, category: product.category || "", technique: product.technique || "", size: product.size || "", care_instructions: product.care_instructions || "", color: product.color || "", main_image_url: product.main_image_url || undefined, images: product.images || []}); setIsEditModalOpen(true)};
-
   const handleEditPost = (post: BlogPost) => {
     setEditingPost({id: post.id, title: post.title, content: post.content || "", excerpt: post.excerpt || "", category: post.category || "", tags: post.tags || ""});
     setIsEditPostModalOpen(true);
@@ -701,7 +699,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                     const IconComponent = item.icon;
                     const iconColor = item.id === 'dashboard' ? '#D97C8E' :  item.id === 'products' ? '#D97C8E' : item.id === 'orders' ? '#D97C8E' : item.id === 'blog' ? '#D97C8E' : item.id === 'master-classes' ? '#D97C8E' : item.id === 'profile' ? '#D97C8E' : '#D97C8E';
                     
-                    return (<motion.button key={item.id} whileHover={{ x: 5 }} whileTap={{ scale: 0.98 }} onClick={() => setActiveTab(item.id)} className={`w-full text-left px-3 sm:px-4 py-2 sm:py-3 rounded-xl transition-all duration-300 font-montserrat flex items-center gap-2 sm:gap-3 text-sm sm:text-base ${activeTab === item.id ? "bg-linear-to-r from-firm-orange to-firm-pink text-main shadow-lg" : "hover:bg-gray-100 text-text"}`}>{React.cloneElement(IconComponent, {color: activeTab === item.id ? "#f9f9f9" : iconColor, className: "w-4 h-4 sm:w-5 sm:h-5"})}<span className="flex-1 truncate">{item.label}</span>{item.count !== null && item.count > 0 && (<span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full ${activeTab === item.id ? "bg-main text-firm-orange" : "bg-firm-orange/20 text-firm-orange"}`}>{item.count}</span>)}</motion.button>);
+                    return (<motion.button key={item.id} whileHover={{ x: 5 }} whileTap={{ scale: 0.98 }} onClick={() => setActiveTab(item.id)} className={`w-full text-left px-3 sm:px-4 py-2 sm:py-3 rounded-xl transition-all duration-300 font-montserrat flex items-center gap-2 sm:gap-3 text-sm sm:text-base ${activeTab === item.id ? "bg-linear-to-r from-firm-orange to-firm-pink text-main shadow-lg" : "hover:bg-gray-100 text-text"}`}>{React.cloneElement(IconComponent, {color: activeTab === item.id ? "#f9f9f9" : iconColor, className: "w-4 h-4 sm:w-5 sm:h-5"})}<span className={`flex-1 truncate ${activeTab === item.id ? "text-main" : "text-text"}`}>{item.label}</span>{item.count !== null && item.count > 0 && (<span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full ${activeTab === item.id ? "bg-main text-firm-orange" : "bg-firm-orange/20 text-firm-orange"}`}>{item.count}</span>)}</motion.button>);
                   })}
 
                   <div className="border-t border-gray-200 my-2 pt-2" />
