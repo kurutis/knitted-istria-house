@@ -14,6 +14,7 @@ import BlogPostCard from "@/components/blog/BlogPostCard";
 import EditPostModal from "@/components/modals/EditPostModal";
 import EditClassModal from "@/components/modals/EditClassModal";
 import { StarRating } from "@/components/ui/StarRating";
+import Link from "next/link";
 
 import { DashboardIcon } from "@/components/icons/DashboardIcon";
 import { ProductsIcon } from "@/components/icons/ProductsIcon";
@@ -38,6 +39,12 @@ import { CatalogPinkIcon } from "@/components/icons/CatalogPinkIcon";
 import { CheckCircleIcon } from "@/components/icons/CheckCircleIcon";
 import { StarIcon } from "@/components/icons/StarIcon";
 import { ViewsIcon } from "../icons/ViewsIcon";
+import { RefreshIcon } from "@/components/icons/RefreshIcon";
+import { FilterIcon } from "@/components/icons/FilterIcon";
+import { MailIcon } from "@/components/icons/MailIcon";
+import { TruckIcon } from "@/components/icons/TruckIcon";
+import { PackageIcon } from "@/components/icons/PackageIcon";
+import { CommentIcon } from "../icons/CommentIcon";
 
 interface MasterProfileProps {
   session: {
@@ -53,14 +60,22 @@ interface MasterProfileProps {
 interface Order {
   id: string;
   order_number: string;
-  status: string;
+  status: "new" | "processing" | "shipped" | "delivered" | "cancelled";
+  payment_status: "pending" | "paid" | "failed";
   created_at: string;
-  product_title: string;
+  updated_at?: string;
   buyer_name: string;
+  buyer_email: string;
+  shipping_full_name: string;
+  shipping_phone: string;
+  shipping_city: string;
+  shipping_address: string;
+  shipping_postal_code?: string;
+  buyer_comment: string | null;
+  tracking_number: string | null;
   total_amount: number;
-  items?: OrderItem[];
+  items: OrderItem[];
 }
-
 interface OrderItem {
   id: number;
   product_id: string;
@@ -68,6 +83,23 @@ interface OrderItem {
   quantity: number;
   price: number;
   total: number;
+}
+
+interface OrderStats {
+  new: number;
+  processing: number;
+  shipped: number;
+  delivered: number;
+  cancelled: number;
+  total: number;
+}
+
+interface OrderPagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasMore: boolean;
 }
 
 interface BlogPost {
@@ -271,7 +303,16 @@ export default function MasterProfile({ session }: MasterProfileProps) {
 
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; type?: 'danger' | 'warning' | 'info'}>({ isOpen: false, title: '', message: '', onConfirm: () => {}, type: 'warning' });
 
+  const [masterOrders, setMasterOrders] = useState<Order[]>([]);
+  const [orderStatusFilter, setOrderStatusFilter] = useState<string>("all");
+  const [orderPage, setOrderPage] = useState(1);
+  const [orderPagination, setOrderPagination] = useState<OrderPagination>({total: 0, page: 1, limit: 20, totalPages: 1, hasMore: false});
   const [orderStats, setOrderStats] = useState({new: 0, processing: 0,shipped: 0, delivered: 0, cancelled: 0, total: 0});
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+  const [trackingNumber, setTrackingNumber] = useState<{ [key: string]: string }>({});
+  const [showTrackingModal, setShowTrackingModal] = useState<string | null>(null);
+  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  const [showStatusModal, setShowStatusModal] = useState<{orderId: string; currentStatus: string; targetStatus: string} | null>(null);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -282,6 +323,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
 
   useEffect(() => {
     fetchMasterData();
+    fetchMasterOrders();
     loadCategories();
     loadYarns();
   }, []);
@@ -362,6 +404,71 @@ export default function MasterProfile({ session }: MasterProfileProps) {
       setMasterClasses([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMasterOrders = async (status: string = orderStatusFilter, pageNum: number = orderPage) => {
+    try {
+      const response = await fetch(`/api/master/orders?status=${status}&page=${pageNum}&limit=20`);
+      const data = await response.json();
+
+      if (data.orders) {
+        setMasterOrders(data.orders);
+        setOrderPagination(data.pagination || { total: 0, page: 1, limit: 20, totalPages: 1, hasMore: false });
+        if (data.stats) {
+          setOrderStats(data.stats);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching master orders:", error);
+      toast.error("Ошибка загрузки заказов");
+    }
+  };
+
+  const filterOrdersByStatus = async (status: string) => {
+    setOrderStatusFilter(status);
+    setOrderPage(1);
+    await fetchMasterOrders(status, 1);
+  };
+
+  const handleOrderPageChange = (newPage: number) => {
+    setOrderPage(newPage);
+    fetchMasterOrders(orderStatusFilter, newPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const toggleOrderExpand = (orderId: string) => {
+    setExpandedOrders((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
+    });
+  };
+
+  const updateOrderStatus = async (orderId: string, newStatus: string, tracking?: string) => {
+    setUpdatingOrderId(orderId);
+    try {
+      const response = await fetch(`/api/master/orders/${orderId}`, {method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: newStatus, tracking_number: tracking })});
+
+      if (response.ok) {
+        await fetchMasterOrders(orderStatusFilter, orderPage);
+        toast.success(getStatusActionMessage(newStatus));
+        setShowStatusModal(null);
+        setShowTrackingModal(null);
+        setTrackingNumber((prev) => ({ ...prev, [orderId]: "" }));
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Ошибка обновления статуса");
+      }
+    } catch (error) {
+      console.error("Error updating order status:", error);
+      toast.error("Ошибка при обновлении статуса");
+    } finally {
+      setUpdatingOrderId(null);
     }
   };
 
@@ -561,20 +668,55 @@ export default function MasterProfile({ session }: MasterProfileProps) {
     });
   };
 
-  const handleOrderStatusChange = async (orderId: string, newStatus: string) => {
-    try {
-      const response = await fetch(`/api/master/orders/${orderId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: newStatus })});
+  const StatusConfirmModal = () => {
+    if (!showStatusModal) return null;
 
-      if (response.ok) {
-        setOrders((prev) =>
-          prev.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order)),
-        );
-        toast.success(`Статус заказа изменен на "${getStatusText(newStatus)}"`);
-      }
-    } catch (error) {
-      console.error("Error updating order:", error);
-      toast.error("Ошибка при обновлении статуса");
-    }
+    const order = masterOrders.find((o) => o.id === showStatusModal.orderId);
+    const action = showStatusModal.targetStatus;
+
+    const getActionText = () => {
+      if (action === "shipped") return "отправку заказа";
+      if (action === "processing") return "подтверждение заказа";
+      if (action === "delivered") return "доставку заказа";
+      if (action === "cancelled") return "отмену заказа";
+      return "изменение статуса";
+    };
+
+    const getActionButtonText = () => {
+      if (action === "shipped") return "Подтвердить отправку";
+      if (action === "processing") return "Подтвердить заказ";
+      if (action === "delivered") return "Подтвердить доставку";
+      if (action === "cancelled") return "Отменить заказ";
+      return "Подтвердить";
+    };
+
+    return (
+      <div className="fixed inset-0 bg-main-black/50 flex items-center justify-center z-50 p-4">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-main rounded-2xl max-w-md w-full p-6 shadow-2xl">
+          <div className="text-center mb-4">
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.1, type: "spring" }} className="w-16 h-16 mx-auto mb-3 rounded-full bg-orange-100 flex items-center justify-center">
+              <ClockIcon className="w-8 h-8" color="#F4A67F" size={32} />
+            </motion.div>
+            <h3 className="text-xl font-semibold mb-2 font-['Montserrat_Alternates']">Подтверждение действия</h3>
+            <p className="text-firm-gray">Вы уверены, что хотите подтвердить {getActionText()}?</p>
+            {order && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="mt-4 p-4 bg-gray-50 rounded-xl text-left">
+                <p className="text-sm font-medium">Заказ #{order.order_number}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className={`px-2 py-0.5 rounded-full text-xs ${getStatusColor(order.status)}`}>{getStatusText(order.status)}</span>
+                  <span className="text-firm-gray">→</span>
+                  <span className="px-2 py-0.5 rounded-full text-xs bg-firm-orange/10 text-firm-orange">{action === "shipped" ? "Отправлен" : action === "processing" ? "В обработке" : action === "delivered" ? "Доставлен" : action === "cancelled" ? "Отменен" : action}</span>
+                </div>
+              </motion.div>
+            )}
+          </div>
+          <div className="flex gap-3">
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => {if (action === "shipped") {setShowStatusModal(null); setShowTrackingModal(showStatusModal.orderId)} else if (action) { updateOrderStatus(showStatusModal.orderId, action)}}} className="flex-1 px-4 py-2 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition text-sm font-medium">{getActionButtonText()}</motion.button>
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowStatusModal(null)} className="flex-1 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition text-sm"> Отмена</motion.button>
+          </div>
+        </motion.div>
+      </div>
+    );
   };
 
   const formatTime = (dateString: string) => {
@@ -611,6 +753,84 @@ export default function MasterProfile({ session }: MasterProfileProps) {
       case "draft": return "Черновик";
       default: return status;
     }
+  };
+
+  const getStatusOrder = (status: string): number => {
+    const order: Record<string, number> = {new: 0, processing: 1, shipped: 2, delivered: 3, cancelled: -1};
+    return order[status] ?? -1;
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "new":
+        return <CartIcon className="w-3 h-3" color="#3B82F6" size={12} />;
+      case "processing":
+        return <ClockIcon className="w-3 h-3" color="#F4A67F" size={12} />;
+      case "shipped":
+        return <TruckIcon className="w-3 h-3" color="#D97C8E" size={12} />;
+      case "delivered":
+        return <CheckCircleIcon className="w-3 h-3" color="#94D06C" size={12} />;
+      case "cancelled":
+        return <CloseIcon className="w-3 h-3" color="#D77C7C" size={12} />;
+      default:
+        return null;
+    }
+  };
+
+  const getPaymentStatusIcon = (status: string) => {
+    switch (status) {
+      case "paid":
+        return <CheckCircleIcon className="w-3 h-3" color="#94D06C" size={12} />;
+      case "pending":
+        return <ClockIcon className="w-3 h-3" color="#F4A67F" size={12} />;
+      default:
+        return <CloseIcon className="w-3 h-3" color="#D77C7C" size={12} />;
+    }
+  };
+
+  const getPaymentStatusText = (status: string) => {
+    switch (status) {
+      case "paid":
+        return "Оплачен";
+      case "pending":
+        return "Ожидает оплаты";
+      default:
+        return "Ошибка";
+    }
+  };
+
+  const getStatusActionMessage = (status: string): string => {
+    switch (status) {
+      case "processing":
+        return "Заказ подтвержден и передан в обработку";
+      case "shipped":
+        return "Заказ отправлен, трек-номер добавлен";
+      case "delivered":
+        return "Заказ отмечен как доставленный";
+      case "cancelled":
+        return "Заказ отменен";
+      default:
+        return "Статус заказа обновлен";
+    }
+  };
+
+  const getNextStatus = (currentStatus: string): { status: string; label: string; action: string } | null => {
+    const statusFlow: Record<string, { status: string; label: string; action: string }> = {new: { status: "processing", label: "В обработку", action: "Подтвердить заказ" }, processing: { status: "shipped", label: "Отправлен", action: "Подтвердить отправку" }, shipped: { status: "delivered", label: "Доставлен", action: "Подтвердить доставку" }};
+    return statusFlow[currentStatus] || null;
+  };
+
+  const getCancelStatus = (currentStatus: string): { status: string; label: string } | null => {
+    if (currentStatus === "new" || currentStatus === "processing") {return { status: "cancelled", label: "Отменить заказ" }}
+    return null;
+  };
+
+  const getAvailableActions = (currentStatus: string) => {
+    const actions = [];
+    const next = getNextStatus(currentStatus);
+    if (next) {actions.push({ type: "next", ...next })}
+    const cancel = getCancelStatus(currentStatus);
+    if (cancel) {actions.push({ type: "cancel", ...cancel })}
+    return actions;
   };
 
   const navItems = [{id: "dashboard", icon: <DashboardIcon />, label: "Панель управления", count: null }, { id: "products", icon: <ProductsIcon />, label: "Мои товары", count: products.length }, { id: "orders", icon: <CartIcon />, label: "Заказы", count: orders.filter((o) => o.status === "new").length }, { id: "blog", icon: <BlogIcon />, label: "Блог", count: blogPosts.length },  { id: "master-classes", icon: <ClassesIcon />, label: "Мастер-классы", count: masterClasses.length }, { id: "profile", icon: <UserIcon />, label: "Профиль", count: null }, { id: "settings", icon: <SettingsIcon />, label: "Настройки", count: null }];
@@ -783,110 +1003,202 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                 )}
 
                 {activeTab === "orders" && (
-                  <motion.div
-                    key="orders"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8"
-                  >
-                    <h2 className="font-montserrat font-semibold text-xl sm:text-2xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
-                      Заказы
-                    </h2>
-
-                    {orders.length === 0 ? (
-                      <div className="text-center py-8 sm:py-12 bg-main rounded-xl">
-                        <CartIcon className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-firm-gray opacity-50" />
-                        <p className="text-firm-gray mt-3 mb-4">У вас пока нет заказов</p>
+                  <motion.div key="orders"  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-main rounded-xl sm:rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+                    <div className="p-4 sm:p-6 border-b border-gray-100">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl sm:text-2xl flex items-center gap-2"><CartIcon className="w-5 h-5 sm:w-6 sm:h-6" color="#242424" size={24} />Заказы на мои товары{orderStats.new > 0 && (<motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="bg-firm-red text-main text-xs px-2 py-1 rounded-full">{orderStats.new} новых</motion.span>)}</h2>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                          <div className="relative flex-1 sm:flex-initial">
+                            <select value={orderStatusFilter} onChange={(e) => filterOrdersByStatus(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm appearance-none bg-main pr-8 focus:border-firm-orange focus:outline-none">
+                              <option value="all">Все заказы</option>
+                              <option value="new">Новые</option>
+                              <option value="processing">В обработке</option>
+                              <option value="shipped">Отправленные</option>
+                              <option value="delivered">Доставленные</option>
+                              <option value="cancelled">Отмененные</option>
+                            </select>
+                            <FilterIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-firm-gray pointer-events-none" />
+                          </div>
+                          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => fetchMasterOrders(orderStatusFilter, orderPage)} className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"><RefreshIcon className="w-4 h-4" color="#242424" size={16} /></motion.button>
+                        </div>
                       </div>
-                    ) : (
-                      <div className="space-y-3 sm:space-y-4">
-                        {orders.map((order, idx) => (
-                          <motion.div
-                            key={order.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.05 }}
-                            className="border border-gray-200 rounded-xl p-3 sm:p-5 hover:shadow-lg transition-all"
-                          >
-                            <div className="flex flex-col sm:flex-row justify-between items-start gap-2 mb-3">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className="font-montserrat font-semibold text-sm sm:text-base">Заказ #{order.order_number}</span>
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${getStatusColor(order.status)}`}>
-                                  {getStatusText(order.status)}
-                                </span>
-                              </div>
-                              <span className="text-xs sm:text-sm text-firm-gray">{formatDate(order.created_at)}</span>
-                            </div>
+                    </div>
 
-                            <p className="text-xs sm:text-sm text-firm-gray mb-2">{order.product_title}</p>
-
-                            <div className="flex justify-between items-center flex-wrap gap-2">
-                              <p className="text-xs sm:text-sm text-firm-gray">Покупатель: {order.buyer_name}</p>
-                              <div className="flex gap-2">
-                                {order.status === "new" && (
-                                  <>
-                                    <motion.button
-                                      whileHover={{ scale: 1.02 }}
-                                      whileTap={{ scale: 0.98 }}
-                                      onClick={() => handleOrderStatusChange(order.id, "confirmed")}
-                                      className="px-3 py-1 bg-firm-green text-main rounded-lg text-xs hover:shadow-md transition"
-                                    >
-                                      Подтвердить
-                                    </motion.button>
-                                    <motion.button
-                                      whileHover={{ scale: 1.02 }}
-                                      whileTap={{ scale: 0.98 }}
-                                      onClick={() => handleOrderStatusChange(order.id, "cancelled")}
-                                      className="px-3 py-1 bg-firm-red text-main rounded-lg text-xs hover:shadow-md transition"
-                                    >
-                                      Отклонить
-                                    </motion.button>
-                                  </>
-                                )}
-                                {order.status === "confirmed" && (
-                                  <motion.button
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={() => handleOrderStatusChange(order.id, "shipped")}
-                                    className="px-3 py-1 bg-firm-pink text-main rounded-lg text-xs hover:shadow-md transition"
-                                  >
-                                    Отправить
-                                  </motion.button>
-                                )}
-                                <span className="font-montserrat font-bold text-base sm:text-lg text-firm-orange">
-                                  {order.total_amount.toLocaleString()} ₽
-                                </span>
-                              </div>
-                            </div>
+                    <div className="divide-y divide-gray-100">
+                      {masterOrders.length === 0 ? (
+                        <div className="p-8 sm:p-12 text-center text-firm-gray">
+                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }} className="flex justify-center mb-4">
+                            <PackageIcon className="w-12 h-12 sm:w-16 sm:h-16 text-firm-gray" color="#737682" size={64} />
                           </motion.div>
-                        ))}
+                          <p>У вас пока нет заказов на товары</p>
+                          <Link href="/catalog" className="text-firm-orange hover:underline mt-2 inline-block">Перейти в каталог →</Link>
+                        </div>
+                      ) : (
+                        masterOrders.map((order, idx) => {
+                          const isExpanded = expandedOrders.has(order.id);
+                          const isUpdating = updatingOrderId === order.id;
+                          const availableActions = getAvailableActions(order.status);
+                          const isFinished = order.status === "delivered" || order.status === "cancelled";
+
+                          return (
+                            <motion.div key={order.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.05 }} whileHover={{ backgroundColor: "#f9f9f9" }} className="p-4 sm:p-6 transition-all duration-300">
+                              <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                                    <motion.span initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 border ${getStatusColor(order.status)}`}>{getStatusIcon(order.status)}{getStatusText(order.status)}</motion.span>
+                                    <span className="text-xs sm:text-sm text-firm-gray font-mono bg-gray-50 px-2 py-1 rounded">№{order.order_number}</span>
+                                    <motion.span initial={{ scale: 0.8 }} animate={{ scale: 1 }} className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${order.payment_status === "paid" ? "bg-green-50 text-firm-green border border-green-200" : "bg-yellow-50 text-firm-orange border border-orange-200"}`}>{getPaymentStatusIcon(order.payment_status)}{getPaymentStatusText(order.payment_status)}</motion.span>
+                                  </div>
+
+                                  <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs sm:text-sm text-firm-gray">
+                                    <span className="flex items-center gap-1"><UserIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#737682" size={14} />{order.buyer_name || order.shipping_full_name || "Не указан"}</span>
+                                    <span className="flex items-center gap-1"><span className="font-medium">₽</span>{order.total_amount.toLocaleString()} ₽</span>
+                                    <span className="flex items-center gap-1"><CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#737682" size={14} />{new Date(order.created_at).toLocaleDateString("ru-RU")}</span>
+                                    <span className="flex items-center gap-1"><PackageIcon className="w-3 h-3" color="#737682" size={14} />{order.items?.length || 0} товаров</span>
+                                  </div>
+
+                                  {order.shipping_city && order.shipping_address && (
+                                    <div className="flex items-center gap-1 mt-2 text-xs text-firm-gray">
+                                      <LocateIcon className="w-3 h-3 shrink-0" color="#737682" size={14} />
+                                      <span className="truncate">{order.shipping_city}, {order.shipping_address}</span>
+                                    </div>
+                                  )}
+
+                                  {order.tracking_number && (
+                                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-1 mt-2 text-xs text-firm-green bg-green-50 px-2 py-1 rounded">
+                                      <TruckIcon className="w-3 h-3" color="#94D06C" size={12} />
+                                      <span>Трек-номер: {order.tracking_number}</span>
+                                    </motion.div>
+                                  )}
+                                </div>
+
+                                <div className="flex flex-row lg:flex-col gap-2 w-full lg:w-auto">
+                                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => toggleOrderExpand(order.id)} className="px-3 py-2 text-xs border border-gray-200 rounded-xl hover:bg-gray-50 transition flex items-center justify-center gap-1">{isExpanded ? "Свернуть" : "Подробнее"}<motion.span animate={{ rotate: isExpanded ? 180 : 0 }}>▼</motion.span></motion.button>
+
+                                  {!isFinished && !isUpdating && (
+                                    <div className="flex gap-2">
+                                      {availableActions.map((action) => (<motion.button  key={action.type} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowStatusModal({orderId: order.id, currentStatus: order.status, targetStatus: action.status})}className={`px-3 py-2 text-xs rounded-xl transition flex items-center justify-center gap-1 ${action.type === "cancel" ? "border border-red-300 text-firm-red hover:bg-red-50" : "bg-linear-to-r from-firm-orange to-firm-pink text-main hover:shadow-lg"}`}>{action.type === "next" && "→"}{action.type === "cancel" && "✕"}{action.label}</motion.button>))}
+                                    </div>
+                                  )}
+
+                                  {isFinished && (
+                                    <div className="text-xs text-gray-500 text-center py-2 flex items-center justify-center gap-1">
+                                      {order.status === "delivered" ? (
+                                        <>
+                                          <CheckCircleIcon className="w-4 h-4" color="#94D06C" size={16} />
+                                          Заказ выполнен
+                                        </>
+                                      ) : (
+                                        <>
+                                          <CloseIcon className="w-4 h-4" color="#D77C7C" size={16} />
+                                          Заказ отменен
+                                        </>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {isUpdating && (
+                                    <div className="flex justify-center items-center py-2">
+                                      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-5 h-5 border-2 border-firm-orange border-t-transparent rounded-full" />
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <AnimatePresence>
+                                {isExpanded && (
+                                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3 }} className="mt-4 pt-4 border-t border-gray-100">
+                                    <div className="mb-4">
+                                      <h4 className="font-semibold text-sm mb-3 font-['Montserrat_Alternates']">Статус заказа:</h4>
+                                      <div className="flex items-center justify-between">
+                                        {[{ status: "new", label: "Новый", icon: <CartIcon className="w-4 h-4" color="#f9f9f9" size={16} /> }, {status: "processing", label: "В обработке", icon: <ClockIcon className="w-4 h-4" color="#f9f9f9" size={16} />}, {status: "shipped", label: "Отправлен", icon: <TruckIcon className="w-4 h-4" color="#f9f9f9" size={16} />}, {status: "delivered", label: "Доставлен", icon: <CheckCircleIcon className="w-4 h-4" color="#f9f9f9" size={16} />}].map((step, stepIdx) => {
+                                          const isCompleted = getStatusOrder(order.status) >= getStatusOrder(step.status);
+                                          const isCurrent = order.status === step.status;
+
+                                          return (
+                                            <div key={step.status} className="flex-1 text-center">
+                                              <div className="relative">
+                                                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: stepIdx * 0.1 }} className={`w-8 h-8 mx-auto rounded-full flex items-center justify-center text-sm ${isCompleted ? "bg-firm-green text-main" : isCurrent ? "bg-firm-orange text-main" : "bg-gray-200 text-gray-400" }`}>
+                                                  {isCompleted ? (<CheckCircleIcon className="w-4 h-4" color="#f9f9f9" size={16} />) : (step.icon )}
+                                                </motion.div>
+                                                {stepIdx < 3 && (<div className={`absolute top-4 left-1/2 w-full h-0.5 ${getStatusOrder(order.status) > stepIdx ? "bg-firm-green" : "bg-gray-200"}`} />)}
+                                              </div>
+                                              <p className={`text-xs mt-2 ${isCurrent ? "font-semibold text-firm-orange" : "text-firm-gray"}`}>{step.label}</p>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+
+                                    <div className="mb-4">
+                                      <h4 className="font-semibold text-sm mb-2 font-['Montserrat_Alternates']">Товары в заказе:</h4>
+                                      <div className="space-y-2">
+                                        {order.items?.map((item, i) => (
+                                          <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className="flex justify-between items-center text-sm bg-gray-50 p-3 rounded-lg">
+                                            <div className="flex-1">
+                                              <span className="font-medium">{item.product_title}</span>
+                                              <span className="text-firm-gray ml-2">× {item.quantity} шт.</span>
+                                            </div>
+                                            <span className="font-semibold text-firm-orange">{item.total.toLocaleString()} ₽</span>
+                                          </motion.div>
+                                        ))}
+                                      </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-gray-50 rounded-lg p-3">
+                                        <h4 className="font-semibold text-sm mb-2 flex items-center gap-1"><UserIcon className="w-4 h-4" color="#242424" size={16} />Покупатель</h4>
+                                        <p className="text-sm">{order.buyer_name || order.shipping_full_name}</p>
+                                        <p className="text-sm text-firm-gray flex items-center gap-1 mt-1"><MailIcon className="w-3 h-3" color="#737682" size={12} />{order.buyer_email}</p>
+                                        <p className="text-sm text-firm-gray">{order.shipping_phone}</p>
+                                      </motion.div>
+                                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-gray-50 rounded-lg p-3">
+                                        <h4 className="font-semibold text-sm mb-2 flex items-center gap-1"><LocateIcon className="w-4 h-4" color="#242424" size={16} />Адрес доставки</h4>
+                                        <p className="text-sm">{order.shipping_city}</p>
+                                        <p className="text-sm">{order.shipping_address}</p>
+                                        {order.shipping_postal_code && (<p className="text-sm text-firm-gray">{order.shipping_postal_code}</p>)}
+                                      </motion.div>
+                                    </div>
+
+                                    {order.buyer_comment && (
+                                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-gray-50 rounded-lg p-3 mb-4">
+                                        <h4 className="font-semibold text-sm mb-2 flex items-center gap-1"><CommentIcon className="w-4 h-4" color="#242424" size={16} />Комментарий покупателя</h4>
+                                        <p className="text-sm">{order.buyer_comment}</p>
+                                      </motion.div>
+                                    )}
+
+                                    <div className="flex justify-end pt-3 border-t border-gray-100">
+                                      <div className="text-right">
+                                        <p className="text-sm text-firm-gray">Итого к оплате:</p>
+                                        <motion.p initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="font-bold text-firm-orange text-2xl">{order.total_amount.toLocaleString()} ₽</motion.p>
+                                      </div>
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </motion.div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {orderPagination.totalPages > 1 && (
+                      <div className="p-4 border-t border-gray-100 flex justify-center">
+                        <div className="flex gap-2 items-center">
+                          <motion.button whileHover={{ scale: 1.05 }}  whileTap={{ scale: 0.95 }} onClick={() => handleOrderPageChange(orderPage - 1)} disabled={orderPage <= 1} className="px-3 py-1 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition">←</motion.button>
+                          <span className="px-3 py-1 text-sm font-['Montserrat_Alternates']">{orderPage} / {orderPagination.totalPages}</span>
+                          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => handleOrderPageChange(orderPage + 1)} disabled={orderPage >= orderPagination.totalPages} className="px-3 py-1 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition">→</motion.button>
+                        </div>
                       </div>
                     )}
                   </motion.div>
                 )}
 
                 {activeTab === "blog" && (
-                  <motion.div
-                    key="blog"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8"
-                  >
+                  <motion.div key="blog" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                      <h2 className="font-montserrat font-semibold text-xl sm:text-2xl bg-gradient-to-r from-firm-pink to-firm-orange bg-clip-text text-transparent">
-                        Мой блог
-                      </h2>
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setShowAddPostModal(true)}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 text-main rounded-xl text-sm hover:shadow-lg transition"
-                      >
-                        <PlusIcon className="w-4 h-4" color="#f9f9f9" />
-                        Новая запись
-                      </motion.button>
+                      <h2 className="font-montserrat font-semibold text-xl sm:text-2xl bg-linear-to-r from-firm-pink to-firm-orange bg-clip-text text-transparent">Мой блог</h2>
+                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowAddPostModal(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-linear-to-r from-gray-600 to-gray-700 text-main rounded-xl text-sm hover:shadow-lg transition"><PlusIcon className="w-4 h-4" color="#f9f9f9" />Новая запись</motion.button>
                     </div>
 
                     {blogPosts.length === 0 ? (
@@ -1422,15 +1734,61 @@ export default function MasterProfile({ session }: MasterProfileProps) {
           </div>
         )}
       </AnimatePresence>
+        
+      <StatusConfirmModal />
 
-      <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        title={confirmModal.title}
-        message={confirmModal.message}
-        type={confirmModal.type}
-        onConfirm={confirmModal.onConfirm}
-        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
-      />
+        <AnimatePresence>
+          {showTrackingModal && (
+            <div className="fixed inset-0 bg-main-black/50 flex items-center justify-center z-50 p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-main rounded-2xl max-w-md w-full p-6 shadow-2xl"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-semibold font-['Montserrat_Alternates']">Отправка заказа</h3>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowTrackingModal(null)}
+                    className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <CloseIcon className="w-5 h-5 text-firm-gray" color="#737682" size={20} />
+                  </motion.button>
+                </div>
+                <p className="text-firm-gray mb-4">Укажите трек-номер для отслеживания посылки</p>
+                <input
+                  type="text"
+                  value={trackingNumber[showTrackingModal] || ""}
+                  onChange={(e) => setTrackingNumber((prev) => ({ ...prev, [showTrackingModal]: e.target.value }))}
+                  placeholder="Введите трек-номер"
+                  className="w-full p-3 border border-gray-200 rounded-xl mb-4 focus:border-firm-orange focus:outline-none text-sm"
+                />
+                <div className="flex gap-3">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => updateOrderStatus(showTrackingModal, "shipped", trackingNumber[showTrackingModal])}
+                    className="flex-1 px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition text-sm font-medium"
+                  >
+                    Подтвердить отправку
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setShowTrackingModal(null)}
+                    className="flex-1 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition text-sm"
+                  >
+                    Отмена
+                  </motion.button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+      <ConfirmModal isOpen={confirmModal.isOpen} title={confirmModal.title}  message={confirmModal.message} type={confirmModal.type} onConfirm={confirmModal.onConfirm} onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} />
     </div>
   );
 }

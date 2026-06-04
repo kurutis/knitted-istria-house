@@ -73,23 +73,9 @@ const getStatusText = (status: string) => {
     }
 }
 
-const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    })
-}
+const formatDate = (dateString: string) => {return new Date(dateString).toLocaleDateString('ru-RU', {day: '2-digit', month: '2-digit', year: 'numeric'})}
 
-export default function MasterProductsList({
-    products, 
-    onDelete, 
-    onProductAdded, 
-    masterName, 
-    loading = false, 
-    categories = [], 
-    yarns = []
-}: MasterProductsListProps) {
+export default function MasterProductsList({products, onDelete, onProductAdded, masterName, loading = false, categories = [], yarns = []}: MasterProductsListProps) {
     const [showAddModal, setShowAddModal] = useState(false)
     const [editingProduct, setEditingProduct] = useState<Product | null>(null)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -112,28 +98,13 @@ export default function MasterProductsList({
     if (products.length === 0) {
         return (
             <>
-                <motion.div 
-                    initial={{ opacity: 0, y: 20 }} 
-                    animate={{ opacity: 1, y: 0 }} 
-                    className="text-center py-12 bg-gray-50 rounded-xl"
-                >
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center py-12 bg-gray-50 rounded-xl">
                     <Productslcon className="w-16 h-16 mx-auto text-firm-gray mb-4" />
                     <p className="text-firm-gray mb-4">У вас пока нет товаров</p>
-                    <button onClick={() => setShowAddModal(true)} className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300">
-                        Добавить первый товар →
-                    </button>
+                    <button onClick={() => setShowAddModal(true)} className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300">Добавить первый товар →</button>
                 </motion.div>
                 
-                <AddProductModal 
-                    isOpen={showAddModal} 
-                    onClose={() => setShowAddModal(false)} 
-                    onSuccess={() => {
-                        setShowAddModal(false);
-                        if (onProductAdded) onProductAdded()
-                    }} 
-                    categories={categories} 
-                    yarns={yarns} 
-                />
+                <AddProductModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} onSuccess={() => {setShowAddModal(false); if (onProductAdded) onProductAdded()}} categories={categories} yarns={yarns} />
             </>
         )
     }
@@ -142,21 +113,10 @@ export default function MasterProductsList({
         <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
                 {products.map((product, index) => (
-                    <motion.div
-                        key={product.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        whileHover={{ y: -5 }}
-                        className="bg-main rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group border border-gray-100 flex flex-col"
-                    >
+                    <motion.div key={product.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} whileHover={{ y: -5 }} className="bg-main rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group border border-gray-100 flex flex-col">
                         <Link href={`/catalog/${product.id}`} className="block relative aspect-square bg-gray-100 overflow-hidden">
                             {product.main_image_url ? (
-                                <img
-                                    src={product.main_image_url}
-                                    alt={product.title}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                />
+                                <img src={product.main_image_url} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center">
                                     <Productslcon className="w-12 h-12" color="#D1D5DB" />
@@ -164,52 +124,20 @@ export default function MasterProductsList({
                             )}
                             
                             <div className="absolute top-2 left-2">
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(product.status)}`}>
-                                    {getStatusText(product.status)}
-                                </span>
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(product.status)}`}>{getStatusText(product.status)}</span>
                             </div>
                         </Link>
 
                         <div className="p-3 flex flex-col flex-1">
-                            <Link href={`/catalog/${product.id}`} className="flex-1">
-                                <h3 className="font-['Montserrat_Alternates'] font-semibold text-sm mb-1 line-clamp-2 hover:text-firm-orange transition-colors text-text">
-                                    {product.title}
-                                </h3>
-                            </Link>
-                            <p className="text-[11px] text-firm-gray mb-2 line-clamp-1">
-                                {product.master_name || masterName}
-                            </p>
+                            <Link href={`/catalog/${product.id}`} className="flex-1"><h3 className="font-['Montserrat_Alternates'] font-semibold text-sm mb-1 line-clamp-2 hover:text-firm-orange transition-colors text-text">{product.title}</h3></Link>
+                            <p className="text-[11px] text-firm-gray mb-2 line-clamp-1">{product.master_name || masterName}</p>
                             
                             <div className="flex items-center justify-between mt-auto">
-                                <span className="font-['Montserrat_Alternates'] font-bold text-base text-firm-pink">
-                                    {product.price.toLocaleString()} ₽
-                                </span>
+                                <span className="font-['Montserrat_Alternates'] font-bold text-base text-firm-pink">{product.price.toLocaleString()} ₽</span>
                                 
                                 <div className="flex gap-1.5">
-                                    <button
-                                        onMouseEnter={() => setHoveredEditId(product.id)}
-                                        onMouseLeave={() => setHoveredEditId(null)}
-                                        onClick={() => handleEditClick(product)}
-                                        className="p-1.5 rounded-lg bg-gray-100 hover:bg-firm-orange transition-all duration-300"
-                                        title="Редактировать"
-                                    >
-                                        <EditIcon 
-                                            className="w-3.5 h-3.5 transition-all duration-300" 
-                                            color={hoveredEditId === product.id ? "#f9f9f9" : "#F4A67F"} 
-                                        />
-                                    </button>
-                                    <button
-                                        onMouseEnter={() => setHoveredDeleteId(product.id)}
-                                        onMouseLeave={() => setHoveredDeleteId(null)}
-                                        onClick={() => onDelete(product.id)}
-                                        className="p-1.5 rounded-lg bg-gray-100 hover:bg-firm-red transition-all duration-300"
-                                        title="Удалить"
-                                    >
-                                        <DeleteIcon 
-                                            className="w-3.5 h-3.5 transition-all duration-300" 
-                                            color={hoveredDeleteId === product.id ? "#f9f9f9" : "#D77C7C"} 
-                                        />
-                                    </button>
+                                    <button onMouseEnter={() => setHoveredEditId(product.id)} onMouseLeave={() => setHoveredEditId(null)} onClick={() => handleEditClick(product)} className="p-1.5 rounded-lg bg-gray-100 hover:bg-firm-orange transition-all duration-300" title="Редактировать"><EditIcon className="w-3.5 h-3.5 transition-all duration-300" color={hoveredEditId === product.id ? "#f9f9f9" : "#F4A67F"} /></button>
+                                    <button onMouseEnter={() => setHoveredDeleteId(product.id)} onMouseLeave={() => setHoveredDeleteId(null)} onClick={() => onDelete(product.id)} className="p-1.5 rounded-lg bg-gray-100 hover:bg-firm-red transition-all duration-300" title="Удалить"><DeleteIcon className="w-3.5 h-3.5 transition-all duration-300" color={hoveredDeleteId === product.id ? "#f9f9f9" : "#D77C7C"} /></button>
                                 </div>
                             </div>
         
@@ -228,51 +156,8 @@ export default function MasterProductsList({
                 ))}
             </div>
 
-            <AddProductModal 
-                isOpen={showAddModal} 
-                onClose={() => setShowAddModal(false)} 
-                onSuccess={() => {
-                    setShowAddModal(false);
-                    if (onProductAdded) onProductAdded()
-                }} 
-                categories={categories} 
-                yarns={yarns} 
-            />
-            
-            <EditProductModal 
-                isOpen={isEditModalOpen} 
-                onClose={() => {
-                    setIsEditModalOpen(false);
-                    setEditingProduct(null);
-                }} 
-                onSuccess={() => {
-                    setIsEditModalOpen(false);
-                    setEditingProduct(null);
-                    if (onProductAdded) onProductAdded();
-                }} 
-                product={editingProduct ? {
-                    id: editingProduct.id,
-                    title: editingProduct.title,
-                    description: editingProduct.description || "",
-                    price: editingProduct.price,
-                    category: editingProduct.category || "",
-                    technique: editingProduct.technique || "",
-                    size: editingProduct.size || "",
-                    care_instructions: editingProduct.care_instructions || "",
-                    color: editingProduct.color || ""
-                } : {
-                    id: "",
-                    title: "",
-                    description: "",
-                    price: 0,
-                    category: "",
-                    technique: "",
-                    size: "",
-                    care_instructions: "",
-                    color: ""
-                }} 
-                categories={categories} 
-            />
+            <AddProductModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} onSuccess={() => {setShowAddModal(false); if (onProductAdded) onProductAdded()}}  categories={categories} yarns={yarns} />
+            <EditProductModal isOpen={isEditModalOpen} onClose={() => {setIsEditModalOpen(false); setEditingProduct(null)}} onSuccess={() => {setIsEditModalOpen(false); setEditingProduct(null); if (onProductAdded) onProductAdded();}}  product={editingProduct ? {id: editingProduct.id, title: editingProduct.title, description: editingProduct.description || "", price: editingProduct.price, category: editingProduct.category || "", technique: editingProduct.technique || "", size: editingProduct.size || "", care_instructions: editingProduct.care_instructions || "", color: editingProduct.color || ""} : {id: "", title: "", description: "", price: 0, category: "", technique: "", size: "", care_instructions: "", color: ""}} categories={categories} />
         </>
     )
 }
