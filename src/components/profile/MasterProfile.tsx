@@ -536,26 +536,27 @@ export default function MasterProfile({ session }: MasterProfileProps) {
   };
 
   const handleCustomOrdersToggle = async () => {
-    const newValue = !profileData.custom_orders_enabled;
-    
-    setProfileData(prev => ({ ...prev, custom_orders_enabled: newValue }));
+  const newValue = !profileData.custom_orders_enabled;
+  
+  setProfileData(prev => ({ ...prev, custom_orders_enabled: newValue }));
 
-    try {
-      const response = await fetch("/api/master/profile/custom-orders", {method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ custom_orders_enabled: newValue })});
+  try {
+    const response = await fetch("/api/master/profile/custom-orders", {method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ custom_orders_enabled: newValue })});
+
+      const data = await response.json();
 
       if (!response.ok) {
         setProfileData(prev => ({ ...prev, custom_orders_enabled: !newValue }));
-        const error = await response.json();
-        toast.error(error.error || 'Ошибка обновления статуса');
+        toast.error(data.error || 'Ошибка обновления статуса');
       } else {
         toast.success(newValue ? 'Вы теперь принимаете индивидуальные заказы' : 'Вы больше не принимаете индивидуальные заказы');
-        await fetchMasterData();
+        setProfileData(prev => ({ ...prev, custom_orders_enabled: data.custom_orders_enabled }));
       }
     } catch (error) {
       setProfileData(prev => ({ ...prev, custom_orders_enabled: !newValue }));
       toast.error('Ошибка при обновлении статуса');
     }
-  };
+};
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
