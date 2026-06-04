@@ -497,21 +497,25 @@ export default function MasterProfile({ session }: MasterProfileProps) {
   };
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
+  e.preventDefault();
+  setSaving(true);
 
-    try {
-      const formData = new FormData();
+  try {
+    const formData = new FormData();
       formData.append("fullname", profileData.fullname);
       formData.append("phone", profileData.phone || "");
       formData.append("city", profileData.city || "");
       formData.append("address", profileData.address || "");
       formData.append("description", profileData.description || "");
-      formData.append("custom_orders_enabled", String(profileData.custom_orders_enabled));
 
-      if (avatarFile) {formData.append("avatar", avatarFile)}
+      if (avatarFile) {
+        formData.append("avatar", avatarFile);
+      }
 
-      const response = await fetch("/api/master/profile", {method: "PUT", body: formData});
+      const response = await fetch("/api/master/profile", {
+        method: "PUT",
+        body: formData,
+      });
 
       if (response.ok) {
         setIsEditing(false);
@@ -533,13 +537,11 @@ export default function MasterProfile({ session }: MasterProfileProps) {
 
   const handleCustomOrdersToggle = async () => {
     const newValue = !profileData.custom_orders_enabled;
+    
     setProfileData(prev => ({ ...prev, custom_orders_enabled: newValue }));
 
     try {
-      const formData = new FormData();
-      formData.append("custom_orders_enabled", String(newValue));
-
-      const response = await fetch("/api/master/profile", {method: "PUT", body: formData});
+      const response = await fetch("/api/master/profile/custom-orders", {method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ custom_orders_enabled: newValue })});
 
       if (!response.ok) {
         setProfileData(prev => ({ ...prev, custom_orders_enabled: !newValue }));
@@ -1337,50 +1339,50 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
                       <h2 className="font-montserrat font-bold text-xl sm:text-2xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Профиль мастера</h2>
                       <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
-                        {!isEditing ? (<motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setIsEditing(true)} className="flex-1 sm:flex-none px-3 sm:px-5 py-2 border-2 border-firm-orange rounded-xl font-montserrat font-medium transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm" style={{ backgroundColor: 'transparent', color: '#F4A67F' }}><EditIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#F4A67F" /><span className="hidden sm:inline">Редактировать</span><span className="sm:hidden">Ред.</span></motion.button>) : (<motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => {setIsEditing(false); setAvatarFile(null); setAvatarPreview(null) }} className="flex-1 sm:flex-none px-3 sm:px-5 py-2 bg-firm-gray text-main rounded-xl font-montserrat font-medium hover:bg-firm-gray transition-all text-xs sm:text-sm">Отмена</motion.button>)}
+                        {!isEditing ? (<motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setIsEditing(true)} className="flex-1 sm:flex-none px-3 sm:px-5 py-2 border-2 border-firm-orange rounded-xl font-montserrat font-medium transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm" style={{ backgroundColor: 'transparent', color: '#F4A67F' }}><EditIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#F4A67F" /><span className="hidden sm:inline text-firm-orange">Редактировать</span><span className="sm:hidden text-firm-orange">Ред.</span></motion.button> ) : (<motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => {setIsEditing(false); setAvatarFile(null); setAvatarPreview(null);}} className="flex-1 sm:flex-none px-3 sm:px-5 py-2 bg-firm-gray text-main rounded-xl font-montserrat font-medium hover:bg-firm-gray transition-all text-xs sm:text-sm">Отмена</motion.button>)}
                       </div>
                     </div>
 
                     {isEditing ? (
-                      <motion.form initial={{ opacity: 0 }} animate={{ opacity: 1 }} onSubmit={handleProfileUpdate} className="space-y-4 sm:space-y-5">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-                          <div>
-                            <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">Имя <span className="text-firm-red">*</span></label>
-                            <input type="text" name="fullname" value={profileData.fullname} onChange={handleInputChange} required className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm" placeholder="Введите ваше имя" />
+                      <>
+                        <motion.form initial={{ opacity: 0 }} animate={{ opacity: 1 }} onSubmit={handleProfileUpdate} className="space-y-4 sm:space-y-5">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                            <div>
+                              <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">Имя <span className="text-firm-red">*</span></label>
+                              <input type="text" name="fullname" value={profileData.fullname} onChange={handleInputChange} required className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm" placeholder="Введите ваше имя" />
+                            </div>
+                            <div>
+                              <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">
+                                Телефон
+                              </label>
+                              <input type="tel" name="phone" value={profileData.phone || ""} onChange={handleInputChange} className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm" placeholder="+7 (999) 123-45-67" />
+                            </div>
+                            <div>
+                              <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">Город</label>
+                              <input type="text" name="city" value={profileData.city || ""} onChange={handleInputChange} className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm" placeholder="Москва" />
+                            </div>
+                            <div>
+                              <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">Адрес</label>
+                              <input type="text" name="address" value={profileData.address || ""} onChange={handleInputChange} className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm" placeholder="ул. Примерная, д. 1, кв. 1" />
+                            </div>
                           </div>
                           <div>
-                            <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">Телефон</label>
-                            <input type="tel" name="phone" value={profileData.phone || ""} onChange={handleInputChange} className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm" placeholder="+7 (999) 123-45-67" />
+                            <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">Описание</label>
+                            <textarea name="description" value={profileData.description || ""} onChange={handleInputChange} rows={4} className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm resize-none" placeholder="Расскажите о себе..." />
                           </div>
-                          <div>
-                            <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">Город</label>
-                            <input type="text" name="city" value={profileData.city || ""} onChange={handleInputChange}  className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm" placeholder="Москва"/>
-                          </div>
-                          <div>
-                            <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">
-                              Адрес
-                            </label>
-                            <input type="text" name="address" value={profileData.address || ""} onChange={handleInputChange} className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm" placeholder="ул. Примерная, д. 1, кв. 1" />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">Описание</label>
-                          <textarea name="description" value={profileData.description || ""} onChange={handleInputChange} rows={4} className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm resize-none" placeholder="Расскажите о себе..." />
-                        </div>
 
-                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" disabled={saving} className="w-full mt-4 sm:mt-6 p-2 sm:p-3 bg-linear-to-r from-firm-pink to-firm-orange text-main rounded-xl font-montserrat font-semibold hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base"><SaveIcon color="#f9f9f9" className="w-3 h-3 sm:w-4 sm:h-4" />{saving ? "Сохранение..." : "Сохранить изменения"}</motion.button>
+                        </motion.form>
+
+                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl mt-6">
                           <div>
                             <p className="font-montserrat font-medium text-text">Индивидуальные заказы</p>
                             <p className="text-xs text-firm-gray">Принимать заказы на индивидуальные изделия</p>
                             {profileData.custom_orders_enabled && (<p className="text-xs text-firm-green mt-1">✓ На странице мастера появится кнопка &quot;Обсудить заказ&quot;</p>)}
                           </div>
-                          <button type="button" onClick={handleCustomOrdersToggle} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-firm-orange focus:ring-offset-2 ${profileData.custom_orders_enabled ? "bg-firm-orange" : "bg-gray-300"}`}>
-                            <span className={`inline-block h-4 w-4 transform rounded-full bg-main transition-transform ${profileData.custom_orders_enabled ? "translate-x-6" : "translate-x-1"}`} />
-                          </button>
+                          <button type="button" onClick={handleCustomOrdersToggle} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-firm-orange focus:ring-offset-2 ${profileData.custom_orders_enabled ? "bg-firm-orange" : "bg-gray-300"}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${profileData.custom_orders_enabled ? "translate-x-6" : "translate-x-1"}`} /></button>
                         </div>
-
-                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" disabled={saving} className="w-full mt-4 sm:mt-6 p-2 sm:p-3 bg-linear-to-r from-firm-pink to-firm-orange text-main rounded-xl font-montserrat font-semibold hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base"><SaveIcon color="#f9f9f9" className="w-3 h-3 sm:w-4 sm:h-4" />{saving ? "Сохранение..." : "Сохранить изменения"}</motion.button>
-                      </motion.form>
+                      </>
                     ) : (
                       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                         <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100">
@@ -1397,7 +1399,10 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                         </div>
                         <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100">
                           <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Город</p>
-                          <p className="text-sm sm:text-base font-medium flex items-center gap-2"><LocateIcon color="#D97C8E" className="w-3 h-3 sm:w-4 sm:h-4" /><span className="line-clamp-1">{profileData.city || "Не указано"}</span></p>
+                          <p className="text-sm sm:text-base font-medium flex items-center gap-2">
+                            <LocateIcon color="#D97C8E" className="w-3 h-3 sm:w-4 sm:h-4" />
+                            <span className="line-clamp-1">{profileData.city || "Не указано"}</span>
+                          </p>
                         </div>
                         <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100 md:col-span-2">
                           <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Адрес</p>
