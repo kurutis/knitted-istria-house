@@ -1206,7 +1206,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   <motion.div key="blog" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                       <h2 className="font-montserrat font-semibold text-xl sm:text-2xl bg-linear-to-r from-firm-pink to-firm-orange bg-clip-text text-transparent">Мой блог</h2>
-                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowAddPostModal(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-firm-pink text-main rounded-xl text-sm hover:shadow-lg transition"><PlusIcon className="w-4 h-4" color="#f9f9f9" />Новая запись</motion.button>
+                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowAddPostModal(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-firm-pink text-main rounded-xl text-sm hover:shadow-lg transition">Новая запись</motion.button>
                     </div>
 
                     {blogPosts.length === 0 ? (
@@ -1227,7 +1227,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   <motion.div key="master-classes" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-4 sm:space-y-5">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                       <h2 className="font-montserrat font-semibold text-xl sm:text-2xl bg-linear-to-r from-firm-pink to-firm-orange bg-clip-text text-transparent">Мои мастер-классы</h2>
-                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowAddClassModal(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-firm-orange text-main rounded-xl text-sm hover:shadow-lg transition"><PlusIcon className="w-4 h-4" color="#f9f9f9" />Создать МК</motion.button>
+                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowAddClassModal(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-linear from-firm-pink to-firm-orange text-main rounded-xl text-sm hover:shadow-lg transition">Создать мастер-класс</motion.button>
                     </div>
 
                     <div className="flex flex-wrap gap-2 mb-6">
@@ -1333,166 +1333,85 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                 )}
 
                 {activeTab === "profile" && (
-                  <motion.div
-                    key="profile"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8"
-                  >
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                      <h2 className="font-montserrat font-semibold text-xl sm:text-2xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
-                        Профиль мастера
-                      </h2>
-                      {!isEditing ? (
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => setIsEditing(true)}
-                          className="px-4 py-2 border-2 border-firm-orange text-firm-orange rounded-xl font-montserrat font-medium hover:bg-firm-orange hover:text-main transition"
-                        >
-                          <EditIcon className="w-4 h-4 inline mr-2" color="#F4A67F" />
-                          Редактировать
-                        </motion.button>
-                      ) : (
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => {
-                            setIsEditing(false);
-                            setAvatarFile(null);
-                            setAvatarPreview(null);
-                          }}
-                          className="px-4 py-2 bg-firm-gray text-main rounded-xl font-montserrat font-medium hover:bg-firm-gray transition"
-                        >
-                          Отмена
-                        </motion.button>
-                      )}
+                  <motion.div key="profile" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
+                      <h2 className="font-montserrat font-bold text-xl sm:text-2xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Профиль мастера</h2>
+                      <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
+                        {!isEditing ? (<motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setIsEditing(true)} className="flex-1 sm:flex-none px-3 sm:px-5 py-2 border-2 border-firm-orange rounded-xl font-montserrat font-medium transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm" style={{ backgroundColor: 'transparent', color: '#F4A67F' }}><EditIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#F4A67F" /><span className="hidden sm:inline">Редактировать</span><span className="sm:hidden">Ред.</span></motion.button>) : (<motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => {setIsEditing(false); setAvatarFile(null); setAvatarPreview(null) }} className="flex-1 sm:flex-none px-3 sm:px-5 py-2 bg-firm-gray text-main rounded-xl font-montserrat font-medium hover:bg-firm-gray transition-all text-xs sm:text-sm">Отмена</motion.button>)}
+                      </div>
                     </div>
 
                     {isEditing ? (
-                      <form onSubmit={handleProfileUpdate} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <motion.form initial={{ opacity: 0 }} animate={{ opacity: 1 }} onSubmit={handleProfileUpdate} className="space-y-4 sm:space-y-5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
                           <div>
-                            <label className="block text-text mb-1 font-montserrat text-sm">Имя *</label>
-                            <input
-                              type="text"
-                              name="fullname"
-                              value={profileData.fullname}
-                              onChange={handleInputChange}
-                              required
-                              className="w-full p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm"
-                            />
+                            <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">Имя <span className="text-firm-red">*</span></label>
+                            <input type="text" name="fullname" value={profileData.fullname} onChange={handleInputChange} required className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm" placeholder="Введите ваше имя" />
                           </div>
                           <div>
-                            <label className="block text-text mb-1 font-montserrat text-sm">Телефон</label>
-                            <input
-                              type="tel"
-                              name="phone"
-                              value={profileData.phone || ""}
-                              onChange={handleInputChange}
-                              className="w-full p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm"
-                            />
+                            <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">Телефон</label>
+                            <input type="tel" name="phone" value={profileData.phone || ""} onChange={handleInputChange} className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm" placeholder="+7 (999) 123-45-67" />
                           </div>
                           <div>
-                            <label className="block text-text mb-1 font-montserrat text-sm">Город</label>
-                            <input
-                              type="text"
-                              name="city"
-                              value={profileData.city || ""}
-                              onChange={handleInputChange}
-                              className="w-full p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm"
-                            />
+                            <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">Город</label>
+                            <input type="text" name="city" value={profileData.city || ""} onChange={handleInputChange}  className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm" placeholder="Москва"/>
                           </div>
                           <div>
-                            <label className="block text-text mb-1 font-montserrat text-sm">Адрес</label>
-                            <input
-                              type="text"
-                              name="address"
-                              value={profileData.address || ""}
-                              onChange={handleInputChange}
-                              className="w-full p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm"
-                            />
+                            <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">
+                              Адрес
+                            </label>
+                            <input type="text" name="address" value={profileData.address || ""} onChange={handleInputChange} className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm" placeholder="ул. Примерная, д. 1, кв. 1" />
                           </div>
                         </div>
                         <div>
-                          <label className="block text-text mb-1 font-montserrat text-sm">Описание</label>
-                          <textarea
-                            name="description"
-                            value={profileData.description || ""}
-                            onChange={handleInputChange}
-                            rows={4}
-                            className="w-full p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm resize-none"
-                          />
+                          <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">Описание</label>
+                          <textarea name="description" value={profileData.description || ""} onChange={handleInputChange} rows={4} className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm resize-none" placeholder="Расскажите о себе..." />
                         </div>
 
                         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                           <div>
                             <p className="font-montserrat font-medium text-text">Индивидуальные заказы</p>
                             <p className="text-xs text-firm-gray">Принимать заказы на индивидуальные изделия</p>
-                            {profileData.custom_orders_enabled && (
-                              <p className="text-xs text-firm-green mt-1">
-                                На странице мастера появится кнопка &quot;Обсудить заказ&quot;
-                              </p>
-                            )}
+                            {profileData.custom_orders_enabled && (<p className="text-xs text-firm-green mt-1">✓ На странице мастера появится кнопка &quot;Обсудить заказ&quot;</p>)}
                           </div>
-                          <button
-                            type="button"
-                            onClick={handleCustomOrdersToggle}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-firm-orange focus:ring-offset-2 ${
-                              profileData.custom_orders_enabled ? "bg-firm-orange" : "bg-gray-300"
-                            }`}
-                          >
-                            <span
-                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                profileData.custom_orders_enabled ? "translate-x-6" : "translate-x-1"
-                              }`}
-                            />
+                          <button type="button" onClick={handleCustomOrdersToggle} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-firm-orange focus:ring-offset-2 ${profileData.custom_orders_enabled ? "bg-firm-orange" : "bg-gray-300"}`}>
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-main transition-transform ${profileData.custom_orders_enabled ? "translate-x-6" : "translate-x-1"}`} />
                           </button>
                         </div>
 
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          type="submit"
-                          disabled={saving}
-                          className="w-full py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl font-montserrat font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50"
-                        >
-                          <SaveIcon className="w-4 h-4 inline mr-2" color="#f9f9f9" />
-                          {saving ? "Сохранение..." : "Сохранить изменения"}
-                        </motion.button>
-                      </form>
+                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" disabled={saving} className="w-full mt-4 sm:mt-6 p-2 sm:p-3 bg-linear-to-r from-firm-pink to-firm-orange text-main rounded-xl font-montserrat font-semibold hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base"><SaveIcon color="#f9f9f9" className="w-3 h-3 sm:w-4 sm:h-4" />{saving ? "Сохранение..." : "Сохранить изменения"}</motion.button>
+                      </motion.form>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-main rounded-xl p-4 border border-gray-100">
-                          <p className="text-firm-gray text-sm mb-1">Имя</p>
-                          <p className="font-medium text-text">{profileData.fullname}</p>
+                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                        <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100">
+                          <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Имя</p>
+                          <p className="text-sm sm:text-base font-medium line-clamp-1">{profileData.fullname || "Не указано"}</p>
                         </div>
-                        <div className="bg-main rounded-xl p-4 border border-gray-100">
-                          <p className="text-firm-gray text-sm mb-1">Email</p>
-                          <p className="font-medium text-text">{profileData.email}</p>
+                        <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100">
+                          <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Email</p>
+                          <p className="text-sm sm:text-base font-medium line-clamp-1">{profileData.email}</p>
                         </div>
-                        <div className="bg-main rounded-xl p-4 border border-gray-100">
-                          <p className="text-firm-gray text-sm mb-1">Телефон</p>
-                          <p className="font-medium text-text">{profileData.phone || "Не указано"}</p>
+                        <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100">
+                          <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Телефон</p>
+                          <p className="text-sm sm:text-base font-medium line-clamp-1">{profileData.phone || "Не указано"}</p>
                         </div>
-                        <div className="bg-main rounded-xl p-4 border border-gray-100">
-                          <p className="text-firm-gray text-sm mb-1">Город</p>
-                          <p className="font-medium text-text">{profileData.city || "Не указано"}</p>
+                        <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100">
+                          <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Город</p>
+                          <p className="text-sm sm:text-base font-medium flex items-center gap-2"><LocateIcon color="#D97C8E" className="w-3 h-3 sm:w-4 sm:h-4" /><span className="line-clamp-1">{profileData.city || "Не указано"}</span></p>
                         </div>
-                        <div className="bg-main rounded-xl p-4 border border-gray-100 md:col-span-2">
-                          <p className="text-firm-gray text-sm mb-1">Адрес</p>
-                          <p className="font-medium text-text">{profileData.address || "Не указано"}</p>
+                        <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100 md:col-span-2">
+                          <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Адрес</p>
+                          <p className="text-sm sm:text-base font-medium line-clamp-2">{profileData.address || "Не указано"}</p>
                         </div>
-                        <div className="bg-main rounded-xl p-4 border border-gray-100 md:col-span-2">
-                          <p className="text-firm-gray text-sm mb-1">Описание</p>
-                          <p className="font-medium text-text">{profileData.description || "Не указано"}</p>
+                        <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100 md:col-span-2">
+                          <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Описание</p>
+                          <p className="text-sm sm:text-base font-medium line-clamp-3">{profileData.description || "Не указано"}</p>
                         </div>
-                        <div className="bg-main rounded-xl p-4 border border-gray-100">
-                          <p className="text-firm-gray text-sm mb-1">Индивидуальные заказы</p>
-                          <p className="font-medium text-text">{profileData.custom_orders_enabled ? "Принимаю" : "Не принимаю"}</p>
+                        <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100">
+                          <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Индивидуальные заказы</p>
+                          <p className="text-sm sm:text-base font-medium">{profileData.custom_orders_enabled ? (<span className="text-firm-green">Принимаю</span>) : (<span className="text-firm-gray">Не принимаю</span>)}</p>
                         </div>
-                      </div>
+                      </motion.div>
                     )}
                   </motion.div>
                 )}
