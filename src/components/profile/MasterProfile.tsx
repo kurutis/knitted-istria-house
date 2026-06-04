@@ -673,8 +673,8 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                     <StarRating rating={profileData.rating} size="md" />
                     <span className="text-xs sm:text-sm font-semibold ml-1 text-text">{profileData.rating}</span>
                   </div>
-                  <p className="text-xs sm:text-sm text-text mt-1">{profileData.total_sales} продаж</p>
-                  <p className="text-xs sm:text-sm text-firm-gray mt-1">{stats.total_followers} подписчиков</p>
+                  <p className="text-xs sm:text-sm text-text mt-1">{profileData.total_sales || 0} продаж</p>
+                  <p className="text-xs sm:text-sm text-firm-gray mt-1">{stats.total_followers || 0} подписчиков</p>
                 </div>
 
                 <nav className="space-y-1 sm:space-y-2">
@@ -692,7 +692,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
               </div>
             </motion.div>
 
-            {/* Main Content */}
             <motion.div
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
