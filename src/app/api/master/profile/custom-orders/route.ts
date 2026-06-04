@@ -1,3 +1,4 @@
+// app/api/master/profile/custom-orders/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -11,41 +12,40 @@ export async function PATCH(request: Request) {
             return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
         }
 
-        if (session.user.role !== 'master') {
-            return NextResponse.json({ error: 'Доступ запрещен. Только для мастеров.' }, { status: 403 });
-        }
-
         const { custom_orders_enabled } = await request.json();
 
         if (typeof custom_orders_enabled !== 'boolean') {
             return NextResponse.json({ error: 'Некорректное значение' }, { status: 400 });
         }
 
-        console.log('Updating custom_orders_enabled to:', custom_orders_enabled);
-        console.log('User ID:', session.user.id);
-
-        const { data, error } = await supabase
+        // Прямое обновление без select, только update
+        const { error } = await supabase
             .from('masters')
             .update({ 
-                custom_orders_enabled,
+                custom_orders_enabled: custom_orders_enabled,
                 updated_at: new Date().toISOString()
             })
-            .eq('user_id', session.user.id)
-            .select('custom_orders_enabled');
+            .eq('user_id', session.user.id);
 
         if (error) {
-            console.error('Error updating custom orders status:', error);
-            return NextResponse.json({ error: 'Ошибка обновления статуса: ' + error.message }, { status: 500 });
+            console.error('Update error:', error);
+            return NextResponse.json({ error: 'Ошибка БД: ' + error.message }, { status: 500 });
         }
 
-        console.log('Update result:', data);
+        // Проверяем, что обновилось (читаем обратно)
+        const { data: check, error: checkError } = await supabase
+            .from('masters')
+            .select('custom_orders_enabled')
+            .eq('user_id', session.user.id)
+            .single();
+
+        if (checkError) {
+            console.error('Check error:', checkError);
+        }
 
         return NextResponse.json({ 
             success: true, 
-            custom_orders_enabled,
-            message: custom_orders_enabled 
-                ? 'Вы теперь принимаете индивидуальные заказы' 
-                : 'Вы больше не принимаете индивидуальные заказы'
+            custom_orders_enabled: check?.custom_orders_enabled ?? custom_orders_enabled
         });
         
     } catch (error) {
