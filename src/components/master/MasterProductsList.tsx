@@ -93,6 +93,8 @@ export default function MasterProductsList({
     const [showAddModal, setShowAddModal] = useState(false)
     const [editingProduct, setEditingProduct] = useState<Product | null>(null)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+    const [hoveredEditId, setHoveredEditId] = useState<string | null>(null)
+    const [hoveredDeleteId, setHoveredDeleteId] = useState<string | null>(null)
 
     const handleEditClick = (product: Product) => {
         setEditingProduct(product)
@@ -185,18 +187,28 @@ export default function MasterProductsList({
                                 
                                 <div className="flex gap-1.5">
                                     <button
+                                        onMouseEnter={() => setHoveredEditId(product.id)}
+                                        onMouseLeave={() => setHoveredEditId(null)}
                                         onClick={() => handleEditClick(product)}
-                                        className="p-1.5 rounded-lg bg-gray-100 hover:bg-firm-orange transition-all duration-300 group/btn"
+                                        className="p-1.5 rounded-lg bg-gray-100 hover:bg-firm-orange transition-all duration-300"
                                         title="Редактировать"
                                     >
-                                        <EditIcon className="w-3.5 h-3.5 transition-all duration-300 group-hover/btn:text-white" color="#F4A67F" />
+                                        <EditIcon 
+                                            className="w-3.5 h-3.5 transition-all duration-300" 
+                                            color={hoveredEditId === product.id ? "#f9f9f9" : "#F4A67F"} 
+                                        />
                                     </button>
                                     <button
+                                        onMouseEnter={() => setHoveredDeleteId(product.id)}
+                                        onMouseLeave={() => setHoveredDeleteId(null)}
                                         onClick={() => onDelete(product.id)}
-                                        className="p-1.5 rounded-lg bg-gray-100 hover:bg-firm-red transition-all duration-300 group/btn"
+                                        className="p-1.5 rounded-lg bg-gray-100 hover:bg-firm-red transition-all duration-300"
                                         title="Удалить"
                                     >
-                                        <DeleteIcon className="w-3.5 h-3.5 transition-all duration-300" color="#D77C7C" />
+                                        <DeleteIcon 
+                                            className="w-3.5 h-3.5 transition-all duration-300" 
+                                            color={hoveredDeleteId === product.id ? "#f9f9f9" : "#D77C7C"} 
+                                        />
                                     </button>
                                 </div>
                             </div>
