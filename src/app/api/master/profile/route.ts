@@ -238,7 +238,6 @@ export async function PUT(request: Request) {
             return NextResponse.json({ error: 'Адрес не может превышать 200 символов' }, { status: 400 });
         }
 
-        // Проверка аватара
         if (avatarFile && avatarFile.size > 0) {
             if (avatarFile.size > 5 * 1024 * 1024) {
                 return NextResponse.json({ error: 'Аватар не может превышать 5MB' }, { status: 400 });
@@ -251,7 +250,6 @@ export async function PUT(request: Request) {
         const now = new Date().toISOString();
         let avatarUrl: string | null = null;
 
-        // Обработка аватара
         if (removeAvatar) {
             const { data: oldProfile } = await supabase
                 .from('profiles')
@@ -291,7 +289,6 @@ export async function PUT(request: Request) {
             }
         }
 
-        // Обновляем профиль
         const profileUpdateData: ProfileUpdateData = {
             full_name: fullname.trim(),
             updated_at: now
@@ -314,7 +311,6 @@ export async function PUT(request: Request) {
             return NextResponse.json({ error: 'Ошибка обновления профиля: ' + profileError.message }, { status: 500 });
         }
 
-        // Обновляем данные мастера
         const masterUpdateData: MasterUpdateData = {
             updated_at: now
         };

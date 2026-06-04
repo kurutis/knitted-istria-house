@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { invalidateCache } from "@/lib/db-optimized";
 
 export async function PATCH(request: Request) {
     try {
@@ -22,15 +21,32 @@ export async function PATCH(request: Request) {
             return NextResponse.json({ error: 'Некорректное значение' }, { status: 400 });
         }
 
-        const { error } = await supabase.from('masters').update({custom_orders_enabled, updated_at: new Date().toISOString()}).eq('user_id', session.user.id);
+        console.log('Updating custom_orders_enabled to:', custom_orders_enabled);
+        console.log('User ID:', session.user.id);
+
+        const { data, error } = await supabase
+            .from('masters')
+            .update({ 
+                custom_orders_enabled,
+                updated_at: new Date().toISOString()
+            })
+            .eq('user_id', session.user.id)
+            .select('custom_orders_enabled');
 
         if (error) {
             console.error('Error updating custom orders status:', error);
-            return NextResponse.json({ error: 'Ошибка обновления статуса' }, { status: 500 });
+            return NextResponse.json({ error: 'Ошибка обновления статуса: ' + error.message }, { status: 500 });
         }
-        await invalidateCache(`master_profile_${session.user.id}`);
 
-        return NextResponse.json({success: true, custom_orders_enabled, message: custom_orders_enabled ? 'Вы теперь принимаете индивидуальные заказы' : 'Вы больше не принимаете индивидуальные заказы'});
+        console.log('Update result:', data);
+
+        return NextResponse.json({ 
+            success: true, 
+            custom_orders_enabled,
+            message: custom_orders_enabled 
+                ? 'Вы теперь принимаете индивидуальные заказы' 
+                : 'Вы больше не принимаете индивидуальные заказы'
+        });
         
     } catch (error) {
         console.error('Error:', error);

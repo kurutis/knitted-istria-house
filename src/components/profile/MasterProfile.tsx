@@ -327,7 +327,9 @@ export default function MasterProfile({ session }: MasterProfileProps) {
     try {
       setLoading(true);
 
-      const [profileRes, productRes, ordersRes, blogRes, classesRes, masterRes] = await Promise.all([fetch("/api/master/profile"), fetch("/api/master/products"), fetch("/api/master/orders"), fetch("/api/master/blog"), fetch("/api/master/master-classes"), fetch(`/api/masters/${session?.user?.id}`)]);
+       const timestamp = Date.now();
+
+      const [profileRes, productRes, ordersRes, blogRes, classesRes, masterRes] = await Promise.all([fetch("/api/master/profile"), fetch("/api/master/products"), fetch("/api/master/orders"), fetch("/api/master/blog"), fetch("/api/master/master-classes"), fetch(`/api/masters/${session?.user?.id}`), fetch(`/api/masters/${session?.user?.id}?_=${timestamp}`)]);
 
       let profileDataObj = {fullname: "", email: "", phone: "", city: "", address: "", avatarUrl: null as string | null, description: "", is_verified: false, is_partner: false, rating: 0, total_sales: 0, custom_orders_enabled: false, followers: 0};
 
@@ -524,27 +526,38 @@ export default function MasterProfile({ session }: MasterProfileProps) {
   };
 
   const handleCustomOrdersToggle = async () => {
-    const newValue = !profileData.custom_orders_enabled;
-    
-    setProfileData(prev => ({ ...prev, custom_orders_enabled: newValue }));
+  const newValue = !profileData.custom_orders_enabled;
+  
+  // Оптимистичное обновление UI
+  setProfileData(prev => ({ ...prev, custom_orders_enabled: newValue }));
 
-    try {
-      const response = await fetch("/api/master/profile/custom-orders", {method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ custom_orders_enabled: newValue })});
+  try {
+    const response = await fetch("/api/master/profile/custom-orders", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ custom_orders_enabled: newValue })
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (!response.ok) {
-        setProfileData(prev => ({ ...prev, custom_orders_enabled: !newValue }));
-        toast.error(data.error || 'Ошибка обновления статуса');
-      } else {
-        toast.success(newValue ? 'Вы теперь принимаете индивидуальные заказы' : 'Вы больше не принимаете индивидуальные заказы');
-        setProfileData(prev => ({ ...prev, custom_orders_enabled: data.custom_orders_enabled }));
-      }
-    } catch (error) {
+    if (!response.ok) {
+      // Откат при ошибке
       setProfileData(prev => ({ ...prev, custom_orders_enabled: !newValue }));
-      toast.error('Ошибка при обновлении статуса');
+      toast.error(data.error || 'Ошибка обновления статуса');
+    } else {
+      toast.success(newValue 
+        ? 'Вы теперь принимаете индивидуальные заказы' 
+        : 'Вы больше не принимаете индивидуальные заказы'
+      );
+      
+      // ✅ ВОТ ЭТО ВАЖНО - обновляем данные с сервера
+      await fetchMasterData();
     }
-  };
+  } catch (error) {
+    setProfileData(prev => ({ ...prev, custom_orders_enabled: !newValue }));
+    toast.error('Ошибка при обновлении статуса');
+  }
+};
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -1374,7 +1387,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
         <p className="text-xs text-firm-gray">Принимать заказы на индивидуальные изделия</p>
         {profileData.custom_orders_enabled && (
           <p className="text-xs text-firm-green mt-1">
-            ✓ На странице мастера появится кнопка "Обсудить заказ"
+            ✓ На странице мастера появится кнопка &quot;Обсудить заказ&quot;
           </p>
         )}
       </div>
@@ -1512,10 +1525,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
         <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100 md:col-span-2">
           <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Описание</p>
           <p className="text-sm sm:text-base font-medium line-clamp-3">{profileData.description || "Не указано"}</p>
-        </div>
-        <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100">
-          <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Индивидуальные заказы</p>
-          <p className="text-sm sm:text-base font-medium">{profileData.custom_orders_enabled ? (<span className="text-firm-green">Принимаю</span>) : (<span className="text-firm-gray">Не принимаю</span>)}</p>
         </div>
       </motion.div>
     )}
