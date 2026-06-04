@@ -102,11 +102,7 @@ export default function MasterProductsList({
     if (loading) {
         return (
             <div className="flex justify-center py-12">
-                <motion.div 
-                    animate={{ rotate: 360 }} 
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }} 
-                    className="w-8 h-8 border-2 border-firm-orange border-t-transparent rounded-full" 
-                />
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-8 h-8 border-2 border-firm-orange border-t-transparent rounded-full" />
             </div>
         )
     }
@@ -121,10 +117,7 @@ export default function MasterProductsList({
                 >
                     <Productslcon className="w-16 h-16 mx-auto text-firm-gray mb-4" />
                     <p className="text-firm-gray mb-4">У вас пока нет товаров</p>
-                    <button 
-                        onClick={() => setShowAddModal(true)} 
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300"
-                    >
+                    <button onClick={() => setShowAddModal(true)} className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300">
                         Добавить первый товар →
                     </button>
                 </motion.div>
@@ -145,7 +138,7 @@ export default function MasterProductsList({
 
     return (
         <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
                 {products.map((product, index) => (
                     <motion.div
                         key={product.id}
@@ -153,9 +146,9 @@ export default function MasterProductsList({
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.05 }}
                         whileHover={{ y: -5 }}
-                        className="bg-main rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group border border-gray-100"
+                        className="bg-main rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group border border-gray-100 flex flex-col"
                     >
-                        <Link href={`/catalog/${product.id}`} className="block relative aspect-square bg-gray-100">
+                        <Link href={`/catalog/${product.id}`} className="block relative aspect-square bg-gray-100 overflow-hidden">
                             {product.main_image_url ? (
                                 <img
                                     src={product.main_image_url}
@@ -168,52 +161,53 @@ export default function MasterProductsList({
                                 </div>
                             )}
                             
-                            <div className="absolute top-3 left-3">
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(product.status)}`}>
+                            <div className="absolute top-2 left-2">
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(product.status)}`}>
                                     {getStatusText(product.status)}
                                 </span>
                             </div>
                         </Link>
 
-                        <div className="p-4">
-                            <Link href={`/catalog/${product.id}`}>
-                                <h3 className="font-['Montserrat_Alternates'] font-semibold text-base mb-0.5 line-clamp-1 hover:text-firm-orange transition-colors text-text">
+                        <div className="p-3 flex flex-col flex-1">
+                            <Link href={`/catalog/${product.id}`} className="flex-1">
+                                <h3 className="font-['Montserrat_Alternates'] font-semibold text-sm mb-1 line-clamp-2 hover:text-firm-orange transition-colors text-text">
                                     {product.title}
                                 </h3>
                             </Link>
-                            <p className="text-xs text-firm-gray mb-2 line-clamp-1">
+                            <p className="text-[11px] text-firm-gray mb-2 line-clamp-1">
                                 {product.master_name || masterName}
                             </p>
-                            <div className="flex justify-between items-center">
-                                <span className="font-['Montserrat_Alternates'] font-bold text-lg text-firm-pink">
+                            
+                            <div className="flex items-center justify-between mt-auto">
+                                <span className="font-['Montserrat_Alternates'] font-bold text-base text-firm-pink">
                                     {product.price.toLocaleString()} ₽
                                 </span>
                                 
-                                <div className="flex gap-2">
+                                <div className="flex gap-1.5">
                                     <button
                                         onClick={() => handleEditClick(product)}
-                                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-firm-orange text-firm-orange rounded-lg hover:bg-firm-orange hover:text-white transition-all duration-300"
+                                        className="p-1.5 rounded-lg bg-gray-100 hover:bg-firm-orange hover:text-white transition-all duration-300 group/btn"
+                                        title="Редактировать"
                                     >
                                         <EditIcon className="w-3.5 h-3.5" color="#F4A67F" />
-                                        <span className="hidden sm:inline">Редактировать</span>
                                     </button>
                                     <button
                                         onClick={() => onDelete(product.id)}
-                                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-red-300 text-red-500 rounded-lg hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-300"
+                                        className="p-1.5 rounded-lg bg-gray-100 hover:bg-firm-red hover:text-white transition-all duration-300 group/btn"
+                                        title="Удалить"
                                     >
                                         <DeleteIcon className="w-3.5 h-3.5" color="#D77C7C" />
-                                        <span className="hidden sm:inline">Удалить</span>
                                     </button>
                                 </div>
                             </div>
         
-                            <div className="mt-3 pt-2 border-t border-gray-100 flex justify-between items-center text-xs text-firm-gray">
-                                <div className="flex items-center gap-1">
+                            <div className="mt-2 pt-2 border-t border-gray-100 flex justify-between items-center text-[10px] text-firm-gray">
+                                <div className="flex items-center gap-0.5">
                                     <ViewsIcon />
-                                    <span>{product.views || 0} просмотров</span>
+                                    <span>{product.views || 0}</span>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                    <CalendarIcon className="w-3 h-3" color="#737682" />
+                                <div className="flex items-center gap-0.5">
+                                    <CalendarIcon className="w-2.5 h-2.5" color="#737682" />
                                     <span>{formatDate(product.created_at)}</span>
                                 </div>
                             </div>
@@ -222,28 +216,28 @@ export default function MasterProductsList({
                 ))}
             </div>
 
-            <AddProductModal
-                isOpen={showAddModal}
-                onClose={() => setShowAddModal(false)}
+            <AddProductModal 
+                isOpen={showAddModal} 
+                onClose={() => setShowAddModal(false)} 
                 onSuccess={() => {
                     setShowAddModal(false);
                     if (onProductAdded) onProductAdded()
-                }}
-                categories={categories}
-                yarns={yarns}
+                }} 
+                categories={categories} 
+                yarns={yarns} 
             />
-
-            <EditProductModal
-                isOpen={isEditModalOpen}
+            
+            <EditProductModal 
+                isOpen={isEditModalOpen} 
                 onClose={() => {
-                    setIsEditModalOpen(false)
-                    setEditingProduct(null)
-                }}
+                    setIsEditModalOpen(false);
+                    setEditingProduct(null);
+                }} 
                 onSuccess={() => {
-                    setIsEditModalOpen(false)
-                    setEditingProduct(null)
-                    if (onProductAdded) onProductAdded()
-                }}
+                    setIsEditModalOpen(false);
+                    setEditingProduct(null);
+                    if (onProductAdded) onProductAdded();
+                }} 
                 product={editingProduct ? {
                     id: editingProduct.id,
                     title: editingProduct.title,
@@ -264,8 +258,8 @@ export default function MasterProductsList({
                     size: "",
                     care_instructions: "",
                     color: ""
-                }}
-                categories={categories}
+                }} 
+                categories={categories} 
             />
         </>
     )
