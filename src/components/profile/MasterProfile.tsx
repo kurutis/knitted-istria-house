@@ -728,31 +728,35 @@ export default function MasterProfile({ session }: MasterProfileProps) {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "new": return "text-blue-600 bg-blue-50";
-      case "confirmed": return "text-green-600 bg-green-50";
-      case "shipped": return "text-purple-600 bg-purple-50";
-      case "delivered": return "text-gray-600 bg-gray-50";
-      case "cancelled": return "text-red-600 bg-red-50";
-      case "moderation": return "text-yellow-600 bg-yellow-50";
-      case "active": return "text-green-600 bg-green-50";
-      case "published": return "text-green-600 bg-green-50";
-      case "draft": return "text-gray-600 bg-gray-50";
-      default: return "text-gray-600 bg-gray-50";
+      case "new":
+        return "bg-blue-50 text-blue-600 border-blue-200";
+      case "processing":
+        return "bg-orange-50 text-firm-orange border-orange-200";
+      case "shipped":
+        return "bg-pink-50 text-firm-pink border-pink-200";
+      case "delivered":
+        return "bg-green-50 text-firm-green border-green-200";
+      case "cancelled":
+        return "bg-red-50 text-firm-red border-red-200";
+      default:
+        return "bg-gray-50 text-firm-gray border-gray-200";
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case "new": return "Новый";
-      case "confirmed": return "Подтвержден";
-      case "shipped": return "Отправлен";
-      case "delivered": return "Доставлен";
-      case "cancelled": return "Отменен";
-      case "moderation": return "На модерации";
-      case "active": return "Активен";
-      case "published": return "Опубликован";
-      case "draft": return "Черновик";
-      default: return status;
+      case "new":
+        return "Новый";
+      case "processing":
+        return "В обработке";
+      case "shipped":
+        return "Отправлен";
+      case "delivered":
+        return "Доставлен";
+      case "cancelled":
+        return "Отменен";
+      default:
+        return status;
     }
   };
 
@@ -1007,7 +1011,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   <motion.div key="orders"  initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-main rounded-xl sm:rounded-2xl shadow-xl overflow-hidden border border-gray-100">
                     <div className="p-4 sm:p-6 border-b border-gray-100">
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl sm:text-2xl flex items-center gap-2"><CartIcon className="w-5 h-5 sm:w-6 sm:h-6" color="#242424" size={24} />Заказы на мои товары{orderStats.new > 0 && (<motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="bg-firm-red text-main text-xs px-2 py-1 rounded-full">{orderStats.new} новых</motion.span>)}</h2>
+                        <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl sm:text-2xl flex items-center gap-2">Заказы на мои товары{orderStats.new > 0 && (<motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="bg-firm-red text-main text-xs px-2 py-1 rounded-full">{orderStats.new} новых</motion.span>)}</h2>
                         <div className="flex gap-2 w-full sm:w-auto">
                           <div className="relative flex-1 sm:flex-initial">
                             <select value={orderStatusFilter} onChange={(e) => filterOrdersByStatus(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm appearance-none bg-main pr-8 focus:border-firm-orange focus:outline-none">
