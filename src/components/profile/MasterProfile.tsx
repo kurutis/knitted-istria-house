@@ -1,9 +1,7 @@
 "use client";
 
 import { signOut } from "next-auth/react";
-import { useState, useEffect } from "react";
-import Image from "next/image";
-import Link from "next/link";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast, Toaster } from "react-hot-toast";
 import ConfirmModal from "@/components/ui/ConfirmModal";
@@ -15,8 +13,8 @@ import EditProductModal from "@/components/modals/EditProductModal";
 import BlogPostCard from "@/components/blog/BlogPostCard";
 import EditPostModal from "@/components/modals/EditPostModal";
 import EditClassModal from "@/components/modals/EditClassModal";
+import { StarRating } from "@/components/ui/StarRating";
 
-// Импорт иконок
 import { DashboardIcon } from "@/components/icons/DashboardIcon";
 import { ProductsIcon } from "@/components/icons/ProductsIcon";
 import { CartIcon } from "@/components/icons/CartIcon";
@@ -37,6 +35,9 @@ import { PlusIcon } from "@/components/icons/PlusIcon";
 import { UsersIcon } from "@/components/icons/UsersIcon";
 import { MasterIcon } from "@/components/icons/MasterIcon";
 import { CatalogPinkIcon } from "@/components/icons/CatalogPinkIcon";
+import { CheckCircleIcon } from "@/components/icons/CheckCircleIcon";
+import { StarIcon } from "@/components/icons/StarIcon";
+import { ViewsIcon } from "../icons/ViewsIcon";
 
 interface MasterProfileProps {
   session: {
@@ -234,18 +235,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [masterClassFilter, setMasterClassFilter] = useState("all");
   const [showParticipantsModal, setShowParticipantsModal] = useState(false);
-  const [selectedMasterClass, setSelectedMasterClass] = useState<{
-    id: string;
-    title: string;
-    registrations?: Array<{
-      id: string;
-      user_name?: string;
-      user_email: string;
-      user_phone?: string;
-      created_at: string;
-      payment_status: string;
-    }>;
-  } | null>(null);
+  const [selectedMasterClass, setSelectedMasterClass] = useState<{id: string; title: string; registrations?: Array<{id: string; user_name?: string; user_email: string; user_phone?: string; created_at: string; payment_status: string;}>;} | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
   const [showAddProductModal, setShowAddProductModal] = useState(false);
@@ -261,43 +251,17 @@ export default function MasterProfile({ session }: MasterProfileProps) {
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [yarns, setYarns] = useState<{ id: string; name: string; brand: string }[]>([]);
 
-  const [profileData, setProfileData] = useState({
-    fullname: "",
-    email: "",
-    phone: "",
-    city: "",
-    address: "",
-    avatarUrl: null as string | null,
-    description: "",
-    is_verified: false,
-    is_partner: false,
-    rating: 0,
-    total_sales: 0,
-    custom_orders_enabled: false,
-    followers: 0,
-  });
+  const [profileData, setProfileData] = useState({fullname: "", email: "", phone: "", city: "", address: "", avatarUrl: null as string | null, description: "", is_verified: false, is_partner: false, rating: 0, total_sales: 0, custom_orders_enabled: false, followers: 0});
 
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [masterClasses, setMasterClasses] = useState<MasterClass[]>([]);
-  const [stats, setStats] = useState({
-    total_views: 0,
-    total_orders: 0,
-    total_revenue: 0,
-    total_followers: 0,
-    monthly_views: 0,
-    monthly_orders: 0,
-    monthly_revenue: 0,
-  });
+  const [stats, setStats] = useState({ total_views: 0, total_orders: 0, total_revenue: 0, total_followers: 0, monthly_views: 0, monthly_orders: 0, monthly_revenue: 0, total_products: 0});
 
-  const [confirmModal, setConfirmModal] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    onConfirm: () => void;
-    type?: 'danger' | 'warning' | 'info';
-  }>({ isOpen: false, title: '', message: '', onConfirm: () => {}, type: 'warning' });
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; type?: 'danger' | 'warning' | 'info'}>({ isOpen: false, title: '', message: '', onConfirm: () => {}, type: 'warning' });
+
+  const [orderStats, setOrderStats] = useState({new: 0, processing: 0,shipped: 0, delivered: 0, cancelled: 0, total: 0});
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -316,49 +280,14 @@ export default function MasterProfile({ session }: MasterProfileProps) {
     try {
       setLoading(true);
 
-      const [profileRes, productRes, ordersRes, blogRes, classesRes] = await Promise.all([
-        fetch("/api/master/profile"),
-        fetch("/api/master/products"),
-        fetch("/api/master/orders"),
-        fetch("/api/master/blog"),
-        fetch("/api/master/master-classes"),
-      ]);
+      const [profileRes, productRes, ordersRes, blogRes, classesRes] = await Promise.all([fetch("/api/master/profile"), fetch("/api/master/products"), fetch("/api/master/orders"), fetch("/api/master/blog"), fetch("/api/master/master-classes")]);
 
-      let profileDataObj = {
-        fullname: "",
-        email: "",
-        phone: "",
-        city: "",
-        address: "",
-        avatarUrl: null as string | null,
-        description: "",
-        is_verified: false,
-        is_partner: false,
-        rating: 0,
-        total_sales: 0,
-        custom_orders_enabled: false,
-        followers: 0,
-      };
+      let profileDataObj = { fullname: "", email: "", phone: "", city: "", address: "", avatarUrl: null as string | null, description: "", is_verified: false, is_partner: false, rating: 0, total_sales: 0, custom_orders_enabled: false, followers: 0};
 
       if (profileRes.ok) {
         const profileJson: ProfileApiResponse = await profileRes.json();
         const p = profileJson.profile;
-        profileDataObj = {
-          fullname: p.fullname || "",
-          email: p.email || "",
-          phone: p.phone || "",
-          city: p.city || "",
-          address: p.address || "",
-          avatarUrl: p.avatar_url || null,
-          description: p.description || "",
-          is_verified: p.is_verified || false,
-          is_partner: p.is_partner || false,
-          rating: p.rating || 0,
-          total_sales: p.total_sales || 0,
-          custom_orders_enabled: p.custom_orders_enabled || false,
-          followers: p.followers || 0,
-        };
-      }
+        profileDataObj = {fullname: p.fullname || "", email: p.email || "", phone: p.phone || "", city: p.city || "", address: p.address || "", avatarUrl: p.avatar_url || null, description: p.description || "", is_verified: p.is_verified || false, is_partner: p.is_partner || false, rating: p.rating || 0, total_sales: p.total_sales || 0, custom_orders_enabled: p.custom_orders_enabled || false, followers: p.followers || 0}}
       setProfileData(profileDataObj);
 
       let productsList: Product[] = [];
@@ -375,24 +304,14 @@ export default function MasterProfile({ session }: MasterProfileProps) {
       }
       setOrders(ordersList);
 
+      const orderStatsObj = {new: ordersList.filter((o: Order) => o.status === 'new').length, processing: ordersList.filter((o: Order) => o.status === 'processing').length, shipped: ordersList.filter((o: Order) => o.status === 'shipped').length, delivered: ordersList.filter((o: Order) => o.status === 'delivered').length, cancelled: ordersList.filter((o: Order) => o.status === 'cancelled').length, total: ordersList.length};
+      setOrderStats(orderStatsObj);
+
       let blogList: BlogPost[] = [];
       if (blogRes.ok) {
         const blogData = await blogRes.json();
         if (blogData.posts && Array.isArray(blogData.posts)) {
-          blogList = blogData.posts.map((post: BlogPostFromApi) => ({
-            id: post.id,
-            title: post.title,
-            status: post.status,
-            created_at: post.created_at,
-            excerpt: post.excerpt || post.content?.substring(0, 200),
-            content: post.content,
-            views_count: post.views || 0,
-            comments_count: post.stats?.comments_count || 0,
-            likes_count: post.stats?.likes_count || 0,
-            category: "",
-            tags: "",
-            main_image_url: post.main_image_url,
-          }));
+          blogList = blogData.posts.map((post: BlogPostFromApi) => ({ id: post.id, title: post.title, status: post.status, created_at: post.created_at, excerpt: post.excerpt || post.content?.substring(0, 200), content: post.content, views_count: post.views || 0, comments_count: post.stats?.comments_count || 0, likes_count: post.stats?.likes_count || 0, category: "", tags: "", main_image_url: post.main_image_url}));
         } else if (Array.isArray(blogData)) {
           blogList = blogData;
         }
@@ -415,15 +334,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
       const monthlyOrders = ordersList.filter((o: Order) => new Date(o.created_at) > thirtyDaysAgo);
       const monthlyRevenue = monthlyOrders.reduce((sum: number, o: Order) => sum + (o.total_amount || 0), 0);
 
-      setStats({
-        total_views: totalViews,
-        total_orders: ordersList.length,
-        total_revenue: totalRevenue,
-        total_followers: profileDataObj.followers,
-        monthly_views: Math.round(totalViews * 0.3),
-        monthly_orders: monthlyOrders.length,
-        monthly_revenue: monthlyRevenue,
-      });
+      setStats({total_views: totalViews, total_orders: ordersList.length, total_revenue: totalRevenue, total_followers: profileDataObj.followers, monthly_views: Math.round(totalViews * 0.3), monthly_orders: monthlyOrders.length, monthly_revenue: monthlyRevenue, total_products: productsList.length});
     } catch (error) {
       console.error("Error fetching master data:", error);
       setProducts([]);
@@ -468,14 +379,9 @@ export default function MasterProfile({ session }: MasterProfileProps) {
       formData.append("description", profileData.description || "");
       formData.append("custom_orders_enabled", String(profileData.custom_orders_enabled));
 
-      if (avatarFile) {
-        formData.append("avatar", avatarFile);
-      }
+      if (avatarFile) {formData.append("avatar", avatarFile)}
 
-      const response = await fetch("/api/master/profile", {
-        method: "PUT",
-        body: formData,
-      });
+      const response = await fetch("/api/master/profile", {method: "PUT", body: formData});
 
       if (response.ok) {
         setIsEditing(false);
@@ -503,20 +409,14 @@ export default function MasterProfile({ session }: MasterProfileProps) {
       const formData = new FormData();
       formData.append("custom_orders_enabled", String(newValue));
 
-      const response = await fetch("/api/master/profile", {
-        method: "PUT",
-        body: formData,
-      });
+      const response = await fetch("/api/master/profile", {method: "PUT", body: formData});
 
       if (!response.ok) {
         setProfileData(prev => ({ ...prev, custom_orders_enabled: !newValue }));
         const error = await response.json();
         toast.error(error.error || 'Ошибка обновления статуса');
       } else {
-        toast.success(newValue
-          ? 'Вы теперь принимаете индивидуальные заказы'
-          : 'Вы больше не принимаете индивидуальные заказы'
-        );
+        toast.success(newValue ? 'Вы теперь принимаете индивидуальные заказы' : 'Вы больше не принимаете индивидуальные заказы');
         await fetchMasterData();
       }
     } catch (error) {
@@ -535,58 +435,21 @@ export default function MasterProfile({ session }: MasterProfileProps) {
     if (file) {
       setAvatarFile(file);
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
-      };
+      reader.onloadend = () => { setAvatarPreview(reader.result as string)};
       reader.readAsDataURL(file);
     }
   };
 
-  const handleEditProduct = (product: Product) => {
-    setEditingProduct({
-      id: product.id,
-      title: product.title,
-      description: product.description || "",
-      price: product.price,
-      category: product.category || "",
-      technique: product.technique || "",
-      size: product.size || "",
-      care_instructions: product.care_instructions || "",
-      color: product.color || "",
-      main_image_url: product.main_image_url || undefined,
-      images: product.images || [],
-    });
-    setIsEditModalOpen(true);
-  };
+  const handleEditProduct = (product: Product) => {setEditingProduct({id: product.id, title: product.title, description: product.description || "", price: product.price, category: product.category || "", technique: product.technique || "", size: product.size || "", care_instructions: product.care_instructions || "", color: product.color || "", main_image_url: product.main_image_url || undefined, images: product.images || []}); setIsEditModalOpen(true)};
 
   const handleEditPost = (post: BlogPost) => {
-    setEditingPost({
-      id: post.id,
-      title: post.title,
-      content: post.content || "",
-      excerpt: post.excerpt || "",
-      category: post.category || "",
-      tags: post.tags || "",
-    });
+    setEditingPost({id: post.id, title: post.title, content: post.content || "", excerpt: post.excerpt || "", category: post.category || "", tags: post.tags || ""});
     setIsEditPostModalOpen(true);
   };
 
   const handleEditClass = (mc: MasterClass) => {
-    setEditingClass({
-      id: mc.id,
-      title: mc.title,
-      description: mc.description,
-      type: mc.type,
-      price: mc.price,
-      max_participants: mc.max_participants,
-      date_time: mc.date_time,
-      duration_minutes: mc.duration_minutes,
-      location: mc.location,
-      online_link: mc.online_link || "",
-      materials: mc.materials || "",
-      image_url: mc.image_url,
-    });
-    setIsEditClassModalOpen(true);
+    setEditingClass({id: mc.id, title: mc.title, description: mc.description, type: mc.type, price: mc.price, max_participants: mc.max_participants, date_time: mc.date_time, duration_minutes: mc.duration_minutes, location: mc.location,  online_link: mc.online_link || "", materials: mc.materials || "", image_url: mc.image_url}); 
+    setIsEditClassModalOpen(true)
   };
 
   const handleCancelMasterClass = async (classId: string) => {
@@ -683,11 +546,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
 
   const handleOrderStatusChange = async (orderId: string, newStatus: string) => {
     try {
-      const response = await fetch(`/api/master/orders/${orderId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
+      const response = await fetch(`/api/master/orders/${orderId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: newStatus })});
 
       if (response.ok) {
         setOrders((prev) =>
@@ -705,13 +564,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
     return new Date(dateString).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("ru-RU", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  };
+  const formatDate = (dateString: string) => {return new Date(dateString).toLocaleDateString("ru-RU", {day: "2-digit", month: "2-digit", year: "numeric"})};
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -743,25 +596,13 @@ export default function MasterProfile({ session }: MasterProfileProps) {
     }
   };
 
-  const navItems = [
-    { id: "dashboard", icon: <DashboardIcon className="w-5 h-5" />, label: "Панель управления", count: null },
-    { id: "products", icon: <ProductsIcon className="w-5 h-5" />, label: "Мои товары", count: products.length },
-    { id: "orders", icon: <CartIcon className="w-5 h-5" />, label: "Заказы", count: orders.filter((o) => o.status === "new").length },
-    { id: "blog", icon: <BlogIcon className="w-5 h-5" />, label: "Блог", count: blogPosts.length },
-    { id: "master-classes", icon: <ClassesIcon className="w-5 h-5" />, label: "Мастер-классы", count: masterClasses.length },
-    { id: "profile", icon: <UserIcon className="w-5 h-5" />, label: "Профиль", count: null },
-    { id: "settings", icon: <SettingsIcon className="w-5 h-5" />, label: "Настройки", count: null },
-  ];
+  const navItems = [{id: "dashboard", icon: <DashboardIcon />, label: "Панель управления", count: null }, { id: "products", icon: <ProductsIcon />, label: "Мои товары", count: products.length }, { id: "orders", icon: <CartIcon />, label: "Заказы", count: orders.filter((o) => o.status === "new").length }, { id: "blog", icon: <BlogIcon />, label: "Блог", count: blogPosts.length },  { id: "master-classes", icon: <ClassesIcon />, label: "Мастер-классы", count: masterClasses.length }, { id: "profile", icon: <UserIcon />, label: "Профиль", count: null }, { id: "settings", icon: <SettingsIcon />, label: "Настройки", count: null }];
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto"
-          />
+          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto" />
           <p className="mt-4 font-montserrat text-firm-gray text-sm sm:text-base">Загрузка профиля...</p>
         </div>
       </div>
@@ -774,70 +615,36 @@ export default function MasterProfile({ session }: MasterProfileProps) {
 
       <div className="mt-3 sm:mt-5 flex items-start justify-center py-6 sm:py-8 px-3 sm:px-4">
         <div className="flex flex-col gap-4 sm:gap-6 w-full max-w-7xl">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="bg-gradient-to-r from-firm-orange/10 to-firm-pink/10 rounded-xl sm:rounded-2xl p-4 sm:p-6"
-          >
+          <motion.div initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="bg-linear-to-r from-firm-orange/10 to-firm-pink/10 rounded-xl sm:rounded-2xl p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h1 className="font-montserrat font-bold text-2xl sm:text-3xl md:text-4xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
-                  Панель мастера
-                </h1>
-                <p className="text-firm-gray mt-1 sm:mt-2 text-xs sm:text-sm">
-                  Добро пожаловать, {profileData.fullname || session?.user?.name || "Мастер"}!
-                </p>
+                <h1 className="font-montserrat font-bold text-2xl sm:text-3xl md:text-4xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Панель мастера</h1>
+                <p className="text-firm-gray mt-1 sm:mt-2 text-xs sm:text-sm">Добро пожаловать, {profileData.fullname || session?.user?.name || "Мастер"}!</p>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {profileData.is_verified && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">
-                      <span className="w-2 h-2 bg-green-500 rounded-full" />
-                      Верифицированный мастер
-                    </span>
-                  )}
-                  {profileData.is_partner && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-firm-orange/10 text-firm-orange rounded-full text-xs">
-                      Партнер фабрики
-                    </span>
-                  )}
-                  {profileData.custom_orders_enabled && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-firm-pink/10 text-firm-pink rounded-full text-xs">
-                      Принимаю инд. заказы
-                    </span>
-                  )}
+                  {profileData.is_verified && (<span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-firm-green rounded-full text-xs"><CheckCircleIcon className="w-3 h-3" color="#94D06C" />Верифицированный мастер</span>)}
+                  {profileData.is_partner && (<span className="inline-flex items-center gap-1 px-2 py-0.5 bg-firm-orange/10 text-firm-orange rounded-full text-xs"><StarIcon className="w-3 h-3" color="#F4A67F" />Партнер фабрики</span>)}
+                  {profileData.custom_orders_enabled && (<span className="inline-flex items-center gap-1 px-2 py-0.5 bg-firm-pink/10 text-firm-pink rounded-full text-xs"><CartIcon className="w-3 h-3" color="#D97C8E" />Принимаю инд. заказы</span>)}
                 </div>
               </div>
 
-              <div className="flex gap-3 sm:gap-6 w-full sm:w-auto justify-between sm:justify-end">
-                <motion.div whileHover={{ scale: 1.05 }} className="text-center sm:text-right">
-                  <p className="text-xs sm:text-sm text-firm-gray">Просмотры</p>
-                  <p className="text-xl sm:text-3xl font-bold text-firm-orange">{stats.total_views.toLocaleString()}</p>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} className="text-center sm:text-right">
-                  <p className="text-xs sm:text-sm text-firm-gray">Заказы</p>
-                  <p className="text-xl sm:text-3xl font-bold text-firm-pink">{stats.total_orders}</p>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} className="text-center sm:text-right">
-                  <p className="text-xs sm:text-sm text-firm-gray">Выручка</p>
-                  <p className="text-xl sm:text-3xl font-bold text-firm-green">{stats.total_revenue.toLocaleString()} ₽</p>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} className="text-center sm:text-right">
-                  <p className="text-xs sm:text-sm text-firm-gray">Подписчики</p>
-                  <p className="text-xl sm:text-3xl font-bold text-firm-orange">{stats.total_followers}</p>
-                </motion.div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8">
+                {[{ label: "Новые заказы", value: orderStats.new, icon: <CartIcon className="w-6 h-6 sm:w-8 sm:h-8" color="#D97C8E" size={32} />, color: "#D97C8E", bg: "bg-pink-50" }, { label: "Всего заказов", value: orderStats.total, icon: <CartIcon className="w-6 h-6 sm:w-8 sm:h-8" color="#94D06C" size={32} />, color: "#94D06C", bg: "bg-green-50" }, { label: "Товаров", value: stats.total_products, icon: <ProductsIcon className="w-6 h-6 sm:w-8 sm:h-8" color="#F4A67F" size={32} />, color: "#F4A67F", bg: "bg-orange-50" }, { label: "Просмотров", value: stats.total_views, icon: <ViewsIcon className="w-6 h-6 sm:w-8 sm:h-8" color="#D77C7C" size={32} />, color: "#D77C7C", bg: "bg-red-50" }].map((stat, idx) => (
+                  <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.1 }} whileHover={{ y: -5 }} className={`bg-main rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-all duration-300 ${stat.bg} border border-gray-100`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-firm-gray text-xs sm:text-sm font-['Montserrat_Alternates']">{stat.label}</p>
+                        <motion.p initial={{ scale: 0.5 }} animate={{ scale: 1 }} transition={{ delay: idx * 0.1, type: "spring" }} className="text-xl sm:text-2xl md:text-3xl font-bold mt-1" style={{ color: stat.color }}>{stat.value.toLocaleString()}</motion.p>
+                      </div>
+                      <div className="opacity-80">{stat.icon}</div>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
             </div>
           </motion.div>
 
           <div className="flex flex-col md:flex-row gap-4 sm:gap-8">
-            {/* Sidebar */}
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5 }}
-              className="md:w-1/3 lg:w-1/4"
-            >
+            <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="md:w-1/3 lg:w-1/4">
               <div className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 sticky top-5 border border-gray-100">
                 <div className="flex flex-col items-center mb-4 sm:mb-6">
                   <div className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center overflow-hidden border-4 border-main shadow-lg group">
@@ -858,28 +665,12 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                       </label>
                     )}
                   </div>
-                  <h3 className="mt-3 sm:mt-4 font-montserrat font-semibold text-base sm:text-lg md:text-xl text-center line-clamp-1">
-                    {profileData.fullname || session?.user?.name}
-                  </h3>
+                  <h3 className="mt-3 sm:mt-4 font-montserrat font-semibold text-base sm:text-lg md:text-xl text-center line-clamp-1">{profileData.fullname || session?.user?.name}</h3>
                   <p className="text-xs sm:text-sm text-firm-gray text-center line-clamp-1">{profileData.email || session?.user?.email}</p>
-                  {profileData.city && (
-                    <p className="text-[10px] sm:text-xs text-firm-gray mt-1 sm:mt-2 flex items-center gap-1">
-                      <LocateIcon color="#D97C8E" className="w-2 h-2 sm:w-3 sm:h-3" />
-                      <span className="truncate">{profileData.city}</span>
-                    </p>
-                  )}
+                  {profileData.city && (<p className="text-[10px] sm:text-xs text-firm-gray mt-1 sm:mt-2 flex items-center gap-1"><LocateIcon color="#D97C8E" className="w-2 h-2 sm:w-3 sm:h-3" /><span className="truncate">{profileData.city}</span></p>)}
 
                   <div className="flex items-center gap-1 mt-2 sm:mt-3">
-                    {[...Array(5)].map((_, i) => (
-                      <svg
-                        key={i}
-                        className={`w-3 h-3 sm:w-4 sm:h-4 ${i < Math.floor(profileData.rating) ? "text-yellow-400" : "text-gray-300"}`}
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                    ))}
+                    <StarRating rating={profileData.rating} size="md" />
                     <span className="text-xs sm:text-sm font-semibold ml-1 text-text">{profileData.rating}</span>
                   </div>
                   <p className="text-xs sm:text-sm text-text mt-1">{profileData.total_sales} продаж</p>
@@ -887,33 +678,44 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                 </div>
 
                 <nav className="space-y-1 sm:space-y-2">
-                  {navItems.map((item) => (
-                    <motion.button
-                      key={item.id}
-                      whileHover={{ x: 5 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setActiveTab(item.id)}
-                      className={`w-full text-left px-3 sm:px-4 py-2 sm:py-3 rounded-xl transition-all duration-300 font-montserrat flex items-center gap-2 sm:gap-3 text-sm sm:text-base ${
-                        activeTab === item.id
-                          ? "bg-gradient-to-r from-firm-orange to-firm-pink text-main shadow-lg"
-                          : "hover:bg-gray-100 text-text"
-                      }`}
-                    >
-                      <span className={activeTab === item.id ? "text-main" : "text-firm-gray"}>
-                        {item.icon}
-                      </span>
-                      <span className="flex-1 truncate">{item.label}</span>
-                      {item.count !== null && item.count > 0 && (
-                        <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full ${
+                  {navItems.map((item) => {
+                    const IconComponent = item.icon;
+                    const iconColor = item.id === 'dashboard' ? '#F4A67F' : 
+                                      item.id === 'products' ? '#F4A67F' :
+                                      item.id === 'orders' ? '#D97C8E' :
+                                      item.id === 'blog' ? '#D97C8E' :
+                                      item.id === 'master-classes' ? '#D97C8E' :
+                                      item.id === 'profile' ? '#F4A67F' : '#737682';
+                    
+                    return (
+                      <motion.button
+                        key={item.id}
+                        whileHover={{ x: 5 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setActiveTab(item.id)}
+                        className={`w-full text-left px-3 sm:px-4 py-2 sm:py-3 rounded-xl transition-all duration-300 font-montserrat flex items-center gap-2 sm:gap-3 text-sm sm:text-base ${
                           activeTab === item.id
-                            ? "bg-main text-firm-orange"
-                            : "bg-firm-orange/20 text-firm-orange"
-                        }`}>
-                          {item.count}
-                        </span>
-                      )}
-                    </motion.button>
-                  ))}
+                            ? "bg-gradient-to-r from-firm-orange to-firm-pink text-main shadow-lg"
+                            : "hover:bg-gray-100 text-text"
+                        }`}
+                      >
+                        {React.cloneElement(IconComponent, {
+                          color: activeTab === item.id ? "#f9f9f9" : iconColor,
+                          className: "w-4 h-4 sm:w-5 sm:h-5"
+                        })}
+                        <span className="flex-1 truncate">{item.label}</span>
+                        {item.count !== null && item.count > 0 && (
+                          <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full ${
+                            activeTab === item.id
+                              ? "bg-main text-firm-orange"
+                              : "bg-firm-orange/20 text-firm-orange"
+                          }`}>
+                            {item.count}
+                          </span>
+                        )}
+                      </motion.button>
+                    );
+                  })}
 
                   <div className="border-t border-gray-200 my-2 pt-2" />
 
