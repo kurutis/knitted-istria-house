@@ -45,6 +45,8 @@ import { MailIcon } from "@/components/icons/MailIcon";
 import { TruckIcon } from "@/components/icons/TruckIcon";
 import { PackageIcon } from "@/components/icons/PackageIcon";
 import { CommentIcon } from "../icons/CommentIcon";
+import { CancelIcon } from "../icons/CancelIcon";
+import { Productslcon } from "../icons/Productslcon";
 
 interface MasterProfileProps {
   session: {
@@ -119,6 +121,7 @@ interface BlogPost {
 }
 
 interface MasterClass {
+  master_name: string;
   id: string;
   title: string;
   image_url?: string;
@@ -1203,194 +1206,120 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                   <motion.div key="blog" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                       <h2 className="font-montserrat font-semibold text-xl sm:text-2xl bg-linear-to-r from-firm-pink to-firm-orange bg-clip-text text-transparent">Мой блог</h2>
-                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowAddPostModal(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-linear-to-r from-gray-600 to-gray-700 text-main rounded-xl text-sm hover:shadow-lg transition"><PlusIcon className="w-4 h-4" color="#f9f9f9" />Новая запись</motion.button>
+                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowAddPostModal(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-firm-pink text-main rounded-xl text-sm hover:shadow-lg transition"><PlusIcon className="w-4 h-4" color="#f9f9f9" />Новая запись</motion.button>
                     </div>
 
                     {blogPosts.length === 0 ? (
                       <div className="text-center py-8 sm:py-12 bg-gray-50 rounded-xl">
                         <BlogIcon className="w-12 h-12 mx-auto text-firm-gray opacity-50" />
                         <p className="text-firm-gray mt-3 mb-4">У вас пока нет постов</p>
-                        <button onClick={() => setShowAddPostModal(true)} className="text-firm-orange hover:underline text-sm">
-                          Написать первый пост →
-                        </button>
+                        <button onClick={() => setShowAddPostModal(true)} className="text-firm-orange hover:underline text-sm">Написать первый пост →</button>
                       </div>
                     ) : (
                       <div className="space-y-5">
-                        {blogPosts.map((post) => {
-                          const normalizedPost = {
-                            id: post.id,
-                            title: post.title,
-                            content: post.content || "",
-                            excerpt: post.excerpt || "",
-                            images: [],
-                            main_image_url: post.main_image_url || undefined,
-                            created_at: post.created_at,
-                            views_count: post.views_count || 0,
-                            likes_count: post.likes_count || 0,
-                            comments_count: post.comments_count || 0,
-                            author_name: profileData.fullname,
-                            author_avatar: profileData.avatarUrl || undefined,
-                            master_id: session?.user?.id || "",
-                            master_name: profileData.fullname,
-                            master_avatar: profileData.avatarUrl || undefined,
-                            is_liked: false,
-                            comments: [],
-                          };
-                          return (
-                            <BlogPostCard
-                              key={post.id}
-                              post={normalizedPost}
-                              isOwner={true}
-                              onEdit={() => handleEditPost(post)}
-                              onDelete={() => handleBlogPostDelete(post.id)}
-                              variant="default"
-                            />
-                          );
-                        })}
+                        {blogPosts.map((post) => {const normalizedPost = {id: post.id, title: post.title, content: post.content || "", excerpt: post.excerpt || "",  images: [], main_image_url: post.main_image_url || undefined, created_at: post.created_at, views_count: post.views_count || 0, likes_count: post.likes_count || 0, comments_count: post.comments_count || 0, author_name: profileData.fullname, author_avatar: profileData.avatarUrl || undefined, master_id: session?.user?.id || "", master_name: profileData.fullname, master_avatar: profileData.avatarUrl || undefined, is_liked: false, comments: []}; return (<BlogPostCard key={post.id} post={normalizedPost} isOwner={true} onEdit={() => handleEditPost(post)} onDelete={() => handleBlogPostDelete(post.id)} variant="default" />)})}
                       </div>
                     )}
                   </motion.div>
                 )}
 
                 {activeTab === "master-classes" && (
-                  <motion.div
-                    key="master-classes"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8"
-                  >
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                      <h2 className="font-montserrat font-semibold text-xl sm:text-2xl bg-gradient-to-r from-firm-pink to-firm-orange bg-clip-text text-transparent">
-                        Мои мастер-классы
-                      </h2>
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setShowAddClassModal(true)}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-firm-pink to-purple-500 text-main rounded-xl text-sm hover:shadow-lg transition"
-                      >
-                        <PlusIcon className="w-4 h-4" color="#f9f9f9" />
-                        Создать МК
-                      </motion.button>
+                  <motion.div key="master-classes" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-4 sm:space-y-5">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                      <h2 className="font-montserrat font-semibold text-xl sm:text-2xl bg-linear-to-r from-firm-pink to-firm-orange bg-clip-text text-transparent">Мои мастер-классы</h2>
+                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowAddClassModal(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-firm-orange text-main rounded-xl text-sm hover:shadow-lg transition"><PlusIcon className="w-4 h-4" color="#f9f9f9" />Создать МК</motion.button>
                     </div>
 
                     <div className="flex flex-wrap gap-2 mb-6">
-                      {[
-                        { id: "all", label: "Все", count: masterClasses.length },
-                        { id: "published", label: "Опубликованные", count: masterClasses.filter((mc) => mc.status === "published").length },
-                        { id: "draft", label: "Черновики", count: masterClasses.filter((mc) => mc.status === "draft").length },
-                      ].map((filter) => (
-                        <button
-                          key={filter.id}
-                          onClick={() => setMasterClassFilter(filter.id)}
-                          className={`px-3 py-1.5 rounded-lg text-sm transition whitespace-nowrap ${
-                            masterClassFilter === filter.id
-                              ? "bg-gradient-to-r from-firm-orange to-firm-pink text-main shadow-md"
-                              : "border border-gray-200 hover:bg-gray-50 text-firm-gray"
-                          }`}
-                        >
-                          {filter.label} ({filter.count})
-                        </button>
-                      ))}
+                      {[{id: "all", label: "Все", count: masterClasses.length }, { id: "published", label: "Опубликованные", count: masterClasses.filter((mc) => mc.status === "published").length }, { id: "draft", label: "Черновики", count: masterClasses.filter((mc) => mc.status === "draft").length }].map((filter) => (<button key={filter.id} onClick={() => setMasterClassFilter(filter.id)} className={`px-3 py-1.5 rounded-lg text-sm transition whitespace-nowrap ${masterClassFilter === filter.id ? "bg-linear-to-r from-firm-orange to-firm-pink text-main shadow-md" : "border border-gray-200 hover:bg-gray-50 text-firm-gray" }`}>{filter.label} ({filter.count})</button>))}
                     </div>
 
                     {masterClasses.length === 0 ? (
-                      <div className="text-center py-8 sm:py-12 bg-gray-50 rounded-xl">
-                        <ClassesIcon className="w-12 h-12 mx-auto text-firm-gray opacity-50" />
+                      <div className="text-center py-12 bg-gray-50 rounded-xl">
+                        <ClassesIcon className="w-16 h-16 mx-auto text-firm-gray opacity-50" />
                         <p className="text-firm-gray mt-3 mb-4">У вас нет созданных мастер-классов</p>
-                        <button onClick={() => setShowAddClassModal(true)} className="text-firm-orange hover:underline text-sm">
-                          Создать первый мастер-класс →
-                        </button>
+                        <button onClick={() => setShowAddClassModal(true)} className="text-firm-orange hover:underline text-sm">Создать первый мастер-класс →</button>
                       </div>
                     ) : (
                       <div className="space-y-4">
                         {masterClasses
                           .filter((mc) => masterClassFilter === "all" || mc.status === masterClassFilter)
                           .map((mc, idx) => (
-                            <motion.div
-                              key={mc.id}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: idx * 0.05 }}
-                              className="border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-all"
-                            >
-                              <div className="flex flex-col sm:flex-row gap-4">
-                                {mc.image_url && (
-                                  <div className="w-24 h-24 sm:w-28 sm:h-28 shrink-0 rounded-lg overflow-hidden bg-gray-100">
+                            <motion.div key={mc.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} className="bg-main rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-100" whileHover={{ y: -4 }}>
+                              <div className="flex flex-col sm:flex-row">
+                                {mc.image_url ? (
+                                  <div className="w-full sm:w-48 h-48 sm:h-auto shrink-0 bg-gray-100">
                                     <img src={mc.image_url} alt={mc.title} className="w-full h-full object-cover" />
                                   </div>
+                                ) : (
+                                  <div className="w-full sm:w-48 h-48 sm:h-auto shrink-0 bg-linear-to-r from-firm-orange/20 to-firm-pink/20 flex items-center justify-center">
+                                    <div className="text-center">
+                                      <Productslcon className="w-8 h-8 sm:w-10 sm:h-10 mx-auto" color="#D1D5DB" />
+                                      <span className="text-xs text-firm-gray mt-1 block">Нет фото</span>
+                                    </div>
+                                  </div>
                                 )}
-                                <div className="flex-1">
+
+                                <div className="flex-1 p-3 sm:p-4">
                                   <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
-                                    <div>
-                                      <h3 className="font-montserrat font-semibold text-base sm:text-lg text-text">{mc.title}</h3>
-                                      <div className="flex flex-wrap items-center gap-2 mt-1">
-                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${
-                                          mc.type === "online" ? "bg-blue-50 text-blue-600" : "bg-green-50 text-green-600"
-                                        }`}>
-                                          {mc.type === "online" ? <OnlineIcon className="w-3 h-3" /> : <LocateIcon className="w-3 h-3" />}
-                                          {mc.type === "online" ? "Онлайн" : "Офлайн"}
-                                        </span>
-                                        <span className={`px-2 py-0.5 rounded-full text-xs ${getStatusColor(mc.status)}`}>
-                                          {getStatusText(mc.status)}
-                                        </span>
+                                    <div className="flex-1 min-w-0">
+                                      <h3 className="font-montserrat font-semibold text-base sm:text-lg line-clamp-1 text-text">{mc.title}</h3>
+                                      <div className="flex items-center gap-2 mt-2">
+                                        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white text-[10px] sm:text-xs font-bold">
+                                          {mc.master_name?.charAt(0).toUpperCase() || "М"}
+                                        </div>
+                                        <span className="text-xs sm:text-sm text-firm-gray font-medium truncate">{mc.master_name || "Мастер"}</span>
+                                      </div>
+                                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-2">
+                                        <span className={`inline-flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs ${mc.type === "online" ? "bg-firm-pink text-main" : "bg-firm-green text-main"}`}>
+                                          {mc.type === "online" ? (<OnlineIcon color="#f9f9f9" size={10} />) : (<LocateIcon color="#f9f9f9" size={10} />)}{mc.type === "online" ? "Онлайн" : "Офлайн"}</span>
+                                        <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${mc.status === "published" ? "bg-green-100 text-green-700" : mc.status === "draft" ? "bg-gray-100 text-gray-600" : "bg-yellow-100 text-yellow-700"}`}>{mc.status === "published" ? "Опубликован" : mc.status === "draft" ? "Черновик" : "На модерации"}</span>
                                       </div>
                                     </div>
-                                    <div className="text-right">
-                                      <div className="text-lg sm:text-xl font-bold text-firm-orange">{mc.price.toLocaleString()} ₽</div>
-                                      <div className="text-xs text-firm-gray">{mc.current_participants || 0}/{mc.max_participants} участников</div>
+                                    <div className="text-left sm:text-right flex sm:block items-center justify-between w-full sm:w-auto gap-2">
+                                      <div className="text-lg sm:text-xl font-bold text-firm-orange">
+                                        {mc.price.toLocaleString()} ₽
+                                      </div>
+                                      <div className="text-xs sm:text-sm text-firm-gray flex items-center gap-1 sm:justify-end">
+                                        <UserIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                                        <span>{mc.current_participants || 0}/{mc.max_participants}</span>
+                                      </div>
                                     </div>
                                   </div>
-                                  <p className="text-firm-gray text-sm mt-2 line-clamp-2">{mc.description}</p>
-                                  <div className="flex flex-wrap gap-3 mt-2 text-xs text-firm-gray">
-                                    <span className="flex items-center gap-1"><CalendarIcon className="w-3 h-3" />{formatDate(mc.date_time)}</span>
-                                    <span className="flex items-center gap-1"><ClockIcon className="w-3 h-3" />{formatTime(mc.date_time)}</span>
-                                    <span className="flex items-center gap-1"><ClockIcon className="w-3 h-3" />{mc.duration_minutes} мин</span>
-                                  </div>
-                                  <div className="mt-3 flex flex-wrap justify-end gap-2">
-                                    <motion.button
-                                      whileHover={{ scale: 1.02 }}
-                                      whileTap={{ scale: 0.98 }}
-                                      onClick={() => {
-                                        setSelectedMasterClass(mc);
-                                        setShowParticipantsModal(true);
-                                      }}
-                                      className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-firm-gray rounded-lg text-xs hover:bg-gray-200 transition"
-                                    >
-                                      <UsersIcon className="w-3 h-3" />
-                                      Участники ({mc.registrations?.length || 0})
-                                    </motion.button>
-                                    {mc.status === "published" && new Date(mc.date_time) > new Date() && (
-                                      <motion.button
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        onClick={() => handleCancelMasterClass(mc.id)}
-                                        className="px-3 py-1 border border-firm-red text-firm-red rounded-lg text-xs hover:bg-firm-red hover:text-main transition"
-                                      >
-                                        Отменить
-                                      </motion.button>
+
+                                  <p className="text-firm-gray mt-2 text-xs sm:text-sm line-clamp-2">{mc.description}</p>
+
+                                  <div className="flex flex-wrap gap-2 sm:gap-3 mt-2 sm:mt-3 text-[10px] sm:text-xs text-firm-gray">
+                                    <div className="flex items-center gap-0.5 sm:gap-1">
+                                      <CalendarIcon color="#737682" size={12} />
+                                      <span>{formatDate(mc.date_time)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-0.5 sm:gap-1">
+                                      <ClockIcon />
+                                      <span>{formatTime(mc.date_time)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-0.5 sm:gap-1">
+                                      <ClockIcon />
+                                      <span>{mc.duration_minutes} мин</span>
+                                    </div>
+                                    {mc.type === "offline" && mc.location && (
+                                      <div className="flex items-center gap-0.5 sm:gap-1 min-w-0">
+                                        <LocateIcon color="#737682" size={12} />
+                                        <span className="truncate max-w-32 sm:max-w-40">{mc.location}</span>
+                                      </div>
                                     )}
+                                  </div>
+
+                                  <div className="mt-3 flex flex-wrap justify-end gap-1.5 sm:gap-2">
+                                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => {setSelectedMasterClass(mc); setShowParticipantsModal(true)}} className="inline-flex items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-100 text-firm-gray rounded-lg text-[11px] sm:text-sm hover:bg-gray-200 transition"><UserIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Участники ({mc.registrations?.length || 0})</motion.button>
+
+                                    {mc.status === "published" && new Date(mc.date_time) > new Date() && (
+                                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => handleCancelMasterClass(mc.id)} className="inline-flex items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1 sm:py-1.5 border border-firm-red text-firm-red rounded-lg text-[11px] sm:text-sm hover:bg-firm-red hover:text-white transition"><CancelIcon />Отменить </motion.button>)}
+
                                     {mc.status === "draft" && (
                                       <>
-                                        <motion.button
-                                          whileHover={{ scale: 1.02 }}
-                                          whileTap={{ scale: 0.98 }}
-                                          onClick={() => handleEditClass(mc)}
-                                          className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-lg text-xs hover:shadow-md transition"
-                                        >
-                                          <EditIcon className="w-3 h-3" color="#f9f9f9" />
-                                          Редактировать
-                                        </motion.button>
-                                        <motion.button
-                                          whileHover={{ scale: 1.02 }}
-                                          whileTap={{ scale: 0.98 }}
-                                          onClick={() => handleDeleteMasterClass(mc.id)}
-                                          className="inline-flex items-center gap-1 px-3 py-1 bg-firm-red text-main rounded-lg text-xs hover:shadow-md transition"
-                                        >
-                                          <DeleteIcon className="w-3 h-3" color="#f9f9f9" />
-                                          Удалить
-                                        </motion.button>
+                                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => handleEditClass(mc)} className="inline-flex items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-linear-to-r from-firm-orange to-firm-pink text-white rounded-lg text-[11px] sm:text-sm hover:shadow-lg transition"><EditIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" color="#f9f9f9" />Редактировать</motion.button>
+                                        <motion.button whileHover={{ scale: 1.02 }}  whileTap={{ scale: 0.98 }} onClick={() => handleDeleteMasterClass(mc.id)} className="inline-flex items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-firm-red text-white rounded-lg text-[11px] sm:text-sm hover:shadow-md transition"><DeleteIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" color="#f9f9f9" />Удалить</motion.button>
                                       </>
                                     )}
                                   </div>
