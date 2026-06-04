@@ -58,6 +58,7 @@ interface MasterProfileProps {
 }
 
 interface Order {
+  product_title: string;
   id: string;
   order_number: string;
   status: "new" | "processing" | "shipped" | "delivered" | "cancelled";
