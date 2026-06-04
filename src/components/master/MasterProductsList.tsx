@@ -138,7 +138,7 @@ export default function MasterProductsList({
 
     return (
         <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
                 {products.map((product, index) => (
                     <motion.div
                         key={product.id}
@@ -186,17 +186,17 @@ export default function MasterProductsList({
                                 <div className="flex gap-1.5">
                                     <button
                                         onClick={() => handleEditClick(product)}
-                                        className="p-1.5 rounded-lg bg-gray-100 hover:bg-firm-orange hover:text-white transition-all duration-300 group/btn"
+                                        className="p-1.5 rounded-lg bg-gray-100 hover:bg-firm-orange transition-all duration-300 group/btn"
                                         title="Редактировать"
                                     >
-                                        <EditIcon className="w-3.5 h-3.5" color="#F4A67F" />
+                                        <EditIcon className="w-3.5 h-3.5 transition-all duration-300 group-hover/btn:text-white" color="#F4A67F" />
                                     </button>
                                     <button
                                         onClick={() => onDelete(product.id)}
-                                        className="p-1.5 rounded-lg bg-gray-100 hover:bg-firm-red hover:text-white transition-all duration-300 group/btn"
+                                        className="p-1.5 rounded-lg bg-gray-100 hover:bg-firm-red transition-all duration-300 group/btn"
                                         title="Удалить"
                                     >
-                                        <DeleteIcon className="w-3.5 h-3.5" color="#D77C7C" />
+                                        <DeleteIcon className="w-3.5 h-3.5 transition-all duration-300" color="#D77C7C" />
                                     </button>
                                 </div>
                             </div>
