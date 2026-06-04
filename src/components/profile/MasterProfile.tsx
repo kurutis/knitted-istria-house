@@ -47,6 +47,7 @@ import { PackageIcon } from "@/components/icons/PackageIcon";
 import { CommentIcon } from "../icons/CommentIcon";
 import { CancelIcon } from "../icons/CancelIcon";
 import { Productslcon } from "../icons/Productslcon";
+import { PasswordIcon } from "@/components/icons/PasswordIcon";
 
 interface MasterProfileProps {
   session: {
@@ -528,7 +529,6 @@ export default function MasterProfile({ session }: MasterProfileProps) {
   const handleCustomOrdersToggle = async () => {
   const newValue = !profileData.custom_orders_enabled;
   
-  // Оптимистичное обновление UI
   setProfileData(prev => ({ ...prev, custom_orders_enabled: newValue }));
 
   try {
@@ -541,16 +541,11 @@ export default function MasterProfile({ session }: MasterProfileProps) {
     const data = await response.json();
 
     if (!response.ok) {
-      // Откат при ошибке
       setProfileData(prev => ({ ...prev, custom_orders_enabled: !newValue }));
       toast.error(data.error || 'Ошибка обновления статуса');
     } else {
-      toast.success(newValue 
-        ? 'Вы теперь принимаете индивидуальные заказы' 
-        : 'Вы больше не принимаете индивидуальные заказы'
-      );
+      toast.success(newValue ? 'Вы теперь принимаете индивидуальные заказы' : 'Вы больше не принимаете индивидуальные заказы');
       
-      // ✅ ВОТ ЭТО ВАЖНО - обновляем данные с сервера
       await fetchMasterData();
     }
   } catch (error) {
@@ -691,11 +686,11 @@ export default function MasterProfile({ session }: MasterProfileProps) {
     };
 
     const getActionButtonText = () => {
-      if (action === "shipped") return "Подтвердить отправку";
-      if (action === "processing") return "Подтвердить заказ";
-      if (action === "delivered") return "Подтвердить доставку";
-      if (action === "cancelled") return "Отменить заказ";
-      return "Подтвердить";
+      if (action === "shipped") return "Подтвердить отправку"
+      if (action === "processing") return "Подтвердить заказ"
+      if (action === "delivered") return "Подтвердить доставку"
+      if (action === "cancelled") return "Отменить заказ"
+      return "Подтвердить"
     };
 
     return (
@@ -1337,253 +1332,107 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                 )}
 
                 {activeTab === "profile" && (
-  <motion.div
-    key="profile"
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8"
-  >
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
-      <h2 className="font-montserrat font-bold text-xl sm:text-2xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
-        Профиль мастера
-      </h2>
-      <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
-        {!isEditing ? (
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setIsEditing(true)}
-            className="flex-1 sm:flex-none px-3 sm:px-5 py-2 border-2 border-firm-orange rounded-xl font-montserrat font-medium transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
-            style={{ backgroundColor: 'transparent', color: '#F4A67F' }}
-          >
-            <EditIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#F4A67F" />
-            <span className="hidden sm:inline text-firm-orange">Редактировать</span>
-            <span className="sm:hidden text-firm-orange">Ред.</span>
-          </motion.button>
-        ) : (
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              setIsEditing(false);
-              setAvatarFile(null);
-              setAvatarPreview(null);
-              // Перезагружаем данные, чтобы отменить изменения
-              fetchMasterData();
-            }}
-            className="flex-1 sm:flex-none px-3 sm:px-5 py-2 bg-firm-gray text-main rounded-xl font-montserrat font-medium hover:bg-firm-gray transition-all text-xs sm:text-sm"
-          >
-            Отмена
-          </motion.button>
-        )}
-      </div>
-    </div>
+                  <motion.div key="profile" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
+                      <h2 className="font-montserrat font-bold text-xl sm:text-2xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Профиль мастера</h2>
+                      <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
+                        {!isEditing ? (<motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setIsEditing(true)} className="flex-1 sm:flex-none px-3 sm:px-5 py-2 border-2 border-firm-orange rounded-xl font-montserrat font-medium transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm" style={{ backgroundColor: 'transparent', color: '#F4A67F' }}><EditIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#F4A67F" /><span className="hidden sm:inline text-firm-orange">Редактировать</span><span className="sm:hidden text-firm-orange">Ред.</span> </motion.button>) : (<motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}  onClick={() => {setIsEditing(false); setAvatarFile(null); setAvatarPreview(null); fetchMasterData();}}className="flex-1 sm:flex-none px-3 sm:px-5 py-2 bg-firm-gray text-main rounded-xl font-montserrat font-medium hover:bg-firm-gray transition-all text-xs sm:text-sm">Отмена</motion.button>)}
+                      </div>
+                    </div>
 
-    {/* Тумблер для индивидуальных заказов - ВСЕГДА ВИДИМ, НЕ ЗАВИСИТ ОТ РЕЖИМА РЕДАКТИРОВАНИЯ */}
-    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl mb-6">
-      <div>
-        <p className="font-montserrat font-medium text-text">Индивидуальные заказы</p>
-        <p className="text-xs text-firm-gray">Принимать заказы на индивидуальные изделия</p>
-        {profileData.custom_orders_enabled && (
-          <p className="text-xs text-firm-green mt-1">
-            ✓ На странице мастера появится кнопка &quot;Обсудить заказ&quot;
-          </p>
-        )}
-      </div>
-      <button
-        type="button"
-        onClick={handleCustomOrdersToggle}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-firm-orange focus:ring-offset-2 ${
-          profileData.custom_orders_enabled ? "bg-firm-orange" : "bg-gray-300"
-        }`}
-      >
-        <span
-          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-            profileData.custom_orders_enabled ? "translate-x-6" : "translate-x-1"
-          }`}
-        />
-      </button>
-    </div>
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl mb-6">
+                      <div>
+                        <p className="font-montserrat font-medium text-text">Индивидуальные заказы</p>
+                        <p className="text-xs text-firm-gray">Принимать заказы на индивидуальные изделия</p>
+                        {profileData.custom_orders_enabled && (<p className="text-xs text-firm-green mt-1">✓ На странице мастера появится кнопка &quot;Обсудить заказ&quot;</p>)}
+                      </div>
+                      <button type="button" onClick={handleCustomOrdersToggle} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-firm-orange focus:ring-offset-2 ${profileData.custom_orders_enabled ? "bg-firm-orange" : "bg-gray-300"}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${profileData.custom_orders_enabled ? "translate-x-6" : "translate-x-1"}`} /></button>
+                    </div>
 
-    {isEditing ? (
-      <motion.form
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        onSubmit={handleProfileUpdate}
-        className="space-y-4 sm:space-y-5"
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-          <div>
-            <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">
-              Имя <span className="text-firm-red">*</span>
-            </label>
-            <input
-              type="text"
-              name="fullname"
-              value={profileData.fullname}
-              onChange={handleInputChange}
-              required
-              className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm"
-              placeholder="Введите ваше имя"
-            />
-          </div>
-          <div>
-            <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">
-              Телефон
-            </label>
-            <input
-              type="tel"
-              name="phone"
-              value={profileData.phone || ""}
-              onChange={handleInputChange}
-              className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm"
-              placeholder="+7 (999) 123-45-67"
-            />
-          </div>
-          <div>
-            <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">
-              Город
-            </label>
-            <input
-              type="text"
-              name="city"
-              value={profileData.city || ""}
-              onChange={handleInputChange}
-              className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm"
-              placeholder="Москва"
-            />
-          </div>
-          <div>
-            <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">
-              Адрес
-            </label>
-            <input
-              type="text"
-              name="address"
-              value={profileData.address || ""}
-              onChange={handleInputChange}
-              className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm"
-              placeholder="ул. Примерная, д. 1, кв. 1"
-            />
-          </div>
-        </div>
-        <div>
-          <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">
-            Описание
-          </label>
-          <textarea
-            name="description"
-            value={profileData.description || ""}
-            onChange={handleInputChange}
-            rows={4}
-            className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm resize-none"
-            placeholder="Расскажите о себе..."
-          />
-        </div>
+                    {isEditing ? (
+                      <motion.form initial={{ opacity: 0 }} animate={{ opacity: 1 }} onSubmit={handleProfileUpdate} className="space-y-4 sm:space-y-5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                          <div>
+                            <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">Имя <span className="text-firm-red">*</span></label>
+                            <input type="text" name="fullname" value={profileData.fullname} onChange={handleInputChange} required className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm" placeholder="Введите ваше имя" />
+                          </div>
+                          <div>
+                            <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">Телефон</label>
+                            <input type="tel" name="phone" value={profileData.phone || ""} onChange={handleInputChange} className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm" placeholder="+7 (999) 123-45-67" />
+                          </div>
+                          <div>
+                            <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">Город</label>
+                            <input type="text" name="city" value={profileData.city || ""} onChange={handleInputChange} className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm" placeholder="Москва" />
+                          </div>
+                          <div>
+                            <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">Адрес</label>
+                            <input type="text" name="address" value={profileData.address || ""} onChange={handleInputChange} className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm" placeholder="ул. Примерная, д. 1, кв. 1" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-text mb-1 sm:mb-2 font-montserrat text-xs sm:text-sm font-medium">Описание</label>
+                          <textarea name="description" value={profileData.description || ""} onChange={handleInputChange} rows={4} className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm resize-none" placeholder="Расскажите о себе..." />
+                        </div>
 
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          type="submit"
-          disabled={saving}
-          className="w-full mt-4 sm:mt-6 p-2 sm:p-3 bg-gradient-to-r from-firm-pink to-firm-orange text-main rounded-xl font-montserrat font-semibold hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base"
-        >
-          <SaveIcon color="#f9f9f9" className="w-3 h-3 sm:w-4 sm:h-4" />
-          {saving ? "Сохранение..." : "Сохранить изменения"}
-        </motion.button>
-      </motion.form>
-    ) : (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6"
-      >
-        <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100">
-          <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Имя</p>
-          <p className="text-sm sm:text-base font-medium line-clamp-1">{profileData.fullname || "Не указано"}</p>
-        </div>
-        <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100">
-          <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Email</p>
-          <p className="text-sm sm:text-base font-medium line-clamp-1">{profileData.email}</p>
-        </div>
-        <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100">
-          <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Телефон</p>
-          <p className="text-sm sm:text-base font-medium line-clamp-1">{profileData.phone || "Не указано"}</p>
-        </div>
-        <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100">
-          <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Город</p>
-          <p className="text-sm sm:text-base font-medium flex items-center gap-2">
-            <LocateIcon color="#D97C8E" className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="line-clamp-1">{profileData.city || "Не указано"}</span>
-          </p>
-        </div>
-        <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100 md:col-span-2">
-          <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Адрес</p>
-          <p className="text-sm sm:text-base font-medium line-clamp-2">{profileData.address || "Не указано"}</p>
-        </div>
-        <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100 md:col-span-2">
-          <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Описание</p>
-          <p className="text-sm sm:text-base font-medium line-clamp-3">{profileData.description || "Не указано"}</p>
-        </div>
-      </motion.div>
-    )}
-  </motion.div>
-)}
+                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" disabled={saving} className="w-full mt-4 sm:mt-6 p-2 sm:p-3 bg-linear-to-r from-firm-pink to-firm-orange text-main rounded-xl font-montserrat font-semibold hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base"><SaveIcon color="#f9f9f9" className="w-3 h-3 sm:w-4 sm:h-4" />{saving ? "Сохранение..." : "Сохранить изменения"}</motion.button>
+                      </motion.form>
+                    ) : (
+                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                        <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100">
+                          <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Имя</p>
+                          <p className="text-sm sm:text-base font-medium line-clamp-1">{profileData.fullname || "Не указано"}</p>
+                        </div>
+                        <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100">
+                          <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Email</p>
+                          <p className="text-sm sm:text-base font-medium line-clamp-1">{profileData.email}</p>
+                        </div>
+                        <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100">
+                          <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Телефон</p>
+                          <p className="text-sm sm:text-base font-medium line-clamp-1">{profileData.phone || "Не указано"}</p>
+                        </div>
+                        <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100">
+                          <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Город</p>
+                          <p className="text-sm sm:text-base font-medium flex items-center gap-2"><LocateIcon color="#D97C8E" className="w-3 h-3 sm:w-4 sm:h-4" /><span className="line-clamp-1">{profileData.city || "Не указано"}</span></p>
+                        </div>
+                        <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100 md:col-span-2">
+                          <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Адрес</p>
+                          <p className="text-sm sm:text-base font-medium line-clamp-2">{profileData.address || "Не указано"}</p>
+                        </div>
+                        <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow border border-gray-100 md:col-span-2">
+                          <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Описание</p>
+                          <p className="text-sm sm:text-base font-medium line-clamp-3">{profileData.description || "Не указано"}</p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </motion.div>
+                )}
 
                 {activeTab === "settings" && (
-                  <motion.div
-                    key="settings"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8"
-                  >
-                    <h2 className="font-montserrat font-semibold text-xl sm:text-2xl mb-6 flex items-center gap-2">
-                      <SettingsIcon className="w-5 h-5" />
-                      Настройки
-                    </h2>
+                  <motion.div key="settings" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
+                    <h2 className="font-montserrat font-semibold text-xl sm:text-2xl mb-6 flex items-center gap-2"><SettingsIcon className="w-5 h-5" />Настройки</h2>
 
                     <div className="mb-8">
-                      <h3 className="font-montserrat font-semibold text-base sm:text-lg mb-4">Смена пароля</h3>
-                      <form className="space-y-4 max-w-md">
-                        <input
-                          type="password"
-                          placeholder="Текущий пароль"
-                          className="w-full p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm"
-                        />
-                        <input
-                          type="password"
-                          placeholder="Новый пароль"
-                          className="w-full p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm"
-                        />
-                        <input
-                          type="password"
-                          placeholder="Подтверждение"
-                          className="w-full p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm"
-                        />
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="px-6 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl text-sm font-montserrat font-medium hover:shadow-lg transition"
-                        >
-                          Изменить пароль
-                        </motion.button>
+                      <h3 className="font-montserrat font-semibold text-base sm:text-lg mb-4 flex items-center gap-2"><PasswordIcon color="#D97C8E" className="w-4 h-4 sm:w-5 sm:h-5" />Смена пароля</h3>
+                      <form className="space-y-3 sm:space-y-4 max-w-md">
+                        <div>
+                          <label className="block text-text mb-1 sm:mb-2 text-xs sm:text-sm font-medium">Текущий пароль</label>
+                          <input type="password" placeholder="••••••••" className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm" />
+                        </div>
+                        <div>
+                          <label className="block text-text mb-1 sm:mb-2 text-xs sm:text-sm font-medium">Новый пароль</label>
+                          <input type="password" placeholder="не менее 6 символов" className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm" />
+                        </div>
+                        <div>
+                          <label className="block text-text mb-1 sm:mb-2 text-xs sm:text-sm font-medium">Подтверждение</label>
+                          <input type="password" placeholder="повторите пароль" className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm" />
+                        </div>
+                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="px-4 sm:px-6 py-1.5 sm:py-2 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl font-montserrat font-medium hover:shadow-lg transition-all text-sm sm:text-base">Изменить пароль</motion.button>
                       </form>
                     </div>
 
                     <div className="border-t border-gray-200 pt-6">
-                      <h3 className="font-montserrat font-semibold text-base sm:text-lg mb-3 text-firm-red flex items-center gap-2">
-                        <DeleteIcon className="w-5 h-5" color="#D77C7C" />
-                        Опасная зона
-                      </h3>
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="px-4 py-2 border-2 border-firm-red text-firm-red rounded-lg text-sm hover:bg-firm-red hover:text-main transition"
-                      >
-                        Удалить аккаунт
-                      </motion.button>
+                      <h3 className="font-montserrat font-semibold text-base sm:text-lg mb-3 text-firm-red flex items-center gap-2"><DeleteIcon className="w-4 h-4 sm:w-5 sm:h-5" color="#D77C7C" />Опасная зона </h3>
+                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="px-4 py-2 border-2 border-firm-red text-firm-red rounded-lg text-sm hover:bg-firm-red hover:text-main transition">Удалить аккаунт</motion.button>
                     </div>
                   </motion.div>
                 )}
@@ -1593,82 +1442,20 @@ export default function MasterProfile({ session }: MasterProfileProps) {
         </div>
       </div>
 
-      {/* Модальные окна */}
-      <AddProductModal
-        isOpen={showAddProductModal}
-        onClose={() => setShowAddProductModal(false)}
-        onSuccess={fetchMasterData}
-        categories={categories}
-        yarns={yarns}
-      />
+      <AddProductModal isOpen={showAddProductModal} onClose={() => setShowAddProductModal(false)} onSuccess={fetchMasterData} categories={categories} yarns={yarns} />
+      <AddPostModal isOpen={showAddPostModal} onClose={() => setShowAddPostModal(false)} onSuccess={fetchMasterData} session={session} />
+      <AddClassModal isOpen={showAddClassModal} onClose={() => setShowAddClassModal(false)} onSuccess={fetchMasterData} />
+      <EditProductModal isOpen={isEditModalOpen} onClose={() => {setIsEditModalOpen(false); setEditingProduct(null);}} onSuccess={fetchMasterData} product={editingProduct!} categories={categories} />
+      <EditPostModal isOpen={isEditPostModalOpen} onClose={() => {setIsEditPostModalOpen(false); setEditingPost(null);}}  onSuccess={fetchMasterData} post={editingPost!} />
+      <EditClassModal isOpen={isEditClassModalOpen} onClose={() => {setIsEditClassModalOpen(false); setEditingClass(null);}}  onSuccess={fetchMasterData} masterClass={editingClass!} />
 
-      <AddPostModal
-        isOpen={showAddPostModal}
-        onClose={() => setShowAddPostModal(false)}
-        onSuccess={fetchMasterData}
-        session={session}
-      />
-
-      <AddClassModal
-        isOpen={showAddClassModal}
-        onClose={() => setShowAddClassModal(false)}
-        onSuccess={fetchMasterData}
-      />
-
-      <EditProductModal
-        isOpen={isEditModalOpen}
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setEditingProduct(null);
-        }}
-        onSuccess={fetchMasterData}
-        product={editingProduct!}
-        categories={categories}
-      />
-
-      <EditPostModal
-        isOpen={isEditPostModalOpen}
-        onClose={() => {
-          setIsEditPostModalOpen(false);
-          setEditingPost(null);
-        }}
-        onSuccess={fetchMasterData}
-        post={editingPost!}
-      />
-
-      <EditClassModal
-        isOpen={isEditClassModalOpen}
-        onClose={() => {
-          setIsEditClassModalOpen(false);
-          setEditingClass(null);
-        }}
-        onSuccess={fetchMasterData}
-        masterClass={editingClass!}
-      />
-
-      {/* Модалка участников */}
       <AnimatePresence>
         {showParticipantsModal && selectedMasterClass && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowParticipantsModal(false)}>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-main rounded-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-main rounded-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()} >
               <div className="sticky top-0 bg-main border-b border-gray-200 p-4 flex justify-between items-center">
-                <h2 className="font-montserrat font-semibold text-xl text-text">
-                  Участники: {selectedMasterClass.title}
-                </h2>
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowParticipantsModal(false)}
-                  className="p-1 rounded-lg hover:bg-gray-100 transition"
-                >
-                  <CloseIcon className="w-5 h-5" color="#737682" />
-                </motion.button>
+                <h2 className="font-montserrat font-semibold text-xl text-text">Участники: {selectedMasterClass.title}</h2>
+                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => setShowParticipantsModal(false)} className="p-1 rounded-lg hover:bg-gray-100 transition"><CloseIcon className="w-5 h-5" color="#737682" /></motion.button>
               </div>
               <div className="p-4 space-y-3">
                 {!selectedMasterClass.registrations?.length ? (
@@ -1687,9 +1474,7 @@ export default function MasterProfile({ session }: MasterProfileProps) {
                         </div>
                         <div className="text-right">
                           <p className="text-xs text-firm-gray">Записан: {formatDate(reg.created_at)}</p>
-                          <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full ${
-                            reg.payment_status === "paid" ? "bg-green-100 text-green-600" : "bg-yellow-100 text-yellow-600"
-                          }`}>
+                          <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full ${reg.payment_status === "paid" ? "bg-green-100 text-green-600" : "bg-yellow-100 text-yellow-600"}`}>
                             {reg.payment_status === "paid" ? "Оплачено" : "Ожидает оплаты"}
                           </span>
                         </div>
@@ -1708,48 +1493,16 @@ export default function MasterProfile({ session }: MasterProfileProps) {
         <AnimatePresence>
           {showTrackingModal && (
             <div className="fixed inset-0 bg-main-black/50 flex items-center justify-center z-50 p-4">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-main rounded-2xl max-w-md w-full p-6 shadow-2xl"
-              >
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-main rounded-2xl max-w-md w-full p-6 shadow-2xl" >
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-xl font-semibold font-['Montserrat_Alternates']">Отправка заказа</h3>
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowTrackingModal(null)}
-                    className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <CloseIcon className="w-5 h-5 text-firm-gray" color="#737682" size={20} />
-                  </motion.button>
+                  <motion.button whileHover={{ scale: 1.1 }}  whileTap={{ scale: 0.95 }} onClick={() => setShowTrackingModal(null)} className="p-1 hover:bg-gray-100 rounded-lg transition-colors"><CloseIcon className="w-5 h-5 text-firm-gray" color="#737682" size={20} /></motion.button>
                 </div>
                 <p className="text-firm-gray mb-4">Укажите трек-номер для отслеживания посылки</p>
-                <input
-                  type="text"
-                  value={trackingNumber[showTrackingModal] || ""}
-                  onChange={(e) => setTrackingNumber((prev) => ({ ...prev, [showTrackingModal]: e.target.value }))}
-                  placeholder="Введите трек-номер"
-                  className="w-full p-3 border border-gray-200 rounded-xl mb-4 focus:border-firm-orange focus:outline-none text-sm"
-                />
+                <input type="text" value={trackingNumber[showTrackingModal] || ""} onChange={(e) => setTrackingNumber((prev) => ({ ...prev, [showTrackingModal]: e.target.value }))} placeholder="Введите трек-номер"  className="w-full p-3 border border-gray-200 rounded-xl mb-4 focus:border-firm-orange focus:outline-none text-sm" />
                 <div className="flex gap-3">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => updateOrderStatus(showTrackingModal, "shipped", trackingNumber[showTrackingModal])}
-                    className="flex-1 px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition text-sm font-medium"
-                  >
-                    Подтвердить отправку
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setShowTrackingModal(null)}
-                    className="flex-1 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition text-sm"
-                  >
-                    Отмена
-                  </motion.button>
+                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => updateOrderStatus(showTrackingModal, "shipped", trackingNumber[showTrackingModal])} className="flex-1 px-4 py-2 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition text-sm font-medium">Подтвердить отправку</motion.button>
+                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowTrackingModal(null)} className="flex-1 px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition text-sm">Отмена</motion.button>
                 </div>
               </motion.div>
             </div>
