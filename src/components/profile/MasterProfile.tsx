@@ -58,6 +58,16 @@ interface Order {
   product_title: string;
   buyer_name: string;
   total_amount: number;
+  items?: OrderItem[];
+}
+
+interface OrderItem {
+  id: number;
+  product_id: string;
+  product_title: string;
+  quantity: number;
+  price: number;
+  total: number;
 }
 
 interface BlogPost {
