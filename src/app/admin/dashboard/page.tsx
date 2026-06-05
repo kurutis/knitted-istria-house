@@ -4,34 +4,42 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import AddYarnModal from "@/components/admin/AddYarnModal";
 import CreateUserModal from "@/components/admin/CreateUserModal";
 
-// Импорт иконок из библиотеки
+// Иконки из вашей библиотеки
 import { UserIcon } from "@/components/icons/UserIcon";
 import { ProductsIcon } from "@/components/icons/ProductsIcon";
 import { CartIcon } from "@/components/icons/CartIcon";
 import { DashboardIcon } from "@/components/icons/DashboardIcon";
 import { PlusIcon } from "@/components/icons/PlusIcon";
 import { RefreshIcon } from "@/components/icons/RefreshIcon";
-import { CloseIcon } from "@/components/icons/CloseIcon";
 import { ClockIcon } from "@/components/icons/ClockIcon";
+import { CheckCircleIcon } from "@/components/icons/CheckCircleIcon";
+import { TruckIcon } from "@/components/icons/TruckIcon";
+import { PackageIcon } from "@/components/icons/PackageIcon";
+import { ShoppingCartIcon } from "@/components/icons/ShoppingCartIcon";
 
-// Временные иконки для трендов (нужно создать, если нет)
+// Временные иконки (создайте их в библиотеке позже)
 const TrendingUpIcon = ({ className, color }: { className?: string; color?: string }) => (
     <svg className={className} fill="none" stroke={color} viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
     </svg>
 );
-
 const TrendingDownIcon = ({ className, color }: { className?: string; color?: string }) => (
     <svg className={className} fill="none" stroke={color} viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
     </svg>
 );
+const UserPlusIcon = ({ className, color }: { className?: string; color?: string }) => (
+    <svg className={className} fill="none" stroke={color} viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+    </svg>
+);
 
+// Интерфейсы
 interface DashboardStats {
     totalUsers: number;
     totalMasters: number;
@@ -40,40 +48,11 @@ interface DashboardStats {
     totalRevenue: number;
     monthlyRevenue: number;
     monthlyOrders: number;
-    pendingModeration: {
-        masters: number;
-        products: number;
-    };
-    recentUsers: Array<{
-        id: string;
-        name?: string;
-        email: string;
-        role: string;
-        role_code: string;
-        created_at: string;
-        phone?: string | null;
-        avatar?: string | null;
-        city?: string | null;
-    }>;
-    recentOrders: Array<{
-        id: string;
-        order_number: string;
-        total_amount: number;
-        status: string;
-        status_code?: string;
-        created_at: string;
-        buyer_name?: string;
-        buyer_email?: string;
-    }>;
-    topCategories: Array<{
-        name: string;
-        count: number;
-    }>;
-    trends: {
-        users: number;
-        orders: number;
-        revenue: number;
-    };
+    pendingModeration: { masters: number; products: number };
+    recentUsers: Array<{ id: string; name?: string; email: string; role: string; created_at: string }>;
+    recentOrders: Array<{ id: string; order_number: string; total_amount: number; status: string; created_at: string; buyer_name?: string }>;
+    topCategories: Array<{ name: string; count: number }>;
+    trends: { users: number; orders: number; revenue: number };
     lastUpdated: string;
 }
 
@@ -89,6 +68,11 @@ const OrderStatusBadge = ({ status }: { status: string }) => {
             default: return "bg-gray-50 text-gray-600 border-gray-200";
         }
     };
+    const getStatusIcon = () => {
+        if (status === "shipped") return <TruckIcon className="w-3 h-3" color="#8B5CF6" />;
+        if (status === "delivered") return <CheckCircleIcon className="w-3 h-3" color="#22C55E" />;
+        return null;
+    };
     const getStatusText = () => {
         switch (status) {
             case "new": return "Новый";
@@ -100,7 +84,8 @@ const OrderStatusBadge = ({ status }: { status: string }) => {
         }
     };
     return (
-        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor()}`}>
+        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor()}`}>
+            {getStatusIcon()}
             {getStatusText()}
         </span>
     );
@@ -178,15 +163,8 @@ export default function AdminDashboardPage() {
         return date.toLocaleDateString("ru-RU");
     };
 
-    const fadeInUp = {
-        initial: { opacity: 0, y: 20 },
-        animate: { opacity: 1, y: 0 },
-        transition: { duration: 0.5 },
-    };
-
-    const staggerContainer = {
-        animate: { transition: { staggerChildren: 0.1 } },
-    };
+    const fadeInUp = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.5 } };
+    const staggerContainer = { animate: { transition: { staggerChildren: 0.1 } } };
 
     if (loading) {
         return (
@@ -197,9 +175,7 @@ export default function AdminDashboardPage() {
                         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                         className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto"
                     />
-                    <p className="mt-4 font-montserrat text-firm-gray text-sm sm:text-base">
-                        Загрузка панели управления...
-                    </p>
+                    <p className="mt-4 font-montserrat text-firm-gray text-sm sm:text-base">Загрузка панели управления...</p>
                 </div>
             </div>
         );
@@ -228,14 +204,14 @@ export default function AdminDashboardPage() {
         { label: "Пользователи", value: stats.totalUsers, icon: <UserIcon className="w-6 h-6 sm:w-8 sm:h-8" />, color: "#3B82F6", bg: "bg-blue-50", trend: stats.trends?.users ?? 0, link: "/admin/users" },
         { label: "Мастера", value: stats.totalMasters, icon: <DashboardIcon className="w-6 h-6 sm:w-8 sm:h-8" />, color: "#D97C8E", bg: "bg-pink-50", trend: 0, link: "/admin/moderation/masters" },
         { label: "Товары", value: stats.totalProducts, icon: <ProductsIcon className="w-6 h-6 sm:w-8 sm:h-8" />, color: "#F4A67F", bg: "bg-orange-50", trend: 0, link: "/admin/moderation/products" },
-        { label: "Заказы", value: stats.totalOrders, icon: <CartIcon className="w-6 h-6 sm:w-8 sm:h-8" />, color: "#94D06C", bg: "bg-green-50", trend: stats.trends?.orders ?? 0, link: "/admin/dashboard" },
+        { label: "Заказы", value: stats.totalOrders, icon: <ShoppingCartIcon className="w-6 h-6 sm:w-8 sm:h-8" />, color: "#94D06C", bg: "bg-green-50", trend: stats.trends?.orders ?? 0, link: "/admin/dashboard" },
     ];
 
     return (
         <>
             <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-                    {/* Заголовок */}
+                    {/* Заголовок и кнопка обновления */}
                     <motion.div
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -413,7 +389,7 @@ export default function AdminDashboardPage() {
                                 onClick={() => setShowUserModal(true)}
                                 className="inline-flex items-center gap-2 px-4 py-2 border-2 border-firm-pink text-firm-pink rounded-xl text-sm hover:bg-firm-pink hover:text-white transition-all duration-300"
                             >
-                                <PlusIcon className="w-4 h-4" color="#D97C8E" />
+                                <UserPlusIcon className="w-4 h-4" color="#D97C8E" />
                                 Создать пользователя
                             </motion.button>
                         </div>
