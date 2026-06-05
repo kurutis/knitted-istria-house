@@ -7,6 +7,19 @@ import { motion, AnimatePresence } from "framer-motion"
 import toast from "react-hot-toast"
 import ConfirmModal from "@/components/ui/ConfirmModal"
 import PromptModal from "@/components/ui/PromptModal"
+import { UserIcon } from "@/components/icons/UserIcon"
+import { MailIcon } from "@/components/icons/MailIcon"
+import { CalendarIcon } from "@/components/icons/CalendarIcon"
+import { TagIcon } from "@/components/icons/TagIcon"
+import { ClockIcon } from "@/components/icons/ClockIcon"
+import { CheckIcon } from "@/components/icons/CheckIcon"
+import { EditIcon } from "@/components/icons/EditIcon"
+import { CloseIcon } from "@/components/icons/CloseIcon"
+import { ViewsIcon } from "@/components/icons/ViewsIcon"
+import { RefreshIcon } from "@/components/icons/RefreshIcon"
+import { LikeIcon } from "@/components/icons/LikeIcon"
+import { CommentIcon } from "@/components/icons/CommentIcon"
+import { BlogIcon } from "@/components/icons/BlogIcon"
 
 interface BlogImage {
     id: string
@@ -45,7 +58,6 @@ export default function AdminModerationBlogPage() {
     const [showModal, setShowModal] = useState(false)
     const [filter, setFilter] = useState<'all' | 'moderation' | 'draft' | 'published' | 'blocked'>('all')
     
-    // Состояния для модальных окон
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean;
         title: string;
@@ -189,32 +201,28 @@ export default function AdminModerationBlogPage() {
         setShowModal(true)
     }
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString)
-        const now = new Date()
-        const diff = Math.floor((now.getTime() - date.getTime()) / 1000 / 60 / 60)
-
-        if (diff < 1) return "только что"
-        if (diff < 24) return `${diff} ч назад`
-        return date.toLocaleDateString("ru-RU", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        })
-    }
-
     const getStatusBadge = (status: string) => {
         switch(status) {
             case 'moderation':
-                return <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">⏳ На модерации</span>
+                return <span className="px-2 py-1 bg-firm-orange/20 text-firm-orange rounded-full text-xs font-medium flex items-center gap-1">
+                    <ClockIcon size={12} color="#F4A67F" />
+                    На модерации
+                </span>
             case 'draft':
-                return <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">📝 На доработке</span>
+                return <span className="px-2 py-1 bg-firm-gray/20 text-firm-gray rounded-full text-xs font-medium flex items-center gap-1">
+                    <EditIcon size={12} color="#737682" />
+                    На доработке
+                </span>
             case 'published':
-                return <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">✅ Опубликован</span>
+                return <span className="px-2 py-1 bg-firm-green/20 text-firm-green rounded-full text-xs font-medium flex items-center gap-1">
+                    <CheckIcon size={12} color="#94D06C" />
+                    Опубликован
+                </span>
             case 'blocked':
-                return <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">🔒 Заблокирован</span>
+                return <span className="px-2 py-1 bg-firm-red/20 text-firm-red rounded-full text-xs font-medium flex items-center gap-1">
+                    <CloseIcon size={12} color="#D77C7C" />
+                    Заблокирован
+                </span>
             default:
                 return null
         }
@@ -228,23 +236,38 @@ export default function AdminModerationBlogPage() {
                         <button
                             onClick={() => handleApprove(post.id)}
                             disabled={actionLoading === post.id}
-                            className="px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition disabled:opacity-50"
+                            className="px-4 py-2 bg-firm-green text-white rounded-xl text-sm font-medium hover:opacity-80 transition disabled:opacity-50 flex items-center gap-2"
                         >
-                            {actionLoading === post.id ? '⏳' : '✅ Одобрить'}
+                            {actionLoading === post.id ? (
+                                <RefreshIcon size={16} color="#ffffff" className="animate-spin" />
+                            ) : (
+                                <CheckIcon size={16} color="#ffffff" />
+                            )}
+                            Одобрить
                         </button>
                         <button
                             onClick={() => handleReject(post.id)}
                             disabled={actionLoading === post.id}
-                            className="px-4 py-2 bg-yellow-500 text-white rounded-xl text-sm font-medium hover:bg-yellow-600 transition disabled:opacity-50"
+                            className="px-4 py-2 bg-firm-orange text-white rounded-xl text-sm font-medium hover:opacity-80 transition disabled:opacity-50 flex items-center gap-2"
                         >
-                            {actionLoading === post.id ? '⏳' : '📝 На доработку'}
+                            {actionLoading === post.id ? (
+                                <RefreshIcon size={16} color="#ffffff" className="animate-spin" />
+                            ) : (
+                                <EditIcon size={16} color="#ffffff" />
+                            )}
+                            На доработку
                         </button>
                         <button
                             onClick={() => handleBlock(post.id)}
                             disabled={actionLoading === post.id}
-                            className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition disabled:opacity-50"
+                            className="px-4 py-2 bg-firm-red text-white rounded-xl text-sm font-medium hover:opacity-80 transition disabled:opacity-50 flex items-center gap-2"
                         >
-                            {actionLoading === post.id ? '⏳' : '🔒 Заблокировать'}
+                            {actionLoading === post.id ? (
+                                <RefreshIcon size={16} color="#ffffff" className="animate-spin" />
+                            ) : (
+                                <CloseIcon size={16} color="#ffffff" />
+                            )}
+                            Заблокировать
                         </button>
                     </div>
                 )
@@ -254,16 +277,26 @@ export default function AdminModerationBlogPage() {
                         <button
                             onClick={() => handleApprove(post.id)}
                             disabled={actionLoading === post.id}
-                            className="px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition disabled:opacity-50"
+                            className="px-4 py-2 bg-firm-green text-white rounded-xl text-sm font-medium hover:opacity-80 transition disabled:opacity-50 flex items-center gap-2"
                         >
-                            {actionLoading === post.id ? '⏳' : '✅ Одобрить'}
+                            {actionLoading === post.id ? (
+                                <RefreshIcon size={16} color="#ffffff" className="animate-spin" />
+                            ) : (
+                                <CheckIcon size={16} color="#ffffff" />
+                            )}
+                            Одобрить
                         </button>
                         <button
                             onClick={() => handleBlock(post.id)}
                             disabled={actionLoading === post.id}
-                            className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition disabled:opacity-50"
+                            className="px-4 py-2 bg-firm-red text-white rounded-xl text-sm font-medium hover:opacity-80 transition disabled:opacity-50 flex items-center gap-2"
                         >
-                            {actionLoading === post.id ? '⏳' : '🔒 Заблокировать'}
+                            {actionLoading === post.id ? (
+                                <RefreshIcon size={16} color="#ffffff" className="animate-spin" />
+                            ) : (
+                                <CloseIcon size={16} color="#ffffff" />
+                            )}
+                            Заблокировать
                         </button>
                     </div>
                 )
@@ -273,9 +306,14 @@ export default function AdminModerationBlogPage() {
                         <button
                             onClick={() => handleBlock(post.id)}
                             disabled={actionLoading === post.id}
-                            className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition disabled:opacity-50"
+                            className="px-4 py-2 bg-firm-red text-white rounded-xl text-sm font-medium hover:opacity-80 transition disabled:opacity-50 flex items-center gap-2"
                         >
-                            {actionLoading === post.id ? '⏳' : '🔒 Заблокировать'}
+                            {actionLoading === post.id ? (
+                                <RefreshIcon size={16} color="#ffffff" className="animate-spin" />
+                            ) : (
+                                <CloseIcon size={16} color="#ffffff" />
+                            )}
+                            Заблокировать
                         </button>
                     </div>
                 )
@@ -285,9 +323,14 @@ export default function AdminModerationBlogPage() {
                         <button
                             onClick={() => handleApprove(post.id)}
                             disabled={actionLoading === post.id}
-                            className="px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition disabled:opacity-50"
+                            className="px-4 py-2 bg-firm-green text-white rounded-xl text-sm font-medium hover:opacity-80 transition disabled:opacity-50 flex items-center gap-2"
                         >
-                            {actionLoading === post.id ? '⏳' : '✅ Разблокировать'}
+                            {actionLoading === post.id ? (
+                                <RefreshIcon size={16} color="#ffffff" className="animate-spin" />
+                            ) : (
+                                <CheckIcon size={16} color="#ffffff" />
+                            )}
+                            Разблокировать
                         </button>
                     </div>
                 )
@@ -314,7 +357,7 @@ export default function AdminModerationBlogPage() {
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex items-center justify-center min-h-[60vh]"
+                className="flex items-center justify-center min-h-[60vh] bg-main"
             >
                 <div className="text-center">
                     <motion.div
@@ -322,7 +365,10 @@ export default function AdminModerationBlogPage() {
                         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                         className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto"
                     />
-                    <p className="mt-4 font-['Montserrat_Alternates'] text-gray-600">Загрузка постов...</p>
+                    <p className="mt-4 font-['Montserrat_Alternates'] text-firm-gray flex items-center justify-center gap-2">
+                        <RefreshIcon size={18} color="#737682" className="animate-spin" />
+                        Загрузка постов...
+                    </p>
                 </div>
             </motion.div>
         )
@@ -334,7 +380,7 @@ export default function AdminModerationBlogPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="space-y-6 p-4 sm:p-6"
+                className="space-y-6 p-4 sm:p-6 bg-main min-h-screen"
             >
                 {/* Заголовок */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -342,7 +388,7 @@ export default function AdminModerationBlogPage() {
                         <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
                             Управление блогом
                         </h1>
-                        <p className="text-gray-500 text-sm mt-1">Все посты платформы</p>
+                        <p className="text-firm-gray text-sm mt-1">Все посты платформы</p>
                     </div>
                 </div>
 
@@ -358,49 +404,53 @@ export default function AdminModerationBlogPage() {
                         className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
                             filter === 'all' 
                                 ? 'bg-gradient-to-r from-firm-orange to-firm-pink text-white shadow-md' 
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                : 'bg-forms text-firm-gray hover:bg-gray-200'
                         }`}
                     >
                         Все ({stats.all})
                     </button>
                     <button
                         onClick={() => setFilter('moderation')}
-                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 flex items-center gap-1 ${
                             filter === 'moderation' 
                                 ? 'bg-gradient-to-r from-firm-orange to-firm-pink text-white shadow-md' 
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                : 'bg-forms text-firm-gray hover:bg-gray-200'
                         }`}
                     >
+                        <ClockIcon size={14} color={filter === 'moderation' ? '#ffffff' : '#737682'} />
                         На модерации ({stats.moderation})
                     </button>
                     <button
                         onClick={() => setFilter('draft')}
-                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 flex items-center gap-1 ${
                             filter === 'draft' 
                                 ? 'bg-gradient-to-r from-firm-orange to-firm-pink text-white shadow-md' 
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                : 'bg-forms text-firm-gray hover:bg-gray-200'
                         }`}
                     >
+                        <EditIcon size={14} color={filter === 'draft' ? '#ffffff' : '#737682'} />
                         На доработке ({stats.draft})
                     </button>
                     <button
                         onClick={() => setFilter('published')}
-                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 flex items-center gap-1 ${
                             filter === 'published' 
                                 ? 'bg-gradient-to-r from-firm-orange to-firm-pink text-white shadow-md' 
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                : 'bg-forms text-firm-gray hover:bg-gray-200'
                         }`}
                     >
+                        <CheckIcon size={14} color={filter === 'published' ? '#ffffff' : '#737682'} />
                         Опубликованные ({stats.published})
                     </button>
                     <button
                         onClick={() => setFilter('blocked')}
-                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 flex items-center gap-1 ${
                             filter === 'blocked' 
                                 ? 'bg-gradient-to-r from-firm-orange to-firm-pink text-white shadow-md' 
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                : 'bg-forms text-firm-gray hover:bg-gray-200'
                         }`}
                     >
+                        <CloseIcon size={14} color={filter === 'blocked' ? '#ffffff' : '#737682'} />
                         Заблокированные ({stats.blocked})
                     </button>
                 </motion.div>
@@ -418,8 +468,9 @@ export default function AdminModerationBlogPage() {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className="bg-white rounded-2xl shadow-xl p-12 text-center text-gray-500"
+                                className="bg-white rounded-2xl shadow-xl p-12 text-center text-firm-gray"
                             >
+                                <BlogIcon size={48} color="#737682" className="mx-auto mb-4 opacity-50" />
                                 <p className="text-lg">Нет постов для отображения</p>
                             </motion.div>
                         ) : (
@@ -437,7 +488,7 @@ export default function AdminModerationBlogPage() {
                                         <div className="flex flex-col md:flex-row gap-6">
                                             {/* Изображение */}
                                             <div 
-                                                className="w-32 h-32 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer shadow-md hover:shadow-lg transition-all duration-300"
+                                                className="w-32 h-32 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center"
                                                 onClick={() => openModal(post)}
                                             >
                                                 {post.main_image_url ? (
@@ -447,9 +498,7 @@ export default function AdminModerationBlogPage() {
                                                         className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                                                     />
                                                 ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-4xl text-gray-400">
-                                                        📝
-                                                    </div>
+                                                    <BlogIcon size={40} color="#737682" />
                                                 )}
                                             </div>
 
@@ -457,19 +506,26 @@ export default function AdminModerationBlogPage() {
                                                 <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                                                     <div className="flex-1">
                                                         <h3 
-                                                            className="font-['Montserrat_Alternates'] font-semibold text-xl cursor-pointer hover:text-firm-orange transition-colors"
+                                                            className="font-['Montserrat_Alternates'] font-semibold text-xl cursor-pointer hover:text-firm-orange transition-colors text-text"
                                                             onClick={() => openModal(post)}
                                                         >
                                                             {post.title}
                                                         </h3>
-                                                        <div className="flex flex-wrap gap-3 mt-2 text-sm text-gray-500">
-                                                            <span className="flex items-center gap-1">👤 {post.author_name}</span>
-                                                            <span className="flex items-center gap-1">📧 {post.author_email}</span>
+                                                        <div className="flex flex-wrap gap-3 mt-2 text-firm-gray text-sm">
+                                                            <span className="flex items-center gap-1">
+                                                                <UserIcon size={14} color="#737682" />
+                                                                {post.author_name}
+                                                            </span>
+                                                            <span className="flex items-center gap-1">
+                                                                <MailIcon size={14} color="#737682" />
+                                                                {post.author_email}
+                                                            </span>
                                                         </div>
                                                     </div>
                                                     <div className="text-right">
-                                                        <p className="text-xs text-gray-400">
-                                                            📅 {new Date(post.created_at).toLocaleDateString('ru-RU')}
+                                                        <p className="text-xs text-firm-gray flex items-center justify-end gap-1">
+                                                            <CalendarIcon size={12} color="#737682" />
+                                                            {new Date(post.created_at).toLocaleDateString('ru-RU')}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -477,12 +533,13 @@ export default function AdminModerationBlogPage() {
                                                 {/* Теги и статус */}
                                                 <div className="flex flex-wrap gap-2 mt-3">
                                                     {post.category && (
-                                                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium">
-                                                            📁 {post.category}
+                                                        <span className="px-2 py-1 bg-firm-pink/20 text-firm-pink rounded-lg text-xs font-medium flex items-center gap-1">
+                                                            <TagIcon size={12} color="#D97C8E" />
+                                                            {post.category}
                                                         </span>
                                                     )}
                                                     {post.tags?.slice(0, 3).map((tag, idx) => (
-                                                        <span key={idx} className="px-2 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs font-medium">
+                                                        <span key={idx} className="px-2 py-1 bg-forms text-firm-gray rounded-lg text-xs font-medium">
                                                             #{tag}
                                                         </span>
                                                     ))}
@@ -490,15 +547,24 @@ export default function AdminModerationBlogPage() {
                                                 </div>
 
                                                 {/* Краткое описание */}
-                                                <p className="text-gray-600 mt-3 line-clamp-2 text-sm">
+                                                <p className="text-firm-gray mt-3 line-clamp-2 text-sm">
                                                     {post.excerpt || post.content?.substring(0, 200)}...
                                                 </p>
 
                                                 {/* Статистика */}
-                                                <div className="flex gap-4 mt-3 text-xs text-gray-400">
-                                                    <span>👁️ {post.views_count || 0} просмотров</span>
-                                                    <span>❤️ {post.likes_count || 0} лайков</span>
-                                                    <span>💬 {post.comments_count || 0} комментариев</span>
+                                                <div className="flex gap-4 mt-3 text-xs text-firm-gray">
+                                                    <span className="flex items-center gap-1">
+                                                        <ViewsIcon size={12} color="#737682" />
+                                                        {post.views_count || 0} просмотров
+                                                    </span>
+                                                    <span className="flex items-center gap-1">
+                                                        <LikeIcon size={12} color="#737682" />
+                                                        {post.likes_count || 0} лайков
+                                                    </span>
+                                                    <span className="flex items-center gap-1">
+                                                        <CommentIcon size={12} color="#737682" />
+                                                        {post.comments_count || 0} комментариев
+                                                    </span>
                                                 </div>
 
                                                 {/* Кнопки действий в зависимости от статуса */}
@@ -519,7 +585,7 @@ export default function AdminModerationBlogPage() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                            className="fixed inset-0 bg-main-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
                             onClick={() => setShowModal(false)}
                         >
                             <motion.div
@@ -534,12 +600,14 @@ export default function AdminModerationBlogPage() {
                                     <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
                                         {selectedPost.title}
                                     </h2>
-                                    <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl transition-colors">✕</button>
+                                    <button onClick={() => setShowModal(false)} className="text-firm-gray hover:text-text transition-colors">
+                                        <CloseIcon size={24} color="#737682" />
+                                    </button>
                                 </div>
 
                                 <div className="p-6">
                                     {/* Информация об авторе */}
-                                    <div className="flex items-center gap-3 mb-6 pb-4 border-b">
+                                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
                                         <div className="w-12 h-12 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden shadow-md">
                                             {selectedPost.author_avatar ? (
                                                 <img src={selectedPost.author_avatar} alt={selectedPost.author_name} className="w-full h-full object-cover" />
@@ -548,24 +616,30 @@ export default function AdminModerationBlogPage() {
                                             )}
                                         </div>
                                         <div>
-                                            <p className="font-semibold text-gray-800">{selectedPost.author_name}</p>
-                                            <p className="text-sm text-gray-500">{selectedPost.author_email}</p>
+                                            <p className="font-semibold text-text">{selectedPost.author_name}</p>
+                                            <p className="text-sm text-firm-gray flex items-center gap-1">
+                                                <MailIcon size={12} color="#737682" />
+                                                {selectedPost.author_email}
+                                            </p>
                                         </div>
                                         <div className="ml-auto text-right">
-                                            <p className="text-sm text-gray-500">📅 {new Date(selectedPost.created_at).toLocaleDateString('ru-RU', {
-                                                day: '2-digit',
-                                                month: '2-digit',
-                                                year: 'numeric',
-                                                hour: '2-digit',
-                                                minute: '2-digit'
-                                            })}</p>
+                                            <p className="text-sm text-firm-gray flex items-center gap-1">
+                                                <CalendarIcon size={12} color="#737682" />
+                                                {new Date(selectedPost.created_at).toLocaleDateString('ru-RU', {
+                                                    day: '2-digit',
+                                                    month: '2-digit',
+                                                    year: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                            </p>
                                         </div>
                                     </div>
 
                                     {/* Изображения */}
                                     {selectedPost.main_image_url && (
                                         <div className="mb-6">
-                                            <div className="aspect-video bg-gray-100 rounded-xl overflow-hidden shadow-md">
+                                            <div className="aspect-video bg-forms rounded-xl overflow-hidden shadow-md">
                                                 <img
                                                     src={selectedPost.main_image_url}
                                                     alt={selectedPost.title}
@@ -578,29 +652,39 @@ export default function AdminModerationBlogPage() {
                                     {/* Категория и теги */}
                                     <div className="flex flex-wrap gap-2 mb-6">
                                         {selectedPost.category && (
-                                            <span className="px-3 py-1 bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 rounded-full text-sm font-medium">
-                                                📁 {selectedPost.category}
+                                            <span className="px-3 py-1 bg-firm-pink/20 text-firm-pink rounded-full text-sm font-medium flex items-center gap-1">
+                                                <TagIcon size={12} color="#D97C8E" />
+                                                {selectedPost.category}
                                             </span>
                                         )}
                                         {selectedPost.tags?.map((tag, idx) => (
-                                            <span key={idx} className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm font-medium">
+                                            <span key={idx} className="px-3 py-1 bg-forms text-firm-gray rounded-full text-sm font-medium">
                                                 #{tag}
                                             </span>
                                         ))}
                                     </div>
 
                                     {/* Статистика */}
-                                    <div className="flex gap-6 mb-6 pb-4 border-b">
-                                        <span className="flex items-center gap-1 text-sm text-gray-500">👁️ {selectedPost.views_count || 0} просмотров</span>
-                                        <span className="flex items-center gap-1 text-sm text-gray-500">❤️ {selectedPost.likes_count || 0} лайков</span>
-                                        <span className="flex items-center gap-1 text-sm text-gray-500">💬 {selectedPost.comments_count || 0} комментариев</span>
+                                    <div className="flex flex-wrap gap-6 mb-6 pb-4 border-b border-gray-200">
+                                        <span className="flex items-center gap-1 text-sm text-firm-gray">
+                                            <ViewsIcon size={14} color="#737682" />
+                                            {selectedPost.views_count || 0} просмотров
+                                        </span>
+                                        <span className="flex items-center gap-1 text-sm text-firm-gray">
+                                            <LikeIcon size={14} color="#737682" />
+                                            {selectedPost.likes_count || 0} лайков
+                                        </span>
+                                        <span className="flex items-center gap-1 text-sm text-firm-gray">
+                                            <CommentIcon size={14} color="#737682" />
+                                            {selectedPost.comments_count || 0} комментариев
+                                        </span>
                                     </div>
 
                                     {/* Содержание */}
                                     <div className="mb-6">
-                                        <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-3">Содержание</h3>
+                                        <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg mb-3 text-text">Содержание</h3>
                                         <div className="prose max-w-none">
-                                            <div className="text-gray-700 whitespace-pre-line leading-relaxed">
+                                            <div className="text-text whitespace-pre-line leading-relaxed">
                                                 {selectedPost.content}
                                             </div>
                                         </div>
@@ -615,7 +699,6 @@ export default function AdminModerationBlogPage() {
                 </AnimatePresence>
             </motion.div>
 
-            {/* Модальные окна */}
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
                 title={confirmModal.title}
