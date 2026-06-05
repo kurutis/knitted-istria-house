@@ -20,9 +20,8 @@ import { ClockIcon } from "@/components/icons/ClockIcon";
 import { CheckCircleIcon } from "@/components/icons/CheckCircleIcon";
 import { TruckIcon } from "@/components/icons/TruckIcon";
 import { PackageIcon } from "@/components/icons/PackageIcon";
-import { ShoppingCartIcon } from "@/components/icons/ShoppingCartIcon";
 
-// Временные иконки (создайте их в библиотеке позже)
+// Временные иконки (создайте их в библиотеке позже
 const TrendingUpIcon = ({ className, color }: { className?: string; color?: string }) => (
     <svg className={className} fill="none" stroke={color} viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -204,7 +203,7 @@ export default function AdminDashboardPage() {
         { label: "Пользователи", value: stats.totalUsers, icon: <UserIcon className="w-6 h-6 sm:w-8 sm:h-8" />, color: "#3B82F6", bg: "bg-blue-50", trend: stats.trends?.users ?? 0, link: "/admin/users" },
         { label: "Мастера", value: stats.totalMasters, icon: <DashboardIcon className="w-6 h-6 sm:w-8 sm:h-8" />, color: "#D97C8E", bg: "bg-pink-50", trend: 0, link: "/admin/moderation/masters" },
         { label: "Товары", value: stats.totalProducts, icon: <ProductsIcon className="w-6 h-6 sm:w-8 sm:h-8" />, color: "#F4A67F", bg: "bg-orange-50", trend: 0, link: "/admin/moderation/products" },
-        { label: "Заказы", value: stats.totalOrders, icon: <ShoppingCartIcon className="w-6 h-6 sm:w-8 sm:h-8" />, color: "#94D06C", bg: "bg-green-50", trend: stats.trends?.orders ?? 0, link: "/admin/dashboard" },
+        { label: "Заказы", value: stats.totalOrders, icon: <CartIcon className="w-6 h-6 sm:w-8 sm:h-8" />, color: "#94D06C", bg: "bg-green-50", trend: stats.trends?.orders ?? 0, link: "/admin/dashboard" },
     ];
 
     return (
