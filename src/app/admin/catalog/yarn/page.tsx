@@ -19,6 +19,8 @@ import { PackageIcon } from "@/components/icons/PackageIcon"
 import { CheckCircleIcon } from "@/components/icons/CheckCircleIcon"
 import { CancelIcon } from "@/components/icons/CancelIcon"
 import { ImageIcon } from "@/components/icons/ImageIcon"
+import { Productslcon } from "@/components/icons/Productslcon"
+
 interface Yarn {
     id: string
     name: string
@@ -46,28 +48,12 @@ export default function AdminYarnCatalogPage() {
     const [showAddModal, setShowAddModal] = useState(false)
     const [showEditModal, setShowEditModal] = useState(false)
     const [selectedYarn, setSelectedYarn] = useState<Yarn | null>(null)
-    const [formData, setFormData] = useState({
-        name: '', article: '', brand: '', color: '', composition: '', 
-        weight_grams: '', length_meters: '', price: '', in_stock: true, 
-        stock_quantity: '', image_url: '', description: ''
-    })
+    const [formData, setFormData] = useState({name: '', article: '', brand: '', color: '', composition: '', weight_grams: '', length_meters: '', price: '', in_stock: true, stock_quantity: '', image_url: '', description: ''})
     const [saving, setSaving] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
     const [filterInStock, setFilterInStock] = useState<'all' | 'in_stock' | 'out_of_stock'>('all')
     
-    const [confirmModal, setConfirmModal] = useState<{
-        isOpen: boolean;
-        title: string;
-        message: string;
-        onConfirm: () => void;
-        type?: 'danger' | 'warning' | 'info';
-    }>({
-        isOpen: false,
-        title: '',
-        message: '',
-        onConfirm: () => {},
-        type: 'danger'
-    })
+    const [confirmModal, setConfirmModal] = useState<{isOpen: boolean; title: string; message: string; onConfirm: () => void; type?: 'danger' | 'warning' | 'info'}>({isOpen: false, title: '', message: '', onConfirm: () => {}, type: 'danger'})
 
     useEffect(() => {
         if (status === 'loading') return
@@ -99,10 +85,7 @@ export default function AdminYarnCatalogPage() {
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target
-        setFormData(prev => ({
-            ...prev,
-            [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
-        }))
+        setFormData(prev => ({...prev, [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value}))
     }
 
     const handleAddYarn = async (e: React.FormEvent) => {
@@ -110,17 +93,7 @@ export default function AdminYarnCatalogPage() {
         setSaving(true)
         
         try {
-            const response = await fetch('/api/admin/yarn', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...formData,
-                    weight_grams: formData.weight_grams ? parseFloat(formData.weight_grams) : null,
-                    length_meters: formData.length_meters ? parseFloat(formData.length_meters) : null,
-                    price: formData.price ? parseFloat(formData.price) : null,
-                    stock_quantity: formData.stock_quantity ? parseInt(formData.stock_quantity) : 0
-                })
-            })
+            const response = await fetch('/api/admin/yarn', {method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({...formData, weight_grams: formData.weight_grams ? parseFloat(formData.weight_grams) : null, length_meters: formData.length_meters ? parseFloat(formData.length_meters) : null, price: formData.price ? parseFloat(formData.price) : null, stock_quantity: formData.stock_quantity ? parseInt(formData.stock_quantity) : 0})})
             
             if (!response.ok) throw new Error('Failed to create yarn')
             
@@ -143,17 +116,7 @@ export default function AdminYarnCatalogPage() {
         setSaving(true)
         
         try {
-            const response = await fetch(`/api/admin/yarn/${selectedYarn.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...formData,
-                    weight_grams: formData.weight_grams ? parseFloat(formData.weight_grams) : null,
-                    length_meters: formData.length_meters ? parseFloat(formData.length_meters) : null,
-                    price: formData.price ? parseFloat(formData.price) : null,
-                    stock_quantity: formData.stock_quantity ? parseInt(formData.stock_quantity) : 0
-                })
-            })
+            const response = await fetch(`/api/admin/yarn/${selectedYarn.id}`, {method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({...formData, weight_grams: formData.weight_grams ? parseFloat(formData.weight_grams) : null, length_meters: formData.length_meters ? parseFloat(formData.length_meters) : null, price: formData.price ? parseFloat(formData.price) : null, stock_quantity: formData.stock_quantity ? parseInt(formData.stock_quantity) : 0})})
             
             if (!response.ok) throw new Error('Failed to update yarn')
             
@@ -198,58 +161,24 @@ export default function AdminYarnCatalogPage() {
 
     const openEditModal = (yarn: Yarn) => {
         setSelectedYarn(yarn)
-        setFormData({
-            name: yarn.name,
-            article: yarn.article,
-            brand: yarn.brand || '',
-            color: yarn.color || '',
-            composition: yarn.composition || '',
-            weight_grams: yarn.weight_grams?.toString() || '',
-            length_meters: yarn.length_meters?.toString() || '',
-            price: yarn.price?.toString() || '',
-            in_stock: yarn.in_stock,
-            stock_quantity: yarn.stock_quantity?.toString() || '',
-            image_url: yarn.image_url || '',
-            description: yarn.description || ''
-        })
+        setFormData({name: yarn.name, article: yarn.article, brand: yarn.brand || '', color: yarn.color || '', composition: yarn.composition || '', weight_grams: yarn.weight_grams?.toString() || '', length_meters: yarn.length_meters?.toString() || '', price: yarn.price?.toString() || '', in_stock: yarn.in_stock, stock_quantity: yarn.stock_quantity?.toString() || '', image_url: yarn.image_url || '', description: yarn.description || ''})
         setShowEditModal(true)
     }
 
-    const resetForm = () => {
-        setFormData({
-            name: '', article: '', brand: '', color: '', composition: '',
-            weight_grams: '', length_meters: '', price: '', in_stock: true,
-            stock_quantity: '', image_url: '', description: ''
-        })
-    }
+    const resetForm = () => {setFormData({name: '', article: '', brand: '', color: '', composition: '', weight_grams: '', length_meters: '', price: '', in_stock: true, stock_quantity: '', image_url: '', description: ''})}
 
     const filteredYarns = yarns.filter(yarn => {
-        const matchesSearch = yarn.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                             yarn.article.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                             (yarn.brand && yarn.brand.toLowerCase().includes(searchTerm.toLowerCase()))
-        const matchesStock = filterInStock === 'all' ? true :
-                             filterInStock === 'in_stock' ? yarn.in_stock :
-                             !yarn.in_stock
+        const matchesSearch = yarn.name.toLowerCase().includes(searchTerm.toLowerCase()) || yarn.article.toLowerCase().includes(searchTerm.toLowerCase()) || (yarn.brand && yarn.brand.toLowerCase().includes(searchTerm.toLowerCase()))
+        const matchesStock = filterInStock === 'all' ? true : filterInStock === 'in_stock' ? yarn.in_stock : !yarn.in_stock
         return matchesSearch && matchesStock
     })
 
     if (loading) {
         return (
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex items-center justify-center min-h-[60vh] bg-main"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-center min-h-[60vh] bg-main">
                 <div className="text-center">
-                    <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                        className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto"
-                    />
-                    <p className="mt-4 font-['Montserrat_Alternates'] text-firm-gray flex items-center justify-center gap-2">
-                        <RefreshIcon size={18} color="#737682" className="animate-spin" />
-                        Загрузка каталога пряжи...
-                    </p>
+                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto" />
+                    <p className="mt-4 font-['Montserrat_Alternates'] text-firm-gray flex items-center justify-center gap-2">Загрузка каталога пряжи...</p>
                 </div>
             </motion.div>
         )
@@ -257,70 +186,28 @@ export default function AdminYarnCatalogPage() {
 
     return (
         <>
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="space-y-6 p-4 sm:p-6 bg-main min-h-screen"
-            >
-                {/* Заголовок */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="space-y-6 p-4 sm:p-6 bg-main min-h-screen">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <motion.h1
-                        initial={{ x: -20, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent"
-                    >
-                        Каталог пряжи
-                    </motion.h1>
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => setShowAddModal(true)}
-                        className="px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 flex items-center gap-2"
-                    >
-                        <PlusIcon size={18} color="#ffffff" />
-                        Добавить пряжу
-                    </motion.button>
+                    <motion.h1  initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Каталог пряжи</motion.h1>
+                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setShowAddModal(true)} className="px-4 py-2 bg-linea-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300 flex items-center gap-2"> <PlusIcon size={18} color="#f9f9f9" />Добавить пряжу</motion.button>
                 </div>
 
-                {/* Фильтры */}
-                <motion.div
-                    initial={{ y: -20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.1 }}
-                    className="flex flex-col sm:flex-row gap-4"
-                >
+                <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="flex flex-col sm:flex-row gap-4">
                     <div className="flex-1 relative">
                         <SearchIcon size={18} color="#737682" className="absolute left-3 top-1/2 transform -translate-y-1/2" />
-                        <input
-                            type="text"
-                            placeholder="Поиск по названию, артикулу или бренду..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full p-3 pl-10 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300"
-                        />
+                        <input type="text" placeholder="Поиск по названию, артикулу или бренду..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full p-3 pl-10 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
                     </div>
-                    <select
-                        value={filterInStock}
-                        onChange={(e) => setFilterInStock(e.target.value as 'all' | 'in_stock' | 'out_of_stock')}
-                        className="p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300 cursor-pointer"
-                    >
+                    <select value={filterInStock} onChange={(e) => setFilterInStock(e.target.value as 'all' | 'in_stock' | 'out_of_stock')} className="p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300 cursor-pointer" >
                         <option value="all">Все</option>
                         <option value="in_stock">В наличии</option>
                         <option value="out_of_stock">Нет в наличии</option>
                     </select>
                 </motion.div>
 
-                {/* Таблица */}
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="bg-white rounded-2xl shadow-xl overflow-hidden"
-                >
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="bg-main rounded-2xl shadow-xl overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full">
-                            <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                            <thead className="bg-linear-to-r from-gray-50 to-gray-100">
                                 <tr>
                                     <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-firm-gray">Изображение</th>
                                     <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-firm-gray">Название / Артикул</th>
@@ -334,39 +221,19 @@ export default function AdminYarnCatalogPage() {
                             <tbody>
                                 <AnimatePresence>
                                     {filteredYarns.length === 0 ? (
-                                        <motion.tr
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            exit={{ opacity: 0 }}
-                                        >
+                                        <motion.tr initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} >
                                             <td colSpan={7} className="text-center p-12 text-firm-gray">
                                                 <PackageIcon size={48} color="#737682" className="mx-auto mb-4 opacity-50" />
                                                 <p className="text-lg">Нет добавленной пряжи</p>
-                                                <p className="text-sm mt-2">
-                                                    Нажмите кнопку &quot;Добавить пряжу&quot; чтобы начать
-                                                </p>
+                                                <p className="text-sm mt-2">Нажмите кнопку &quot;Добавить пряжу&quot; чтобы начать</p>
                                             </td>
                                         </motion.tr>
                                     ) : (
                                         filteredYarns.map((yarn, index) => (
-                                            <motion.tr
-                                                key={yarn.id}
-                                                initial={{ opacity: 0, x: -20 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                exit={{ opacity: 0, x: 20 }}
-                                                transition={{ delay: index * 0.03 }}
-                                                className="border-b border-gray-100 hover:bg-gradient-to-r hover:from-gray-50 to-transparent transition-all duration-300 group"
-                                            >
+                                            <motion.tr key={yarn.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ delay: index * 0.03 }} className="border-b border-gray-100 hover:bg-linear-to-r hover:from-gray-50 to-transparent transition-all duration-300 group">
                                                 <td className="p-4">
-                                                    <motion.div
-                                                        whileHover={{ scale: 1.1 }}
-                                                        className="w-12 h-12 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl overflow-hidden shadow-sm flex items-center justify-center"
-                                                    >
-                                                        {yarn.image_url ? (
-                                                            <img src={yarn.image_url} alt={yarn.name} className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <ImageIcon size={24} color="#737682" />
-                                                        )}
+                                                    <motion.div whileHover={{ scale: 1.1 }} className="w-12 h-12 bg-linear-to-r from-gray-100 to-gray-200 rounded-xl overflow-hidden shadow-sm flex items-center justify-center" >
+                                                        {yarn.image_url ? (<img src={yarn.image_url} alt={yarn.name} className="w-full h-full object-cover" />) : (<ImageIcon size={24} color="#737682" />)}
                                                     </motion.div>
                                                 </td>
                                                 <td className="p-4">
@@ -401,44 +268,16 @@ export default function AdminYarnCatalogPage() {
                                                 <td className="p-4">
                                                     <div className="font-semibold text-firm-orange">{yarn.price?.toLocaleString()} ₽</div>
                                                     <div className="text-sm">
-                                                        {yarn.in_stock ? (
-                                                            <span className="text-firm-green flex items-center gap-1">
-                                                                <CheckCircleIcon size={12} color="#94D06C" />
-                                                                {yarn.stock_quantity} шт
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-firm-red flex items-center gap-1">
-                                                                <CancelIcon size={12} color="#D77C7C" />
-                                                                Нет в наличии
-                                                            </span>
-                                                        )}
+                                                        {yarn.in_stock ? (<span className="text-firm-green flex items-center gap-1"><CheckCircleIcon size={12} color="#94D06C" />{yarn.stock_quantity} шт</span>) : (<span className="text-firm-red flex items-center gap-1"><CancelIcon size={12} color="#D77C7C" />Нет в наличии</span>)}
                                                     </div>
                                                 </td>
                                                 <td className="p-4 hidden sm:table-cell">
-                                                    <span className="px-2 py-1 bg-firm-pink/20 text-firm-pink rounded-full text-xs font-medium">
-                                                        📦 {yarn.used_in_products || 0} товаров
-                                                    </span>
+                                                    <span className="px-2 py-1 bg-firm-pink/20 text-firm-pink rounded-full text-xs font-medium"><Productslcon size={12} color="#D97C8E" /> {yarn.used_in_products || 0} товаров</span>
                                                 </td>
                                                 <td className="p-4">
                                                     <div className="flex gap-2">
-                                                        <motion.button
-                                                            whileHover={{ scale: 1.05 }}
-                                                            whileTap={{ scale: 0.95 }}
-                                                            onClick={() => openEditModal(yarn)}
-                                                            className="px-3 py-1.5 text-sm bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-lg hover:shadow-lg transition-all duration-300 flex items-center gap-1"
-                                                        >
-                                                            <EditIcon size={14} color="#ffffff" />
-                                                            Ред.
-                                                        </motion.button>
-                                                        <motion.button
-                                                            whileHover={{ scale: 1.05 }}
-                                                            whileTap={{ scale: 0.95 }}
-                                                            onClick={() => handleDeleteYarn(yarn)}
-                                                            className="px-3 py-1.5 text-sm bg-gradient-to-r from-firm-red to-red-600 text-white rounded-lg hover:shadow-lg transition-all duration-300 flex items-center gap-1"
-                                                        >
-                                                            <DeleteIcon size={14} color="#ffffff" />
-                                                            Удалить
-                                                        </motion.button>
+                                                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => openEditModal(yarn)} className="px-3 py-1.5 text-sm bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-lg hover:shadow-lg transition-all duration-300 flex items-center gap-1"><EditIcon size={14} color="#f9f9f9" />Ред.</motion.button>
+                                                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => handleDeleteYarn(yarn)} className="px-3 py-1.5 text-sm bg-firm-red text-main rounded-lg hover:shadow-lg transition-all duration-300 flex items-center gap-1"><DeleteIcon size={14} color="#f9f9f9" />Удалить</motion.button>
                                                     </div>
                                                 </td>
                                             </motion.tr>
@@ -450,32 +289,14 @@ export default function AdminYarnCatalogPage() {
                     </div>
                 </motion.div>
 
-                {/* Модальное окно добавления */}
                 <AnimatePresence>
                     {showAddModal && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-main-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-                            onClick={() => setShowAddModal(false)}
-                        >
-                            <motion.div
-                                initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                                animate={{ scale: 1, opacity: 1, y: 0 }}
-                                exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                                transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                                className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
-                                onClick={(e) => e.stopPropagation()}
-                            >
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-main-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowAddModal(false)}>
+                            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} transition={{ type: "spring", damping: 25, stiffness: 300 }} className="bg-main rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()} >
                                 <div className="p-6">
                                     <div className="flex justify-between items-center mb-4">
-                                        <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
-                                            Добавить пряжу
-                                        </h2>
-                                        <button onClick={() => setShowAddModal(false)} className="text-firm-gray hover:text-text transition-colors">
-                                            <CloseIcon size={24} color="#737682" />
-                                        </button>
+                                        <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Добавить пряжу</h2>
+                                        <button onClick={() => setShowAddModal(false)} className="text-firm-gray hover:text-text transition-colors"><CloseIcon size={24} color="#737682" /></button>
                                     </div>
 
                                     <form onSubmit={handleAddYarn} className="space-y-4">
@@ -529,13 +350,7 @@ export default function AdminYarnCatalogPage() {
                                         </div>
 
                                         <div className="flex items-center gap-3">
-                                            <input
-                                                type="checkbox"
-                                                name="in_stock"
-                                                checked={formData.in_stock}
-                                                onChange={handleInputChange}
-                                                className="w-5 h-5 rounded accent-firm-orange"
-                                            />
+                                            <input type="checkbox" name="in_stock" checked={formData.in_stock} onChange={handleInputChange}  className="w-5 h-5 rounded accent-firm-orange" />
                                             <label className="text-text">В наличии</label>
                                         </div>
 
@@ -550,32 +365,8 @@ export default function AdminYarnCatalogPage() {
                                         </div>
 
                                         <div className="flex gap-3 pt-4">
-                                            <motion.button
-                                                type="submit"
-                                                whileHover={{ scale: 1.02 }}
-                                                whileTap={{ scale: 0.98 }}
-                                                disabled={saving}
-                                                className="flex-1 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 font-medium flex items-center justify-center gap-2"
-                                            >
-                                                {saving ? (
-                                                    <>
-                                                        <RefreshIcon size={18} color="#ffffff" className="animate-spin" />
-                                                        Сохранение...
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <PlusIcon size={18} color="#ffffff" />
-                                                        Добавить
-                                                    </>
-                                                )}
-                                            </motion.button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowAddModal(false)}
-                                                className="flex-1 py-3 border border-gray-300 rounded-xl hover:bg-forms transition-all duration-300 text-text"
-                                            >
-                                                Отмена
-                                            </button>
+                                            <motion.button type="submit" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}  disabled={saving}  className="flex-1 py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 font-medium flex items-center justify-center gap-2">{saving ? (<><RefreshIcon size={18} color="#f9f9f9" className="animate-spin" />Сохранение...</>) : (<><PlusIcon size={18} color="#f9f9f9" />Добавить</>)}</motion.button>
+                                            <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-3 border border-gray-300 rounded-xl hover:bg-forms transition-all duration-300 text-text">Отмена</button>
                                         </div>
                                     </form>
                                 </div>
@@ -584,32 +375,14 @@ export default function AdminYarnCatalogPage() {
                     )}
                 </AnimatePresence>
 
-                {/* Модальное окно редактирования */}
                 <AnimatePresence>
                     {showEditModal && selectedYarn && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-main-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-                            onClick={() => setShowEditModal(false)}
-                        >
-                            <motion.div
-                                initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                                animate={{ scale: 1, opacity: 1, y: 0 }}
-                                exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                                transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                                className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
-                                onClick={(e) => e.stopPropagation()}
-                            >
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-main-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowEditModal(false)}>
+                            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} transition={{ type: "spring", damping: 25, stiffness: 300 }} className="bg-main rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
                                 <div className="p-6">
                                     <div className="flex justify-between items-center mb-4">
-                                        <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
-                                            Редактировать пряжу
-                                        </h2>
-                                        <button onClick={() => setShowEditModal(false)} className="text-firm-gray hover:text-text transition-colors">
-                                            <CloseIcon size={24} color="#737682" />
-                                        </button>
+                                        <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Редактировать пряжу</h2>
+                                        <button onClick={() => setShowEditModal(false)} className="text-firm-gray hover:text-text transition-colors"><CloseIcon size={24} color="#737682" /></button>
                                     </div>
 
                                     <form onSubmit={handleEditYarn} className="space-y-4">
@@ -663,13 +436,7 @@ export default function AdminYarnCatalogPage() {
                                         </div>
 
                                         <div className="flex items-center gap-3">
-                                            <input
-                                                type="checkbox"
-                                                name="in_stock"
-                                                checked={formData.in_stock}
-                                                onChange={handleInputChange}
-                                                className="w-5 h-5 rounded accent-firm-orange"
-                                            />
+                                            <input type="checkbox" name="in_stock" checked={formData.in_stock} onChange={handleInputChange} className="w-5 h-5 rounded accent-firm-orange" />
                                             <label className="text-text">В наличии</label>
                                         </div>
 
@@ -684,32 +451,8 @@ export default function AdminYarnCatalogPage() {
                                         </div>
 
                                         <div className="flex gap-3 pt-4">
-                                            <motion.button
-                                                type="submit"
-                                                whileHover={{ scale: 1.02 }}
-                                                whileTap={{ scale: 0.98 }}
-                                                disabled={saving}
-                                                className="flex-1 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 font-medium flex items-center justify-center gap-2"
-                                            >
-                                                {saving ? (
-                                                    <>
-                                                        <RefreshIcon size={18} color="#ffffff" className="animate-spin" />
-                                                        Сохранение...
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <SaveIcon size={18} color="#ffffff" />
-                                                        Сохранить
-                                                    </>
-                                                )}
-                                            </motion.button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowEditModal(false)}
-                                                className="flex-1 py-3 border border-gray-300 rounded-xl hover:bg-forms transition-all duration-300 text-text"
-                                            >
-                                                Отмена
-                                            </button>
+                                            <motion.button type="submit" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} disabled={saving} className="flex-1 py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 font-medium flex items-center justify-center gap-2">{saving ? (<><RefreshIcon size={18} color="#f9f9f9" className="animate-spin" />Сохранение...</>) : (<><SaveIcon size={18} color="#f9f9f9" />Сохранить</>)}</motion.button>
+                                            <button type="button" onClick={() => setShowEditModal(false)} className="flex-1 py-3 border border-gray-300 rounded-xl hover:bg-forms transition-all duration-300 text-text">Отмена</button>
                                         </div>
                                     </form>
                                 </div>
@@ -719,14 +462,7 @@ export default function AdminYarnCatalogPage() {
                 </AnimatePresence>
             </motion.div>
 
-            <ConfirmModal
-                isOpen={confirmModal.isOpen}
-                title={confirmModal.title}
-                message={confirmModal.message}
-                type={confirmModal.type}
-                onConfirm={confirmModal.onConfirm}
-                onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
-            />
+            <ConfirmModal isOpen={confirmModal.isOpen} title={confirmModal.title} message={confirmModal.message} type={confirmModal.type} onConfirm={confirmModal.onConfirm} onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} />
         </>
     )
 }
