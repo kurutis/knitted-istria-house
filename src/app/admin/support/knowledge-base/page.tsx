@@ -4,7 +4,20 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
+import { PlusIcon } from "@/components/icons/PlusIcon";
+import { EditIcon } from "@/components/icons/EditIcon";
+import { DeleteIcon } from "@/components/icons/DeleteIcon";
+import { CloseIcon } from "@/components/icons/CloseIcon";
+import { RefreshIcon } from "@/components/icons/RefreshIcon";
+import { SearchIcon } from "@/components/icons/SearchIcon";
+import { ViewsIcon } from "@/components/icons/ViewsIcon";
+import { LikeIcon } from "@/components/icons/LikeIcon";
+import { DislikeIcon } from "@/components/icons/DislikeIcon";
+import { SaveIcon } from "@/components/icons/SaveIcon";
+import { TagIcon } from "@/components/icons/TagIcon";
+import { CalendarIcon } from "@/components/icons/CalendarIcon";
 
 interface Article {
   id: number;
@@ -227,55 +240,71 @@ export default function KnowledgeBasePage() {
 
   if (loading) {
     return (
-      <div className="mt-5 flex items-center justify-center min-h-[60vh]">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex items-center justify-center min-h-[60vh] bg-main"
+      >
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 font-['Montserrat_Alternates'] text-gray-600">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto"
+          />
+          <p className="mt-4 font-['Montserrat_Alternates'] text-firm-gray flex items-center justify-center gap-2">
+            <RefreshIcon size={18} color="#737682" className="animate-spin" />
             Загрузка базы знаний...
           </p>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 p-4 sm:p-6 bg-main min-h-screen">
+      {/* Заголовок */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="font-['Montserrat_Alternates'] font-semibold text-3xl">База знаний</h1>
-          <p className="text-gray-500 mt-1">Управление статьями поддержки</p>
+          <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
+            База знаний
+          </h1>
+          <p className="text-firm-gray text-sm mt-1">Управление статьями поддержки</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <button
             onClick={() => setShowCategoryModal(true)}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+            className="px-4 py-2 bg-firm-gray text-white rounded-xl hover:bg-opacity-80 transition flex items-center gap-2"
           >
-            + Новая категория
+            <SaveIcon size={18} color="#ffffff" />
+            Новая категория
           </button>
           <button
             onClick={() => { resetArticleForm(); setShowArticleModal(true); }}
-            className="px-4 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition"
+            className="px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition flex items-center gap-2"
           >
-            + Новая статья
+            <PlusIcon size={18} color="#ffffff" />
+            Новая статья
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-4">
+      {/* Поиск и фильтр */}
+      <div className="bg-white rounded-2xl shadow-md p-4">
         <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
+          <div className="flex-1 relative">
+            <SearchIcon size={18} color="#737682" className="absolute left-3 top-1/2 transform -translate-y-1/2" />
             <input
               type="text"
               placeholder="Поиск статей..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-firm-orange"
+              className="w-full px-4 py-2 pl-10 bg-forms text-text rounded-xl focus:outline-none focus:ring-2 focus:ring-firm-orange"
             />
           </div>
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-firm-orange"
+            className="px-4 py-2 bg-forms text-text rounded-xl focus:outline-none focus:ring-2 focus:ring-firm-pink cursor-pointer"
           >
             <option value="all">Все категории</option>
             {categories.map((cat) => (
@@ -287,84 +316,113 @@ export default function KnowledgeBasePage() {
         </div>
       </div>
 
+      {/* Категории */}
       <div className="flex flex-wrap gap-3">
         {categories.map((category) => (
-          <div key={category.id} className="bg-white rounded-lg shadow-md p-4 flex-1 min-w-[200px]">
+          <div key={category.id} className="bg-white rounded-2xl shadow-md p-4 flex-1 min-w-[200px] hover:shadow-lg transition-all duration-300">
             <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-semibold text-lg">{category.name}</h3>
-                <p className="text-sm text-gray-500 mt-1">{category.description}</p>
-                <p className="text-xs text-gray-400 mt-2">{category.article_count} статей</p>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <SaveIcon size={24} color="#D97C8E" />
+                  <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text">{category.name}</h3>
+                </div>
+                <p className="text-sm text-firm-gray mt-1 line-clamp-2">{category.description}</p>
+                <p className="text-xs text-firm-gray mt-2 flex items-center gap-1">
+                  <TagIcon size={12} color="#737682" />
+                  {category.article_count} статей
+                </p>
               </div>
               <button
                 onClick={() => deleteCategory(category.id)}
-                className="text-red-500 hover:text-red-700 text-sm"
+                className="p-1 text-firm-gray hover:text-firm-red transition"
+                title="Удалить категорию"
               >
-                🗑️
+                <DeleteIcon size={18} color="currentColor" />
               </button>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      {/* Таблица статей */}
+      <div className="bg-white rounded-2xl shadow-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b">
+            <thead className="bg-forms border-b border-gray-200">
               <tr>
-                <th className="text-left p-4">Название</th>
-                <th className="text-left p-4">Категория</th>
-                <th className="text-left p-4">Теги</th>
-                <th className="text-left p-4">Просмотры</th>
-                <th className="text-left p-4">Помогло</th>
-                <th className="text-left p-4">Статус</th>
-                <th className="text-left p-4">Действия</th>
+                <th className="text-left p-4 text-firm-gray font-['Montserrat_Alternates'] font-semibold">Название</th>
+                <th className="text-left p-4 text-firm-gray font-['Montserrat_Alternates'] font-semibold hidden sm:table-cell">Категория</th>
+                <th className="text-left p-4 text-firm-gray font-['Montserrat_Alternates'] font-semibold hidden md:table-cell">Теги</th>
+                <th className="text-left p-4 text-firm-gray font-['Montserrat_Alternates'] font-semibold hidden lg:table-cell">Просмотры</th>
+                <th className="text-left p-4 text-firm-gray font-['Montserrat_Alternates'] font-semibold">Помогло</th>
+                <th className="text-left p-4 text-firm-gray font-['Montserrat_Alternates'] font-semibold hidden sm:table-cell">Статус</th>
+                <th className="text-left p-4 text-firm-gray font-['Montserrat_Alternates'] font-semibold">Действия</th>
               </tr>
             </thead>
             <tbody>
               {articles.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center p-8 text-gray-500">
-                    Нет статей. Создайте первую статью!
+                  <td colSpan={7} className="text-center p-12 text-firm-gray">
+                    <SaveIcon size={48} color="#737682" className="mx-auto mb-4 opacity-50" />
+                    <p className="text-lg">Нет статей</p>
+                    <p className="text-sm mt-2">Создайте первую статью!</p>
                   </td>
                 </tr>
               ) : (
                 articles.map((article) => (
-                  <tr key={article.id} className="border-b hover:bg-gray-50">
+                  <tr key={article.id} className="border-b border-gray-100 hover:bg-forms transition-all duration-300">
                     <td className="p-4">
                       <div>
-                        <p className="font-medium">{article.title}</p>
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className="font-medium text-text">{article.title}</p>
+                        <p className="text-xs text-firm-gray mt-1 flex items-center gap-1">
+                          <CalendarIcon size={12} color="#737682" />
                           {new Date(article.created_at).toLocaleDateString("ru-RU")}
                         </p>
                       </div>
                     </td>
-                    <td className="p-4">
-                      <span className="px-2 py-1 bg-gray-100 rounded-full text-xs">{article.category}</span>
+                    <td className="p-4 hidden sm:table-cell">
+                      <span className="px-2 py-1 bg-firm-pink/20 text-firm-pink rounded-xl text-xs font-medium">
+                        {article.category}
+                      </span>
                     </td>
-                    <td className="p-4">
+                    <td className="p-4 hidden md:table-cell">
                       <div className="flex flex-wrap gap-1">
-                        {article.tags.slice(0, 3).map((tag) => (
-                          <span key={tag} className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full text-xs">
-                            {tag}
+                        {article.tags.slice(0, 2).map((tag) => (
+                          <span key={tag} className="px-2 py-0.5 bg-forms text-firm-gray rounded-full text-xs">
+                            #{tag}
                           </span>
                         ))}
-                        {article.tags.length > 3 && (
-                          <span className="text-xs text-gray-400">+{article.tags.length - 3}</span>
+                        {article.tags.length > 2 && (
+                          <span className="text-xs text-firm-gray">+{article.tags.length - 2}</span>
                         )}
                       </div>
                     </td>
-                    <td className="p-4 text-sm">{article.views}</td>
-                    <td className="p-4">
-                      <div className="flex gap-2 text-sm">
-                        <span className="text-green-600">👍 {article.helpful_count}</span>
-                        <span className="text-red-600">👎 {article.not_helpful_count}</span>
-                      </div>
+                    <td className="p-4 hidden lg:table-cell">
+                      <span className="text-sm text-firm-gray flex items-center gap-1">
+                        <ViewsIcon size={14} color="#737682" />
+                        {article.views}
+                      </span>
                     </td>
                     <td className="p-4">
+                      <div className="flex gap-3 text-sm">
+                        <span className="text-firm-green flex items-center gap-1">
+                          <LikeIcon size={14} color="#94D06C" />
+                          {article.helpful_count}
+                        </span>
+                        <span className="text-firm-red flex items-center gap-1">
+                          <DislikeIcon size={14} color="#D77C7C" />
+                          {article.not_helpful_count}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="p-4 hidden sm:table-cell">
                       <button
                         onClick={() => togglePublish(article.id, article.is_published)}
-                        className={`px-2 py-1 rounded-full text-xs ${article.is_published ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}
+                        className={`px-2 py-1 rounded-full text-xs font-medium transition ${
+                          article.is_published 
+                            ? "bg-firm-green/20 text-firm-green" 
+                            : "bg-forms text-firm-gray"
+                        }`}
                       >
                         {article.is_published ? "Опубликовано" : "Черновик"}
                       </button>
@@ -373,22 +431,25 @@ export default function KnowledgeBasePage() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => editArticle(article)}
-                          className="text-blue-500 hover:text-blue-700"
+                          className="p-1 text-firm-gray hover:text-firm-orange transition"
+                          title="Редактировать"
                         >
-                          ✏️
+                          <EditIcon size={18} color="currentColor" />
                         </button>
                         <button
                           onClick={() => deleteArticle(article.id)}
-                          className="text-red-500 hover:text-red-700"
+                          className="p-1 text-firm-gray hover:text-firm-red transition"
+                          title="Удалить"
                         >
-                          🗑️
+                          <DeleteIcon size={18} color="currentColor" />
                         </button>
                         <Link
                           href={`/support/knowledge-base/${article.id}`}
                           target="_blank"
-                          className="text-gray-500 hover:text-gray-700"
+                          className="p-1 text-firm-gray hover:text-firm-pink transition"
+                          title="Просмотреть"
                         >
-                          👁️
+                          <ViewsIcon size={18} color="currentColor" />
                         </Link>
                       </div>
                     </td>
@@ -401,171 +462,218 @@ export default function KnowledgeBasePage() {
       </div>
 
       {/* Модальное окно для статьи */}
-      {showArticleModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">
-                  {editingArticle ? "Редактировать статью" : "Новая статья"}
-                </h2>
-                <button
-                  onClick={() => { setShowArticleModal(false); resetArticleForm(); }}
-                  className="text-gray-500 hover:text-gray-700 text-xl"
-                >
-                  ✕
-                </button>
-              </div>
-              <form onSubmit={handleArticleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-gray-700 mb-1">Название *</label>
-                  <input
-                    type="text"
-                    value={articleForm.title}
-                    onChange={(e) => setArticleForm({ ...articleForm, title: e.target.value })}
-                    required
-                    className="w-full p-2 rounded-lg bg-gray-100 outline-firm-orange"
-                  />
+      <AnimatePresence>
+        {showArticleModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-main-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => { setShowArticleModal(false); resetArticleForm(); }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
+                    {editingArticle ? "Редактировать статью" : "Новая статья"}
+                  </h2>
+                  <button
+                    onClick={() => { setShowArticleModal(false); resetArticleForm(); }}
+                    className="text-firm-gray hover:text-text transition-colors"
+                  >
+                    <CloseIcon size={24} color="#737682" />
+                  </button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <form onSubmit={handleArticleSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-gray-700 mb-1">Категория *</label>
-                    <select
-                      value={articleForm.category}
-                      onChange={(e) => setArticleForm({ ...articleForm, category: e.target.value })}
-                      required
-                      className="w-full p-2 rounded-lg bg-gray-100 outline-firm-orange"
-                    >
-                      <option value="">Выберите категорию</option>
-                      {categories.map((cat) => (
-                        <option key={cat.id} value={cat.slug}>{cat.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-gray-700 mb-1">Теги (через запятую)</label>
+                    <label className="block text-text mb-1 font-['Montserrat_Alternates']">Название *</label>
                     <input
                       type="text"
-                      value={articleForm.tags}
-                      onChange={(e) => setArticleForm({ ...articleForm, tags: e.target.value })}
-                      placeholder="например: оплата, доставка, возврат"
-                      className="w-full p-2 rounded-lg bg-gray-100 outline-firm-orange"
+                      value={articleForm.title}
+                      onChange={(e) => setArticleForm({ ...articleForm, title: e.target.value })}
+                      required
+                      className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-orange"
                     />
                   </div>
-                </div>
-                <div>
-                  <label className="block text-gray-700 mb-1">Содержание *</label>
-                  <textarea
-                    value={articleForm.content}
-                    onChange={(e) => setArticleForm({ ...articleForm, content: e.target.value })}
-                    required
-                    rows={12}
-                    className="w-full p-2 rounded-lg bg-gray-100 outline-firm-orange font-mono text-sm"
-                    placeholder="Подробное описание решения проблемы..."
-                  />
-                </div>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={articleForm.is_published}
-                    onChange={(e) => setArticleForm({ ...articleForm, is_published: e.target.checked })}
-                    className="w-5 h-5 accent-firm-orange"
-                  />
-                  <label className="text-gray-700">Опубликовать сразу</label>
-                </div>
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="flex-1 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50"
-                  >
-                    {saving ? "Сохранение..." : editingArticle ? "Обновить" : "Создать"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setShowArticleModal(false); resetArticleForm(); }}
-                    className="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
-                  >
-                    Отмена
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-text mb-1 font-['Montserrat_Alternates']">Категория *</label>
+                      <select
+                        value={articleForm.category}
+                        onChange={(e) => setArticleForm({ ...articleForm, category: e.target.value })}
+                        required
+                        className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-pink cursor-pointer"
+                      >
+                        <option value="">Выберите категорию</option>
+                        {categories.map((cat) => (
+                          <option key={cat.id} value={cat.slug}>{cat.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-text mb-1 font-['Montserrat_Alternates']">Теги (через запятую)</label>
+                      <input
+                        type="text"
+                        value={articleForm.tags}
+                        onChange={(e) => setArticleForm({ ...articleForm, tags: e.target.value })}
+                        placeholder="например: оплата, доставка, возврат"
+                        className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-orange"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-text mb-1 font-['Montserrat_Alternates']">Содержание *</label>
+                    <textarea
+                      value={articleForm.content}
+                      onChange={(e) => setArticleForm({ ...articleForm, content: e.target.value })}
+                      required
+                      rows={12}
+                      className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-pink font-mono text-sm"
+                      placeholder="Подробное описание решения проблемы..."
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={articleForm.is_published}
+                      onChange={(e) => setArticleForm({ ...articleForm, is_published: e.target.checked })}
+                      className="w-5 h-5 rounded accent-firm-orange"
+                    />
+                    <label className="text-text">Опубликовать сразу</label>
+                  </div>
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="flex-1 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition disabled:opacity-50 font-medium flex items-center justify-center gap-2"
+                    >
+                      {saving ? (
+                        <>
+                          <RefreshIcon size={18} color="#ffffff" className="animate-spin" />
+                          Сохранение...
+                        </>
+                      ) : (
+                        editingArticle ? "Обновить" : "Создать"
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowArticleModal(false); resetArticleForm(); }}
+                      className="flex-1 py-3 border border-gray-300 rounded-xl hover:bg-forms transition-all duration-300 text-text"
+                    >
+                      Отмена
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Модальное окно для категории */}
-      {showCategoryModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">Новая категория</h2>
-                <button
-                  onClick={() => setShowCategoryModal(false)}
-                  className="text-gray-500 hover:text-gray-700 text-xl"
-                >
-                  ✕
-                </button>
-              </div>
-              <form onSubmit={handleCategorySubmit} className="space-y-4">
-                <div>
-                  <label className="block text-gray-700 mb-1">Название *</label>
-                  <input
-                    type="text"
-                    value={categoryForm.name}
-                    onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
-                    required
-                    className="w-full p-2 rounded-lg bg-gray-100 outline-firm-orange"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-700 mb-1">
-                    Slug (URL) * <span className="text-xs text-gray-500 ml-2">на английском</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={categoryForm.slug}
-                    onChange={(e) => setCategoryForm({
-                      ...categoryForm,
-                      slug: e.target.value.toLowerCase().replace(/\s/g, "-")
-                    })}
-                    required
-                    className="w-full p-2 rounded-lg bg-gray-100 outline-firm-orange"
-                    placeholder="naprimer: payment"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-700 mb-1">Описание</label>
-                  <textarea
-                    value={categoryForm.description}
-                    onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
-                    rows={3}
-                    className="w-full p-2 rounded-lg bg-gray-100 outline-firm-orange"
-                  />
-                </div>
-                <div className="flex gap-3 pt-4">
+      <AnimatePresence>
+        {showCategoryModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-main-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowCategoryModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl max-w-md w-full shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
+                    Новая категория
+                  </h2>
                   <button
-                    type="submit"
-                    disabled={saving}
-                    className="flex-1 py-2 bg-firm-orange text-white rounded-lg hover:bg-opacity-90 transition disabled:opacity-50"
-                  >
-                    {saving ? "Создание..." : "Создать"}
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => setShowCategoryModal(false)}
-                    className="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
+                    className="text-firm-gray hover:text-text transition-colors"
                   >
-                    Отмена
+                    <CloseIcon size={24} color="#737682" />
                   </button>
                 </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
+                <form onSubmit={handleCategorySubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-text mb-1 font-['Montserrat_Alternates']">Название *</label>
+                    <input
+                      type="text"
+                      value={categoryForm.name}
+                      onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                      required
+                      className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-orange"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-text mb-1 font-['Montserrat_Alternates']">
+                      Slug (URL) * <span className="text-xs text-firm-gray ml-2">на английском</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={categoryForm.slug}
+                      onChange={(e) => setCategoryForm({
+                        ...categoryForm,
+                        slug: e.target.value.toLowerCase().replace(/\s/g, "-")
+                      })}
+                      required
+                      className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-pink"
+                      placeholder="naprimer: payment"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-text mb-1 font-['Montserrat_Alternates']">Описание</label>
+                    <textarea
+                      value={categoryForm.description}
+                      onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                      rows={3}
+                      className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-orange"
+                    />
+                  </div>
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="flex-1 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition disabled:opacity-50 font-medium flex items-center justify-center gap-2"
+                    >
+                      {saving ? (
+                        <>
+                          <RefreshIcon size={18} color="#ffffff" className="animate-spin" />
+                          Создание...
+                        </>
+                      ) : (
+                        <>
+                          <PlusIcon size={18} color="#ffffff" />
+                          Создать
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowCategoryModal(false)}
+                      className="flex-1 py-3 border border-gray-300 rounded-xl hover:bg-forms transition-all duration-300 text-text"
+                    >
+                      Отмена
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
