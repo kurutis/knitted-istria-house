@@ -343,7 +343,7 @@ export default function AdminYarnCatalogPage() {
                                                 <PackageIcon size={48} color="#737682" className="mx-auto mb-4 opacity-50" />
                                                 <p className="text-lg">Нет добавленной пряжи</p>
                                                 <p className="text-sm mt-2">
-                                                    Нажмите кнопку "Добавить пряжу" чтобы начать
+                                                    Нажмите кнопку &quot;Добавить пряжу&quot; чтобы начать
                                                 </p>
                                             </td>
                                         </motion.tr>
