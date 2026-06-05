@@ -76,7 +76,7 @@ const RoleBadge = ({ role }: { role: string }) => {
 
 const StatusBadge = ({ type, value }: { type: 'verified' | 'partner' | 'banned'; value: boolean }) => {
     if (!value) return null
-    const config = {verified: { label: 'Верифицирован', color: 'bg-green-50 text-firm-green border-green-200', icon: <CheckCircleIcon className="w-3 h-3" color="#22C55E" /> }, partner: { label: 'Партнер', color: 'bg-firm-pink/10 text-firm-pink border-firm-pink/20', icon: <StarIcon className="w-3 h-3" color="#D97C8E" /> }, banned: { label: 'Заблокирован', color: 'bg-red-50 text-firm-red border-red-200', icon: <CloseIcon className="w-3 h-3" color="#EF4444" /> }}
+    const config = {verified: { label: 'Верифицирован', color: 'bg-green-50 text-firm-green border-green-200', icon: <CheckCircleIcon className="w-3 h-3" color="#94D06C" /> }, partner: { label: 'Партнер', color: 'bg-firm-pink/10 text-firm-pink border-firm-pink/20', icon: <StarIcon className="w-3 h-3" color="#D97C8E" /> }, banned: { label: 'Заблокирован', color: 'bg-red-50 text-firm-red border-red-200', icon: <CloseIcon className="w-3 h-3" color="#EF4444" /> }}
     const c = config[type]
     return (<span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${c.color}`}>{c.icon}{c.label}</span>)
 }
