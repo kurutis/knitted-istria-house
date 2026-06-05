@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import toast from "react-hot-toast"
 import ConfirmModal from "@/components/ui/ConfirmModal"
@@ -15,6 +15,7 @@ import { SaveIcon } from "@/components/icons/SaveIcon"
 import { PackageIcon } from "@/components/icons/PackageIcon"
 import { CalendarIcon } from "@/components/icons/CalendarIcon"
 import { ImageIcon } from "@/components/icons/ImageIcon"
+import { FolderIcon } from "@/components/icons/FolderIcon"
 
 interface Subcategory {
     id: number
@@ -34,6 +35,11 @@ interface Category {
     created_at: string
     updated_at: string
     icon_url?: string
+}
+
+// Расширенный тип для категории с вычисленным общим количеством товаров
+interface CategoryWithTotalProducts extends Category {
+    total_products_count: number
 }
 
 export default function AdminCategoriesPage() {
@@ -66,6 +72,27 @@ export default function AdminCategoriesPage() {
         onConfirm: () => {},
         type: 'danger'
     })
+
+    // Функция для рекурсивного вычисления общего количества товаров в категории
+    const calculateTotalProducts = useMemo(() => {
+        return (category: Category): number => {
+            // Суммируем товары самой категории и всех её подкатегорий
+            const subcategoriesTotal = category.subcategories?.reduce((sum, sub) => {
+                // Рекурсивно считаем товары в подкатегориях (на случай вложенности)
+                return sum + (sub.products_count || 0)
+            }, 0) || 0
+            
+            return (category.products_count || 0) + subcategoriesTotal
+        }
+    }, [])
+
+    // Трансформируем категории с добавлением общего количества товаров
+    const categoriesWithTotal = useMemo((): CategoryWithTotalProducts[] => {
+        return categories.map(category => ({
+            ...category,
+            total_products_count: calculateTotalProducts(category)
+        }))
+    }, [categories, calculateTotalProducts])
 
     useEffect(() => {
         if (status === 'loading') return
@@ -293,7 +320,15 @@ export default function AdminCategoriesPage() {
         })
     }
 
-    const renderCategoryTree = (category: Category, level: number = 0) => {
+    // Рекурсивная функция для получения категории с общим количеством товаров
+    const getCategoryWithTotal = (category: Category): CategoryWithTotalProducts => {
+        return {
+            ...category,
+            total_products_count: calculateTotalProducts(category)
+        }
+    }
+
+    const renderCategoryTree = (category: CategoryWithTotalProducts, level: number = 0) => {
         const indent = level * 32
         const hasSubcategories = category.subcategories && category.subcategories.length > 0
         const isExpanded = expandedCategories.has(category.id)
@@ -316,7 +351,7 @@ export default function AdminCategoriesPage() {
                                 {category.icon_url ? (
                                     <img src={category.icon_url} alt={category.name} className="w-8 h-8 object-contain" />
                                 ) : (
-                                    <SaveIcon size={32} color="#737682" />
+                                    <FolderIcon size={32} color="#737682" />
                                 )}
                                 <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text">{category.name}</h3>
                                 {level > 0 && (
@@ -337,7 +372,12 @@ export default function AdminCategoriesPage() {
                             <div className="flex flex-wrap gap-4 text-sm text-firm-gray">
                                 <span className="flex items-center gap-1">
                                     <PackageIcon size={14} color="#737682" />
-                                    Товаров: {category.products_count || 0}
+                                    Товаров: {category.total_products_count || 0}
+                                    {category.products_count !== category.total_products_count && category.subcategories.length > 0 && (
+                                        <span className="text-xs text-firm-gray ml-1">
+                                            (свои: {category.products_count || 0}, подкатегории: {(category.total_products_count || 0) - (category.products_count || 0)})
+                                        </span>
+                                    )}
                                 </span>
                                 <span className="flex items-center gap-1">
                                     <CalendarIcon size={14} color="#737682" />
@@ -380,7 +420,19 @@ export default function AdminCategoriesPage() {
                             exit={{ opacity: 0, height: 0 }}
                             transition={{ duration: 0.3 }}
                         >
-                            {category.subcategories.map(sub => renderCategoryTree(sub as Category, level + 1))}
+                            {category.subcategories.map(sub => {
+                                // Рекурсивно обогащаем подкатегорию общим количеством товаров
+                                const subWithTotal: CategoryWithTotalProducts = {
+                                    ...sub,
+                                    subcategories: [],
+                                    total_products_count: sub.products_count || 0,
+                                    products_count: sub.products_count || 0,
+                                    parent_category_id: category.id,
+                                    created_at: category.created_at,
+                                    updated_at: category.updated_at
+                                }
+                                return renderCategoryTree(subWithTotal, level + 1)
+                            })}
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -437,16 +489,16 @@ export default function AdminCategoriesPage() {
                 </div>
 
                 <div className="space-y-3">
-                    {categories.length === 0 ? (
+                    {categoriesWithTotal.length === 0 ? (
                         <div className="bg-white rounded-2xl shadow-xl p-12 text-center text-firm-gray">
-                            <SaveIcon size={64} color="#737682" className="mx-auto mb-4 opacity-50" />
+                            <FolderIcon size={64} color="#737682" className="mx-auto mb-4 opacity-50" />
                             <p className="text-lg">Нет добавленных категорий</p>
                             <p className="text-sm mt-2">
                                 Нажмите кнопку &quot;Добавить категорию&quot; чтобы начать
                             </p>
                         </div>
                     ) : (
-                        categories.map(category => renderCategoryTree(category, 0))
+                        categoriesWithTotal.map(category => renderCategoryTree(category, 0))
                     )}
                 </div>
 
