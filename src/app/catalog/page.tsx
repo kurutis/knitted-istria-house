@@ -342,20 +342,9 @@ function CatalogContent() {
                   <button  onClick={clearFilter} className="px-6 py-2.5 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl font-medium hover:shadow-lg transition-all">Сбросить фильтры</button>
                 </motion.div>
               ) : (
-                <motion.div
-                  key="products"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className={`grid ${getGridCols()} gap-3 sm:gap-4`}
-                >
+                <motion.div key="products" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`grid ${getGridCols()} gap-3 sm:gap-4`}>
                   {products.map((product: Product, index: number) => (
-                    <motion.div
-                      key={product.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      whileHover={{ y: -5 }}
-                    >
+                    <motion.div key={product.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} whileHover={{ y: -5 }}>
                       <ProductCard product={product} />
                     </motion.div>
                   ))}
@@ -364,17 +353,8 @@ function CatalogContent() {
             </AnimatePresence>
 
             {pagination.totalPages > 1 && !loading && products.length > 0 && (
-              <motion.div
-                className="mt-8"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-              >
-                <Pagination
-                  currentPage={pagination.page}
-                  totalPages={pagination.totalPages}
-                  onPageChange={handlePageChange}
-                />
+              <motion.div className="mt-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
+                <Pagination  currentPage={pagination.page} totalPages={pagination.totalPages} onPageChange={handlePageChange} />
               </motion.div>
             )}
           </div>
@@ -383,39 +363,14 @@ function CatalogContent() {
 
       <AnimatePresence>
         {isMobile && showMobileFilters && (
-          <motion.div
-            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setShowMobileFilters(false)}
-          >
-            <motion.div
-              className="fixed right-0 top-0 h-full w-[85%] max-w-sm bg-white shadow-xl overflow-y-auto"
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 25 }}
-              onClick={(e) => e.stopPropagation()}
-            >
+          <motion.div className="fixed inset-0 z-50 bg-main-black/50 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}  onClick={() => setShowMobileFilters(false)} >
+            <motion.div className="fixed right-0 top-0 h-full w-[85%] max-w-sm bg-white shadow-xl overflow-y-auto" initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25 }} onClick={(e) => e.stopPropagation()} >
               <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
-                <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text">
-                  Фильтры
-                </h3>
-                <button
-                  onClick={() => setShowMobileFilters(false)}
-                  className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition"
-                >
-                  <CloseIcon className="w-4 h-4" color="#737682" size={16} />
-                </button>
+                <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text">Фильтры</h3>
+                <button onClick={() => setShowMobileFilters(false)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition"><CloseIcon className="w-4 h-4" color="#737682" size={16} /></button>
               </div>
               <div className="p-4">
-                <Filters
-                  filters={filters}
-                  availableFilters={availableFilters}
-                  onFilterChange={handleFilterChange}
-                  onClearFilters={clearFilter}
-                />
+                <Filters filters={filters} availableFilters={availableFilters} onFilterChange={handleFilterChange} onClearFilters={clearFilter} />
               </div>
             </motion.div>
           </motion.div>
@@ -423,7 +378,7 @@ function CatalogContent() {
       </AnimatePresence>
     </div>
   );
-}
+} 
 
 export default function CatalogPage() {
   return (
