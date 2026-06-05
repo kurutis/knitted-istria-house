@@ -5,7 +5,14 @@ import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
 import { debounce } from 'lodash'
 import { motion, AnimatePresence } from "framer-motion"
-import Link from "next/link"
+
+import { SearchIcon } from "@/components/icons/SearchIcon"
+import { UserIcon } from "@/components/icons/UserIcon"
+import { CheckCircleIcon } from "@/components/icons/CheckCircleIcon"
+import { CloseIcon } from "@/components/icons/CloseIcon"
+import { StarIcon } from "@/components/icons/StarIcon"
+import { EditIcon } from "@/components/icons/EditIcon"
+import { ClockIcon } from "@/components/icons/ClockIcon"
 
 interface User {
     id: string
@@ -53,6 +60,27 @@ interface UserUpdates {
     role?: string
 }
 
+const RoleBadge = ({ role }: { role: string }) => {
+    const getRoleColor = () => {
+        if (role === 'admin') return 'bg-red-50 text-red-700 border-red-200'
+        if (role === 'master') return 'bg-green-50 text-green-700 border-green-200'
+        return 'bg-blue-50 text-blue-700 border-blue-200'
+    }
+    const getRoleText = () => {
+        if (role === 'admin') return 'Администратор'
+        if (role === 'master') return 'Мастер'
+        return 'Покупатель'
+    }
+    return (<span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getRoleColor()}`}>{getRoleText()}</span>)
+}
+
+const StatusBadge = ({ type, value }: { type: 'verified' | 'partner' | 'banned'; value: boolean }) => {
+    if (!value) return null
+    const config = {verified: { label: 'Верифицирован', color: 'bg-green-50 text-green-700 border-green-200', icon: <CheckCircleIcon className="w-3 h-3" color="#22C55E" /> }, partner: { label: 'Партнер', color: 'bg-purple-50 text-purple-700 border-purple-200', icon: <StarIcon className="w-3 h-3" color="#A855F7" /> }, banned: { label: 'Заблокирован', color: 'bg-red-50 text-red-700 border-red-200', icon: <CloseIcon className="w-3 h-3" color="#EF4444" /> }}
+    const c = config[type]
+    return (<span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${c.color}`}>{c.icon}{c.label}</span>)
+}
+
 export default function AdminUsersPage() {
     const { data: session, status } = useSession()
     const router = useRouter()
@@ -69,16 +97,22 @@ export default function AdminUsersPage() {
     const [showBanModal, setShowBanModal] = useState(false)
     const [banReason, setBanReason] = useState('')
     const [pendingAction, setPendingAction] = useState<{ userId: string; action: string } | null>(null)
+    const [isMobile, setIsMobile] = useState(false)
     const usersPerPage = 10
 
     useEffect(() => {
-        if (status === 'loading') return
+        const checkMobile = () => setIsMobile(window.innerWidth < 768)
+        checkMobile()
+        window.addEventListener('resize', checkMobile)
+        return () => window.removeEventListener('resize', checkMobile)
+    }, [])
 
+    useEffect(() => {
+        if (status === 'loading') return
         if (!session || session.user?.role !== 'admin') {
             router.push('/auth/signin')
             return
         }
-
         loadUsers()
     }, [session, status, router, currentPage, roleFilter, statusFilter, search])
 
@@ -93,13 +127,7 @@ export default function AdminUsersPage() {
     const loadUsers = async () => {
         try {
             setLoading(true)
-            const params = new URLSearchParams({
-                page: currentPage.toString(),
-                limit: usersPerPage.toString(),
-                role: roleFilter,
-                status: statusFilter,
-                search: search
-            })
+            const params = new URLSearchParams({page: currentPage.toString(), limit: usersPerPage.toString(), role: roleFilter, status: statusFilter, search: search})
 
             const response = await fetch(`/api/admin/users?${params}`)
             if (!response.ok) throw new Error('Failed to load users')
@@ -128,12 +156,9 @@ export default function AdminUsersPage() {
             const result = await response.json()
             alert(result.message)
             
-            // Обновляем локальный список
             setUsers(users.map(user => 
                 user.id === userId ? { ...user, ...updates } : user
             ))
-            
-            // Перезагружаем статистику
             loadUsers()
         } catch (error) {
             console.error("Ошибка обновления:", error)
@@ -181,289 +206,173 @@ export default function AdminUsersPage() {
         }
     }
 
-    const getRoleBadge = (role: string) => {
-        switch (role) {
-            case 'admin':
-                return <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">Админ</span>
-            case 'master':
-                return <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Мастер</span>
-            default:
-                return <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">Покупатель</span>
-        }
-    }
-
-    const getStatusBadge = (type: string, value: boolean) => {
-        if (!value) return null
-        switch (type) {
-            case 'verified':
-                return <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">Верифицирован</span>
-            case 'partner':
-                return <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">Партнер</span>
-            case 'banned':
-                return <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">Заблокирован</span>
-            default:
-                return null
-        }
-    }
+    const fadeInUp = {initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.5 }}
 
     if (loading && users.length === 0) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full animate-spin mx-auto" />
-                    <p className="mt-4 font-['Montserrat_Alternates'] text-gray-600">Загрузка пользователей...</p>
+                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto" />
+                    <p className="mt-4 font-montserrat text-firm-gray text-sm sm:text-base">Загрузка пользователей...</p>
                 </div>
             </div>
         )
     }
 
     return (
-        <div className="space-y-6 p-4 sm:p-6">
-            {/* Заголовок */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
-                    Управление пользователями
-                </h1>
-                <div className="flex gap-3">
+        <div className="min-h-screen bg-linear-to-br from-gray-50 via-white to-gray-50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+                <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
+                    <h1 className="font-montserrat font-bold text-2xl sm:text-3xl lg:text-4xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Управление пользователями</h1>
                     {stats && (
-                        <div className="text-gray-500 bg-gray-100 px-4 py-2 rounded-full text-sm">
-                            Всего: {stats.total} | Активных: {stats.active} | Заблокировано: {stats.banned}
+                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-main rounded-full shadow-sm border border-gray-100">
+                            <UserIcon className="w-4 h-4" color="#737682" />
+                            <span className="text-sm text-firm-gray"> Всего: {stats.total} | Активных: {stats.active} | Заблокировано: {stats.banned}</span>
                         </div>
                     )}
-                </div>
-            </div>
+                </motion.div>
 
-            {/* Фильтры */}
-            <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1">
-                    <input 
-                        type="text" 
-                        placeholder="🔍 Поиск по имени, email или телефону..." 
-                        onChange={(e) => debouncedSearch(e.target.value)} 
-                        className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300"
-                    />
-                </div>
-                <select 
-                    value={roleFilter} 
-                    onChange={(e) => {
-                        setRoleFilter(e.target.value)
-                        setCurrentPage(1)
-                    }} 
-                    className="p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300 cursor-pointer"
-                >
-                    <option value="all">Все роли</option>
-                    <option value="buyer">Покупатели ({stats?.by_role.buyer || 0})</option>
-                    <option value="master">Мастера ({stats?.by_role.master || 0})</option>
-                    <option value="admin">Администраторы ({stats?.by_role.admin || 0})</option>
-                </select>
-                <select 
-                    value={statusFilter} 
-                    onChange={(e) => {
-                        setStatusFilter(e.target.value)
-                        setCurrentPage(1)
-                    }} 
-                    className="p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300 cursor-pointer"
-                >
-                    <option value="all">Все статусы</option>
-                    <option value="active">Активные</option>
-                    <option value="banned">Заблокированные</option>
-                </select>
-            </div>
-
-            {/* Таблица пользователей */}
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
-                            <tr>
-                                <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-gray-700">Пользователь</th>
-                                <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-gray-700 hidden sm:table-cell">Контакты</th>
-                                <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-gray-700">Роль</th>
-                                <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-gray-700 hidden md:table-cell">Статусы</th>
-                                <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-gray-700">Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <AnimatePresence>
-                                {users.map((user, index) => (
-                                    <motion.tr 
-                                        key={user.id}
-                                        initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: 20 }}
-                                        transition={{ delay: index * 0.05 }}
-                                        className="border-b border-gray-100 hover:bg-gray-50 transition-all duration-300 group"
-                                    >
-                                        <td className="p-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden shadow-md">
-                                                    {user.avatar_url ? (
-                                                        <img src={user.avatar_url} alt={user.name || ''} className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <span className="text-lg">{user.name?.charAt(0) || user.email?.charAt(0) || 'U'}</span>
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    <div className="font-semibold text-gray-800">{user.name || 'Без имени'}</div>
-                                                    <div className="text-sm text-gray-400">{new Date(user.created_at).toLocaleDateString('ru-RU')}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="p-4 hidden sm:table-cell">
-                                            <div className="text-sm">
-                                                <div className="font-medium text-gray-700">{user.email}</div>
-                                                <div className="text-gray-400">{user.phone || '—'}</div>
-                                                <div className="text-gray-400 text-xs">{user.city || '—'}</div>
-                                            </div>
-                                        </td>
-                                        <td className="p-4">
-                                            {getRoleBadge(user.role)}
-                                            <button
-                                                onClick={() => handleToggleRole(user.id, user.role)}
-                                                className="ml-2 text-xs text-gray-400 hover:text-firm-orange transition"
-                                                title="Изменить роль"
-                                            >
-                                                🔄
-                                            </button>
-                                        </td>
-                                        <td className="p-4 hidden md:table-cell">
-                                            <div className="flex flex-wrap gap-1">
-                                                {getStatusBadge('verified', user.is_verified)}
-                                                {getStatusBadge('partner', user.is_partner)}
-                                                {getStatusBadge('banned', user.is_banned)}
-                                                {!user.is_verified && !user.is_partner && !user.is_banned && (
-                                                    <span className="text-gray-400 text-xs">—</span>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="flex flex-wrap gap-2">
-                                                {user.role === 'master' && !user.is_verified && (
-                                                    <button
-                                                        onClick={() => handleVerifyMaster(user.id, user.is_verified)}
-                                                        disabled={pendingAction?.userId === user.id}
-                                                        className="px-3 py-1 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition disabled:opacity-50"
-                                                    >
-                                                        {pendingAction?.userId === user.id && pendingAction?.action === 'verify' ? '⏳' : '✓ Верифицировать'}
-                                                    </button>
-                                                )}
-                                                {user.role === 'master' && (
-                                                    <button
-                                                        onClick={() => handleTogglePartner(user.id, user.is_partner)}
-                                                        disabled={pendingAction?.userId === user.id}
-                                                        className={`px-3 py-1 text-sm rounded-lg transition ${
-                                                            user.is_partner 
-                                                                ? 'bg-purple-100 text-purple-700 hover:bg-purple-200' 
-                                                                : 'bg-purple-500 text-white hover:bg-purple-600'
-                                                        } disabled:opacity-50`}
-                                                    >
-                                                        {user.is_partner ? '★ Снять партнера' : '☆ Сделать партнером'}
-                                                    </button>
-                                                )}
-                                                <button
-                                                    onClick={() => openBanModal(user)}
-                                                    className={`px-3 py-1 text-sm rounded-lg transition ${
-                                                        user.is_banned 
-                                                            ? 'bg-green-500 text-white hover:bg-green-600' 
-                                                            : 'bg-red-500 text-white hover:bg-red-600'
-                                                    }`}
-                                                >
-                                                    {user.is_banned ? '🔓 Разблокировать' : '🔒 Заблокировать'}
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </motion.tr>
-                                ))}
-                            </AnimatePresence>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {/* Пагинация */}
-            {totalPages > 1 && (
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <div className="text-sm text-gray-500">
-                        Показано {(currentPage - 1) * usersPerPage + 1} - {Math.min(currentPage * usersPerPage, totalUsers)} из {totalUsers}
+                {/* Фильтры */}
+                <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                    <div className="relative flex-1">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                            <SearchIcon className="w-4 h-4" color="#737682" />
+                        </div>
+                        <input type="text" placeholder="Поиск по имени, email или телефону..." onChange={(e) => debouncedSearch(e.target.value)} className="w-full pl-10 pr-4 py-3 rounded-xl bg-main border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm" />
                     </div>
-                    <div className="flex gap-1 flex-wrap justify-center">
-                        <button
-                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                            disabled={currentPage === 1}
-                            className="px-3 py-1 border rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                        >
-                            ← Назад
-                        </button>
-                        
-                        {Array.from({ length: totalPages }, (_, i) => i + 1)
-                            .filter(page => page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1))
-                            .map((page, index, array) => (
-                                <div key={page} className="flex items-center">
-                                    {index > 0 && page - array[index - 1] > 1 && (
-                                        <span className="px-2 text-gray-400">...</span>
-                                    )}
-                                    <button
-                                        onClick={() => setCurrentPage(page)}
-                                        className={`px-3 py-1 border rounded-lg transition ${
-                                            currentPage === page 
-                                                ? 'bg-gradient-to-r from-firm-orange to-firm-pink text-white border-transparent' 
-                                                : 'hover:bg-gray-100'
-                                        }`}
-                                    >
-                                        {page}
-                                    </button>
-                                </div>
+                    <div className="flex gap-3">
+                        <select value={roleFilter} onChange={(e) => {setRoleFilter(e.target.value); setCurrentPage(1)}} className="px-4 py-3 rounded-xl bg-main border border-gray-200 focus:border-firm-pink focus:outline-none focus:ring-2 focus:ring-firm-pink/20 transition-all text-sm cursor-pointer">
+                            <option value="all">Все роли</option>
+                            <option value="buyer">Покупатели ({stats?.by_role.buyer || 0})</option>
+                            <option value="master">Мастера ({stats?.by_role.master || 0})</option>
+                            <option value="admin">Администраторы ({stats?.by_role.admin || 0})</option>
+                        </select>
+                        <select value={statusFilter} onChange={(e) => {setStatusFilter(e.target.value); setCurrentPage(1)}}  className="px-4 py-3 rounded-xl bg-main border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm cursor-pointer">
+                            <option value="all">Все статусы</option>
+                            <option value="active">Активные</option>
+                            <option value="banned">Заблокированные</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+                    <div className="overflow-x-auto">
+                        <table className="w-full min-w-200">
+                            <thead className="bg-lin-to-r from-gray-50 to-gray-100 border-b border-gray-100">
+                                <tr>
+                                    <th className="text-left p-4 font-montserrat font-semibold text-firm-gray text-xs sm:text-sm">Пользователь</th>
+                                    <th className="text-left p-4 font-montserrat font-semibold text-firm-gray text-xs sm:text-sm hidden sm:table-cell">Контакты</th>
+                                    <th className="text-left p-4 font-montserrat font-semibold text-firm-gray text-xs sm:text-sm">Роль</th>
+                                    <th className="text-left p-4 font-montserrat font-semibold text-firm-gray text-xs sm:text-sm hidden md:table-cell">Статусы</th>
+                                    <th className="text-left p-4 font-montserrat font-semibold text-firm-gray text-xs sm:text-sm">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <AnimatePresence>
+                                    {users.map((user, index) => (
+                                        <motion.tr key={user.id} variants={fadeInUp} initial="initial" animate="animate"  exit={{ opacity: 0, x: 20 }} transition={{ delay: index * 0.05 }} className="border-b border-gray-100 hover:bg-gray-50 transition-all duration-300">
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden shadow-md flex-shrink-0">
+                                                        {user.avatar_url ? (
+                                                            <img src={user.avatar_url} alt={user.name || ''} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <span className="text-sm">{user.name?.charAt(0) || user.email?.charAt(0) || 'U'}</span>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-semibold text-text text-sm">{user.name || 'Без имени'}</div>
+                                                        <div className="text-xs text-firm-gray flex items-center gap-1 mt-0.5">
+                                                            <ClockIcon className="w-3 h-3" />
+                                                            {new Date(user.created_at).toLocaleDateString('ru-RU')}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="p-4 hidden sm:table-cell">
+                                                <div className="text-sm">
+                                                    <div className="font-medium text-text">{user.email}</div>
+                                                    <div className="text-firm-gray text-xs mt-1">{user.phone || '—'}</div>
+                                                    <div className="text-firm-gray text-xs">{user.city || '—'}</div>
+                                                </div>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-2">
+                                                    <RoleBadge role={user.role} />
+                                                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}  onClick={() => handleToggleRole(user.id, user.role)} className="p-1 rounded-lg bg-gray-100 hover:bg-firm-orange/20 transition-colors" title="Изменить роль"><EditIcon className="w-3.5 h-3.5" color="#737682" /></motion.button>
+                                                </div>
+                                            </td>
+                                            <td className="p-4 hidden md:table-cell">
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    <StatusBadge type="verified" value={user.is_verified} />
+                                                    <StatusBadge type="partner" value={user.is_partner} />
+                                                    <StatusBadge type="banned" value={user.is_banned} />
+                                                    {!user.is_verified && !user.is_partner && !user.is_banned && (<span className="text-firm-gray text-xs">—</span>)}
+                                                </div>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="flex flex-wrap gap-2">
+                                                    {user.role === 'master' && !user.is_verified && (<motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => handleVerifyMaster(user.id, user.is_verified)} disabled={pendingAction?.userId === user.id} className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-firm-green text-main rounded-lg hover:shadow-md transition disabled:opacity-50"><CheckCircleIcon className="w-3.5 h-3.5" color="#f9f9f9" />{pendingAction?.userId === user.id && pendingAction?.action === 'verify' ? '...' : 'Верифицировать'} </motion.button> )}
+                                                    {user.role === 'master' && (<motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => handleTogglePartner(user.id, user.is_partner)} disabled={pendingAction?.userId === user.id} className={`inline-flex items-center gap-1 px-3 py-1 text-sm rounded-lg transition ${user.is_partner ? 'bg-pink-50 text-firm-pink border border-pink-200 hover:bg-pink-100' : 'bg-firm-pink text-main hover:shadow-md'} disabled:opacity-50`} ><StarIcon className="w-3.5 h-3.5" color={user.is_partner ? "#A855F7" : "#f9f9f9"} />{user.is_partner ? 'Снять партнера' : 'Сделать партнером'}</motion.button>)}
+                                                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => openBanModal(user)} className={`inline-flex items-center gap-1 px-3 py-1 text-sm rounded-lg transition ${user.is_banned ? 'bg-green-50 textfirm-green border border-green-200 hover:bg-green-100' : 'bg-firm-red text-main hover:shadow-md'}`}>
+                                                        {user.is_banned ? (
+                                                            <>
+                                                                <CheckCircleIcon className="w-3.5 h-3.5" color="#22C55E" />
+                                                                Разблокировать
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <CloseIcon className="w-3.5 h-3.5" color="#f9f9f9" />
+                                                                Заблокировать
+                                                            </>
+                                                        )}
+                                                    </motion.button>
+                                                </div>
+                                            </td>
+                                        </motion.tr>
+                                    ))}
+                                </AnimatePresence>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {totalPages > 1 && (
+                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
+                        <div className="text-sm text-firm-gray">
+                            Показано {(currentPage - 1) * usersPerPage + 1} - {Math.min(currentPage * usersPerPage, totalUsers)} из {totalUsers}
+                        </div>
+                        <div className="flex gap-1 flex-wrap justify-center">
+                            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="px-3 py-1 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm">Назад</motion.button>
+                            
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).filter(page => page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)).map((page, index, array) => (
+                                    <div key={page} className="flex items-center">
+                                        {index > 0 && page - array[index - 1] > 1 && (<span className="px-2 text-firm-gray">...</span>)}
+                                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setCurrentPage(page)} className={`px-3 py-1 border rounded-lg transition text-sm ${currentPage === page ? 'bg-linear-to-r from-firm-orange to-firm-pink text-white border-transparent shadow-md' : 'border-gray-200 hover:bg-gray-50'}`}>{page}</motion.button>
+                                    </div>
                             ))}
-                        
-                        <button
-                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                            disabled={currentPage === totalPages}
-                            className="px-3 py-1 border rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                        >
-                            Вперед →
-                        </button>
+                            
+                            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className="px-3 py-1 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm">Вперед</motion.button>
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
 
-            {/* Модальное окно блокировки */}
             <AnimatePresence>
                 {showBanModal && selectedUser && (
-                    <div
-                        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-                        onClick={() => setShowBanModal(false)}
-                    >
-                        <div
-                            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <h2 className="text-xl font-['Montserrat_Alternates'] font-semibold mb-4">Блокировка пользователя</h2>
-                            <p className="text-gray-600 mb-4">
-                                Вы собираетесь заблокировать пользователя <strong>{selectedUser.name || selectedUser.email}</strong>.
-                            </p>
-                            <textarea
-                                value={banReason}
-                                onChange={(e) => setBanReason(e.target.value)}
-                                placeholder="Укажите причину блокировки..."
-                                className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-red-500 transition mb-4"
-                                rows={3}
-                            />
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => setShowBanModal(false)}
-                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-                                >
-                                    Отмена
-                                </button>
-                                <button
-                                    onClick={confirmBan}
-                                    disabled={!banReason.trim()}
-                                    className="flex-1 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:shadow-lg transition disabled:opacity-50"
-                                >
-                                    Заблокировать
-                                </button>
+                    <div className="fixed inset-0 bg-main-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowBanModal(false)}>
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-main rounded-2xl max-w-md w-full p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="font-montserrat font-semibold text-xl text-text">Блокировка пользователя</h2>
+                                <button onClick={() => setShowBanModal(false)} className="p-1 rounded-lg hover:bg-gray-100 transition"><CloseIcon className="w-5 h-5" color="#737682" /></button>
                             </div>
-                        </div>
+                            <p className="text-firm-gray text-sm mb-4">Вы собираетесь заблокировать пользователя <strong className="text-text">{selectedUser.name || selectedUser.email}</strong>.</p>
+                            <textarea  value={banReason} onChange={(e) => setBanReason(e.target.value)} placeholder="Укажите причину блокировки..." className="w-full p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-red focus:outline-none focus:ring-2 focus:ring-firm-red/20 transition-all text-sm resize-none" rows={3} />
+                            <div className="flex gap-3 mt-4">
+                                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowBanModal(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition text-sm">Отмена</motion.button>
+                                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={confirmBan} disabled={!banReason.trim()} className="flex-1 px-4 py-2 bg-firm-red text-main rounded-xl hover:shadow-lg transition disabled:opacity-50 text-sm">Заблокировать</motion.button>
+                            </div>
+                        </motion.div>
                     </div>
                 )}
             </AnimatePresence>
