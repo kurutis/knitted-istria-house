@@ -228,36 +228,11 @@ function CatalogContent() {
         {!loadingCategories && rootCategories.length > 0 && (
           <div className="overflow-x-auto pb-3 mb-6">
             <div className="flex gap-3 min-w-max">
-              <button
-                onClick={() => handleFilterChange({ category: "all" })}
-                className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all ${
-                  filters.category === "all"
-                    ? "bg-gradient-to-r from-firm-orange/15 to-firm-pink/15"
-                    : "hover:bg-gray-50"
-                }`}
-              >
-                <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-                    filters.category === "all"
-                      ? "bg-gradient-to-r from-firm-orange to-firm-pink"
-                      : "bg-gray-100"
-                  }`}
-                >
-                  <Productslcon
-                    className={`w-6 h-6 object-contain ${
-                      filters.category === "all" ? "brightness-0 invert" : ""
-                    }`}
-                    color={filters.category === "all" ? "#FFFFFF" : "#737682"}
-                    size={24}
-                  />
+              <button onClick={() => handleFilterChange({ category: "all" })} className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all ${filters.category === "all" ? "bg-linear-to-r from-firm-orange/15 to-firm-pink/15"  : "hover:bg-gray-50"}`}>
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${filters.category === "all" ? "bg-linear-to-r from-firm-orange to-firm-pink" : "bg-gray-100"}`}>
+                  <Productslcon className={`w-6 h-6 object-contain ${filters.category === "all" ? "brightness-0 invert" : "" }`} color={filters.category === "all" ? "#f9f9f9" : "#737682"} size={24} />
                 </div>
-                <span
-                  className={`text-xs font-medium ${
-                    filters.category === "all" ? "text-firm-orange" : "text-firm-gray"
-                  }`}
-                >
-                  Все
-                </span>
+                <span className={`text-xs font-medium ${filters.category === "all" ? "text-firm-orange" : "text-firm-gray"}`}>Все</span>
               </button>
 
               {rootCategories.map((cat) => {
@@ -265,37 +240,16 @@ function CatalogContent() {
                 const isActive = filters.category === cat.name;
 
                 return (
-                  <button
-                    key={cat.id}
-                    onClick={() => handleFilterChange({ category: cat.name })}
-                    className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all ${
-                      isActive
-                        ? "bg-gradient-to-r from-firm-orange/15 to-firm-pink/15"
-                        : "hover:bg-gray-50"
-                    }`}
-                  >
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-                        isActive
-                          ? "bg-gradient-to-r from-firm-orange to-firm-pink"
-                          : "bg-gray-100"
-                      }`}
-                    >
+                  <button key={cat.id} onClick={() => handleFilterChange({ category: cat.name })} className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all ${isActive ? "bg-linear-to-r from-firm-orange/15 to-firm-pink/15" : "hover:bg-gray-50" }`}>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isActive ? "bg-linear-to-r from-firm-orange to-firm-pink" : "bg-gray-100"}`}>
                       {cat.icon_url && !hasError ? (
-                        <img
-                          src={cat.icon_url}
-                          alt={cat.name}
-                          className={`w-6 h-6 object-contain ${
-                            isActive ? "brightness-0 invert" : ""
-                          }`}
-                          onError={() => handleIconError(cat.name)}
-                        />
+                        <img src={cat.icon_url} alt={cat.name} className={`w-6 h-6 object-contain ${isActive ? "brightness-0 invert" : "" }`} onError={() => handleIconError(cat.name)} />
                       ) : (
                         <Productslcon
                           className={`w-6 h-6 object-contain ${
                             isActive ? "brightness-0 invert" : ""
                           }`}
-                          color={isActive ? "#FFFFFF" : "#737682"}
+                          color={isActive ? "#f9f9f9" : "#737682"}
                           size={24}
                         />
                       )}
