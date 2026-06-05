@@ -15,7 +15,6 @@ import { SaveIcon } from "@/components/icons/SaveIcon"
 import { PackageIcon } from "@/components/icons/PackageIcon"
 import { CalendarIcon } from "@/components/icons/CalendarIcon"
 import { ImageIcon } from "@/components/icons/ImageIcon"
-import { FolderIcon } from "@/components/icons/FolderIcon"
 
 interface Subcategory {
     id: number
@@ -351,7 +350,7 @@ export default function AdminCategoriesPage() {
                                 {category.icon_url ? (
                                     <img src={category.icon_url} alt={category.name} className="w-8 h-8 object-contain" />
                                 ) : (
-                                    <FolderIcon size={32} color="#737682" />
+                                    <SaveIcon size={32} color="#737682" />
                                 )}
                                 <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text">{category.name}</h3>
                                 {level > 0 && (
@@ -491,7 +490,7 @@ export default function AdminCategoriesPage() {
                 <div className="space-y-3">
                     {categoriesWithTotal.length === 0 ? (
                         <div className="bg-white rounded-2xl shadow-xl p-12 text-center text-firm-gray">
-                            <FolderIcon size={64} color="#737682" className="mx-auto mb-4 opacity-50" />
+                            <SaveIcon size={64} color="#737682" className="mx-auto mb-4 opacity-50" />
                             <p className="text-lg">Нет добавленных категорий</p>
                             <p className="text-sm mt-2">
                                 Нажмите кнопку &quot;Добавить категорию&quot; чтобы начать
