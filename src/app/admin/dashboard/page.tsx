@@ -208,39 +208,17 @@ export default function AdminDashboardPage() {
 
     return (
         <>
-            <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+            <div className="min-h-screen bg-linear-to-br from-gray-50 via-white to-gray-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-                    {/* Заголовок и кнопка обновления */}
-                    <motion.div
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8"
-                    >
+                    <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
                         <div>
-                            <h1 className="font-montserrat font-bold text-2xl sm:text-3xl lg:text-4xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
-                                Панель управления
-                            </h1>
-                            {stats.lastUpdated && (
-                                <p className="text-firm-gray text-xs sm:text-sm mt-1 flex items-center gap-1">
-                                    <ClockIcon className="w-3 h-3" />
-                                    Обновлено: {new Date(stats.lastUpdated).toLocaleTimeString("ru-RU")}
-                                </p>
-                            )}
+                            <h1 className="font-montserrat font-bold text-2xl sm:text-3xl lg:text-4xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Панель управления</h1>
+                            {stats.lastUpdated && (<p className="text-firm-gray text-xs sm:text-sm mt-1 flex items-center gap-1"><ClockIcon className="w-3 h-3" />Обновлено: {new Date(stats.lastUpdated).toLocaleTimeString("ru-RU")}</p>)}
                         </div>
-                        <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => loadDashboardStats(true)}
-                            disabled={refreshing}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-white text-firm-gray rounded-xl border border-gray-200 hover:bg-gray-50 transition-all duration-300 disabled:opacity-50 text-sm"
-                        >
+                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => loadDashboardStats(true)} disabled={refreshing} className="inline-flex items-center gap-2 px-4 py-2 bg-white text-firm-gray rounded-xl border border-gray-200 hover:bg-gray-50 transition-all duration-300 disabled:opacity-50 text-sm">
                             {refreshing ? (
                                 <>
-                                    <motion.div
-                                        animate={{ rotate: 360 }}
-                                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                        className="w-4 h-4 border-2 border-firm-gray border-t-transparent rounded-full"
-                                    />
+                                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-4 h-4 border-2 border-firm-gray border-t-transparent rounded-full" />
                                     <span>Обновление...</span>
                                 </>
                             ) : (
@@ -252,39 +230,19 @@ export default function AdminDashboardPage() {
                         </motion.button>
                     </motion.div>
 
-                    {/* Карточки статистики */}
-                    <motion.div
-                        variants={staggerContainer}
-                        initial="initial"
-                        animate="animate"
-                        className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8"
-                    >
+                    <motion.div variants={staggerContainer} initial="initial" animate="animate" className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8">
                         {statCards.map((stat, idx) => (
                             <motion.div key={stat.label} variants={fadeInUp} whileHover={{ y: -5 }}>
                                 <Link href={stat.link}>
-                                    <div className={`bg-white rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-all duration-300 ${stat.bg} border border-gray-100`}>
+                                    <div className={`bg-main rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-all duration-300 ${stat.bg} border border-gray-100`}>
                                         <div className="flex items-center justify-between">
                                             <div>
                                                 <p className="text-firm-gray text-xs sm:text-sm font-montserrat">{stat.label}</p>
-                                                <motion.p
-                                                    initial={{ scale: 0.5 }}
-                                                    animate={{ scale: 1 }}
-                                                    transition={{ delay: idx * 0.1, type: "spring" }}
-                                                    className="text-xl sm:text-2xl md:text-3xl font-bold mt-1"
-                                                    style={{ color: stat.color }}
-                                                >
-                                                    {stat.value.toLocaleString()}
-                                                </motion.p>
+                                                <motion.p initial={{ scale: 0.5 }} animate={{ scale: 1 }} transition={{ delay: idx * 0.1, type: "spring" }} className="text-xl sm:text-2xl md:text-3xl font-bold mt-1" style={{ color: stat.color }}>{stat.value.toLocaleString()}</motion.p>
                                                 {stat.trend !== 0 && (
                                                     <div className="flex items-center gap-1 mt-1">
-                                                        {stat.trend > 0 ? (
-                                                            <TrendingUpIcon className="w-3 h-3" color="#22C55E" />
-                                                        ) : (
-                                                            <TrendingDownIcon className="w-3 h-3" color="#EF4444" />
-                                                        )}
-                                                        <span className={`text-xs ${stat.trend > 0 ? "text-green-600" : "text-red-600"}`}>
-                                                            {Math.abs(stat.trend)}% за месяц
-                                                        </span>
+                                                        {stat.trend > 0 ? (<TrendingUpIcon className="w-3 h-3" color="#22C55E" />) : (<TrendingDownIcon className="w-3 h-3" color="#EF4444" />)}
+                                                        <span className={`text-xs ${stat.trend > 0 ? "text-firm-green" : "text-firm-red"}`}>{Math.abs(stat.trend)}% за месяц</span>
                                                     </div>
                                                 )}
                                             </div>
@@ -296,34 +254,27 @@ export default function AdminDashboardPage() {
                         ))}
                     </motion.div>
 
-                    {/* Финансовая статистика и топ категории */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
-                        <motion.div
-                            variants={fadeInUp}
-                            className="bg-gradient-to-r from-firm-green to-green-600 rounded-2xl shadow-lg p-4 sm:p-6 text-white"
-                        >
+                        <motion.div variants={fadeInUp} className="bg-linear-to-r from-firm-green to-green-600 rounded-2xl shadow-lg p-4 sm:p-6 text-main">
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                                 <div>
-                                    <p className="text-white/80 text-sm">Общая выручка</p>
-                                    <p className="text-2xl sm:text-3xl font-bold">{stats.totalRevenue.toLocaleString()} ₽</p>
+                                    <p className="text-main/80 text-sm">Общая выручка</p>
+                                    <p className="text-main/80 text-2xl sm:text-3xl font-bold">{stats.totalRevenue.toLocaleString()} ₽</p>
                                 </div>
                                 <div className="text-left sm:text-right">
-                                    <p className="text-white/80 text-sm">За последние 30 дней</p>
-                                    <p className="text-xl sm:text-2xl font-semibold">{stats.monthlyRevenue.toLocaleString()} ₽</p>
-                                    <p className="text-sm text-white/70">{stats.monthlyOrders} заказов</p>
+                                    <p className="text-main/80 text-sm">За последние 30 дней</p>
+                                    <p className="text-main/80 text-xl sm:text-2xl font-semibold">{stats.monthlyRevenue.toLocaleString()} ₽</p>
+                                    <p className="text-sm text-main/70">{stats.monthlyOrders} заказов</p>
                                 </div>
                             </div>
                         </motion.div>
 
-                        <motion.div
-                            variants={fadeInUp}
-                            className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-100"
-                        >
+                        <motion.div variants={fadeInUp} className="bg-main rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-100">
                             <h3 className="font-montserrat font-semibold text-lg text-text mb-4">Популярные категории</h3>
                             <div className="space-y-3">
                                 {stats.topCategories.map((cat, idx) => (
                                     <div key={cat.name} className="flex items-center gap-3">
-                                        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-r from-firm-orange/20 to-firm-pink/20 flex items-center justify-center text-xs sm:text-sm font-bold text-firm-orange">
+                                        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-linear-to-r from-firm-orange/20 to-firm-pink/20 flex items-center justify-center text-xs sm:text-sm font-bold text-firm-orange">
                                             {idx + 1}
                                         </div>
                                         <div className="flex-1">
@@ -332,10 +283,7 @@ export default function AdminDashboardPage() {
                                                 <span className="text-firm-gray">{cat.count} товаров</span>
                                             </div>
                                             <div className="w-full bg-gray-100 rounded-full h-1.5 sm:h-2">
-                                                <div
-                                                    className="bg-gradient-to-r from-firm-orange to-firm-pink h-1.5 sm:h-2 rounded-full transition-all duration-500"
-                                                    style={{ width: `${(cat.count / (stats.topCategories[0]?.count || 1)) * 100}%` }}
-                                                />
+                                                <div className="bg-linear-to-r from-firm-orange to-firm-pink h-1.5 sm:h-2 rounded-full transition-all duration-500" style={{ width: `${(cat.count / (stats.topCategories[0]?.count || 1)) * 100}%` }} />
                                             </div>
                                         </div>
                                     </div>
@@ -344,64 +292,39 @@ export default function AdminDashboardPage() {
                         </motion.div>
                     </div>
 
-                    {/* Ожидают модерации */}
-                    <motion.div variants={fadeInUp} className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-100 mb-6 sm:mb-8">
+                    <motion.div variants={fadeInUp} className="bg-main rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-100 mb-6 sm:mb-8">
                         <h2 className="font-montserrat font-semibold text-lg sm:text-xl text-text mb-4">Ожидают модерации</h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                             <Link href="/admin/moderation/masters">
-                                <div className="flex justify-between items-center p-3 sm:p-4 bg-gradient-to-r from-firm-orange/10 to-firm-pink/10 rounded-xl hover:from-firm-orange/20 hover:to-firm-pink/20 transition-all duration-300 cursor-pointer">
-                                    <span className="font-medium text-text flex items-center gap-2">
-                                        <UserIcon className="w-4 h-4" color="#F4A67F" />
-                                        Мастера на верификацию
-                                    </span>
+                                <div className="flex justify-between items-center p-3 sm:p-4 bg-linear-to-r from-firm-orange/10 to-firm-pink/10 rounded-xl hover:from-firm-orange/20 hover:to-firm-pink/20 transition-all duration-300 cursor-pointer">
+                                    <span className="font-medium text-text flex items-center gap-2"><UserIcon className="w-4 h-4" color="#F4A67F" />Мастера на верификацию</span>
                                     <span className="text-xl sm:text-2xl font-bold text-firm-orange">{stats.pendingModeration.masters}</span>
                                 </div>
                             </Link>
                             <Link href="/admin/moderation/products">
-                                <div className="flex justify-between items-center p-3 sm:p-4 bg-gradient-to-r from-firm-pink/10 to-purple-500/10 rounded-xl hover:from-firm-pink/20 hover:to-purple-500/20 transition-all duration-300 cursor-pointer">
-                                    <span className="font-medium text-text flex items-center gap-2">
-                                        <ProductsIcon className="w-4 h-4" color="#D97C8E" />
-                                        Товары на модерацию
-                                    </span>
+                                <div className="flex justify-between items-center p-3 sm:p-4 bg-linear-to-r from-firm-pink/10 to-purple-500/10 rounded-xl hover:from-firm-pink/20 hover:to-purple-500/20 transition-all duration-300 cursor-pointer">
+                                    <span className="font-medium text-text flex items-center gap-2"><ProductsIcon className="w-4 h-4" color="#D97C8E" />Товары на модерацию</span>
                                     <span className="text-xl sm:text-2xl font-bold text-firm-pink">{stats.pendingModeration.products}</span>
                                 </div>
                             </Link>
                         </div>
                     </motion.div>
 
-                    {/* Быстрые действия */}
-                    <motion.div variants={fadeInUp} className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-100 mb-6 sm:mb-8">
+                    <motion.div variants={fadeInUp} className="bg-main rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-100 mb-6 sm:mb-8">
                         <h2 className="font-montserrat font-semibold text-lg sm:text-xl text-text mb-4">Быстрые действия</h2>
                         <div className="flex flex-wrap gap-3">
-                            <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => setShowYarnModal(true)}
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl text-sm hover:shadow-lg transition-all duration-300"
-                            >
-                                <PlusIcon className="w-4 h-4" color="#f9f9f9" />
-                                Добавить пряжу
-                            </motion.button>
-                            <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => setShowUserModal(true)}
-                                className="inline-flex items-center gap-2 px-4 py-2 border-2 border-firm-pink text-firm-pink rounded-xl text-sm hover:bg-firm-pink hover:text-white transition-all duration-300"
-                            >
-                                <UserPlusIcon className="w-4 h-4" color="#D97C8E" />
-                                Создать пользователя
-                            </motion.button>
+                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowYarnModal(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl text-sm hover:shadow-lg transition-all duration-300"><PlusIcon className="w-4 h-4" color="#f9f9f9" />Добавить пряжу</motion.button>
+                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowUserModal(true)} className="inline-flex items-center gap-2 px-4 py-2 border-2 border-firm-pink text-firm-pink rounded-xl text-sm hover:bg-firm-pink hover:text-main transition-all duration-300"><UserPlusIcon className="w-4 h-4" color="#D97C8E" />Создать пользователя</motion.button>
                         </div>
                     </motion.div>
 
-                    {/* Последние пользователи */}
-                    <motion.div variants={fadeInUp} className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 mb-6 sm:mb-8">
+                    <motion.div variants={fadeInUp} className="bg-main rounded-2xl shadow-lg overflow-hidden border border-gray-100 mb-6 sm:mb-8">
                         <div className="p-4 sm:p-6 border-b border-gray-100">
                             <h2 className="font-montserrat font-semibold text-lg sm:text-xl text-text">Последние пользователи</h2>
                         </div>
                         <div className="overflow-x-auto">
-                            <table className="w-full min-w-[600px]">
-                                <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                            <table className="w-full min-w-150">
+                                <thead className="bg-linear-to-r from-gray-50 to-gray-100">
                                     <tr>
                                         <th className="text-left p-3 sm:p-4 font-montserrat font-semibold text-firm-gray text-xs sm:text-sm">Имя</th>
                                         <th className="text-left p-3 sm:p-4 font-montserrat font-semibold text-firm-gray text-xs sm:text-sm">Email</th>
@@ -416,8 +339,7 @@ export default function AdminDashboardPage() {
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: idx * 0.05 }}
-                                            className="border-b border-gray-100 hover:bg-gray-50 transition-all duration-300"
-                                        >
+                                            className="border-b border-gray-100 hover:bg-gray-50 transition-all duration-300">
                                             <td className="p-3 sm:p-4 text-text text-sm">{user.name || "-"}</td>
                                             <td className="p-3 sm:p-4 text-firm-gray text-sm">{user.email}</td>
                                             <td className="p-3 sm:p-4"><RoleBadge role={user.role} /></td>
@@ -429,14 +351,13 @@ export default function AdminDashboardPage() {
                         </div>
                     </motion.div>
 
-                    {/* Последние заказы */}
                     <motion.div variants={fadeInUp} className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
                         <div className="p-4 sm:p-6 border-b border-gray-100">
                             <h2 className="font-montserrat font-semibold text-lg sm:text-xl text-text">Последние заказы</h2>
                         </div>
                         <div className="overflow-x-auto">
-                            <table className="w-full min-w-[700px]">
-                                <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                            <table className="w-full min-w-175">
+                                <thead className="bg-linear-to-r from-gray-50 to-gray-100">
                                     <tr>
                                         <th className="text-left p-3 sm:p-4 font-montserrat font-semibold text-firm-gray text-xs sm:text-sm">№ Заказа</th>
                                         <th className="text-left p-3 sm:p-4 font-montserrat font-semibold text-firm-gray text-xs sm:text-sm">Покупатель</th>
@@ -447,13 +368,7 @@ export default function AdminDashboardPage() {
                                 </thead>
                                 <tbody>
                                     {stats.recentOrders?.map((order, idx) => (
-                                        <motion.tr
-                                            key={order.id}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: idx * 0.05 }}
-                                            className="border-b border-gray-100 hover:bg-gray-50 transition-all duration-300"
-                                        >
+                                        <motion.tr key={order.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} className="border-b border-gray-100 hover:bg-gray-50 transition-all duration-300">
                                             <td className="p-3 sm:p-4 font-mono text-sm text-text">{order.order_number}</td>
                                             <td className="p-3 sm:p-4 text-text text-sm">{order.buyer_name || "-"}</td>
                                             <td className="p-3 sm:p-4 font-semibold text-firm-orange text-sm">{order.total_amount.toLocaleString()} ₽</td>
