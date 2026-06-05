@@ -62,9 +62,9 @@ interface UserUpdates {
 
 const RoleBadge = ({ role }: { role: string }) => {
     const getRoleColor = () => {
-        if (role === 'admin') return 'bg-red-50 text-red-700 border-red-200'
-        if (role === 'master') return 'bg-green-50 text-green-700 border-green-200'
-        return 'bg-blue-50 text-blue-700 border-blue-200'
+        if (role === 'admin') return 'bg-red-50 text-firm-red border-red-200'
+        if (role === 'master') return 'bg-green-50 text-firm-green border-green-200'
+        return 'bg-orange-50 text-firm-orange border-orange-200'
     }
     const getRoleText = () => {
         if (role === 'admin') return 'Администратор'
@@ -76,7 +76,7 @@ const RoleBadge = ({ role }: { role: string }) => {
 
 const StatusBadge = ({ type, value }: { type: 'verified' | 'partner' | 'banned'; value: boolean }) => {
     if (!value) return null
-    const config = {verified: { label: 'Верифицирован', color: 'bg-green-50 text-green-700 border-green-200', icon: <CheckCircleIcon className="w-3 h-3" color="#22C55E" /> }, partner: { label: 'Партнер', color: 'bg-firm-pink/10 text-firm-pink border-firm-pink/20', icon: <StarIcon className="w-3 h-3" color="#D97C8E" /> }, banned: { label: 'Заблокирован', color: 'bg-red-50 text-red-700 border-red-200', icon: <CloseIcon className="w-3 h-3" color="#EF4444" /> }}
+    const config = {verified: { label: 'Верифицирован', color: 'bg-green-50 text-firm-green border-green-200', icon: <CheckCircleIcon className="w-3 h-3" color="#22C55E" /> }, partner: { label: 'Партнер', color: 'bg-firm-pink/10 text-firm-pink border-firm-pink/20', icon: <StarIcon className="w-3 h-3" color="#D97C8E" /> }, banned: { label: 'Заблокирован', color: 'bg-red-50 text-firm-red border-red-200', icon: <CloseIcon className="w-3 h-3" color="#EF4444" /> }}
     const c = config[type]
     return (<span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${c.color}`}>{c.icon}{c.label}</span>)
 }
@@ -232,7 +232,6 @@ export default function AdminUsersPage() {
                     )}
                 </motion.div>
 
-                {/* Фильтры */}
                 <div className="flex flex-col sm:flex-row gap-4 mb-6">
                     <div className="relative flex-1">
                         <div className="absolute left-3 top-1/2 -translate-y-1/2">
@@ -273,7 +272,7 @@ export default function AdminUsersPage() {
                                         <motion.tr key={user.id} variants={fadeInUp} initial="initial" animate="animate"  exit={{ opacity: 0, x: 20 }} transition={{ delay: index * 0.05 }} className="border-b border-gray-100 hover:bg-gray-50 transition-all duration-300">
                                             <td className="p-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden shadow-md flex-shrink-0">
+                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold overflow-hidden shadow-md shrink-0">
                                                         {user.avatar_url ? (
                                                             <img src={user.avatar_url} alt={user.name || ''} className="w-full h-full object-cover" />
                                                         ) : (
