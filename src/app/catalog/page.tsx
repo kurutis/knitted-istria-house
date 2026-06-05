@@ -221,7 +221,7 @@ function CatalogContent() {
     <div className="min-h-screen bg-main">
       <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
         <div className="mb-6 sm:mb-8">
-          <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl lg:text-4xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent !important">
+          <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl lg:text-4xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
             Каталог изделий
           </h1>
           <p className="text-firm-gray mt-2 text-sm">{pagination.total} уникальных изделий ручной работы</p>
@@ -247,13 +247,7 @@ function CatalogContent() {
                       {cat.icon_url && !hasError ? (
                         <img src={cat.icon_url} alt={cat.name} className={`w-6 h-6 object-contain ${isActive ? "brightness-0 invert" : "" }`} onError={() => handleIconError(cat.name)} />
                       ) : (
-                        <Productslcon
-                          className={`w-6 h-6 object-contain ${
-                            isActive ? "brightness-0 invert" : ""
-                          }`}
-                          color={isActive ? "#f9f9f9" : "#737682"}
-                          size={24}
-                        />
+                        <Productslcon className={`w-6 h-6 object-contain ${isActive ? "brightness-0 invert" : ""}`} color={isActive ? "#f9f9f9" : "#737682"} size={24} />
                       )}
                     </div>
                     <span
@@ -270,44 +264,21 @@ function CatalogContent() {
           </div>
         )}
 
-        {/* Поиск и фильтры */}
         <div className="flex gap-3 items-center mb-6">
           <div className="relative flex-1 md:w-96 md:flex-none">
             <div className="absolute left-3 top-1/2 -translate-y-1/2">
               <SearchIcon color="#737682" size={16} />
             </div>
-            <input
-              type="text"
-              placeholder="Поиск по названию..."
-              value={filters.search}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="w-full p-3 pl-10 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm placeholder:text-firm-gray"
-            />
+            <input type="text" placeholder="Поиск по названию..." value={filters.search} onChange={(e) => handleSearch(e.target.value)} className="w-full p-3 pl-10 rounded-xl bg-main border-2 border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm placeholder:text-firm-gray" />
           </div>
 
-          {isMobile && (
-            <motion.button
-              onClick={() => setShowMobileFilters(true)}
-              className="px-4 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl flex items-center gap-2 text-sm font-medium whitespace-nowrap shadow-md"
-              whileTap={{ scale: 0.95 }}
-              whileHover={{ scale: 1.02 }}
-            >
-              <FilterIcon className="w-4 h-4" color="#FFFFFF" size={16} />
-              Фильтры
-            </motion.button>
-          )}
+          {isMobile && (<motion.button onClick={() => setShowMobileFilters(true)} className="px-4 py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl flex items-center gap-2 text-sm font-medium whitespace-nowrap shadow-md" whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.02 }}><FilterIcon className="w-4 h-4" color="#f9f9f9" size={16} />Фильтры</motion.button>)}
         </div>
 
         <div className="flex flex-col md:flex-row gap-6">
-          {/* Десктопные фильтры */}
           {!isMobile && (
             <div className="w-full md:w-80 lg:w-96 shrink-0">
-              <Filters
-                filters={filters}
-                availableFilters={availableFilters}
-                onFilterChange={handleFilterChange}
-                onClearFilters={clearFilter}
-              />
+              <Filters filters={filters} availableFilters={availableFilters} onFilterChange={handleFilterChange} onClearFilters={clearFilter} />
             </div>
           )}
 
