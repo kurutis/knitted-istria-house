@@ -330,34 +330,16 @@ function CatalogContent() {
 
             <AnimatePresence mode="wait">
               {loading ? (
-                <motion.div
-                  key="loading"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="py-12"
-                >
+                <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="py-12">
                   <LoadingSpinner />
                 </motion.div>
               ) : products.length === 0 ? (
-                <motion.div
-                  key="empty"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-center py-16 bg-main rounded-2xl border-2 border-gray-100"
-                >
+                <motion.div key="empty" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center py-16 bg-main rounded-2xl border-2 border-gray-100">
                   <div className="mb-4 flex justify-center">
                     <Productslcon color="#D4D4D4" size={80} />
                   </div>
-                  <p className="text-firm-gray mb-4 font-['Montserrat_Alternates'] text-base">
-                    Товары не найдены
-                  </p>
-                  <button
-                    onClick={clearFilter}
-                    className="px-6 py-2.5 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl font-medium hover:shadow-lg transition-all"
-                  >
-                    Сбросить фильтры
-                  </button>
+                  <p className="text-firm-gray mb-4 font-['Montserrat_Alternates'] text-base">Товары не найдены</p>
+                  <button  onClick={clearFilter} className="px-6 py-2.5 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl font-medium hover:shadow-lg transition-all">Сбросить фильтры</button>
                 </motion.div>
               ) : (
                 <motion.div
@@ -399,7 +381,6 @@ function CatalogContent() {
         </div>
       </div>
 
-      {/* Мобильные фильтры */}
       <AnimatePresence>
         {isMobile && showMobileFilters && (
           <motion.div
