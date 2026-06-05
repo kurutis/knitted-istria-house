@@ -224,7 +224,7 @@ export default function AdminModerationMastersPage() {
                                                             {!master.avatar_url && (<span className="text-main">{displayName(master).charAt(0).toUpperCase()}</span>)}
                                                         </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <h3 className="font-montserrat font-semibold text-base sm:text-lg text-text">displayName(master)</h3>
+                                                            <h3 className="font-montserrat font-semibold text-base sm:text-lg text-text">{displayName(master)}</h3>
                                                             <div className="flex flex-wrap gap-3 mt-1 text-xs sm:text-sm text-firm-gray">
                                                                 <span className="inline-flex items-center gap-1 truncate"><MailIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#737682" />{master.email}</span>
                                                                 <span className="inline-flex items-center gap-1"><PhoneIcon className="w-3 h-3 sm:w-4 sm:h-4" color="#737682" />{master.phone || '—'}</span>
