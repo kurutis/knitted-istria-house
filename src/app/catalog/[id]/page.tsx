@@ -582,7 +582,7 @@ export default function ProductPage() {
 
   return (
     <>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8">
         <div className="text-xs sm:text-sm text-firm-gray mb-6">
           <Link href="/" className="hover:text-firm-orange transition-colors">Главная</Link>
           <span className="mx-2">/</span>

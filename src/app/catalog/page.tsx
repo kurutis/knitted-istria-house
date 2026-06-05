@@ -219,7 +219,7 @@ function CatalogContent() {
 
   return (
     <div className="min-h-screen bg-main">
-      <div className="container mx-auto px-3 sm:px-4 py-6 sm:py-8">
+      <div className="container mx-auto px-3 sm:px-4 pb-6 sm:pb-8">
         <div className="mb-6 sm:mb-8">
           <h1 className="inline-block font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl lg:text-4xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
             Каталог изделий

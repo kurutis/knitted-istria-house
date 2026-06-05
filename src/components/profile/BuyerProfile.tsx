@@ -322,14 +322,12 @@ export default function BuyerProfile({
     <>
       <div className="min-h-screen bg-main">
         <Toaster position="top-right" />
-
-        <div className="mt-3 sm:mt-5 flex items-start justify-center py-6 sm:py-8 px-3 sm:px-4">
-          <div className="flex flex-col gap-4 sm:gap-6 w-full max-w-7xl">
-            {/* Header */}
+        <div className="flex items-start justify-center pb-6 sm:pb-8 px-3 sm:px-4">
+            <div className="flex flex-col gap-4 sm:gap-6 w-full max-w-7xl">
             <motion.div initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="bg-gradient-to-r from-firm-orange/10 to-firm-pink/10 rounded-xl sm:rounded-2xl p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <h1 className="font-montserrat font-bold text-2xl sm:text-3xl md:text-4xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Личный кабинет</h1>
+                  <h1 className="font-montserrat font-bold text-2xl sm:text-3xl md:text-4xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Личный кабинет</h1>
                   <p className="text-firm-gray mt-1 sm:mt-2 text-xs sm:text-sm">Добро пожаловать, {profileData.fullname || session?.user?.name}</p>
                   {profileData.role === "buyer" && (
                     <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="inline-flex mt-2 px-2 sm:px-3 py-1 bg-gradient-to-r from-firm-orange to-firm-pink text-main text-[10px] sm:text-xs rounded-full items-center gap-1">
@@ -357,7 +355,6 @@ export default function BuyerProfile({
             </motion.div>
 
             <div className="flex flex-col md:flex-row gap-4 sm:gap-8">
-              {/* Sidebar - левая колонка */}
               <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }} className="md:w-1/3 lg:w-1/4">
                 <div className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 sticky top-5 border border-gray-100">
                   <div className="flex flex-col items-center mb-4 sm:mb-6">
@@ -381,48 +378,15 @@ export default function BuyerProfile({
                   </div>
 
                   <nav className="space-y-1 sm:space-y-2">
-                    {[
-                      { id: "profile", icon: ProfileIcon, label: "Мой профиль" },
-                      { id: "orders", icon: ProductsIcon, label: "Мои заказы", count: orders.length },
-                      { id: "favorites", icon: FavoritesIcon, label: "Избранное", count: favorites.length, iconColor: "#D97C8E" },
-                      { id: "settings", icon: SettingsIcon, label: "Настройки" }
-                    ].map((tab) => {
+                    {[{ id: "profile", icon: ProfileIcon, label: "Мой профиль" }, { id: "orders", icon: ProductsIcon, label: "Мои заказы", count: orders.length }, { id: "favorites", icon: FavoritesIcon, label: "Избранное", count: favorites.length, iconColor: "#D97C8E" }, { id: "settings", icon: SettingsIcon, label: "Настройки" }].map((tab) => {
                       const IconComponent = tab.icon;
                       const iconColor = tab.iconColor || "#D97C8E";
-                      return (
-                        <motion.button
-                          key={tab.id}
-                          whileHover={{ x: 5 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => setActiveTab(tab.id)}
-                          className={`w-full text-left px-3 sm:px-4 py-2 sm:py-3 rounded-xl transition-all duration-300 font-montserrat flex items-center gap-2 sm:gap-3 text-sm sm:text-base ${
-                            activeTab === tab.id
-                              ? "bg-gradient-to-r from-firm-orange to-firm-pink text-main shadow-lg"
-                              : "hover:bg-gray-100 text-text"
-                          }`}
-                        >
-                          <IconComponent color={activeTab === tab.id ? "#f9f9f9" : iconColor} className="w-4 h-4 sm:w-5 sm:h-5" />
-                          <span className="flex-1 truncate">{tab.label}</span>
-                          {tab.count !== undefined && tab.count > 0 && (
-                            <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full ${activeTab === tab.id ? "bg-main text-firm-orange" : "bg-firm-orange/20 text-firm-orange"}`}>
-                              {tab.count}
-                            </span>
-                          )}
-                        </motion.button>
-                      );
+                      return (<motion.button key={tab.id} whileHover={{ x: 5 }} whileTap={{ scale: 0.98 }} onClick={() => setActiveTab(tab.id)} className={`w-full text-left px-3 sm:px-4 py-2 sm:py-3 rounded-xl transition-all duration-300 font-montserrat flex items-center gap-2 sm:gap-3 text-sm sm:text-base ${activeTab === tab.id ? "bg-linear-to-r from-firm-orange to-firm-pink text-main shadow-lg" : "hover:bg-gray-100 text-text"}`}><IconComponent color={activeTab === tab.id ? "#f9f9f9" : iconColor} className="w-4 h-4 sm:w-5 sm:h-5" /><span className="flex-1 truncate">{tab.label}</span>{tab.count !== undefined && tab.count > 0 && (<span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full ${activeTab === tab.id ? "bg-main text-firm-orange" : "bg-firm-orange/20 text-firm-orange"}`}>{tab.count}</span>)}</motion.button> );
                     })}
 
                     <div className="border-t border-gray-200 my-2 pt-2"></div>
 
-                    <motion.button
-                      whileHover={{ x: 5 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => signOut({ callbackUrl: "/" })}
-                      className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 rounded-xl transition-all duration-300 font-montserrat flex items-center gap-2 sm:gap-3 text-firm-red hover:bg-red-50 text-sm sm:text-base"
-                    >
-                      <ExitIcon color="#D77C7C" className="w-4 h-4 sm:w-5 sm:h-5" />
-                      <span>Выйти</span>
-                    </motion.button>
+                    <motion.button whileHover={{ x: 5 }} whileTap={{ scale: 0.98 }}  onClick={() => signOut({ callbackUrl: "/" })} className="w-full text-left px-3 sm:px-4 py-2 sm:py-3 rounded-xl transition-all duration-300 font-montserrat flex items-center gap-2 sm:gap-3 text-firm-red hover:bg-red-50 text-sm sm:text-base"><ExitIcon color="#D77C7C" className="w-4 h-4 sm:w-5 sm:h-5" /><span>Выйти</span></motion.button>
                   </nav>
                 </div>
               </motion.div>
@@ -433,7 +397,7 @@ export default function BuyerProfile({
                   {activeTab === "profile" && (
                     <motion.div key="profile" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }} className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
-                        <h2 className="font-montserrat font-bold text-xl sm:text-2xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Мой профиль</h2>
+                        <h2 className="font-montserrat font-bold text-xl sm:text-2xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Мой профиль</h2>
                         <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
                           {profileData.role === "buyer" && (
                             <motion.button
