@@ -201,12 +201,7 @@ export default function AdminModerationMastersPage() {
                     <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}  className="mb-6 sm:mb-8">
                         <h1 className="font-montserrat font-bold text-2xl sm:text-3xl lg:text-4xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Модерация мастеров</h1>
                     </motion.div>
-                    <motion.div
-                        variants={fadeInUp}
-                        initial="initial"
-                        animate="animate"
-                        className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 mb-8"
-                    >
+                    <motion.div variants={fadeInUp} initial="initial" animate="animate" className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 mb-8">
                         <div className="px-4 sm:px-6 py-4 border-b border-gray-100 bg-linear-to-r from-gray-50 to-gray-100">
                             <h2 className="font-montserrat font-semibold text-lg sm:text-xl text-text"> верификации ({pendingMasters.length})</h2>
                         </div>
@@ -224,9 +219,9 @@ export default function AdminModerationMastersPage() {
                                             <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-start gap-4">
-                                                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold text-lg overflow-hidden shadow-md flex-shrink-0">
+                                                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold text-lg overflow-hidden shadow-md shrink-0">
                                                             {master.avatar_url ? (<img src={master.avatar_url} alt={displayName(master)} className="w-full h-full object-cover" onError={(e) => {(e.target as HTMLImageElement).style.display = 'none'}} />) : null}
-                                                            {!master.avatar_url && (<span>{displayName(master).charAt(0).toUpperCase()}</span>)}
+                                                            {!master.avatar_url && (<span className="text-main">{displayName(master).charAt(0).toUpperCase()}</span>)}
                                                         </div>
                                                         <div className="flex-1 min-w-0">
                                                             <h3 className="font-montserrat font-semibold text-base sm:text-lg text-text">displayName(master)</h3>
@@ -242,11 +237,10 @@ export default function AdminModerationMastersPage() {
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    {master.description && (
-                                                        <p className="text-firm-gray text-sm mt-4 line-clamp-2 pl-16 sm:pl-18">{master.description}</p>)}
+                                                    {master.description && (<p className="text-firm-gray text-sm mt-4 line-clamp-2 pl-16 sm:pl-18">{master.description}</p>)}
                                                 </div>
                                                 <div className="flex gap-3 shrink-0 self-end lg:self-center">
-                                                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => handleApprove(master.id)} disabled={actionLoading === master.id}><CheckCircleIcon className="w-4 h-4" color="#f9f9f9" />{actionLoading === master.id ? '...' : 'Одобрить'}</motion.button>
+                                                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => handleApprove(master.id)} disabled={actionLoading === master.id} className="inline-flex items-center gap-1 px-4 py-4 bg-firm-green text-main rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 text-sm font-medium"><CheckCircleIcon className="w-4 h-4" color="#f9f9f9" />{actionLoading === master.id ? '...' : 'Одобрить'}</motion.button>
                                                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => openRejectModal(master)} disabled={actionLoading === master.id} className="inline-flex items-center gap-1 px-4 py-2 bg-firm-red text-main rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 text-sm font-medium"><CloseIcon className="w-4 h-4" color="#f9f9f9" />Отклонить</motion.button>
                                                 </div>
                                             </div>
