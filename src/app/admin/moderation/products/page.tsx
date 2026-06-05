@@ -7,6 +7,20 @@ import { motion, AnimatePresence } from "framer-motion"
 import toast from "react-hot-toast"
 import ConfirmModal from "@/components/ui/ConfirmModal"
 import PromptModal from "@/components/ui/PromptModal"
+import { UserIcon } from "@/components/icons/UserIcon"
+import { MailIcon } from "@/components/icons/MailIcon"
+import { CalendarIcon } from "@/components/icons/CalendarIcon"
+import { TagIcon } from "@/components/icons/TagIcon"
+import { ClassesIcon } from "@/components/icons/ClassesIcon"
+import { PriceIcon } from "@/components/icons/PriceIcon"
+import { SizeIcon } from "@/components/icons/SizeIcon"
+import { DescriptionIcon } from "@/components/icons/DescriptionIcon"
+import { ClockIcon } from "@/components/icons/ClockIcon"
+import { CheckIcon } from "@/components/icons/CheckIcon"
+import { EditIcon } from "@/components/icons/EditIcon"
+import { CloseIcon } from "@/components/icons/CloseIcon"
+import { ViewsIcon } from "@/components/icons/ViewsIcon"
+import { RefreshIcon } from "@/components/icons/RefreshIcon"
 
 interface ProductImage {
     id: string
@@ -42,7 +56,6 @@ export default function AdminModerationProductsPage() {
     const [showModal, setShowModal] = useState(false)
     const [filter, setFilter] = useState<'all' | 'moderation' | 'draft' | 'active'>('all')
     
-    // Состояния для модальных окон
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean;
         title: string;
@@ -90,7 +103,6 @@ export default function AdminModerationProductsPage() {
             }
             
             const data = await response.json()
-            console.log('API response:', data)
             
             const productsList = Array.isArray(data) ? data : []
             setProducts(productsList)
@@ -202,13 +214,25 @@ export default function AdminModerationProductsPage() {
     const getStatusBadge = (status: string) => {
         switch(status) {
             case 'moderation':
-                return <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">⏳ На модерации</span>
+                return <span className="px-2 py-1 bg-firm-orange/20 text-firm-orange rounded-full text-xs font-medium flex items-center gap-1">
+                    <ClockIcon size={12} color="#F4A67F" />
+                    На модерации
+                </span>
             case 'draft':
-                return <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">📝 На доработке</span>
+                return <span className="px-2 py-1 bg-firm-gray/20 text-firm-gray rounded-full text-xs font-medium flex items-center gap-1">
+                    <EditIcon size={12} color="#737682" />
+                    На доработке
+                </span>
             case 'active':
-                return <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">✅ Активен</span>
+                return <span className="px-2 py-1 bg-firm-green/20 text-firm-green rounded-full text-xs font-medium flex items-center gap-1">
+                    <CheckIcon size={12} color="#94D06C" />
+                    Активен
+                </span>
             case 'rejected':
-                return <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">❌ Отклонен</span>
+                return <span className="px-2 py-1 bg-firm-red/20 text-firm-red rounded-full text-xs font-medium flex items-center gap-1">
+                    <CloseIcon size={12} color="#D77C7C" />
+                    Отклонен
+                </span>
             default:
                 return null
         }
@@ -221,21 +245,24 @@ export default function AdminModerationProductsPage() {
                     <div className="flex flex-wrap gap-3 mt-4">
                         <button
                             onClick={() => handleApprove(selectedProduct!.id)}
-                            className="flex-1 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+                            className="flex-1 py-2 bg-firm-green text-white rounded-lg hover:opacity-80 transition flex items-center justify-center gap-2"
                         >
-                            ✅ Одобрить
+                            <CheckIcon size={18} color="#ffffff" />
+                            Одобрить
                         </button>
                         <button
                             onClick={() => handleReturnToDraft(selectedProduct!.id)}
-                            className="flex-1 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition"
+                            className="flex-1 py-2 bg-firm-orange text-white rounded-lg hover:opacity-80 transition flex items-center justify-center gap-2"
                         >
-                            📝 На доработку
+                            <EditIcon size={18} color="#ffffff" />
+                            На доработку
                         </button>
                         <button
                             onClick={() => handleReject(selectedProduct!.id)}
-                            className="flex-1 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+                            className="flex-1 py-2 bg-firm-red text-white rounded-lg hover:opacity-80 transition flex items-center justify-center gap-2"
                         >
-                            ❌ Отклонить
+                            <CloseIcon size={18} color="#ffffff" />
+                            Отклонить
                         </button>
                     </div>
                 )
@@ -244,15 +271,17 @@ export default function AdminModerationProductsPage() {
                     <div className="flex flex-wrap gap-3 mt-4">
                         <button
                             onClick={() => handleApprove(selectedProduct!.id)}
-                            className="flex-1 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+                            className="flex-1 py-2 bg-firm-green text-white rounded-lg hover:opacity-80 transition flex items-center justify-center gap-2"
                         >
-                            ✅ Одобрить
+                            <CheckIcon size={18} color="#ffffff" />
+                            Одобрить
                         </button>
                         <button
                             onClick={() => handleReject(selectedProduct!.id)}
-                            className="flex-1 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+                            className="flex-1 py-2 bg-firm-red text-white rounded-lg hover:opacity-80 transition flex items-center justify-center gap-2"
                         >
-                            ❌ Отклонить
+                            <CloseIcon size={18} color="#ffffff" />
+                            Отклонить
                         </button>
                     </div>
                 )
@@ -261,9 +290,10 @@ export default function AdminModerationProductsPage() {
                     <div className="flex flex-wrap gap-3 mt-4">
                         <button
                             onClick={() => handleReturnToDraft(selectedProduct!.id)}
-                            className="flex-1 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition"
+                            className="flex-1 py-2 bg-firm-orange text-white rounded-lg hover:opacity-80 transition flex items-center justify-center gap-2"
                         >
-                            📝 Отправить на доработку
+                            <EditIcon size={18} color="#ffffff" />
+                            Отправить на доработку
                         </button>
                     </div>
                 )
@@ -290,7 +320,7 @@ export default function AdminModerationProductsPage() {
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex items-center justify-center min-h-[60vh]"
+                className="flex items-center justify-center min-h-[60vh] bg-main"
             >
                 <div className="text-center">
                     <motion.div
@@ -298,7 +328,10 @@ export default function AdminModerationProductsPage() {
                         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                         className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto"
                     />
-                    <p className="mt-4 font-['Montserrat_Alternates'] text-gray-600">Загрузка товаров...</p>
+                    <p className="mt-4 font-['Montserrat_Alternates'] text-firm-gray flex items-center justify-center gap-2">
+                        <RefreshIcon size={18} color="#737682" className="animate-spin" />
+                        Загрузка товаров...
+                    </p>
                 </div>
             </motion.div>
         )
@@ -310,7 +343,7 @@ export default function AdminModerationProductsPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="space-y-6 p-4 sm:p-6"
+                className="space-y-6 p-4 sm:p-6 bg-main min-h-screen"
             >
                 {/* Заголовок */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -318,7 +351,7 @@ export default function AdminModerationProductsPage() {
                         <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
                             Управление товарами
                         </h1>
-                        <p className="text-gray-500 text-sm mt-1">Все товары платформы</p>
+                        <p className="text-firm-gray text-sm mt-1">Все товары платформы</p>
                     </div>
                 </div>
 
@@ -334,39 +367,42 @@ export default function AdminModerationProductsPage() {
                         className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
                             filter === 'all' 
                                 ? 'bg-gradient-to-r from-firm-orange to-firm-pink text-white shadow-md' 
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                : 'bg-forms text-firm-gray hover:bg-gray-200'
                         }`}
                     >
                         Все ({stats.all})
                     </button>
                     <button
                         onClick={() => setFilter('moderation')}
-                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 flex items-center gap-1 ${
                             filter === 'moderation' 
                                 ? 'bg-gradient-to-r from-firm-orange to-firm-pink text-white shadow-md' 
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                : 'bg-forms text-firm-gray hover:bg-gray-200'
                         }`}
                     >
+                        <ClockIcon size={14} color={filter === 'moderation' ? '#ffffff' : '#737682'} />
                         На модерации ({stats.moderation})
                     </button>
                     <button
                         onClick={() => setFilter('draft')}
-                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 flex items-center gap-1 ${
                             filter === 'draft' 
                                 ? 'bg-gradient-to-r from-firm-orange to-firm-pink text-white shadow-md' 
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                : 'bg-forms text-firm-gray hover:bg-gray-200'
                         }`}
                     >
+                        <EditIcon size={14} color={filter === 'draft' ? '#ffffff' : '#737682'} />
                         На доработке ({stats.draft})
                     </button>
                     <button
                         onClick={() => setFilter('active')}
-                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 flex items-center gap-1 ${
                             filter === 'active' 
                                 ? 'bg-gradient-to-r from-firm-orange to-firm-pink text-white shadow-md' 
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                : 'bg-forms text-firm-gray hover:bg-gray-200'
                         }`}
                     >
+                        <CheckIcon size={14} color={filter === 'active' ? '#ffffff' : '#737682'} />
                         Опубликованные ({stats.active})
                     </button>
                 </motion.div>
@@ -384,7 +420,7 @@ export default function AdminModerationProductsPage() {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className="bg-white rounded-2xl shadow-xl p-12 text-center text-gray-500"
+                                className="bg-white rounded-2xl shadow-xl p-12 text-center text-firm-gray"
                             >
                                 <p className="text-lg">Нет товаров для отображения</p>
                             </motion.div>
@@ -403,7 +439,7 @@ export default function AdminModerationProductsPage() {
                                         <div className="flex flex-col md:flex-row gap-6">
                                             {/* Изображение */}
                                             <div 
-                                                className="w-32 h-32 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer shadow-md hover:shadow-lg transition-all duration-300"
+                                                className="w-32 h-32 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center"
                                                 onClick={() => openModal(product)}
                                             >
                                                 {product.main_image_url ? (
@@ -413,9 +449,7 @@ export default function AdminModerationProductsPage() {
                                                         className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                                                     />
                                                 ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-3xl">
-                                                        🧶
-                                                    </div>
+                                                    <ViewsIcon size={32} color="#737682" />
                                                 )}
                                             </div>
 
@@ -423,22 +457,30 @@ export default function AdminModerationProductsPage() {
                                                 <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                                                     <div className="flex-1">
                                                         <h3 
-                                                            className="font-['Montserrat_Alternates'] font-semibold text-xl cursor-pointer hover:text-firm-orange transition-colors"
+                                                            className="font-['Montserrat_Alternates'] font-semibold text-xl cursor-pointer hover:text-firm-orange transition-colors text-text"
                                                             onClick={() => openModal(product)}
                                                         >
                                                             {product.title}
                                                         </h3>
-                                                        <div className="flex flex-wrap gap-3 mt-2 text-sm text-gray-500">
-                                                            <span className="flex items-center gap-1">👤 {product.master_name}</span>
-                                                            <span className="flex items-center gap-1">📧 {product.master_email}</span>
+                                                        <div className="flex flex-wrap gap-3 mt-2 text-firm-gray text-sm">
+                                                            <span className="flex items-center gap-1">
+                                                                <UserIcon size={14} color="#737682" />
+                                                                {product.master_name}
+                                                            </span>
+                                                            <span className="flex items-center gap-1">
+                                                                <MailIcon size={14} color="#737682" />
+                                                                {product.master_email}
+                                                            </span>
                                                         </div>
                                                     </div>
                                                     <div className="text-right">
-                                                        <p className="font-['Montserrat_Alternates'] font-bold text-2xl text-firm-orange">
+                                                        <p className="font-['Montserrat_Alternates'] font-bold text-2xl text-firm-orange flex items-center justify-end gap-1">
+                                                            <PriceIcon size={18} color="#F4A67F" />
                                                             {product.price.toLocaleString()} ₽
                                                         </p>
-                                                        <p className="text-xs text-gray-400 mt-1">
-                                                            📅 {new Date(product.created_at).toLocaleDateString('ru-RU')}
+                                                        <p className="text-xs text-firm-gray mt-1 flex items-center justify-end gap-1">
+                                                            <CalendarIcon size={12} color="#737682" />
+                                                            {new Date(product.created_at).toLocaleDateString('ru-RU')}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -446,25 +488,29 @@ export default function AdminModerationProductsPage() {
                                                 {/* Теги */}
                                                 <div className="flex flex-wrap gap-2 mt-3">
                                                     {product.category && (
-                                                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium">
-                                                            📁 {product.category}
+                                                        <span className="px-2 py-1 bg-firm-pink/20 text-firm-pink rounded-lg text-xs font-medium flex items-center gap-1">
+                                                            <TagIcon size={12} color="#D97C8E" />
+                                                            {product.category}
                                                         </span>
                                                     )}
                                                     {product.technique && (
-                                                        <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-lg text-xs font-medium">
-                                                            🪡 {product.technique}
+                                                        <span className="px-2 py-1 bg-firm-pink/20 text-firm-pink rounded-lg text-xs font-medium flex items-center gap-1">
+                                                            <ClassesIcon size={12} color="#D97C8E" />
+                                                            {product.technique}
                                                         </span>
                                                     )}
                                                     {product.size && product.size !== 'Не применимо' && (
-                                                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-medium">
-                                                            📏 {product.size}
+                                                        <span className="px-2 py-1 bg-firm-pink/20 text-firm-pink rounded-lg text-xs font-medium flex items-center gap-1">
+                                                            <SizeIcon size={12} color="#D97C8E" />
+                                                            {product.size}
                                                         </span>
                                                     )}
                                                     {getStatusBadge(product.status)}
                                                 </div>
 
                                                 {/* Описание */}
-                                                <p className="text-gray-600 mt-3 line-clamp-2 text-sm">
+                                                <p className="text-firm-gray mt-3 line-clamp-2 text-sm flex items-start gap-1">
+                                                    <DescriptionIcon size={14} color="#737682" className="mt-0.5 flex-shrink-0" />
                                                     {product.description}
                                                 </p>
 
@@ -474,23 +520,38 @@ export default function AdminModerationProductsPage() {
                                                         <button
                                                             onClick={() => handleApprove(product.id)}
                                                             disabled={actionLoading === product.id}
-                                                            className="px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition disabled:opacity-50"
+                                                            className="px-4 py-2 bg-firm-green text-white rounded-xl text-sm font-medium hover:opacity-80 transition disabled:opacity-50 flex items-center gap-2"
                                                         >
-                                                            {actionLoading === product.id ? '⏳' : '✅ Одобрить'}
+                                                            {actionLoading === product.id ? (
+                                                                <RefreshIcon size={16} color="#ffffff" className="animate-spin" />
+                                                            ) : (
+                                                                <CheckIcon size={16} color="#ffffff" />
+                                                            )}
+                                                            Одобрить
                                                         </button>
                                                         <button
                                                             onClick={() => handleReturnToDraft(product.id)}
                                                             disabled={actionLoading === product.id}
-                                                            className="px-4 py-2 bg-yellow-500 text-white rounded-xl text-sm font-medium hover:bg-yellow-600 transition disabled:opacity-50"
+                                                            className="px-4 py-2 bg-firm-orange text-white rounded-xl text-sm font-medium hover:opacity-80 transition disabled:opacity-50 flex items-center gap-2"
                                                         >
-                                                            {actionLoading === product.id ? '⏳' : '📝 На доработку'}
+                                                            {actionLoading === product.id ? (
+                                                                <RefreshIcon size={16} color="#ffffff" className="animate-spin" />
+                                                            ) : (
+                                                                <EditIcon size={16} color="#ffffff" />
+                                                            )}
+                                                            На доработку
                                                         </button>
                                                         <button
                                                             onClick={() => handleReject(product.id)}
                                                             disabled={actionLoading === product.id}
-                                                            className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition disabled:opacity-50"
+                                                            className="px-4 py-2 bg-firm-red text-white rounded-xl text-sm font-medium hover:opacity-80 transition disabled:opacity-50 flex items-center gap-2"
                                                         >
-                                                            {actionLoading === product.id ? '⏳' : '❌ Отклонить'}
+                                                            {actionLoading === product.id ? (
+                                                                <RefreshIcon size={16} color="#ffffff" className="animate-spin" />
+                                                            ) : (
+                                                                <CloseIcon size={16} color="#ffffff" />
+                                                            )}
+                                                            Отклонить
                                                         </button>
                                                     </div>
                                                 )}
@@ -501,16 +562,26 @@ export default function AdminModerationProductsPage() {
                                                         <button
                                                             onClick={() => handleApprove(product.id)}
                                                             disabled={actionLoading === product.id}
-                                                            className="px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition disabled:opacity-50"
+                                                            className="px-4 py-2 bg-firm-green text-white rounded-xl text-sm font-medium hover:opacity-80 transition disabled:opacity-50 flex items-center gap-2"
                                                         >
-                                                            {actionLoading === product.id ? '⏳' : '✅ Одобрить'}
+                                                            {actionLoading === product.id ? (
+                                                                <RefreshIcon size={16} color="#ffffff" className="animate-spin" />
+                                                            ) : (
+                                                                <CheckIcon size={16} color="#ffffff" />
+                                                            )}
+                                                            Одобрить
                                                         </button>
                                                         <button
                                                             onClick={() => handleReject(product.id)}
                                                             disabled={actionLoading === product.id}
-                                                            className="px-4 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition disabled:opacity-50"
+                                                            className="px-4 py-2 bg-firm-red text-white rounded-xl text-sm font-medium hover:opacity-80 transition disabled:opacity-50 flex items-center gap-2"
                                                         >
-                                                            {actionLoading === product.id ? '⏳' : '❌ Отклонить'}
+                                                            {actionLoading === product.id ? (
+                                                                <RefreshIcon size={16} color="#ffffff" className="animate-spin" />
+                                                            ) : (
+                                                                <CloseIcon size={16} color="#ffffff" />
+                                                            )}
+                                                            Отклонить
                                                         </button>
                                                     </div>
                                                 )}
@@ -521,9 +592,14 @@ export default function AdminModerationProductsPage() {
                                                         <button
                                                             onClick={() => handleReturnToDraft(product.id)}
                                                             disabled={actionLoading === product.id}
-                                                            className="px-4 py-2 bg-yellow-500 text-white rounded-xl text-sm font-medium hover:bg-yellow-600 transition disabled:opacity-50"
+                                                            className="px-4 py-2 bg-firm-orange text-white rounded-xl text-sm font-medium hover:opacity-80 transition disabled:opacity-50 flex items-center gap-2"
                                                         >
-                                                            {actionLoading === product.id ? '⏳' : '📝 Отправить на доработку'}
+                                                            {actionLoading === product.id ? (
+                                                                <RefreshIcon size={16} color="#ffffff" className="animate-spin" />
+                                                            ) : (
+                                                                <EditIcon size={16} color="#ffffff" />
+                                                            )}
+                                                            Отправить на доработку
                                                         </button>
                                                     </div>
                                                 )}
@@ -543,7 +619,7 @@ export default function AdminModerationProductsPage() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                            className="fixed inset-0 bg-main-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
                             onClick={() => setShowModal(false)}
                         >
                             <motion.div
@@ -558,7 +634,9 @@ export default function AdminModerationProductsPage() {
                                     <h2 className="font-['Montserrat_Alternates'] font-semibold text-xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
                                         {selectedProduct.title}
                                     </h2>
-                                    <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl transition-colors">✕</button>
+                                    <button onClick={() => setShowModal(false)} className="text-firm-gray hover:text-text transition-colors">
+                                        <CloseIcon size={24} color="#737682" />
+                                    </button>
                                 </div>
 
                                 <div className="p-6">
@@ -577,13 +655,22 @@ export default function AdminModerationProductsPage() {
 
                                     <div className="space-y-4">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div className="bg-gray-50 rounded-xl p-4">
-                                                <p className="text-gray-500 text-sm mb-1">👤 Мастер</p>
-                                                <p className="font-medium">{selectedProduct.master_name}</p>
-                                                <p className="text-sm text-gray-500">{selectedProduct.master_email}</p>
+                                            <div className="bg-forms rounded-xl p-4">
+                                                <p className="text-firm-gray text-sm mb-1 flex items-center gap-1">
+                                                    <UserIcon size={14} color="#737682" />
+                                                    Мастер
+                                                </p>
+                                                <p className="font-medium text-text">{selectedProduct.master_name}</p>
+                                                <p className="text-sm text-firm-gray flex items-center gap-1 mt-1">
+                                                    <MailIcon size={12} color="#737682" />
+                                                    {selectedProduct.master_email}
+                                                </p>
                                             </div>
-                                            <div className="bg-gray-50 rounded-xl p-4">
-                                                <p className="text-gray-500 text-sm mb-1">💰 Цена</p>
+                                            <div className="bg-forms rounded-xl p-4">
+                                                <p className="text-firm-gray text-sm mb-1 flex items-center gap-1">
+                                                    <PriceIcon size={14} color="#737682" />
+                                                    Цена
+                                                </p>
                                                 <p className="font-['Montserrat_Alternates'] font-bold text-2xl text-firm-orange">
                                                     {selectedProduct.price.toLocaleString()} ₽
                                                 </p>
@@ -591,36 +678,51 @@ export default function AdminModerationProductsPage() {
                                         </div>
 
                                         {selectedProduct.category && (
-                                            <div className="bg-gray-50 rounded-xl p-4">
-                                                <p className="text-gray-500 text-sm mb-1">📁 Категория</p>
-                                                <p>{selectedProduct.category}</p>
+                                            <div className="bg-forms rounded-xl p-4">
+                                                <p className="text-firm-gray text-sm mb-1 flex items-center gap-1">
+                                                    <TagIcon size={14} color="#737682" />
+                                                    Категория
+                                                </p>
+                                                <p className="text-text">{selectedProduct.category}</p>
                                             </div>
                                         )}
 
                                         {selectedProduct.technique && (
-                                            <div className="bg-gray-50 rounded-xl p-4">
-                                                <p className="text-gray-500 text-sm mb-1">🪡 Техника вязания</p>
-                                                <p>{selectedProduct.technique}</p>
+                                            <div className="bg-forms rounded-xl p-4">
+                                                <p className="text-firm-gray text-sm mb-1 flex items-center gap-1">
+                                                    <ClassesIcon size={14} color="#737682" />
+                                                    Техника вязания
+                                                </p>
+                                                <p className="text-text">{selectedProduct.technique}</p>
                                             </div>
                                         )}
 
                                         {selectedProduct.size && selectedProduct.size !== 'Не применимо' && (
-                                            <div className="bg-gray-50 rounded-xl p-4">
-                                                <p className="text-gray-500 text-sm mb-1">📏 Размер</p>
-                                                <p>{selectedProduct.size}</p>
+                                            <div className="bg-forms rounded-xl p-4">
+                                                <p className="text-firm-gray text-sm mb-1 flex items-center gap-1">
+                                                    <SizeIcon size={14} color="#737682" />
+                                                    Размер
+                                                </p>
+                                                <p className="text-text">{selectedProduct.size}</p>
                                             </div>
                                         )}
 
                                         {selectedProduct.description && (
-                                            <div className="bg-gray-50 rounded-xl p-4">
-                                                <p className="text-gray-500 text-sm mb-1">📝 Описание</p>
-                                                <p className="whitespace-pre-line text-gray-700">{selectedProduct.description}</p>
+                                            <div className="bg-forms rounded-xl p-4">
+                                                <p className="text-firm-gray text-sm mb-1 flex items-center gap-1">
+                                                    <DescriptionIcon size={14} color="#737682" />
+                                                    Описание
+                                                </p>
+                                                <p className="whitespace-pre-line text-text">{selectedProduct.description}</p>
                                             </div>
                                         )}
 
-                                        <div className="bg-gray-50 rounded-xl p-4">
-                                            <p className="text-gray-500 text-sm mb-1">📅 Дата создания</p>
-                                            <p>{new Date(selectedProduct.created_at).toLocaleDateString('ru-RU', {
+                                        <div className="bg-forms rounded-xl p-4">
+                                            <p className="text-firm-gray text-sm mb-1 flex items-center gap-1">
+                                                <CalendarIcon size={14} color="#737682" />
+                                                Дата создания
+                                            </p>
+                                            <p className="text-text">{new Date(selectedProduct.created_at).toLocaleDateString('ru-RU', {
                                                 day: '2-digit',
                                                 month: '2-digit',
                                                 year: 'numeric',
@@ -638,7 +740,6 @@ export default function AdminModerationProductsPage() {
                 </AnimatePresence>
             </motion.div>
 
-            {/* Кастомные модальные окна */}
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
                 title={confirmModal.title}
