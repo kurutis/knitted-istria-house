@@ -2,11 +2,23 @@
 
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import toast from "react-hot-toast"
 import ConfirmModal from "@/components/ui/ConfirmModal"
-
+import { PlusIcon } from "@/components/icons/PlusIcon"
+import { SearchIcon } from "@/components/icons/SearchIcon"
+import { EditIcon } from "@/components/icons/EditIcon"
+import { DeleteIcon } from "@/components/icons/DeleteIcon"
+import { SaveIcon } from "@/components/icons/SaveIcon"
+import { CloseIcon } from "@/components/icons/CloseIcon"
+import { RefreshIcon } from "@/components/icons/RefreshIcon"
+import { WeightIcon } from "@/components/icons/WeightIcon"
+import { RulerIcon } from "@/components/icons/RulerIcon"
+import { PackageIcon } from "@/components/icons/PackageIcon"
+import { CheckCircleIcon } from "@/components/icons/CheckCircleIcon"
+import { CancelIcon } from "@/components/icons/CancelIcon"
+import { ImageIcon } from "@/components/icons/ImageIcon"
 interface Yarn {
     id: string
     name: string
@@ -43,7 +55,6 @@ export default function AdminYarnCatalogPage() {
     const [searchTerm, setSearchTerm] = useState('')
     const [filterInStock, setFilterInStock] = useState<'all' | 'in_stock' | 'out_of_stock'>('all')
     
-    // Состояние для модального окна подтверждения
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean;
         title: string;
@@ -227,7 +238,7 @@ export default function AdminYarnCatalogPage() {
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex items-center justify-center min-h-[60vh]"
+                className="flex items-center justify-center min-h-[60vh] bg-main"
             >
                 <div className="text-center">
                     <motion.div
@@ -235,7 +246,10 @@ export default function AdminYarnCatalogPage() {
                         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                         className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto"
                     />
-                    <p className="mt-4 font-['Montserrat_Alternates'] text-gray-600">Загрузка каталога пряжи...</p>
+                    <p className="mt-4 font-['Montserrat_Alternates'] text-firm-gray flex items-center justify-center gap-2">
+                        <RefreshIcon size={18} color="#737682" className="animate-spin" />
+                        Загрузка каталога пряжи...
+                    </p>
                 </div>
             </motion.div>
         )
@@ -247,7 +261,7 @@ export default function AdminYarnCatalogPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="space-y-6 p-4 sm:p-6"
+                className="space-y-6 p-4 sm:p-6 bg-main min-h-screen"
             >
                 {/* Заголовок */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -264,7 +278,8 @@ export default function AdminYarnCatalogPage() {
                         onClick={() => setShowAddModal(true)}
                         className="px-4 py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 flex items-center gap-2"
                     >
-                        + Добавить пряжу
+                        <PlusIcon size={18} color="#ffffff" />
+                        Добавить пряжу
                     </motion.button>
                 </div>
 
@@ -275,19 +290,20 @@ export default function AdminYarnCatalogPage() {
                     transition={{ delay: 0.1 }}
                     className="flex flex-col sm:flex-row gap-4"
                 >
-                    <div className="flex-1">
+                    <div className="flex-1 relative">
+                        <SearchIcon size={18} color="#737682" className="absolute left-3 top-1/2 transform -translate-y-1/2" />
                         <input
                             type="text"
-                            placeholder="🔍 Поиск по названию, артикулу или бренду..."
+                            placeholder="Поиск по названию, артикулу или бренду..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300"
+                            className="w-full p-3 pl-10 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300"
                         />
                     </div>
                     <select
                         value={filterInStock}
                         onChange={(e) => setFilterInStock(e.target.value as 'all' | 'in_stock' | 'out_of_stock')}
-                        className="p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300 cursor-pointer"
+                        className="p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300 cursor-pointer"
                     >
                         <option value="all">Все</option>
                         <option value="in_stock">В наличии</option>
@@ -306,13 +322,13 @@ export default function AdminYarnCatalogPage() {
                         <table className="w-full">
                             <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                                 <tr>
-                                    <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-gray-700">Изображение</th>
-                                    <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-gray-700">Название / Артикул</th>
-                                    <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-gray-700 hidden md:table-cell">Бренд / Цвет</th>
-                                    <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-gray-700 hidden lg:table-cell">Характеристики</th>
-                                    <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-gray-700">Цена / Наличие</th>
-                                    <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-gray-700 hidden sm:table-cell">Используется</th>
-                                    <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-gray-700">Действия</th>
+                                    <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-firm-gray">Изображение</th>
+                                    <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-firm-gray">Название / Артикул</th>
+                                    <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-firm-gray hidden md:table-cell">Бренд / Цвет</th>
+                                    <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-firm-gray hidden lg:table-cell">Характеристики</th>
+                                    <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-firm-gray">Цена / Наличие</th>
+                                    <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-firm-gray hidden sm:table-cell">Используется</th>
+                                    <th className="text-left p-4 font-['Montserrat_Alternates'] font-semibold text-firm-gray">Действия</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -323,10 +339,11 @@ export default function AdminYarnCatalogPage() {
                                             animate={{ opacity: 1 }}
                                             exit={{ opacity: 0 }}
                                         >
-                                            <td colSpan={7} className="text-center p-12 text-gray-500">
+                                            <td colSpan={7} className="text-center p-12 text-firm-gray">
+                                                <PackageIcon size={48} color="#737682" className="mx-auto mb-4 opacity-50" />
                                                 <p className="text-lg">Нет добавленной пряжи</p>
                                                 <p className="text-sm mt-2">
-                                                    Нажмите кнопку &quot;Добавить пряжу&quot; чтобы начать
+                                                    Нажмите кнопку "Добавить пряжу" чтобы начать
                                                 </p>
                                             </td>
                                         </motion.tr>
@@ -343,42 +360,62 @@ export default function AdminYarnCatalogPage() {
                                                 <td className="p-4">
                                                     <motion.div
                                                         whileHover={{ scale: 1.1 }}
-                                                        className="w-12 h-12 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl overflow-hidden shadow-sm"
+                                                        className="w-12 h-12 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl overflow-hidden shadow-sm flex items-center justify-center"
                                                     >
                                                         {yarn.image_url ? (
                                                             <img src={yarn.image_url} alt={yarn.name} className="w-full h-full object-cover" />
                                                         ) : (
-                                                            <div className="w-full h-full flex items-center justify-center text-2xl">🧶</div>
+                                                            <ImageIcon size={24} color="#737682" />
                                                         )}
                                                     </motion.div>
                                                 </td>
                                                 <td className="p-4">
-                                                    <div className="font-semibold text-gray-800">{yarn.name}</div>
-                                                    <div className="text-sm text-gray-400">Арт: {yarn.article}</div>
+                                                    <div className="font-semibold text-text">{yarn.name}</div>
+                                                    <div className="text-sm text-firm-gray">Арт: {yarn.article}</div>
                                                 </td>
                                                 <td className="p-4 hidden md:table-cell">
-                                                    <div className="text-gray-700">{yarn.brand || '—'}</div>
-                                                    <div className="text-sm text-gray-400">{yarn.color || '—'}</div>
+                                                    <div className="text-text">{yarn.brand || '—'}</div>
+                                                    <div className="text-sm text-firm-gray">{yarn.color || '—'}</div>
                                                 </td>
                                                 <td className="p-4 hidden lg:table-cell">
-                                                    <div className="text-sm text-gray-600">
-                                                        {yarn.weight_grams && <div>🧶 {yarn.weight_grams} г</div>}
-                                                        {yarn.length_meters && <div>📏 {yarn.length_meters} м</div>}
-                                                        {yarn.composition && <div className="text-xs text-gray-400 truncate max-w-[150px]">{yarn.composition.substring(0, 30)}</div>}
+                                                    <div className="text-sm text-firm-gray space-y-1">
+                                                        {yarn.weight_grams && (
+                                                            <div className="flex items-center gap-1">
+                                                                <WeightIcon size={12} color="#737682" />
+                                                                {yarn.weight_grams} г
+                                                            </div>
+                                                        )}
+                                                        {yarn.length_meters && (
+                                                            <div className="flex items-center gap-1">
+                                                                <RulerIcon size={12} color="#737682" />
+                                                                {yarn.length_meters} м
+                                                            </div>
+                                                        )}
+                                                        {yarn.composition && (
+                                                            <div className="text-xs text-firm-gray truncate max-w-[150px]">
+                                                                {yarn.composition.substring(0, 30)}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="p-4">
                                                     <div className="font-semibold text-firm-orange">{yarn.price?.toLocaleString()} ₽</div>
                                                     <div className="text-sm">
                                                         {yarn.in_stock ? (
-                                                            <span className="text-green-600">✅ {yarn.stock_quantity} шт</span>
+                                                            <span className="text-firm-green flex items-center gap-1">
+                                                                <CheckCircleIcon size={12} color="#94D06C" />
+                                                                {yarn.stock_quantity} шт
+                                                            </span>
                                                         ) : (
-                                                            <span className="text-red-500">❌ Нет в наличии</span>
+                                                            <span className="text-firm-red flex items-center gap-1">
+                                                                <CancelIcon size={12} color="#D77C7C" />
+                                                                Нет в наличии
+                                                            </span>
                                                         )}
                                                     </div>
                                                 </td>
                                                 <td className="p-4 hidden sm:table-cell">
-                                                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                                                    <span className="px-2 py-1 bg-firm-pink/20 text-firm-pink rounded-full text-xs font-medium">
                                                         📦 {yarn.used_in_products || 0} товаров
                                                     </span>
                                                 </td>
@@ -388,17 +425,19 @@ export default function AdminYarnCatalogPage() {
                                                             whileHover={{ scale: 1.05 }}
                                                             whileTap={{ scale: 0.95 }}
                                                             onClick={() => openEditModal(yarn)}
-                                                            className="px-3 py-1.5 text-sm bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-lg hover:shadow-lg transition-all duration-300"
+                                                            className="px-3 py-1.5 text-sm bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-lg hover:shadow-lg transition-all duration-300 flex items-center gap-1"
                                                         >
-                                                            ✏️ Ред.
+                                                            <EditIcon size={14} color="#ffffff" />
+                                                            Ред.
                                                         </motion.button>
                                                         <motion.button
                                                             whileHover={{ scale: 1.05 }}
                                                             whileTap={{ scale: 0.95 }}
                                                             onClick={() => handleDeleteYarn(yarn)}
-                                                            className="px-3 py-1.5 text-sm bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:shadow-lg transition-all duration-300"
+                                                            className="px-3 py-1.5 text-sm bg-gradient-to-r from-firm-red to-red-600 text-white rounded-lg hover:shadow-lg transition-all duration-300 flex items-center gap-1"
                                                         >
-                                                            🗑️ Удалить
+                                                            <DeleteIcon size={14} color="#ffffff" />
+                                                            Удалить
                                                         </motion.button>
                                                     </div>
                                                 </td>
@@ -418,7 +457,7 @@ export default function AdminYarnCatalogPage() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                            className="fixed inset-0 bg-main-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
                             onClick={() => setShowAddModal(false)}
                         >
                             <motion.div
@@ -434,56 +473,58 @@ export default function AdminYarnCatalogPage() {
                                         <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
                                             Добавить пряжу
                                         </h2>
-                                        <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl transition-colors">✕</button>
+                                        <button onClick={() => setShowAddModal(false)} className="text-firm-gray hover:text-text transition-colors">
+                                            <CloseIcon size={24} color="#737682" />
+                                        </button>
                                     </div>
 
                                     <form onSubmit={handleAddYarn} className="space-y-4">
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Название *</label>
-                                                <input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
+                                                <label className="block text-text mb-1 font-['Montserrat_Alternates']">Название *</label>
+                                                <input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
                                             </div>
                                             <div>
-                                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Артикул *</label>
-                                                <input type="text" name="article" value={formData.article} onChange={handleInputChange} required className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
+                                                <label className="block text-text mb-1 font-['Montserrat_Alternates']">Артикул *</label>
+                                                <input type="text" name="article" value={formData.article} onChange={handleInputChange} required className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
                                             </div>
                                         </div>
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Бренд</label>
-                                                <input type="text" name="brand" value={formData.brand} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
+                                                <label className="block text-text mb-1 font-['Montserrat_Alternates']">Бренд</label>
+                                                <input type="text" name="brand" value={formData.brand} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
                                             </div>
                                             <div>
-                                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Цвет</label>
-                                                <input type="text" name="color" value={formData.color} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
+                                                <label className="block text-text mb-1 font-['Montserrat_Alternates']">Цвет</label>
+                                                <input type="text" name="color" value={formData.color} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
                                             </div>
                                         </div>
 
                                         <div>
-                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Состав</label>
-                                            <input type="text" name="composition" value={formData.composition} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" placeholder="100% шерсть, 50% акрил 50% полиамид..." />
+                                            <label className="block text-text mb-1 font-['Montserrat_Alternates']">Состав</label>
+                                            <input type="text" name="composition" value={formData.composition} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" placeholder="100% шерсть, 50% акрил 50% полиамид..." />
                                         </div>
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Вес (г)</label>
-                                                <input type="number" name="weight_grams" value={formData.weight_grams} onChange={handleInputChange} step="0.01" className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
+                                                <label className="block text-text mb-1 font-['Montserrat_Alternates']">Вес (г)</label>
+                                                <input type="number" name="weight_grams" value={formData.weight_grams} onChange={handleInputChange} step="0.01" className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
                                             </div>
                                             <div>
-                                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Длина (м)</label>
-                                                <input type="number" name="length_meters" value={formData.length_meters} onChange={handleInputChange} step="0.01" className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
+                                                <label className="block text-text mb-1 font-['Montserrat_Alternates']">Длина (м)</label>
+                                                <input type="number" name="length_meters" value={formData.length_meters} onChange={handleInputChange} step="0.01" className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
                                             </div>
                                         </div>
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Цена (₽)</label>
-                                                <input type="number" name="price" value={formData.price} onChange={handleInputChange} step="0.01" className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
+                                                <label className="block text-text mb-1 font-['Montserrat_Alternates']">Цена (₽)</label>
+                                                <input type="number" name="price" value={formData.price} onChange={handleInputChange} step="0.01" className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
                                             </div>
                                             <div>
-                                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Количество на складе</label>
-                                                <input type="number" name="stock_quantity" value={formData.stock_quantity} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
+                                                <label className="block text-text mb-1 font-['Montserrat_Alternates']">Количество на складе</label>
+                                                <input type="number" name="stock_quantity" value={formData.stock_quantity} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
                                             </div>
                                         </div>
 
@@ -495,17 +536,17 @@ export default function AdminYarnCatalogPage() {
                                                 onChange={handleInputChange}
                                                 className="w-5 h-5 rounded accent-firm-orange"
                                             />
-                                            <label className="text-gray-700">В наличии</label>
+                                            <label className="text-text">В наличии</label>
                                         </div>
 
                                         <div>
-                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">URL изображения</label>
-                                            <input type="url" name="image_url" value={formData.image_url} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" placeholder="https://..." />
+                                            <label className="block text-text mb-1 font-['Montserrat_Alternates']">URL изображения</label>
+                                            <input type="url" name="image_url" value={formData.image_url} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" placeholder="https://..." />
                                         </div>
 
                                         <div>
-                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Описание</label>
-                                            <textarea name="description" value={formData.description} onChange={handleInputChange} rows={3} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
+                                            <label className="block text-text mb-1 font-['Montserrat_Alternates']">Описание</label>
+                                            <textarea name="description" value={formData.description} onChange={handleInputChange} rows={3} className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
                                         </div>
 
                                         <div className="flex gap-3 pt-4">
@@ -514,14 +555,24 @@ export default function AdminYarnCatalogPage() {
                                                 whileHover={{ scale: 1.02 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 disabled={saving}
-                                                className="flex-1 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 font-medium"
+                                                className="flex-1 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 font-medium flex items-center justify-center gap-2"
                                             >
-                                                {saving ? '⏳ Сохранение...' : '➕ Добавить'}
+                                                {saving ? (
+                                                    <>
+                                                        <RefreshIcon size={18} color="#ffffff" className="animate-spin" />
+                                                        Сохранение...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <PlusIcon size={18} color="#ffffff" />
+                                                        Добавить
+                                                    </>
+                                                )}
                                             </motion.button>
                                             <button
                                                 type="button"
                                                 onClick={() => setShowAddModal(false)}
-                                                className="flex-1 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-300"
+                                                className="flex-1 py-3 border border-gray-300 rounded-xl hover:bg-forms transition-all duration-300 text-text"
                                             >
                                                 Отмена
                                             </button>
@@ -540,7 +591,7 @@ export default function AdminYarnCatalogPage() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                            className="fixed inset-0 bg-main-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
                             onClick={() => setShowEditModal(false)}
                         >
                             <motion.div
@@ -556,56 +607,58 @@ export default function AdminYarnCatalogPage() {
                                         <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
                                             Редактировать пряжу
                                         </h2>
-                                        <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl transition-colors">✕</button>
+                                        <button onClick={() => setShowEditModal(false)} className="text-firm-gray hover:text-text transition-colors">
+                                            <CloseIcon size={24} color="#737682" />
+                                        </button>
                                     </div>
 
                                     <form onSubmit={handleEditYarn} className="space-y-4">
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Название *</label>
-                                                <input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
+                                                <label className="block text-text mb-1 font-['Montserrat_Alternates']">Название *</label>
+                                                <input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
                                             </div>
                                             <div>
-                                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Артикул *</label>
-                                                <input type="text" name="article" value={formData.article} onChange={handleInputChange} required className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
+                                                <label className="block text-text mb-1 font-['Montserrat_Alternates']">Артикул *</label>
+                                                <input type="text" name="article" value={formData.article} onChange={handleInputChange} required className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
                                             </div>
                                         </div>
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Бренд</label>
-                                                <input type="text" name="brand" value={formData.brand} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
+                                                <label className="block text-text mb-1 font-['Montserrat_Alternates']">Бренд</label>
+                                                <input type="text" name="brand" value={formData.brand} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
                                             </div>
                                             <div>
-                                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Цвет</label>
-                                                <input type="text" name="color" value={formData.color} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
+                                                <label className="block text-text mb-1 font-['Montserrat_Alternates']">Цвет</label>
+                                                <input type="text" name="color" value={formData.color} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
                                             </div>
                                         </div>
 
                                         <div>
-                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Состав</label>
-                                            <input type="text" name="composition" value={formData.composition} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
+                                            <label className="block text-text mb-1 font-['Montserrat_Alternates']">Состав</label>
+                                            <input type="text" name="composition" value={formData.composition} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
                                         </div>
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Вес (г)</label>
-                                                <input type="number" name="weight_grams" value={formData.weight_grams} onChange={handleInputChange} step="0.01" className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
+                                                <label className="block text-text mb-1 font-['Montserrat_Alternates']">Вес (г)</label>
+                                                <input type="number" name="weight_grams" value={formData.weight_grams} onChange={handleInputChange} step="0.01" className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
                                             </div>
                                             <div>
-                                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Длина (м)</label>
-                                                <input type="number" name="length_meters" value={formData.length_meters} onChange={handleInputChange} step="0.01" className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
+                                                <label className="block text-text mb-1 font-['Montserrat_Alternates']">Длина (м)</label>
+                                                <input type="number" name="length_meters" value={formData.length_meters} onChange={handleInputChange} step="0.01" className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
                                             </div>
                                         </div>
 
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
-                                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Цена (₽)</label>
-                                                <input type="number" name="price" value={formData.price} onChange={handleInputChange} step="0.01" className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
+                                                <label className="block text-text mb-1 font-['Montserrat_Alternates']">Цена (₽)</label>
+                                                <input type="number" name="price" value={formData.price} onChange={handleInputChange} step="0.01" className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
                                             </div>
                                             <div>
-                                                <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Количество на складе</label>
-                                                <input type="number" name="stock_quantity" value={formData.stock_quantity} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
+                                                <label className="block text-text mb-1 font-['Montserrat_Alternates']">Количество на складе</label>
+                                                <input type="number" name="stock_quantity" value={formData.stock_quantity} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
                                             </div>
                                         </div>
 
@@ -617,17 +670,17 @@ export default function AdminYarnCatalogPage() {
                                                 onChange={handleInputChange}
                                                 className="w-5 h-5 rounded accent-firm-orange"
                                             />
-                                            <label className="text-gray-700">В наличии</label>
+                                            <label className="text-text">В наличии</label>
                                         </div>
 
                                         <div>
-                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">URL изображения</label>
-                                            <input type="url" name="image_url" value={formData.image_url} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
+                                            <label className="block text-text mb-1 font-['Montserrat_Alternates']">URL изображения</label>
+                                            <input type="url" name="image_url" value={formData.image_url} onChange={handleInputChange} className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" />
                                         </div>
 
                                         <div>
-                                            <label className="block text-gray-700 mb-1 font-['Montserrat_Alternates']">Описание</label>
-                                            <textarea name="description" value={formData.description} onChange={handleInputChange} rows={3} className="w-full p-3 rounded-xl bg-gray-100 outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
+                                            <label className="block text-text mb-1 font-['Montserrat_Alternates']">Описание</label>
+                                            <textarea name="description" value={formData.description} onChange={handleInputChange} rows={3} className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300" />
                                         </div>
 
                                         <div className="flex gap-3 pt-4">
@@ -636,14 +689,24 @@ export default function AdminYarnCatalogPage() {
                                                 whileHover={{ scale: 1.02 }}
                                                 whileTap={{ scale: 0.98 }}
                                                 disabled={saving}
-                                                className="flex-1 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 font-medium"
+                                                className="flex-1 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 font-medium flex items-center justify-center gap-2"
                                             >
-                                                {saving ? '⏳ Сохранение...' : '💾 Сохранить'}
+                                                {saving ? (
+                                                    <>
+                                                        <RefreshIcon size={18} color="#ffffff" className="animate-spin" />
+                                                        Сохранение...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <SaveIcon size={18} color="#ffffff" />
+                                                        Сохранить
+                                                    </>
+                                                )}
                                             </motion.button>
                                             <button
                                                 type="button"
                                                 onClick={() => setShowEditModal(false)}
-                                                className="flex-1 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-300"
+                                                className="flex-1 py-3 border border-gray-300 rounded-xl hover:bg-forms transition-all duration-300 text-text"
                                             >
                                                 Отмена
                                             </button>
@@ -656,7 +719,6 @@ export default function AdminYarnCatalogPage() {
                 </AnimatePresence>
             </motion.div>
 
-            {/* Кастомное модальное окно подтверждения */}
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
                 title={confirmModal.title}
