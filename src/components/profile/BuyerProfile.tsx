@@ -391,7 +391,6 @@ export default function BuyerProfile({
                 </div>
               </motion.div>
 
-              {/* Content - правая колонка */}
               <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.2 }} className="md:w-2/3 lg:w-3/4">
                 <AnimatePresence mode="wait">
                   {activeTab === "profile" && (
@@ -399,42 +398,8 @@ export default function BuyerProfile({
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
                         <h2 className="font-montserrat font-bold text-xl sm:text-2xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Мой профиль</h2>
                         <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
-                          {profileData.role === "buyer" && (
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={handleBecomeMaster}
-                              disabled={becomeMasterLoading}
-                              className="flex-1 sm:flex-none px-3 sm:px-5 py-2 bg-gradient-to-r from-firm-pink to-firm-orange text-main rounded-xl font-montserrat font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
-                            >
-                              <MasterIcon color="#f9f9f9" className="w-3 h-3 sm:w-4 sm:h-4" />
-                              {becomeMasterLoading ? (<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />) : ("Стать мастером")}
-                            </motion.button>
-                          )}
-                          {!isEditing ? (
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => setIsEditing(true)}
-                              onMouseEnter={() => setIsEditHovered(true)}
-                              onMouseLeave={() => setIsEditHovered(false)}
-                              className="flex-1 sm:flex-none px-3 sm:px-5 py-2 border-2 border-firm-orange rounded-xl font-montserrat font-medium transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
-                              style={{ backgroundColor: isEditHovered ? '#F4A67F' : 'transparent', color: isEditHovered ? '#f9f9f9' : '#F4A67F' }}
-                            >
-                              <EditIcon className="w-3 h-3 sm:w-4 sm:h-4" color={isEditHovered ? '#f9f9f9' : '#F4A67F'} />
-                              <span className="hidden sm:inline">Редактировать</span>
-                              <span className="sm:hidden">Ред.</span>
-                            </motion.button>
-                          ) : (
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => { setIsEditing(false); setAvatarFile(null); setAvatarPreview(null); }}
-                              className="flex-1 sm:flex-none px-3 sm:px-5 py-2 bg-firm-gray text-main rounded-xl font-montserrat font-medium hover:bg-firm-gray transition-all text-xs sm:text-sm"
-                            >
-                              Отмена
-                            </motion.button>
-                          )}
+                          {profileData.role === "buyer" && (<motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleBecomeMaster} disabled={becomeMasterLoading} className="flex-1 sm:flex-none px-3 sm:px-5 py-2 bg-linear-to-r from-firm-pink to-firm-orange text-main rounded-xl font-montserrat font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"><MasterIcon color="#f9f9f9" className="w-3 h-3 sm:w-4 sm:h-4" />\{becomeMasterLoading ? (<div className="w-4 h-4 border-2 border-main border-t-transparent rounded-full animate-spin" />) : ("Стать мастером")}</motion.button>)}
+                          {!isEditing ? (<motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setIsEditing(true)} onMouseEnter={() => setIsEditHovered(true)} onMouseLeave={() => setIsEditHovered(false)} className="flex-1 sm:flex-none px-3 sm:px-5 py-2 border-2 border-firm-orange rounded-xl font-montserrat font-medium transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm" style={{ backgroundColor: isEditHovered ? '#F4A67F' : 'transparent', color: isEditHovered ? '#f9f9f9' : '#F4A67F' }}><EditIcon className="w-3 h-3 sm:w-4 sm:h-4" color={isEditHovered ? '#f9f9f9' : '#F4A67F'} /><span className="hidden sm:inline">Редактировать</span><span className="sm:hidden">Ред.</span></motion.button>) : (<motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => { setIsEditing(false); setAvatarFile(null); setAvatarPreview(null); }} className="flex-1 sm:flex-none px-3 sm:px-5 py-2 bg-firm-gray text-main rounded-xl font-montserrat font-medium hover:bg-firm-gray transition-all text-xs sm:text-sm">Отмена</motion.button>)}
                         </div>
                       </div>
 
@@ -459,10 +424,7 @@ export default function BuyerProfile({
                             </div>
                           </div>
 
-                          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" disabled={saving} className="w-full mt-4 sm:mt-6 p-2 sm:p-3 bg-gradient-to-r from-firm-pink to-firm-orange text-main rounded-xl font-montserrat font-semibold hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base">
-                            <SaveIcon color="#f9f9f9" className="w-3 h-3 sm:w-4 sm:h-4" />
-                            {saving ? "Сохранение..." : "Сохранить изменения"}
-                          </motion.button>
+                          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" disabled={saving} className="w-full mt-4 sm:mt-6 p-2 sm:p-3 bg-linear-to-r from-firm-pink to-firm-orange text-main rounded-xl font-montserrat font-semibold hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base"><SaveIcon color="#f9f9f9" className="w-3 h-3 sm:w-4 sm:h-4" />{saving ? "Сохранение..." : "Сохранить изменения"}</motion.button>
                         </motion.form>
                       ) : (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
@@ -480,10 +442,7 @@ export default function BuyerProfile({
                           </div>
                           <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow">
                             <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Город</p>
-                            <p className="text-sm sm:text-base font-medium flex items-center gap-2">
-                              <LocateIcon color="#D97C8E" className="w-3 h-3 sm:w-4 sm:h-4" />
-                              <span className="line-clamp-1">{profileData.city || "Не указано"}</span>
-                            </p>
+                            <p className="text-sm sm:text-base font-medium flex items-center gap-2"><LocateIcon color="#D97C8E" className="w-3 h-3 sm:w-4 sm:h-4" /><span className="line-clamp-1">{profileData.city || "Не указано"}</span></p>
                           </div>
                           <div className="bg-main rounded-xl p-3 sm:p-4 hover:shadow-md transition-shadow md:col-span-2">
                             <p className="text-firm-gray text-xs sm:text-sm font-montserrat mb-1">Адрес доставки</p>
@@ -496,10 +455,7 @@ export default function BuyerProfile({
 
                   {activeTab === "orders" && (
                     <motion.div key="orders" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
-                      <h2 className="font-montserrat font-semibold text-xl sm:text-2xl mb-4 sm:mb-6 bg-gradient-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent flex items-center gap-2">
-                        <ProductsIcon color="#F4A67F" className="w-5 h-5 sm:w-6 sm:h-6" />
-                        Мои заказы
-                      </h2>
+                      <h2 className="font-montserrat font-semibold text-xl sm:text-2xl mb-4 sm:mb-6 bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent flex items-center gap-2">Мои заказы</h2>
                       
                       {orders.length === 0 ? (
                         <div className="text-center py-8 sm:py-12 bg-main rounded-xl">
@@ -507,10 +463,7 @@ export default function BuyerProfile({
                             <ProductsIcon color="#D97C8E" className="w-12 h-12 sm:w-16 sm:h-16 mx-auto opacity-50" />
                           </div>
                           <p className="text-firm-gray mb-3 sm:mb-4 font-montserrat text-sm sm:text-base">У вас пока нет заказов</p>
-                          <Link href="/catalog" className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all text-sm sm:text-base">
-                            <CatalogPinkIcon color="#f9f9f9" className="w-4 h-4 sm:w-5 sm:h-5" />
-                            Перейти в каталог
-                          </Link>
+                          <Link href="/catalog" className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all text-sm sm:text-base"><CatalogPinkIcon color="#f9f9f9" className="w-4 h-4 sm:w-5 sm:h-5" />Перейти в каталог</Link>
                         </div>
                       ) : (
                         <div className="space-y-3 sm:space-y-4">
@@ -520,11 +473,7 @@ export default function BuyerProfile({
                                 <div className="flex flex-wrap items-center gap-2">
                                   <span className="font-montserrat font-semibold text-sm sm:text-base">Заказ #{order.order_number}</span>
                                   <span className={`px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${getStatusColor(order.status)}`}>{getStatusText(order.status)}</span>
-                                  {order.payment_status === 'paid' ? (
-                                    <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-green-100 text-firm-green">Оплачен</span>
-                                  ) : (
-                                    <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-yellow-100 text-firm-orange">Ожидает оплаты</span>
-                                  )}
+                                  {order.payment_status === 'paid' ? (<span className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-green-100 text-firm-green">Оплачен</span>) : (<span className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-yellow-100 text-firm-orange">Ожидает оплаты</span>)}
                                 </div>
                                 <span className="text-xs sm:text-sm text-firm-gray">{new Date(order.created_at).toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" })}</span>
                               </div>
@@ -547,10 +496,7 @@ export default function BuyerProfile({
                   {activeTab === "favorites" && (
                     <motion.div key="favorites" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
                       <div className="flex justify-between items-center mb-4 sm:mb-6">
-                        <h2 className="font-montserrat font-semibold text-xl sm:text-2xl bg-gradient-to-r from-firm-pink to-firm-orange bg-clip-text text-transparent flex items-center gap-2">
-                          <FavoritesIcon color="#D97C8E" className="w-5 h-5 sm:w-6 sm:h-6" />
-                          Избранное
-                        </h2>
+                        <h2 className="font-montserrat font-semibold text-xl sm:text-2xl bg-linear-to-r from-firm-pink to-firm-orange bg-clip-text text-transparent flex items-center gap-2"><FavoritesIcon color="#D97C8E" className="w-5 h-5 sm:w-6 sm:h-6" />Избранное</h2>
                         <Link href="/favorites" className="text-xs sm:text-sm text-firm-orange hover:underline">Все избранное →</Link>
                       </div>
 
@@ -560,9 +506,7 @@ export default function BuyerProfile({
                             <FavoritesIcon color="#D97C8E" className="w-12 h-12 sm:w-16 sm:h-16 mx-auto opacity-50" />
                           </div>
                           <p className="text-firm-gray mb-3 sm:mb-4 font-montserrat text-sm sm:text-base">В избранном пока нет товаров</p>
-                          <Link href="/catalog" className="inline-block px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-firm-pink to-firm-orange text-main rounded-xl hover:shadow-lg transition-all text-sm sm:text-base">
-                            Перейти в каталог
-                          </Link>
+                          <Link href="/catalog" className="inline-block px-4 sm:px-6 py-2 sm:py-3 bg-linear-to-r from-firm-pink to-firm-orange text-main rounded-xl hover:shadow-lg transition-all text-sm sm:text-base">Перейти в каталог</Link>
                         </div>
                       ) : (
                         <>
@@ -584,16 +528,11 @@ export default function BuyerProfile({
                                     <p className="text-[10px] sm:text-xs text-firm-gray mt-1 line-clamp-1">от {item.master_name || 'Мастер'}</p>
                                     <div className="flex items-center justify-between mt-2 sm:mt-3">
                                       <span className="font-montserrat font-bold text-sm sm:text-lg text-firm-pink">{item.price.toLocaleString()} ₽</span>
-                                      <span className="text-[10px] sm:text-xs text-firm-gray flex items-center gap-0.5 sm:gap-1">
-                                        <FavoritesIcon color="#D97C8E" className="w-2 h-2 sm:w-3 sm:h-3" />
-                                        <span className="hidden sm:inline">В избранном</span>
-                                      </span>
+                                      <span className="text-[10px] sm:text-xs text-firm-gray flex items-center gap-0.5 sm:gap-1"><FavoritesIcon color="#D97C8E" className="w-2 h-2 sm:w-3 sm:h-3" /><span className="hidden sm:inline">В избранном</span></span>
                                     </div>
                                   </div>
                                 </Link>
-                                <button onClick={() => handleRemoveFromFavorites(item.id)} onMouseEnter={() => setIsDeleteHovered(true)} onMouseLeave={() => setIsDeleteHovered(false)} className="absolute top-1 right-1 sm:top-2 sm:right-2 w-6 h-6 sm:w-8 sm:h-8 rounded-full shadow-md flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100" style={{ backgroundColor: isDeleteHovered ? '#D97C8E' : '#f9f9f9' }}>
-                                  <DeleteIcon className="w-3 h-3 sm:w-4 sm:h-4" color={isDeleteHovered ? '#f9f9f9' : '#D97C8E'} />
-                                </button>
+                                <button onClick={() => handleRemoveFromFavorites(item.id)} onMouseEnter={() => setIsDeleteHovered(true)} onMouseLeave={() => setIsDeleteHovered(false)} className="absolute top-1 right-1 sm:top-2 sm:right-2 w-6 h-6 sm:w-8 sm:h-8 rounded-full shadow-md flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100" style={{ backgroundColor: isDeleteHovered ? '#D97C8E' : '#f9f9f9' }}><DeleteIcon className="w-3 h-3 sm:w-4 sm:h-4" color={isDeleteHovered ? '#f9f9f9' : '#D97C8E'} /></button>
                               </motion.div>
                             ))}
                           </div>
@@ -609,16 +548,10 @@ export default function BuyerProfile({
 
                   {activeTab === "settings" && (
                     <motion.div key="settings" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="bg-main rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
-                      <h2 className="font-montserrat font-semibold text-xl sm:text-2xl mb-4 sm:mb-6 flex items-center gap-2">
-                        <SettingsIcon color="#D97C8E" className="w-5 h-5 sm:w-6 sm:h-6" />
-                        Настройки
-                      </h2>
+                      <h2 className="font-montserrat font-semibold text-xl sm:text-2xl mb-4 sm:mb-6 flex items-center gap-2"><SettingsIcon color="#D97C8E" className="w-5 h-5 sm:w-6 sm:h-6" />Настройки</h2>
                       <div className="space-y-4 sm:space-y-6">
                         <div>
-                          <h3 className="font-montserrat font-semibold text-base sm:text-lg mb-3 sm:mb-4 flex items-center gap-2">
-                            <PasswordIcon color="#D97C8E" className="w-4 h-4 sm:w-5 sm:h-5" />
-                            Смена пароля
-                          </h3>
+                          <h3 className="font-montserrat font-semibold text-base sm:text-lg mb-3 sm:mb-4 flex items-center gap-2"><PasswordIcon color="#D97C8E" className="w-4 h-4 sm:w-5 sm:h-5" />Смена пароля</h3>
                           <form className="space-y-3 sm:space-y-4 max-w-md">
                             <div>
                               <label className="block text-text mb-1 sm:mb-2 text-xs sm:text-sm font-medium">Текущий пароль</label>
@@ -632,15 +565,12 @@ export default function BuyerProfile({
                               <label className="block text-text mb-1 sm:mb-2 text-xs sm:text-sm font-medium">Подтверждение</label>
                               <input type="password" className="w-full p-2 sm:p-3 rounded-xl bg-forms border border-gray-200 focus:border-firm-orange focus:outline-none focus:ring-2 focus:ring-firm-orange/20 transition-all text-sm" placeholder="повторите пароль"/>
                             </div>
-                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="px-4 sm:px-6 py-1.5 sm:py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl font-montserrat font-medium hover:shadow-lg transition-all text-sm sm:text-base">Изменить пароль</motion.button>
+                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="px-4 sm:px-6 py-1.5 sm:py-2 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl font-montserrat font-medium hover:shadow-lg transition-all text-sm sm:text-base">Изменить пароль</motion.button>
                           </form>
                         </div>
 
                         <div className="border-t border-gray-200 pt-4 sm:pt-6">
-                          <h3 className="font-montserrat font-semibold text-base sm:text-lg mb-3 sm:mb-4 flex items-center gap-2">
-                            <NotificateIcon color="#D97C8E" className="w-4 h-4 sm:w-5 sm:h-5" />
-                            Уведомления и рассылка
-                          </h3>
+                          <h3 className="font-montserrat font-semibold text-base sm:text-lg mb-3 sm:mb-4 flex items-center gap-2"><NotificateIcon color="#D97C8E" className="w-4 h-4 sm:w-5 sm:h-5" />Уведомления и рассылка</h3>
                           <div className="space-y-2 sm:space-y-3">
                             <label className="flex items-center gap-2 sm:gap-3 cursor-pointer group">
                               <div className="relative flex items-center">
@@ -681,10 +611,7 @@ export default function BuyerProfile({
                         </div>
 
                         <div className="border-t border-gray-200 pt-4 sm:pt-6">
-                          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={saveNotificationSettings} disabled={savingNotifications} className="px-4 sm:px-6 py-1.5 sm:py-2 bg-gradient-to-r from-firm-orange to-firm-pink text-main rounded-xl font-montserrat font-medium hover:shadow-lg transition-all disabled:opacity-50 flex items-center gap-2 text-sm sm:text-base">
-                            <SaveIcon color="#f9f9f9" className="w-3 h-3 sm:w-4 sm:h-4" />
-                            {savingNotifications ? "Сохранение..." : "Сохранить настройки уведомлений"}
-                          </motion.button>
+                          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={saveNotificationSettings} disabled={savingNotifications} className="px-4 sm:px-6 py-1.5 sm:py-2 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl font-montserrat font-medium hover:shadow-lg transition-all disabled:opacity-50 flex items-center gap-2 text-sm sm:text-base"><SaveIcon color="#f9f9f9" className="w-3 h-3 sm:w-4 sm:h-4" />{savingNotifications ? "Сохранение..." : "Сохранить настройки уведомлений"}</motion.button>
                         </div>
                       </div>
                     </motion.div>
