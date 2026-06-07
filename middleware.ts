@@ -6,12 +6,10 @@ export default withAuth(
     const token = req.nextauth.token;
     const pathname = req.nextUrl.pathname;
 
-    // Пропускаем API запросы (они обрабатываются отдельно в API маршрутах)
     if (pathname.startsWith('/api')) {
       return NextResponse.next();
     }
 
-    // Админ-панель - только для админов
     if (pathname.startsWith('/admin')) {
       if (!token) {
         const signinUrl = new URL('/auth/signin', req.url);
@@ -24,7 +22,6 @@ export default withAuth(
       }
     }
 
-    // Мастер-панель - только для мастеров
     if (pathname.startsWith('/master')) {
       if (!token) {
         const signinUrl = new URL('/auth/signin', req.url);
@@ -37,7 +34,6 @@ export default withAuth(
       }
     }
 
-    // Защищённые страницы для авторизованных пользователей
     const protectedPaths = ['/profile', '/favorites', '/shopping-cart', '/chats', '/orders'];
     if (protectedPaths.some(path => pathname === path || pathname.startsWith(path + '/'))) {
       if (!token) {
@@ -52,7 +48,6 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token }) => {
-        // Все страницы (кроме защищённых) доступны без авторизации
         return true;
       },
     }
@@ -61,7 +56,7 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    '/api/:path*', // Добавляем API в matcher, но пропускаем в middleware
+    '/api/:path*',
     '/admin/:path*',
     '/master/:path*',
     '/profile/:path*',
