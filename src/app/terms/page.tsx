@@ -28,8 +28,7 @@ export default function TermsPage() {
     { id: "buyers", title: "Условия для покупателей", icon: <CartIcon className="w-4 h-4" color="#F4A67F" /> },
     { id: "payments", title: "Оплата и доставка", icon: <LockIcon className="w-4 h-4" color="#D97C8E" /> },
     { id: "responsibility", title: "Ответственность", icon: <ShieldCheckIcon className="w-4 h-4" color="#94D06C" /> },
-    { id: "contacts", title: "Контакты", icon: <MailIcon className="w-4 h-4" color="#F4A67F" /> },
-  ];
+    { id: "contacts", title: "Контакты", icon: <MailIcon className="w-4 h-4" color="#F4A67F" /> }]
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -44,7 +43,7 @@ export default function TermsPage() {
   return (
     <div className="min-h-screen bg-main">
       {/* Hero секция */}
-      <section className="relative bg-gradient-to-br from-firm-orange/5 via-main to-firm-pink/5 py-16 sm:py-20 md:py-24">
+      <section className="relative bg-linear-to-br from-firm-orange/5 via-main to-firm-pink/5 py-16 sm:py-20 md:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}

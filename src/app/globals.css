@@ -49,7 +49,6 @@
 }
 
 .search-input::placeholder {
-  content: "🔍";
   display: inline-block;
   margin-right: 5px;
 }
