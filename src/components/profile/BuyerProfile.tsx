@@ -47,7 +47,6 @@ export default function BuyerProfile({
   session,
   initialTab,
 }: BuyerProfileProps) {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState(initialTab || "profile");
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);

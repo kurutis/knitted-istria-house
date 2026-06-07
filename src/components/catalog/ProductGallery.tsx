@@ -14,7 +14,7 @@ export default function ProductGallery({ images, title }: ProductGalleryProps) {
 
     return (
         <div className="space-y-4">
-            <div className="aspect-square bg-[#EAEAEA] rounded-lg overflow-hidden relative">
+            <div className="aspect-square bg-footer rounded-lg overflow-hidden relative">
                 {displayImages[selectedImage]?.url ? (
                     <Image src={displayImages[selectedImage].url} alt={title} fill className="object-cover" priority />
                 ) : (
@@ -25,7 +25,7 @@ export default function ProductGallery({ images, title }: ProductGalleryProps) {
             {displayImages.length > 1 && (
                 <div className="grid grid-cols-5 gap-2">
                     {displayImages.map((img, index) => (
-                        <button key={img.id} onClick={() => setSelectedImage(index)} className={`aspect-square bg-[#EAEAEA] rounded-lg overflow-hidden relative border-2 transition-colors ${selectedImage === index?'border-firm-orange':'border-transparent hover:border-firm-pink'}`}>
+                        <button key={img.id} onClick={() => setSelectedImage(index)} className={`aspect-square bg-footer rounded-lg overflow-hidden relative border-2 transition-colors ${selectedImage === index?'border-firm-orange':'border-transparent hover:border-firm-pink'}`}>
                             {img.url ? (
                                 <Image src={img.url} alt={`${title} - фото ${index + 1}`} fill className="object-cover"/>
                             ) : (

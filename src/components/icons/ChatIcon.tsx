@@ -5,14 +5,7 @@ interface ChatIconProps {
 }
 
 export const ChatIcon = ({ className = "", color = "#242424", size = 36 }: ChatIconProps) => (
-    <svg 
-        width={size} 
-        height={size} 
-        viewBox="0 0 37 36" 
-        fill="none" 
-        xmlns="http://www.w3.org/2000/svg"
-        className={className}
-    >
+    <svg width={size} height={size} viewBox="0 0 37 36" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
         <circle cx="2.32349" cy="2.32349" r="2.32349" transform="matrix(1 0 0 -1 9.62622 19.897)" fill={color}/>
         <circle cx="2.32349" cy="2.32349" r="2.32349" transform="matrix(1 0 0 -1 16.9839 19.897)" fill={color}/>
         <circle cx="2.32349" cy="2.32349" r="2.32349" transform="matrix(1 0 0 -1 24.729 19.897)" fill={color}/>

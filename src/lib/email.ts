@@ -1,7 +1,6 @@
 import nodemailer from 'nodemailer';
 import { logError, logInfo } from './error-logger';
 
-// Типы для email
 interface EmailOptions {
     to: string;
     subject: string;
@@ -17,13 +16,11 @@ interface TemplateData {
     siteName?: string;
 }
 
-// Конфигурация
 const SITE_NAME = 'Дом вязанных историй';
 const SITE_URL = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 const CODE_EXPIRY_MINUTES = 15;
 const RESET_LINK_EXPIRY_HOURS = 1;
 
-// Создание транспортера с проверкой конфигурации
 function createTransporter() {
     const host = process.env.SMTP_HOST;
     const port = parseInt(process.env.SMTP_PORT || '465');
@@ -31,30 +28,15 @@ function createTransporter() {
     const pass = process.env.SMTP_PASSWORD;
 
     if (!host || !user || !pass) {
-        if (process.env.NODE_ENV === 'production') {
-            logError('SMTP configuration missing', new Error('Missing SMTP config'));
-        }
+        if (process.env.NODE_ENV === 'production') {logError('SMTP configuration missing', new Error('Missing SMTP config'))}
         return null;
     }
 
-    return nodemailer.createTransport({
-        host,
-        port,
-        secure: port === 465,
-        auth: { user, pass },
-        pool: true, // Используем пул соединений
-        maxConnections: 5,
-        rateDelta: 1000, // Лимит сообщений в секунду
-        rateLimit: 5,
-        tls: {
-            rejectUnauthorized: process.env.NODE_ENV === 'production'
-        }
-    });
+    return nodemailer.createTransport({host, port, secure: port === 465, auth: { user, pass }, pool: true, maxConnections: 5, rateDelta: 1000,  rateLimit: 5,  tls: {rejectUnauthorized: process.env.NODE_ENV === 'production'}});
 }
 
 const transporter = createTransporter();
 
-// Шаблоны email
 const templates = {
     verification: (data: TemplateData) => ({
         subject: 'Подтверждение регистрации',
@@ -204,27 +186,9 @@ const templates = {
     })
 };
 
-// Функция для экранирования HTML
-function escapeHtml(str: string): string {
-    return str
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
+function escapeHtml(str: string): string {return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');}
 
-// Отправка email с проверкой
 async function sendEmail(options: EmailOptions): Promise<boolean> {
-    // В режиме разработки просто логируем
-    if (process.env.NODE_ENV === 'development') {
-        console.log('📧 [DEV EMAIL] ========================================');
-        console.log(`📧 [DEV EMAIL] To: ${options.to}`);
-        console.log(`📧 [DEV EMAIL] Subject: ${options.subject}`);
-        console.log(`📧 [DEV EMAIL] Body preview: ${options.text || options.html?.substring(0, 200)}...`);
-        console.log('📧 [DEV EMAIL] ========================================');
-        return true;
-    }
 
     if (!transporter) {
         logError('Email transporter not configured', new Error('SMTP not configured'));
@@ -232,19 +196,9 @@ async function sendEmail(options: EmailOptions): Promise<boolean> {
     }
 
     try {
-        const info = await transporter.sendMail({
-            from: `"${SITE_NAME}" <${process.env.SMTP_USER}>`,
-            to: options.to,
-            subject: options.subject,
-            html: options.html,
-            text: options.text
-        });
+        const info = await transporter.sendMail({from: `"${SITE_NAME}" <${process.env.SMTP_USER}>`, to: options.to, subject: options.subject, html: options.html, text: options.text});
 
-        logInfo('Email sent successfully', {
-            messageId: info.messageId,
-            to: options.to,
-            subject: options.subject
-        });
+        logInfo('Email sent successfully', {messageId: info.messageId, to: options.to, subject: options.subject})
 
         return true;
     } catch (error) {
@@ -253,44 +207,25 @@ async function sendEmail(options: EmailOptions): Promise<boolean> {
     }
 }
 
-// Публичные функции
 export async function sendVerificationEmail(email: string, code: string, name: string): Promise<boolean> {
     const template = templates.verification({ name, code });
-    return sendEmail({
-        to: email,
-        subject: template.subject,
-        html: template.html
-    });
+    return sendEmail({to: email, subject: template.subject, html: template.html})
 }
 
 export async function sendPasswordResetEmail(email: string, resetUrl: string, name: string): Promise<boolean> {
     const template = templates.passwordReset({ name, resetUrl });
-    return sendEmail({
-        to: email,
-        subject: template.subject,
-        html: template.html
-    });
+    return sendEmail({to: email, subject: template.subject, html: template.html})
 }
 
 export async function sendWelcomeEmail(email: string, name: string): Promise<boolean> {
     const template = templates.welcome({ name });
-    return sendEmail({
-        to: email,
-        subject: template.subject,
-        html: template.html
-    });
+    return sendEmail({to: email, subject: template.subject, html: template.html})
 }
 
-// Функция для проверки конфигурации email
-export function isEmailConfigured(): boolean {
-    return !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD);
-}
+export function isEmailConfigured(): boolean {return !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD)}
 
-// Функция для тестирования соединения
 export async function testEmailConnection(): Promise<{ success: boolean; error?: string }> {
-    if (!transporter) {
-        return { success: false, error: 'SMTP not configured' };
-    }
+    if (!transporter) {return {success: false, error: 'SMTP not configured' }}
 
     try {
         await transporter.verify();

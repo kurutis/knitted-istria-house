@@ -51,10 +51,7 @@ export default function MyCreatedClassCard({
     const formatTime = (dateString: string) => {return new Date(dateString).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})}
 
     return (
-        <motion.div 
-            className="bg-main rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-100"
-            whileHover={{ y: -4 }}
-        >
+        <motion.div className="bg-main rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-100" whileHover={{ y: -4 }}>
             <div className="flex flex-col sm:flex-row">
                 {masterClass.image_url && !imageError ? (
                     <div className="w-full sm:w-48 h-48 sm:h-auto shrink-0 bg-gray-100">

@@ -54,11 +54,7 @@ export default function PaymentGateway({ amount, orderId, onSuccess, onCancel }:
         setErrorMessage('');
 
         try {
-            const response = await fetch('/api/payments/process', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderId, amount, provider: selectedProvider })
-            });
+            const response = await fetch('/api/payments/process', {method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId, amount, provider: selectedProvider })});
 
             const data = await response.json();
 

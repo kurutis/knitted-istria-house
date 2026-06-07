@@ -34,7 +34,6 @@ import { ClockIcon } from "@/components/icons/ClockIcon";
 import { OnlineIcon } from "@/components/icons/OnlineIcon";
 import { PlusIcon } from "@/components/icons/PlusIcon";
 import { UsersIcon } from "@/components/icons/UsersIcon";
-import { MasterIcon } from "@/components/icons/MasterIcon";
 import { CatalogPinkIcon } from "@/components/icons/CatalogPinkIcon";
 import { CheckCircleIcon } from "@/components/icons/CheckCircleIcon";
 import { StarIcon } from "@/components/icons/StarIcon";

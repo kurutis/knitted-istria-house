@@ -69,8 +69,6 @@ export default function MasterClassCard({masterClass, session, onRegister, onCan
     const statusText = getStatusText()
     const showStatusBadge = statusText !== null && !isRegistered
 
-    const buttonAnimation = {whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 }, transition: { duration: 0.15, ease: "easeOut" }}
-
     return (
         <motion.div 
             className="bg-main rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300" 

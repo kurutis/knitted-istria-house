@@ -1,4 +1,3 @@
-// src/components/icons/PaymentIcons.tsx
 'use client';
 
 interface IconProps {

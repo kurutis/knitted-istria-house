@@ -181,9 +181,7 @@ export default function Filters({ filters, availableFilters, onFilterChange, onC
                     <div className="space-y-1 max-h-96 overflow-y-auto pr-2">
                         <motion.button whileHover={{ x: 5 }} whileTap={{ scale: 0.98 }} onClick={() => onFilterChange({ category: 'all' })} className={`w-full text-left px-3 py-2 rounded-xl transition-all flex items-center gap-2 ${filters.category === 'all'  ? 'bg-linear-to-r from-firm-orange to-firm-pink shadow-md' : 'hover:bg-main border-2 border-transparent hover:border-firm-orange/20' }`}>
                             <span className="w-5" />
-                            <span className="w-5 h-5 relative">
-                                <Image src={allIcon} alt="Все категории" width={20} height={20} className={`object-contain ${filters.category === 'all' ? 'brightness-0 invert' : ''}`} />
-                            </span>
+                            <span className="w-5 h-5 relative"><Image src={allIcon} alt="Все категории" width={20} height={20} className={`object-contain ${filters.category === 'all' ? 'brightness-0 invert' : ''}`} /></span>
                             <span className={`flex-1 text-sm ${filters.category === 'all' ? 'text-main font-medium' : 'text-text'}`}>Все категории</span>
                         </motion.button>
                         {renderCategories(categories)}

@@ -179,9 +179,7 @@ export default function Header() {
               <div className="hidden lg:flex items-center gap-3 sm:gap-4 md:gap-5 lg:gap-6">
                 {isAuthenticated && (isBuyer || isMaster) && (
                   <motion.div whileHover={{ scale: 1.1, rotate: 5 }} whileTap={{ scale: 0.95 }} className="relative">
-                    <Link href="/chats">
-                      <ChatIcon size={24} color="#737682" />
-                    </Link>
+                    <Link href="/chats"><ChatIcon size={24} color="#737682" /></Link>
                     {unreadCount > 0 && (
                       <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2 bg-firm-red text-main text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-lg">{unreadCount > 9 ? '9+' : unreadCount}</motion.span>)}
                   </motion.div>
@@ -239,11 +237,7 @@ export default function Header() {
                   <Link href="/chats" className="relative flex flex-col items-center gap-1 transition-all duration-300 text-firm-gray hover:text-firm-orange">
                     <div className="relative">
                       <ChatIcon size={20} color="#737682" />
-                      {unreadCount > 0 && (
-                        <span className="absolute -top-2 -right-2 bg-firm-red text-main text-[10px] rounded-full min-w-4 h-4 px-1 flex items-center justify-center font-bold">
-                          {unreadCount > 9 ? '9+' : unreadCount}
-                        </span>
-                      )}
+                      {unreadCount > 0 && (<span className="absolute -top-2 -right-2 bg-firm-red text-main text-[10px] rounded-full min-w-4 h-4 px-1 flex items-center justify-center font-bold">{unreadCount > 9 ? '9+' : unreadCount}</span>)}
                     </div>
                     <span className="text-[10px] font-medium">Чаты</span>
                   </Link>

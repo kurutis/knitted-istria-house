@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef, JSX } from "react";
-import Image from "next/image";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { CloseIcon } from "@/components/icons/CloseIcon";
