@@ -1,7 +1,6 @@
-// app/api/auth/register/route.ts
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import bcrypt from "bcryptjs";
+import bcryptjs from "bcryptjs";
 import { sendSMS, generateSMSCode, sendVerificationSMS } from "@/lib/sms-utils";
 import { sendVerificationEmail } from "@/lib/email";
 import { rateLimit, getClientIP } from "@/lib/rate-limit";
@@ -9,9 +8,14 @@ import { logError, logInfo, logApiRequest } from "@/lib/error-logger";
 import { sanitize } from "@/lib/sanitize";
 import { z } from "zod";
 
-// Схема валидации
 const registerSchema = z.object({
-    name: z.string().min(2, 'Имя должно содержать минимум 2 символа').max(100),
+    name: z.string()
+        .min(2, 'Имя должно содержать минимум 2 символа')
+        .max(100, 'Имя не может превышать 100 символов')
+        .regex(/^[А-Яа-яЁё\s\-]+$/, 'Имя и фамилия должны содержать только русские буквы, пробелы и дефисы')
+        .refine((val) => val.trim().split(/\s+/).length >= 2, {
+            message: 'Введите имя и фамилию (минимум два слова)'
+        }),
     email: z.string().email('Неверный формат email').optional(),
     phone: z.string().optional(),
     city: z.string().min(2, 'Город обязателен').max(100),
@@ -28,6 +32,44 @@ const limiter = rateLimit({ limit: 5, windowMs: 60 * 1000 }); // 5 запрос�
 // Генерация кода подтверждения
 function generateVerificationCode(): string {
     return Math.floor(1000 + Math.random() * 9000).toString();
+}
+
+async function sendCodeWithTimeout(
+    method: 'sms' | 'email',
+    contact: string,
+    code: string,
+    name: string
+): Promise<{ success: boolean; message: string }> {
+    const timeoutPromise = new Promise<{ success: boolean; message: string }>((resolve) => {
+        setTimeout(() => {
+            resolve({ 
+                success: false, 
+                message: `Превышено время ожидания при отправке ${method === 'sms' ? 'SMS' : 'email'}` 
+            });
+        }, 10000); // 10 секунд таймаут
+    });
+
+    const sendPromise = (async () => {
+        if (method === 'sms') {
+            const result = await sendVerificationSMS(contact);
+            return { 
+                success: result.success, 
+                message: result.success 
+                    ? `Код подтверждения отправлен на номер ${contact}` 
+                    : result.error || 'Ошибка отправки SMS'
+            };
+        } else {
+            const emailSent = await sendVerificationEmail(contact, code, name);
+            return { 
+                success: emailSent, 
+                message: emailSent 
+                    ? `Код подтверждения отправлен на ${contact}` 
+                    : 'Ошибка отправки email. Проверьте адрес.'
+            };
+        }
+    })();
+
+    return Promise.race([sendPromise, timeoutPromise]);
 }
 
 export async function POST(request: Request) {
@@ -125,7 +167,8 @@ export async function POST(request: Request) {
             }
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        // Хешируем пароль с помощью bcryptjs
+        const hashedPassword = await bcryptjs.hash(password, 10);
         const now = new Date().toISOString();
         const verificationCode = generateVerificationCode();
         const verificationExpires = new Date(Date.now() + 15 * 60 * 1000).toISOString();
@@ -151,7 +194,7 @@ export async function POST(request: Request) {
         if (userError) {
             logError('User creation error', userError);
             return NextResponse.json({ 
-                error: 'Ошибка создания пользователя' 
+                error: 'Ошибка создания пользователя: ' + userError.message
             }, { status: 500 });
         }
 
@@ -176,7 +219,7 @@ export async function POST(request: Request) {
             await supabase.from('users').delete().eq('id', newUser.id);
             logError('Profile creation error', profileError);
             return NextResponse.json({ 
-                error: 'Ошибка создания профиля' 
+                error: 'Ошибка создания профиля: ' + profileError.message
             }, { status: 500 });
         }
 
@@ -196,51 +239,41 @@ export async function POST(request: Request) {
             }
         }
 
-        // Отправляем код подтверждения
-        let success = false;
-        let message = '';
+        // Отправляем код подтверждения (НЕ блокируем регистрацию, если отправка не удалась)
+        let codeSent = false;
+        let codeMessage = '';
         
-        if (verificationMethod === 'sms') {
-            if (!phone) {
-                return NextResponse.json({ 
-                    error: 'Номер телефона не указан' 
-                }, { status: 400 });
-            }
-            const smsResult = await sendVerificationSMS(phone);
-            if (smsResult.success) {
-                success = true;
-                message = `Код подтверждения отправлен на номер ${phone}`;
-                // Обновляем код в базе (если нужно)
-                await supabase
-                    .from('profiles')
-                    .update({
-                        phone_verification_code: smsResult.code,
-                        phone_verification_expires: new Date(Date.now() + 15 * 60 * 1000).toISOString()
-                    })
-                    .eq('user_id', newUser.id);
+        try {
+            if (verificationMethod === 'sms') {
+                if (!phone) {
+                    codeMessage = 'Номер телефона не указан для отправки SMS';
+                } else {
+                    const smsResult = await sendCodeWithTimeout('sms', phone, verificationCode, name);
+                    codeSent = smsResult.success;
+                    codeMessage = smsResult.message;
+                    
+                    // Если SMS не отправилась, но пользователь создан — всё равно продолжаем
+                    if (!codeSent) {
+                        logError('SMS sending failed but user created', new Error(codeMessage), 'warning');
+                    }
+                }
             } else {
-                message = 'Ошибка отправки SMS. Проверьте номер телефона.';
+                if (!email) {
+                    codeMessage = 'Email не указан для отправки письма';
+                } else {
+                    const emailResult = await sendCodeWithTimeout('email', email, verificationCode, name);
+                    codeSent = emailResult.success;
+                    codeMessage = emailResult.message;
+                    
+                    if (!codeSent) {
+                        logError('Email sending failed but user created', new Error(codeMessage), 'warning');
+                    }
+                }
             }
-        } else {
-            if (!email) {
-                return NextResponse.json({ 
-                    error: 'Email не указан' 
-                }, { status: 400 });
-            }
-            const emailSent = await sendVerificationEmail(email, verificationCode, name);
-            if (emailSent) {
-                success = true;
-                message = `Код подтверждения отправлен на ${email}`;
-            } else {
-                message = 'Ошибка отправки email. Проверьте адрес.';
-            }
-        }
-
-        if (!success) {
-            // Не удаляем пользователя, просто сообщаем об ошибке
-            return NextResponse.json({ 
-                error: message
-            }, { status: 500 });
+        } catch (sendError) {
+            logError('Code sending error (non-critical)', sendError, 'warning');
+            codeMessage = 'Не удалось отправить код, но аккаунт создан. Используйте восстановление пароля.';
+            codeSent = false;
         }
 
         logApiRequest('POST', '/api/auth/register', 200, Date.now() - startTime);
@@ -249,23 +282,28 @@ export async function POST(request: Request) {
             email: email,
             phone: phone ? phone.slice(-4) : null,
             role,
-            verificationMethod
+            verificationMethod,
+            codeSent
         });
 
         // Возвращаем успешный ответ
         return NextResponse.json({ 
             success: true,
-            message,
+            message: codeSent 
+                ? codeMessage 
+                : `Аккаунт создан. ${codeMessage} Вы можете войти, но для подтверждения потребуется запросить код повторно.`,
             userId: newUser.id,
             method: verificationMethod,
-            contact: verificationMethod === 'sms' ? phone : email
+            contact: verificationMethod === 'sms' ? phone : email,
+            codeSent: codeSent
         }, { status: 200 });
 
     } catch (error) {
         // Обработка ошибок валидации Zod
         if (error instanceof z.ZodError) {
+            const firstError = error.issues[0]?.message || 'Ошибка валидации';
             return NextResponse.json({ 
-                error: error.issues[0]?.message || 'Ошибка валидации'
+                error: firstError
             }, { status: 400 });
         }
         
