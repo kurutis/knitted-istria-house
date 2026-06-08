@@ -3,6 +3,9 @@
 import { useRouter, useSearchParams } from "next/navigation"
 import React, { useEffect, useState, Suspense } from "react"
 import Link from "next/link"
+import { motion } from "framer-motion"
+import { MailIcon } from "@/components/icons/MailIcon"
+import { RefreshIcon } from "@/components/icons/RefreshIcon"
 
 function VerifySmsForm() {
     const router = useRouter()
@@ -89,97 +92,134 @@ function VerifySmsForm() {
 
     if (!email) {
         return (
-            <div className="mt-5 flex items-center justify-center">
+            <div className="mt-5 flex items-center justify-center min-h-[60vh] bg-main">
                 <div className="text-center">
-                    <p className="text-gray-600">Перенаправление...</p>
+                    <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-12 h-12 border-4 border-firm-orange border-t-transparent rounded-full mx-auto"
+                    />
+                    <p className="mt-4 text-firm-gray">Перенаправление...</p>
                 </div>
             </div>
         )
     }
 
     return(
-        <div className="mt-5 flex items-center justify-center">
-            <div className="flex flex-col gap-5 w-[70%]">
-                <div>
-                    <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl">Подтверждение регистрации</h2>
-                    <p className="text-gray-600 mt-2">
-                        На номер, привязанный к <span className="font-semibold">{email}</span>, отправлен SMS код
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="min-h-[80vh] flex items-center justify-center bg-main px-4"
+        >
+            <div className="flex flex-col gap-6 w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
+                <div className="text-center">
+                    <div className="mx-auto w-16 h-16 bg-linear-to-r from-firm-orange to-firm-pink rounded-2xl flex items-center justify-center mb-4 shadow-md">
+                        <MailIcon size={32} color="#ffffff" />
+                    </div>
+                    <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
+                        Подтверждение регистрации
+                    </h2>
+                    <p className="text-firm-gray mt-3">
+                        На номер, привязанный к <span className="font-semibold text-text">{email}</span>, отправлен SMS код
                     </p>
-                    <p className="text-sm text-gray-500 mt-1">
-                        <strong className="text-firm-orange">Тестовый код: 1111</strong>
+                    <p className="text-sm text-firm-gray mt-2">
+                        <span className="text-firm-orange font-medium">Тестовый код: 1111</span>
                     </p>
                 </div>
 
-                <div className="h-2.5">
-                    {error && (
-                        <span className="text-red-500">{error}</span>
-                    )}
-                </div>
+                {error && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-firm-red/10 border border-firm-red/30 text-firm-red rounded-xl p-3 text-center text-sm"
+                    >
+                        {error}
+                    </motion.div>
+                )}
 
-                <form onSubmit={handleSubmit} className="w-full flex justify-center flex-col">
-                    <div className="flex flex-col gap-5 mb-5">
-                        <div>
-                            <label htmlFor="smsCode" className="block text-gray-700 mb-1">
-                                SMS код *
-                            </label>
-                            <input 
-                                type="text"
-                                id="smsCode"
-                                value={smsCode} 
-                                onChange={(e) => setSmsCode(e.target.value.replace(/\D/g, '').slice(0, 4))} 
-                                placeholder="1111" 
-                                required 
-                                maxLength={4}
-                                className="w-full p-2 rounded-l bg-[#EAEAEA] outline-firm-orange text-center text-2xl tracking-widest"
-                                inputMode="numeric"
-                                pattern="[0-9]*"
-                                autoFocus
-                            />
-                        </div>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div>
+                        <label htmlFor="smsCode" className="block text-text mb-2 font-['Montserrat_Alternates'] font-medium">
+                            SMS код <span className="text-firm-red">*</span>
+                        </label>
+                        <input 
+                            type="text"
+                            id="smsCode"
+                            value={smsCode} 
+                            onChange={(e) => setSmsCode(e.target.value.replace(/\D/g, '').slice(0, 4))} 
+                            placeholder="0000" 
+                            required 
+                            maxLength={4}
+                            className="w-full p-3 rounded-xl bg-forms text-text text-center text-2xl tracking-[0.5em] outline-none focus:ring-2 focus:ring-firm-orange transition-all duration-300"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            autoFocus
+                        />
                     </div>
 
-                    <div className="flex justify-center mb-5 mt-5 h-[5vh]">
-                        <button 
-                            type="submit" 
-                            disabled={loading || smsCode.length !== 4}
-                            className="font-['Montserrat_Alternates'] font-[450] border-2 border-firm-orange p-2 w-[25%] rounded-xl transition-all duration-300 hover:scale-105 hover:border-4 hover:bg-firm-orange hover:text-white hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {loading ? 'Проверка...' : 'Подтвердить'}
-                        </button>
-                    </div>
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        type="submit" 
+                        disabled={loading || smsCode.length !== 4}
+                        className="w-full py-3 bg-linear-to-r from-firm-orange to-firm-pink text-white rounded-xl font-['Montserrat_Alternates'] font-medium transition-all duration-300 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {loading ? (
+                            <span className="flex items-center justify-center gap-2">
+                                <RefreshIcon size={18} color="#ffffff" className="animate-spin" />
+                                Проверка...
+                            </span>
+                        ) : (
+                            'Подтвердить'
+                        )}
+                    </motion.button>
 
-                    <div className="flex justify-center mb-5">
+                    <div className="text-center">
                         <button 
                             type="button"
                             onClick={handleResendSMS} 
                             disabled={resendTimer > 0}
-                            className={`font-['Montserrat_Alternates'] font-[450] transition-all duration-300 hover:text-firm-orange hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${resendTimer > 0 ? 'text-gray-400' : 'text-gray-700'}`}
+                            className={`font-['Montserrat_Alternates'] text-sm transition-all duration-300 hover:text-firm-orange disabled:opacity-50 disabled:cursor-not-allowed ${
+                                resendTimer > 0 ? 'text-firm-gray' : 'text-text'
+                            }`}
                         >
                             {resendTimer > 0 
                                 ? `Отправить повторно через ${resendTimer} сек` 
-                                : `Отправить SMS повторно`
+                                : 'Отправить SMS повторно'
                             }
                         </button>
                     </div>
 
-                    <div className="flex justify-center mt-5">
+                    <div className="text-center pt-2">
                         <Link 
                             href="/auth/signin"
-                            className="text-gray-600 hover:text-firm-orange transition-all duration-300"
+                            className="text-sm text-firm-gray hover:text-firm-orange transition-all duration-300"
                         >
-                            Вернуться на страницу входа
+                            ← Вернуться на страницу входа
                         </Link>
                     </div>
                 </form>
             </div>
-        </div>
+        </motion.div>
     )
 }
 
 // Основной компонент с Suspense
 export default function VerifySmsPage() {
     return (
-        <Suspense fallback={<div className="flex justify-center items-center min-h-[60vh]">Загрузка...</div>}>
+        <Suspense fallback={
+            <div className="flex justify-center items-center min-h-[60vh] bg-main">
+                <div className="text-center">
+                    <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-12 h-12 border-4 border-firm-orange border-t-transparent rounded-full mx-auto"
+                    />
+                    <p className="mt-4 text-firm-gray">Загрузка...</p>
+                </div>
+            </div>
+        }>
             <VerifySmsForm />
         </Suspense>
     )
