@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import bcryptjs from "bcryptjs";
-import { sendSMS, generateSMSCode, sendVerificationSMS } from "@/lib/sms-utils";
+import { sendVerificationSMS } from "@/lib/sms-utils";
 import { sendVerificationEmail } from "@/lib/email";
 import { rateLimit, getClientIP } from "@/lib/rate-limit";
 import { logError, logInfo, logApiRequest } from "@/lib/error-logger";
 import { sanitize } from "@/lib/sanitize";
 import { z } from "zod";
 
+// Схема валидации
 const registerSchema = z.object({
     name: z.string()
         .min(2, 'Имя должно содержать минимум 2 символа')
@@ -26,10 +27,8 @@ const registerSchema = z.object({
     verificationMethod: z.enum(['sms', 'email']).optional(),
 });
 
-// Rate limiting
-const limiter = rateLimit({ limit: 5, windowMs: 60 * 1000 }); // 5 запросов в минуту
+const limiter = rateLimit({ limit: 5, windowMs: 60 * 1000 });
 
-// Генерация кода подтверждения
 function generateVerificationCode(): string {
     return Math.floor(1000 + Math.random() * 9000).toString();
 }
@@ -46,7 +45,7 @@ async function sendCodeWithTimeout(
                 success: false, 
                 message: `Превышено время ожидания при отправке ${method === 'sms' ? 'SMS' : 'email'}` 
             });
-        }, 10000); // 10 секунд таймаут
+        }, 10000);
     });
 
     const sendPromise = (async () => {
@@ -74,8 +73,6 @@ async function sendCodeWithTimeout(
 
 export async function POST(request: Request) {
     const startTime = Date.now();
-    
-    // Rate limiting
     const ip = getClientIP(request);
     const rateLimitResult = limiter(request);
     if (!rateLimitResult.success) {
@@ -88,7 +85,6 @@ export async function POST(request: Request) {
     try {
         const body = await request.json();
         
-        // Валидация входных данных
         const validatedData = registerSchema.parse({
             name: body.name,
             email: body.email,
@@ -101,14 +97,10 @@ export async function POST(request: Request) {
             verificationMethod: body.verificationMethod
         });
         
-        // Проверка совпадения паролей
         if (body.password !== body.confirmPassword) {
-            return NextResponse.json({ 
-                error: 'Пароли не совпадают' 
-            }, { status: 400 });
+            return NextResponse.json({ error: 'Пароли не совпадают' }, { status: 400 });
         }
         
-        // Санитизация данных
         const name = sanitize.text(validatedData.name);
         const email = validatedData.email ? sanitize.email(validatedData.email) : null;
         const phone = validatedData.phone ? sanitize.phone(validatedData.phone) : null;
@@ -118,23 +110,14 @@ export async function POST(request: Request) {
         const newsletterAgreement = validatedData.newsletterAgreement || false;
         const verificationMethod = validatedData.verificationMethod || (email ? 'email' : 'sms');
 
-        // Проверка наличия email или телефона
         if (!email && !phone) {
-            return NextResponse.json({ 
-                error: 'Укажите email или номер телефона' 
-            }, { status: 400 });
+            return NextResponse.json({ error: 'Укажите email или номер телефона' }, { status: 400 });
         }
-
         if (password.length < 6) {
-            return NextResponse.json({ 
-                error: 'Пароль должен быть не менее 6 символов' 
-            }, { status: 400 });
+            return NextResponse.json({ error: 'Пароль должен быть не менее 6 символов' }, { status: 400 });
         }
-
         if (!['sms', 'email'].includes(verificationMethod)) {
-            return NextResponse.json({ 
-                error: 'Выберите способ подтверждения' 
-            }, { status: 400 });
+            return NextResponse.json({ error: 'Выберите способ подтверждения' }, { status: 400 });
         }
 
         // Проверка существующего пользователя по email
@@ -144,11 +127,8 @@ export async function POST(request: Request) {
                 .select('id')
                 .eq('email', email)
                 .maybeSingle();
-
             if (existingUser) {
-                return NextResponse.json({ 
-                    error: 'Пользователь с таким email уже существует' 
-                }, { status: 400 });
+                return NextResponse.json({ error: 'Пользователь с таким email уже существует' }, { status: 400 });
             }
         }
 
@@ -159,15 +139,11 @@ export async function POST(request: Request) {
                 .select('phone')
                 .eq('phone', phone)
                 .maybeSingle();
-
             if (existingProfile) {
-                return NextResponse.json({ 
-                    error: 'Пользователь с таким телефоном уже существует' 
-                }, { status: 400 });
+                return NextResponse.json({ error: 'Пользователь с таким телефоном уже существует' }, { status: 400 });
             }
         }
 
-        // Хешируем пароль с помощью bcryptjs
         const hashedPassword = await bcryptjs.hash(password, 10);
         const now = new Date().toISOString();
         const verificationCode = generateVerificationCode();
@@ -198,30 +174,71 @@ export async function POST(request: Request) {
             }, { status: 500 });
         }
 
-        // Создаём профиль
-        const { error: profileError } = await supabase
+        // ========== ИСПРАВЛЕННОЕ СОЗДАНИЕ / ОБНОВЛЕНИЕ ПРОФИЛЯ ==========
+        // Проверяем, существует ли уже профиль с таким user_id
+        const { data: existingProfileRow, error: checkError } = await supabase
             .from('profiles')
-            .insert({
-                user_id: newUser.id,
-                full_name: name,
-                phone: phone || null,
-                city: city || null,
-                newsletter_agreement: newsletterAgreement,
-                phone_verified: verificationMethod === 'sms' ? false : true,
-                phone_verification_code: verificationMethod === 'sms' ? verificationCode : null,
-                phone_verification_expires: verificationMethod === 'sms' ? verificationExpires : null,
-                created_at: now,
-                updated_at: now
-            });
+            .select('user_id')
+            .eq('user_id', newUser.id)
+            .maybeSingle();
+
+        if (checkError) {
+            logError('Error checking existing profile', checkError);
+            // Откатываем пользователя
+            await supabase.from('users').delete().eq('id', newUser.id);
+            return NextResponse.json({ 
+                error: 'Ошибка проверки профиля: ' + checkError.message
+            }, { status: 500 });
+        }
+
+        let profileError = null;
+
+        if (existingProfileRow) {
+            // Профиль уже существует — обновляем его
+            logInfo('Profile already exists, updating', { userId: newUser.id });
+            const { error } = await supabase
+                .from('profiles')
+                .update({
+                    full_name: name,
+                    phone: phone || null,
+                    city: city || null,
+                    newsletter_agreement: newsletterAgreement,
+                    phone_verified: verificationMethod === 'sms' ? false : true,
+                    phone_verification_code: verificationMethod === 'sms' ? verificationCode : null,
+                    phone_verification_expires: verificationMethod === 'sms' ? verificationExpires : null,
+                    updated_at: now
+                })
+                .eq('user_id', newUser.id);
+            profileError = error;
+        } else {
+            // Профиля нет — создаём
+            logInfo('Creating new profile', { userId: newUser.id });
+            const { error } = await supabase
+                .from('profiles')
+                .insert({
+                    user_id: newUser.id,
+                    full_name: name,
+                    phone: phone || null,
+                    city: city || null,
+                    newsletter_agreement: newsletterAgreement,
+                    phone_verified: verificationMethod === 'sms' ? false : true,
+                    phone_verification_code: verificationMethod === 'sms' ? verificationCode : null,
+                    phone_verification_expires: verificationMethod === 'sms' ? verificationExpires : null,
+                    created_at: now,
+                    updated_at: now
+                });
+            profileError = error;
+        }
 
         if (profileError) {
             // Откат: удаляем созданного пользователя
             await supabase.from('users').delete().eq('id', newUser.id);
-            logError('Profile creation error', profileError);
+            logError('Profile upsert error', profileError);
             return NextResponse.json({ 
-                error: 'Ошибка создания профиля: ' + profileError.message
+                error: 'Ошибка создания/обновления профиля: ' + profileError.message
             }, { status: 500 });
         }
+        // ================================================================
 
         // Если роль "master", создаём запись в masters
         if (role === 'master') {
@@ -232,14 +249,12 @@ export async function POST(request: Request) {
                     created_at: now,
                     updated_at: now
                 });
-
             if (masterError) {
                 logError('Master creation error', masterError, 'warning');
-                // Не возвращаем ошибку, так как пользователь уже создан
             }
         }
 
-        // Отправляем код подтверждения (НЕ блокируем регистрацию, если отправка не удалась)
+        // Отправляем код подтверждения
         let codeSent = false;
         let codeMessage = '';
         
@@ -251,8 +266,6 @@ export async function POST(request: Request) {
                     const smsResult = await sendCodeWithTimeout('sms', phone, verificationCode, name);
                     codeSent = smsResult.success;
                     codeMessage = smsResult.message;
-                    
-                    // Если SMS не отправилась, но пользователь создан — всё равно продолжаем
                     if (!codeSent) {
                         logError('SMS sending failed but user created', new Error(codeMessage), 'warning');
                     }
@@ -264,7 +277,6 @@ export async function POST(request: Request) {
                     const emailResult = await sendCodeWithTimeout('email', email, verificationCode, name);
                     codeSent = emailResult.success;
                     codeMessage = emailResult.message;
-                    
                     if (!codeSent) {
                         logError('Email sending failed but user created', new Error(codeMessage), 'warning');
                     }
@@ -286,7 +298,6 @@ export async function POST(request: Request) {
             codeSent
         });
 
-        // Возвращаем успешный ответ
         return NextResponse.json({ 
             success: true,
             message: codeSent 
@@ -299,19 +310,12 @@ export async function POST(request: Request) {
         }, { status: 200 });
 
     } catch (error) {
-        // Обработка ошибок валидации Zod
         if (error instanceof z.ZodError) {
             const firstError = error.issues[0]?.message || 'Ошибка валидации';
-            return NextResponse.json({ 
-                error: firstError
-            }, { status: 400 });
+            return NextResponse.json({ error: firstError }, { status: 400 });
         }
-        
-        // Обработка других ошибок
         logError('Registration error', error);
         const errorMessage = error instanceof Error ? error.message : 'Ошибка регистрации. Попробуйте позже.';
-        return NextResponse.json({ 
-            error: errorMessage
-        }, { status: 500 });
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }
