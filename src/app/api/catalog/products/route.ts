@@ -1,13 +1,8 @@
-// app/api/catalog/products/route.ts
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
-// Функция для получения всех названий подкатегорий рекурсивно
 async function getAllSubcategoryNames(categoryId: number): Promise<string[]> {
-    const { data: subcategories } = await supabase
-        .from('categories')
-        .select('id, name')
-        .eq('parent_category_id', categoryId);
+    const { data: subcategories } = await supabase.from('categories').select('id, name').eq('parent_category_id', categoryId);
 
     if (!subcategories || subcategories.length === 0) {
         return [];
@@ -23,17 +18,10 @@ async function getAllSubcategoryNames(categoryId: number): Promise<string[]> {
     return subcategoryNames;
 }
 
-// Функция для получения всех названий категорий (включая подкатегории) по имени родительской категории
 async function getAllCategoryNamesIncludingSubcategories(categoryName: string): Promise<string[]> {
-    const { data: category } = await supabase
-        .from('categories')
-        .select('id, name')
-        .eq('name', categoryName)
-        .single();
+    const { data: category } = await supabase.from('categories').select('id, name').eq('name', categoryName).single();
 
-    if (!category) {
-        return [categoryName];
-    }
+    if (!category) {return [categoryName]}
 
     const subcategoryNames = await getAllSubcategoryNames(category.id);
     return [category.name, ...subcategoryNames];
@@ -55,62 +43,35 @@ export async function GET(request: Request) {
 
         console.log('API /api/catalog/products called', { category, technique, minPrice, maxPrice, search, sort, page, limit });
 
-        // Базовый запрос - сначала получаем ID товаров с учетом поиска
         let productIds: string[] | null = null;
         
-        // Если есть поисковый запрос, сначала получаем ID подходящих товаров
         if (search && search.trim() !== '') {
             const searchTerm = search.trim();
             
-            // Используем простой поиск через ILIKE
-            const { data: searchResults, error: searchError } = await supabase
-                .from('products')
-                .select('id')
-                .eq('status', 'active')
-                .ilike('title', `%${searchTerm}%`);
+            const { data: searchResults, error: searchError } = await supabase.from('products').select('id').eq('status', 'active').ilike('title', `%${searchTerm}%`);
             
             if (searchError) {
                 console.error('Search error:', searchError);
             } else if (searchResults && searchResults.length > 0) {
                 productIds = searchResults.map(p => p.id);
             } else {
-                // Если ничего не найдено, возвращаем пустой результат
-                return NextResponse.json({ 
-                    products: [],
-                    pagination: {
-                        page,
-                        limit,
-                        total: 0,
-                        totalPages: 0,
-                        hasMore: false
-                    }
-                });
+                return NextResponse.json({products: [], pagination: {page, limit, total: 0, totalPages: 0, hasMore: false}})
             }
         }
 
-        // Основной запрос
-        let query = supabase
-            .from('products')
-            .select('*', { count: 'exact' })
-            .eq('status', 'active');
+        let query = supabase.from('products').select('*', { count: 'exact' }).eq('status', 'active');
 
-        // Фильтр по ID из поиска
-        if (productIds) {
-            query = query.in('id', productIds);
-        }
+        if (productIds) { query = query.in('id', productIds)}
 
-        // Фильтр по категории (включая все подкатегории)
         if (category && category !== 'all') {
             const categoryNames = await getAllCategoryNamesIncludingSubcategories(category);
             query = query.in('category', categoryNames);
         }
 
-        // Фильтр по технике вязания
         if (technique && technique.trim() !== '') {
             query = query.eq('technique', technique);
         }
 
-        // Фильтр по цене
         if (minPrice && !isNaN(parseFloat(minPrice))) {
             query = query.gte('price', parseFloat(minPrice));
         }
@@ -118,7 +79,6 @@ export async function GET(request: Request) {
             query = query.lte('price', parseFloat(maxPrice));
         }
 
-        // Сортировка
         switch (sort) {
             case 'popular':
                 query = query.order('views', { ascending: false });
@@ -139,60 +99,26 @@ export async function GET(request: Request) {
                 query = query.order('created_at', { ascending: false });
         }
 
-        // Пагинация
-        const { data: products, error, count } = await query
-            .range(offset, offset + limit - 1);
+        const { data: products, error, count } = await query.range(offset, offset + limit - 1);
 
         if (error) {
             console.error('Supabase error:', error);
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
-        // Получаем имена мастеров
         const masterIds = [...new Set(products?.map(p => p.master_id) || [])];
         
         const mastersMap = new Map();
         if (masterIds.length > 0) {
-            const { data: profiles } = await supabase
-                .from('profiles')
-                .select('user_id, full_name, avatar_url')
-                .in('user_id', masterIds);
+            const { data: profiles } = await supabase.from('profiles').select('user_id, full_name, avatar_url').in('user_id', masterIds);
             
-            profiles?.forEach(p => {
-                mastersMap.set(p.user_id, {
-                    name: p.full_name,
-                    avatar: p.avatar_url
-                });
-            });
+            profiles?.forEach(p => {mastersMap.set(p.user_id, {name: p.full_name, avatar: p.avatar_url})})
         }
 
-        const formattedProducts = products?.map(p => ({
-            id: p.id,
-            title: p.title,
-            description: p.description,
-            price: p.price,
-            main_image_url: p.main_image_url,
-            master_id: p.master_id,
-            master_name: mastersMap.get(p.master_id)?.name || 'Мастер',
-            master_avatar: mastersMap.get(p.master_id)?.avatar,
-            status: p.status,
-            views: p.views || 0,
-            created_at: p.created_at,
-            category: p.category,
-            technique: p.technique
-        })) || [];
+        const formattedProducts = products?.map(p => ({id: p.id, title: p.title, description: p.description, price: p.price, main_image_url: p.main_image_url, master_id: p.master_id, master_name: mastersMap.get(p.master_id)?.name || 'Мастер', master_avatar: mastersMap.get(p.master_id)?.avatar, status: p.status, views: p.views || 0, created_at: p.created_at, category: p.category, technique: p.technique})) || [];
 
-        return NextResponse.json({ 
-            products: formattedProducts,
-            pagination: {
-                page,
-                limit,
-                total: count || 0,
-                totalPages: Math.ceil((count || 0) / limit),
-                hasMore: offset + limit < (count || 0)
-            }
-        });
-        
+        return NextResponse.json({products: formattedProducts, pagination: {page, limit, total: count || 0, totalPages: Math.ceil((count || 0) / limit), hasMore: offset + limit < (count || 0) }})
+    
     } catch (error) {
         console.error('Error:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
