@@ -1,4 +1,3 @@
-// app/api/admin/users/route.ts
 import { authOptions } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { getServerSession } from "next-auth";

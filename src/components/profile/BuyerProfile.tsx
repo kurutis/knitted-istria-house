@@ -3,7 +3,6 @@
 import { signOut } from "next-auth/react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast, Toaster } from "react-hot-toast";
 import ConfirmModal from "@/components/ui/ConfirmModal";

@@ -4,7 +4,6 @@ import { useRouter, useSearchParams } from "next/navigation"
 import React, { useEffect, useState, Suspense } from "react"
 import Link from "next/link"
 
-// Компонент, который использует useSearchParams
 function VerifySmsForm() {
     const router = useRouter()
     const searchParams = useSearchParams()
