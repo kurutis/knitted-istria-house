@@ -9,6 +9,7 @@ import { UserIcon } from "@/components/icons/UserIcon";
 import { LockIcon } from "@/components/icons/LockIcon";
 import { CookieIcon } from "@/components/icons/CookieIcon";
 import { MailIcon } from "@/components/icons/MailIcon";
+import React from "react";
 
 export default function LegalPage() {
   const [isMobile, setIsMobile] = useState(false);
@@ -21,13 +22,7 @@ export default function LegalPage() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const sections = [
-    { id: "company", title: "Реквизиты компании", icon: <FileTextIcon className="w-5 h-5" color="#F4A67F" /> },
-    { id: "license", title: "Лицензии и сертификаты", icon: <ShieldCheckIcon className="w-5 h-5" color="#D97C8E" /> },
-    { id: "privacy", title: "Политика конфиденциальности", icon: <LockIcon className="w-5 h-5" color="#94D06C" /> },
-    { id: "cookie", title: "Политика использования cookies", icon: <CookieIcon className="w-5 h-5" color="#F4A67F" /> },
-    { id: "public", title: "Публичная оферта", icon: <FileTextIcon className="w-5 h-5" color="#D97C8E" /> },
-  ];
+  const sections = [{ id: "company", title: "Реквизиты компании", icon: <FileTextIcon className="w-5 h-5" color="#F4A67F" /> }, { id: "license", title: "Лицензии и сертификаты", icon: <ShieldCheckIcon className="w-5 h-5" color="#D97C8E" /> }, { id: "privacy", title: "Политика конфиденциальности", icon: <LockIcon className="w-5 h-5" color="#94D06C" /> }, { id: "cookie", title: "Политика использования cookies", icon: <CookieIcon className="w-5 h-5" color="#F4A67F" /> }, { id: "public", title: "Публичная оферта", icon: <FileTextIcon className="w-5 h-5" color="#D97C8E" /> }];
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -42,61 +37,26 @@ export default function LegalPage() {
 
   return (
     <div className="min-h-screen bg-main">
-      {/* Hero секция */}
       <section className="relative bg-gradient-to-br from-firm-orange/5 via-main to-firm-pink/5 py-16 sm:py-20 md:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-            className="mb-6 sm:mb-8 inline-flex items-center justify-center"
-          >
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }} className="mb-6 sm:mb-8 inline-flex items-center justify-center">
             <div className="w-16 h-16 sm:w-20 sm:h-20 bg-linear-to-r from-firm-orange to-firm-pink rounded-2xl flex items-center justify-center shadow-lg">
               <ShieldCheckIcon className="w-8 h-8 sm:w-10 sm:h-10" color="#f9f9f9" />
             </div>
           </motion.div>
 
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            className="font-['Montserrat_Alternates'] font-bold text-3xl sm:text-4xl md:text-5xl lg:text-6xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent mb-4 sm:mb-6"
-          >
-            Юридическая информация
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.6, ease: "easeOut" }}
-            className="text-firm-gray text-sm sm:text-base md:text-lg max-w-2xl mx-auto leading-relaxed"
-          >
-            Документы, реквизиты и правовая информация о платформе «Дом вязаных историй»
-          </motion.p>
+          <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: "easeOut" }} className="font-['Montserrat_Alternates'] font-bold text-3xl sm:text-4xl md:text-5xl lg:text-6xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent mb-4 sm:mb-6">Юридическая информация</motion.h1>
+          <motion.p initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.6, ease: "easeOut" }} className="text-firm-gray text-sm sm:text-base md:text-lg max-w-2xl mx-auto leading-relaxed">Документы, реквизиты и правовая информация о платформе «Дом вязаных историй»</motion.p>
         </div>
       </section>
 
-      {/* Навигация по секциям */}
       <section className="sticky top-0 z-20 bg-main/95 backdrop-blur-md border-b border-gray-200 py-3">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap gap-2 sm:gap-4 justify-center">
-            {sections.map((section) => (
-              <motion.button
-                key={section.id}
-                onClick={() => scrollToSection(section.id)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-300 ${
-                  activeSection === section.id
-                    ? "bg-linear-to-r from-firm-orange to-firm-pink text-main shadow-md"
-                    : "bg-forms text-firm-gray hover:text-text"
-                }`}
-              >
-                {section.icon}
-                <span className={isMobile ? "hidden sm:inline" : ""}>{section.title}</span>
-                {isMobile && <span className="sm:hidden">{section.title.split(" ")[0]}</span>}
-              </motion.button>
-            ))}
+            {sections.map((section) => {
+              const isActive = activeSection === section.id;
+              const iconColor = isActive ? "#f9f9f9" : (section.icon.props.color || "#F4A67F");
+              return (<motion.button key={section.id} onClick={() => scrollToSection(section.id)} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-300 ${isActive ? "bg-linear-to-r from-firm-orange to-firm-pink text-main shadow-md" : "bg-forms text-firm-gray hover:text-text"}`}>{React.cloneElement(section.icon, { color: iconColor })}<span className={isMobile ? "hidden sm:inline" : ""}>{section.title}</span>{isMobile && <span className="sm:hidden">{section.title.split(" ")[0]}</span>}</motion.button>)})}
           </div>
         </div>
       </section>

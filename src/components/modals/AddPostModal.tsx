@@ -23,7 +23,6 @@ interface AddPostModalProps {
 
 const blogTags = ["Мастер-класс", "Обзор пряжи", "Новая коллекция", "Советы", "Вдохновение", "История создания", "Техника вязания", "Новости"];
 
-// Функция сжатия изображения
 const compressImage = (file: File, maxWidth = 1200, quality = 0.7): Promise<File> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -49,10 +48,7 @@ const compressImage = (file: File, maxWidth = 1200, quality = 0.7): Promise<File
         canvas.toBlob(
           (blob) => {
             if (blob) {
-              const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
-                type: "image/jpeg",
-                lastModified: Date.now(),
-              });
+              const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {type: "image/jpeg", lastModified: Date.now()});
               resolve(compressedFile);
             } else {
               reject(new Error("Ошибка сжатия"));
@@ -86,8 +82,6 @@ export default function AddPostModal({ isOpen, onClose, onSuccess, session }: Ad
       toast.error("Можно загрузить не более 10 фотографий");
       return;
     }
-
-    // Сжимаем каждый файл и создаём превью
     const compressedFiles: File[] = [];
     const previews: string[] = [];
 
@@ -102,11 +96,8 @@ export default function AddPostModal({ isOpen, onClose, onSuccess, session }: Ad
       }
 
       try {
-        // Сжимаем изображение
         const compressed = await compressImage(file, 1000, 0.75);
         compressedFiles.push(compressed);
-        
-        // Создаём превью
         const reader = new FileReader();
         const previewPromise = new Promise<string>((resolve) => {
           reader.onloadend = () => resolve(reader.result as string);
