@@ -376,43 +376,11 @@ export default function BuyerProfile({
                   </div>
 
                   <nav className="space-y-1 sm:space-y-2">
-                    {[{ id: "profile", icon: ProfileIcon, label: "Мой профиль" }, 
-  { id: "orders", icon: ProductsIcon, label: "Мои заказы", count: orders.length }, 
-  { id: "favorites", icon: FavoritesIcon, label: "Избранное", count: favorites.length, iconColor: "#D97C8E" }, 
-  { id: "settings", icon: SettingsIcon, label: "Настройки" }].map((tab) => {
-    const IconComponent = tab.icon;
-    const iconColor = tab.iconColor || "#D97C8E";
-    return (
-      <motion.button
-        key={tab.id}
-        whileHover={{ x: 5 }}
-        whileTap={{ scale: 0.98 }}
-        onClick={() => setActiveTab(tab.id)}
-        className={`w-full text-left px-3 sm:px-4 py-2 sm:py-3 rounded-xl transition-all duration-300 font-montserrat flex items-center gap-2 sm:gap-3 text-sm sm:text-base ${
-          activeTab === tab.id
-            ? "bg-linear-to-r from-firm-orange to-firm-pink shadow-lg"
-            : "hover:bg-gray-100"
-        }`}
-      >
-        <IconComponent
-          color={activeTab === tab.id ? "#f9f9f9" : iconColor}
-          className="w-4 h-4 sm:w-5 sm:h-5"
-        />
-        <span className={`flex-1 truncate ${activeTab === tab.id ? "text-main" : "text-text"}`}>
-          {tab.label}
-        </span>
-        {tab.count !== undefined && tab.count > 0 && (
-          <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full ${
-            activeTab === tab.id
-              ? "bg-firm-orange text-main"
-              : "bg-firm-orange/20 text-firm-orange"
-          }`}>
-            {tab.count}
-          </span>
-        )}
-      </motion.button>
-    );
-  })}
+                    {[{ id: "profile", icon: ProfileIcon, label: "Мой профиль" }, { id: "orders", icon: ProductsIcon, label: "Мои заказы", count: orders.length }, { id: "favorites", icon: FavoritesIcon, label: "Избранное", count: favorites.length, iconColor: "#D97C8E" }, { id: "settings", icon: SettingsIcon, label: "Настройки" }].map((tab) => {
+                      const IconComponent = tab.icon;
+                      const iconColor = tab.iconColor || "#D97C8E";
+                      return (<motion.button key={tab.id} whileHover={{ x: 5 }} whileTap={{ scale: 0.98 }} onClick={() => setActiveTab(tab.id)} className={`w-full text-left px-3 sm:px-4 py-2 sm:py-3 rounded-xl transition-all duration-300 font-montserrat flex items-center gap-2 sm:gap-3 text-sm sm:text-base ${activeTab === tab.id ? "bg-linear-to-r from-firm-orange to-firm-pink shadow-lg" : "hover:bg-gray-100"}`}><IconComponent color={activeTab === tab.id ? "#f9f9f9" : iconColor} className="w-4 h-4 sm:w-5 sm:h-5" /><span className={`flex-1 truncate ${activeTab === tab.id ? "text-main" : "text-text"}`}>{tab.label}</span>{tab.count !== undefined && tab.count > 0 && (<span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full ${activeTab === tab.id ? "bg-firm-orange text-main" : "bg-firm-orange/20 text-firm-orange" }`}>{tab.count}</span>)}</motion.button>)
+                    })}
 
                     <div className="border-t border-gray-200 my-2 pt-2"></div>
 
