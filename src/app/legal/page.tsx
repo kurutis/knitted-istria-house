@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { ShieldCheckIcon } from "@/components/icons/ShieldCheckIcon";
 import { FileTextIcon } from "@/components/icons/FileTextIcon";
-import { UserIcon } from "@/components/icons/UserIcon";
 import { LockIcon } from "@/components/icons/LockIcon";
 import { CookieIcon } from "@/components/icons/CookieIcon";
 import { MailIcon } from "@/components/icons/MailIcon";
@@ -145,44 +144,20 @@ export default function LegalPage() {
         </section>
 
         <section id="license" className="mb-12 sm:mb-16 scroll-mt-20">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.5, ease: "easeOut" }}>
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 bg-linear-to-r from-firm-pink to-firm-orange rounded-xl flex items-center justify-center">
                 <ShieldCheckIcon className="w-5 h-5" color="#f9f9f9" />
               </div>
-              <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl text-text">
-                Лицензии и сертификаты
-              </h2>
+              <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl text-text">Лицензии и сертификаты</h2>
             </div>
             <div className="w-16 h-1 bg-linear-to-r from-firm-orange to-firm-pink rounded-full mb-8" />
 
-            <p className="text-firm-gray text-sm sm:text-base mb-6">
-              Платформа «Дом вязаных историй» осуществляет свою деятельность в соответствии с законодательством
-              Российской Федерации. Мы заботимся о безопасности и прозрачности всех операций.
-            </p>
+            <p className="text-firm-gray text-sm sm:text-base mb-6">Платформа «Дом вязаных историй» осуществляет свою деятельность в соответствии с законодательством Российской Федерации. Мы заботимся о безопасности и прозрачности всех операций.</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[
-                "Свидетельство о регистрации СМИ ЭЛ № ФС 77 - 123456",
-                "Лицензия на осуществление деятельности в области ИТ",
-                "Сертификат соответствия требованиям 152-ФЗ",
-                "Регистрация в Роскомнадзоре",
-                "Сертификат безопасности платежей PCI DSS",
-                "Член Ассоциации электронных торговых площадок",
-              ].map((item, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: idx * 0.05, duration: 0.4, ease: "easeOut" }}
-                  className="flex items-center gap-3 p-3 bg-forms rounded-xl"
-                >
+              {["Свидетельство о регистрации СМИ ЭЛ № ФС 77 - 123456", "Лицензия на осуществление деятельности в области ИТ", "Сертификат соответствия требованиям 152-ФЗ", "Регистрация в Роскомнадзоре", "Сертификат безопасности платежей PCI DSS", "Член Ассоциации электронных торговых площадок"].map((item, idx) => (
+                <motion.div key={idx} initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: idx * 0.05, duration: 0.4, ease: "easeOut" }} className="flex items-center gap-3 p-3 bg-forms rounded-xl">
                   <ShieldCheckIcon className="w-5 h-5 shrink-0" color="#94D06C" />
                   <span className="text-text text-xs sm:text-sm">{item}</span>
                 </motion.div>
@@ -191,136 +166,73 @@ export default function LegalPage() {
           </motion.div>
         </section>
 
-        {/* Политика конфиденциальности */}
         <section id="privacy" className="mb-12 sm:mb-16 scroll-mt-20">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.5, ease: "easeOut" }}>
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 bg-linear-to-r from-firm-orange to-firm-pink rounded-xl flex items-center justify-center">
                 <LockIcon className="w-5 h-5" color="#f9f9f9" />
               </div>
-              <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl text-text">
-                Политика конфиденциальности
-              </h2>
+              <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl text-text">Политика конфиденциальности</h2>
             </div>
             <div className="w-16 h-1 bg-linear-to-r from-firm-orange to-firm-pink rounded-full mb-8" />
 
             <div className="bg-forms rounded-2xl p-6 sm:p-8 space-y-6">
               <div>
                 <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text mb-3">1. Общие положения</h3>
-                <p className="text-firm-gray text-sm leading-relaxed">
-                  Настоящая Политика конфиденциальности определяет порядок обработки и защиты персональных данных
-                  пользователей платформы «Дом вязаных историй». Мы уважаем право на приватность и обязуемся защищать
-                  предоставленную вами информацию.
-                </p>
+                <p className="text-firm-gray text-sm leading-relaxed">Настоящая Политика конфиденциальности определяет порядок обработки и защиты персональных данных пользователей платформы «Дом вязаных историй». Мы уважаем право на приватность и обязуемся защищать предоставленную вами информацию.</p>
               </div>
 
               <div>
                 <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text mb-3">2. Какие данные мы собираем</h3>
                 <ul className="space-y-2">
-                  {[
-                    "Имя, фамилия и контактные данные (email, телефон)",
-                    "Адрес доставки для оформления заказов",
-                    "Данные о заказах и истории покупок",
-                    "Информация об устройстве и IP-адрес",
-                    "Данные авторизации через социальные сети",
-                  ].map((item, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-firm-gray text-sm">
-                      <span className="text-firm-orange mt-0.5">•</span>
-                      {item}
-                    </li>
-                  ))}
+                  {["Имя, фамилия и контактные данные (email, телефон)", "Адрес доставки для оформления заказов", "Данные о заказах и истории покупок", "Информация об устройстве и IP-адрес", "Данные авторизации через социальные сети"].map((item, idx) => (<li key={idx} className="flex items-start gap-2 text-firm-gray text-sm"><span className="text-firm-orange mt-0.5">•</span>{item}</li>))}
                 </ul>
               </div>
 
               <div>
                 <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text mb-3">3. Использование данных</h3>
-                <p className="text-firm-gray text-sm leading-relaxed mb-3">
-                  Собранные данные используются для:
-                </p>
+                <p className="text-firm-gray text-sm leading-relaxed mb-3">Собранные данные используются для:</p>
                 <ul className="space-y-2">
-                  {[
-                    "Оформления и обработки заказов",
-                    "Доставки товаров и связи с покупателями",
-                    "Улучшения работы платформы и персонализации",
-                    "Информирования о акциях и новинках (с вашего согласия)",
-                    "Проведения аналитики и предотвращения мошенничества",
-                  ].map((item, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-firm-gray text-sm">
-                      <span className="text-firm-green mt-0.5">✓</span>
-                      {item}
-                    </li>
-                  ))}
+                  {["Оформления и обработки заказов", "Доставки товаров и связи с покупателями", "Улучшения работы платформы и персонализации", "Информирования о акциях и новинках (с вашего согласия)", "Проведения аналитики и предотвращения мошенничества"].map((item, idx) => (<li key={idx} className="flex items-start gap-2 text-firm-gray text-sm"><span className="text-firm-green mt-0.5">✓</span>{item}</li>))}
                 </ul>
               </div>
 
               <div>
                 <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text mb-3">4. Защита данных</h3>
-                <p className="text-firm-gray text-sm leading-relaxed">
-                  Мы принимаем все необходимые меры для защиты ваших персональных данных от несанкционированного доступа,
-                  изменения или уничтожения. Передача данных третьим лицам осуществляется только в случаях,
-                  предусмотренных законодательством РФ, или с вашего прямого согласия.
-                </p>
+                <p className="text-firm-gray text-sm leading-relaxed">Мы принимаем все необходимые меры для защиты ваших персональных данных от несанкционированного доступа, изменения или уничтожения. Передача данных третьим лицам осуществляется только в случаях, предусмотренных законодательством РФ, или с вашего прямого согласия.</p>
               </div>
 
               <div>
                 <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text mb-3">5. Ваши права</h3>
-                <p className="text-firm-gray text-sm leading-relaxed">
-                  Вы имеете право на получение информации о своих персональных данных, их изменение или удаление.
-                  Для этого достаточно обратиться в нашу службу поддержки.
-                </p>
+                <p className="text-firm-gray text-sm leading-relaxed">Вы имеете право на получение информации о своих персональных данных, их изменение или удаление. Для этого достаточно обратиться в нашу службу поддержки.</p>
               </div>
 
               <div className="bg-main rounded-xl p-4">
-                <p className="text-firm-gray text-xs sm:text-sm">
-                  <span className="font-semibold text-text">Актуально на:</span> 1 июня 2024 года.
-                  Политика конфиденциальности может быть обновлена. Все изменения публикуются на этой странице.
-                </p>
+                <p className="text-firm-gray text-xs sm:text-sm"><span className="font-semibold text-text">Актуально на:</span> 15 мая 2026 года. Политика конфиденциальности может быть обновлена. Все изменения публикуются на этой странице.</p>
               </div>
             </div>
           </motion.div>
         </section>
-
-        {/* Политика использования cookies */}
         <section id="cookie" className="mb-12 sm:mb-16 scroll-mt-20">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.5, ease: "easeOut" }}>
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 bg-linear-to-r from-firm-pink to-firm-orange rounded-xl flex items-center justify-center">
                 <CookieIcon className="w-5 h-5" color="#f9f9f9" />
               </div>
-              <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl text-text">
-                Политика использования cookies
-              </h2>
+              <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl text-text">Политика использования cookies</h2>
             </div>
             <div className="w-16 h-1 bg-linear-to-r from-firm-orange to-firm-pink rounded-full mb-8" />
 
             <div className="bg-forms rounded-2xl p-6 sm:p-8 space-y-6">
               <div>
                 <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text mb-3">Что такое cookies</h3>
-                <p className="text-firm-gray text-sm leading-relaxed">
-                  Cookies — это небольшие текстовые файлы, которые сохраняются на вашем устройстве при посещении сайта.
-                  Они помогают нам обеспечить корректную работу платформы и улучшить ваш опыт использования.
-                </p>
+                <p className="text-firm-gray text-sm leading-relaxed">Cookies — это небольшие текстовые файлы, которые сохраняются на вашем устройстве при посещении сайта. Они помогают нам обеспечить корректную работу платформы и улучшить ваш опыт использования.</p>
               </div>
 
               <div>
                 <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text mb-3">Какие cookies мы используем</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {[
-                    { type: "Необходимые", desc: "Обеспечивают базовую работу сайта (корзина, авторизация)" },
-                    { type: "Функциональные", desc: "Запоминают ваши предпочтения и настройки" },
-                    { type: "Аналитические", desc: "Помогают анализировать использование сайта" },
-                    { type: "Маркетинговые", desc: "Используются для персонализации рекламы" },
-                  ].map((item, idx) => (
+                  {[{ type: "Необходимые", desc: "Обеспечивают базовую работу сайта (корзина, авторизация)" }, { type: "Функциональные", desc: "Запоминают ваши предпочтения и настройки" }, { type: "Аналитические", desc: "Помогают анализировать использование сайта" }, { type: "Маркетинговые", desc: "Используются для персонализации рекламы" }].map((item, idx) => (
                     <div key={idx} className="p-3 bg-main rounded-xl">
                       <p className="font-semibold text-text text-sm">{item.type}</p>
                       <p className="text-firm-gray text-xs mt-1">{item.desc}</p>
@@ -331,75 +243,46 @@ export default function LegalPage() {
 
               <div>
                 <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text mb-3">Управление cookies</h3>
-                <p className="text-firm-gray text-sm leading-relaxed">
-                  Вы можете управлять cookies через настройки вашего браузера. Отключение некоторых типов cookies
-                  может повлиять на функциональность сайта. Продолжая использование платформы, вы соглашаетесь
-                  с использованием cookies в соответствии с данной политикой.
-                </p>
+                <p className="text-firm-gray text-sm leading-relaxed">Вы можете управлять cookies через настройки вашего браузера. Отключение некоторых типов cookies может повлиять на функциональность сайта. Продолжая использование платформы, вы соглашаетесь с использованием cookies в соответствии с данной политикой.</p>
               </div>
             </div>
           </motion.div>
         </section>
 
-        {/* Публичная оферта */}
         <section id="public" className="scroll-mt-20">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.5, ease: "easeOut" }}>
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 bg-linear-to-r from-firm-orange to-firm-pink rounded-xl flex items-center justify-center">
                 <FileTextIcon className="w-5 h-5" color="#f9f9f9" />
               </div>
-              <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl text-text">
-                Публичная оферта
-              </h2>
+              <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl text-text">Публичная оферта</h2>
             </div>
             <div className="w-16 h-1 bg-linear-to-r from-firm-orange to-firm-pink rounded-full mb-8" />
 
             <div className="bg-forms rounded-2xl p-6 sm:p-8 space-y-6">
               <div>
                 <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text mb-3">1. Предмет договора</h3>
-                <p className="text-firm-gray text-sm leading-relaxed">
-                  Настоящий документ является официальным предложением (офертой) ООО «Дом вязаных историй»
-                  для физических лиц, желающих приобрести товары, представленные на платформе.
-                </p>
+                <p className="text-firm-gray text-sm leading-relaxed">Настоящий документ является официальным предложением (офертой) ООО «Дом вязаных историй» для физических лиц, желающих приобрести товары, представленные на платформе.</p>
               </div>
 
               <div>
                 <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text mb-3">2. Порядок оформления заказа</h3>
-                <p className="text-firm-gray text-sm leading-relaxed">
-                  Заказ формируется покупателем через корзину на сайте. После оформления заказа и его оплаты,
-                  продавец (мастер) подтверждает заказ и начинает его изготовление или подготовку к отправке.
-                </p>
+                <p className="text-firm-gray text-sm leading-relaxed">Заказ формируется покупателем через корзину на сайте. После оформления заказа и его оплаты, продавец (мастер) подтверждает заказ и начинает его изготовление или подготовку к отправке.</p>
               </div>
 
               <div>
                 <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text mb-3">3. Оплата и доставка</h3>
-                <p className="text-firm-gray text-sm leading-relaxed">
-                  Оплата товаров производится через платежные системы, представленные на сайте.
-                  Условия доставки определяются индивидуально для каждого заказа и зависят от региона
-                  и выбранного способа доставки.
-                </p>
+                <p className="text-firm-gray text-sm leading-relaxed">Оплата товаров производится через платежные системы, представленные на сайте. Условия доставки определяются индивидуально для каждого заказа и зависят от региона и выбранного способа доставки.</p>
               </div>
 
               <div>
                 <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text mb-3">4. Ответственность сторон</h3>
-                <p className="text-firm-gray text-sm leading-relaxed">
-                  Продавец (мастер) несет ответственность за качество и соответствие товара описанию.
-                  Платформа «Дом вязаных историй» выступает в качестве информационного посредника
-                  и обеспечивает безопасность транзакций.
-                </p>
+                <p className="text-firm-gray text-sm leading-relaxed">Продавец (мастер) несет ответственность за качество и соответствие товара описанию. Платформа «Дом вязаных историй» выступает в качестве информационного посредника и обеспечивает безопасность транзакций.</p>
               </div>
 
               <div>
                 <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text mb-3">5. Порядок разрешения споров</h3>
-                <p className="text-firm-gray text-sm leading-relaxed">
-                  Все споры решаются путем переговоров. При недостижении согласия, споры передаются
-                  на рассмотрение в суд по месту нахождения платформы в соответствии с законодательством РФ.
-                </p>
+                <p className="text-firm-gray text-sm leading-relaxed">Все споры решаются путем переговоров. При недостижении согласия, споры передаются на рассмотрение в суд по месту нахождения платформы в соответствии с законодательством РФ.</p>
               </div>
 
               <div className="bg-main rounded-xl p-4">
@@ -407,58 +290,24 @@ export default function LegalPage() {
                   <MailIcon className="w-4 h-4" color="#D97C8E" />
                   <p className="text-text text-sm font-medium">По вопросам оферты:</p>
                 </div>
-                <Link href="mailto:legal@knitted-history.ru" className="text-firm-orange text-sm hover:underline break-all">
-                  legal@knitted-history.ru
-                </Link>
+                <Link href="mailto:legal@knitted-history.ru" className="text-firm-orange text-sm hover:underline break-all">legal@knitted-history.ru</Link>
               </div>
             </div>
           </motion.div>
         </section>
 
-        {/* Дата последнего обновления */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true, amount: 0.2 }}
-          transition={{ delay: 0.3, duration: 0.5, ease: "easeOut" }}
-          className="mt-12 pt-8 border-t border-gray-200 text-center"
-        >
-          <p className="text-firm-gray text-xs">
-            Все документы актуальны на 1 июня 2024 года.
-            Платформа оставляет за собой право вносить изменения в документы без предварительного уведомления.
-          </p>
-          <p className="text-firm-gray text-xs mt-2">
-            Версия 2.4
-          </p>
+        <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }}  viewport={{ once: true, amount: 0.2 }} transition={{ delay: 0.3, duration: 0.5, ease: "easeOut" }} className="mt-12 pt-8 border-t border-gray-200 text-center">
+          <p className="text-firm-gray text-xs">Все документы актуальны на 15 мая 2026 года. Платформа оставляет за собой право вносить изменения в документы без предварительного уведомления.</p>
+          <p className="text-firm-gray text-xs mt-2"> Версия 1.0</p>
         </motion.div>
       </div>
 
-      {/* Контакты для юр. вопросов */}
       <section className="py-12 sm:py-16 bg-forms">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-          >
-            <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl text-text mb-4">
-              По юридическим вопросам
-            </h2>
-            <p className="text-firm-gray text-sm sm:text-base max-w-2xl mx-auto mb-6">
-              Если у вас есть вопросы, связанные с юридическими аспектами работы платформы,
-              пожалуйста, свяжитесь с нашим юридическим отделом
-            </p>
-            <Link href="mailto:legal@knitted-history.ru">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl font-medium hover:shadow-lg transition-all duration-300"
-              >
-                <MailIcon className="w-4 h-4" color="#f9f9f9" />
-                legal@knitted-history.ru
-              </motion.button>
-            </Link>
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.6, ease: "easeOut" }}>
+            <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl text-text mb-4">По юридическим вопросам</h2>
+            <p className="text-firm-gray text-sm sm:text-base max-w-2xl mx-auto mb-6">Если у вас есть вопросы, связанные с юридическими аспектами работы платформы, пожалуйста, свяжитесь с нашим юридическим отделом</p>
+            <Link href="mailto:legal@knitted-history.ru"><motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl font-medium hover:shadow-lg transition-all duration-300"><MailIcon className="w-4 h-4" color="#f9f9f9" />legal@knitted-history.ru</motion.button></Link>
           </motion.div>
         </div>
       </section>
