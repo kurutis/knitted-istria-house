@@ -56,37 +56,26 @@ export default function LegalPage() {
             {sections.map((section) => {
               const isActive = activeSection === section.id;
               const iconColor = isActive ? "#f9f9f9" : (section.icon.props.color || "#F4A67F");
-              return (<motion.button key={section.id} onClick={() => scrollToSection(section.id)} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-300 ${isActive ? "bg-linear-to-r from-firm-orange to-firm-pink text-main shadow-md" : "bg-forms text-firm-gray hover:text-text"}`}>{React.cloneElement(section.icon, { color: iconColor })}<span className={isMobile ? "hidden sm:inline" : ""}>{section.title}</span>{isMobile && <span className="sm:hidden">{section.title.split(" ")[0]}</span>}</motion.button>)})}
+              return (<motion.button key={section.id} onClick={() => scrollToSection(section.id)} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-300 ${isActive ? "bg-linear-to-r from-firm-orange to-firm-pink text-main shadow-md" : "bg-forms text-firm-gray hover:text-text"}`}>{React.cloneElement(section.icon, { color: iconColor })}<span className={`${isMobile ? "hidden sm:inline" : ""} ${isActive ? "text-main" : "text-firm-gray hover:text-text"}`}>{section.title}</span>{isMobile && <span className="sm:hidden">{section.title.split(" ")[0]}</span>}</motion.button>)})}
           </div>
         </div>
       </section>
 
-      {/* Основной контент */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20">
-        {/* Реквизиты компании */}
         <section id="company" className="mb-12 sm:mb-16 scroll-mt-20">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.5, ease: "easeOut" }}>
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 bg-linear-to-r from-firm-orange to-firm-pink rounded-xl flex items-center justify-center">
                 <FileTextIcon className="w-5 h-5" color="#f9f9f9" />
               </div>
-              <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl text-text">
-                Реквизиты компании
-              </h2>
+              <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl text-text">Реквизиты компании</h2>
             </div>
             <div className="w-16 h-1 bg-linear-to-r from-firm-orange to-firm-pink rounded-full mb-8" />
 
             <div className="bg-forms rounded-2xl p-6 sm:p-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text mb-4">
-                    Общая информация
-                  </h3>
+                  <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text mb-4">Общая информация</h3>
                   <div className="space-y-3">
                     <div>
                       <p className="text-firm-gray text-xs sm:text-sm">Полное наименование</p>
@@ -98,23 +87,21 @@ export default function LegalPage() {
                     </div>
                     <div>
                       <p className="text-firm-gray text-xs sm:text-sm">ИНН / КПП</p>
-                      <p className="text-text text-sm sm:text-base">7712345678 / 771201001</p>
+                      <p className="text-text text-sm sm:text-base">5046075590 / 775101001</p>
                     </div>
                     <div>
                       <p className="text-firm-gray text-xs sm:text-sm">ОГРН</p>
-                      <p className="text-text text-sm sm:text-base">1237700123456</p>
+                      <p className="text-text text-sm sm:text-base">1125003003531</p>
                     </div>
                     <div>
                       <p className="text-firm-gray text-xs sm:text-sm">Юридический адрес</p>
-                      <p className="text-text text-sm sm:text-base">г. Москва, ул. Тверская, д. 15, стр. 1, офис 304</p>
+                      <p className="text-text text-sm sm:text-base">108841, г. Москва, г. Троицк, пл. Фабричная, д. 1, стр. 1, помещ. 1</p>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text mb-4">
-                    Банковские реквизиты
-                  </h3>
+                  <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text mb-4"> Банковские реквизиты</h3>
                   <div className="space-y-3">
                     <div>
                       <p className="text-firm-gray text-xs sm:text-sm">Банк</p>
@@ -137,25 +124,19 @@ export default function LegalPage() {
               </div>
 
               <div className="mt-6 pt-6 border-t border-gray-200">
-                <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text mb-4">
-                  Контактные данные
-                </h3>
+                <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text mb-4">Контактные данные</h3>
                 <div className="flex flex-wrap gap-6">
                   <div>
                     <p className="text-firm-gray text-xs sm:text-sm">Телефон</p>
-                    <Link href="tel:+74951234567" className="text-text text-sm sm:text-base hover:text-firm-orange transition-colors">
-                      +7 (495) 123-45-67
-                    </Link>
+                    <Link href="tel:+74951234567" className="text-text text-sm sm:text-base hover:text-firm-orange transition-colors">+7 (495) 123-45-67</Link>
                   </div>
                   <div>
                     <p className="text-firm-gray text-xs sm:text-sm">Email для юр. вопросов</p>
-                    <Link href="mailto:legal@knitted-history.ru" className="text-text text-sm sm:text-base hover:text-firm-orange transition-colors">
-                      legal@knitted-history.ru
-                    </Link>
+                    <Link href="mailto:legal@knitted-history.ru" className="text-text text-sm sm:text-base hover:text-firm-orange transition-colors">legal@knitted-history.ru</Link>
                   </div>
                   <div>
                     <p className="text-firm-gray text-xs sm:text-sm">Руководитель</p>
-                    <p className="text-text text-sm sm:text-base">Иванова Анна Сергеевна (Генеральный директор)</p>
+                    <p className="text-text text-sm sm:text-base">Рейснер Татьяна Николаевна (Генеральный директор)</p>
                   </div>
                 </div>
               </div>
@@ -163,7 +144,6 @@ export default function LegalPage() {
           </motion.div>
         </section>
 
-        {/* Лицензии и сертификаты */}
         <section id="license" className="mb-12 sm:mb-16 scroll-mt-20">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
