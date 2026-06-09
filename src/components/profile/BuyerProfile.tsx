@@ -390,15 +390,17 @@ export default function BuyerProfile({
         onClick={() => setActiveTab(tab.id)}
         className={`w-full text-left px-3 sm:px-4 py-2 sm:py-3 rounded-xl transition-all duration-300 font-montserrat flex items-center gap-2 sm:gap-3 text-sm sm:text-base ${
           activeTab === tab.id
-            ? "bg-linear-to-r from-firm-orange to-firm-pink text-main shadow-lg"
-            : "hover:bg-gray-100 text-text"
+            ? "bg-linear-to-r from-firm-orange to-firm-pink shadow-lg"
+            : "hover:bg-gray-100"
         }`}
       >
         <IconComponent
           color={activeTab === tab.id ? "#f9f9f9" : iconColor}
           className="w-4 h-4 sm:w-5 sm:h-5"
         />
-        <span className="flex-1 truncate">{tab.label}</span>
+        <span className={`flex-1 truncate ${activeTab === tab.id ? "text-main" : "text-text"}`}>
+          {tab.label}
+        </span>
         {tab.count !== undefined && tab.count > 0 && (
           <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full ${
             activeTab === tab.id
