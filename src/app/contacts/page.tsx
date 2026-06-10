@@ -19,145 +19,51 @@ export default function ContactsPage() {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const contactItems = [
-    {
-      icon: <MailIcon className="w-6 h-6 sm:w-7 sm:h-7" color="#D97C8E" />,
-      title: "Email для общих вопросов",
-      value: "hello@knitted-history.ru",
-      link: "mailto:hello@knitted-history.ru",
-    },
-    {
-      icon: <MailIcon className="w-6 h-6 sm:w-7 sm:h-7" color="#F4A67F" />,
-      title: "Поддержка мастеров",
-      value: "masters@knitted-history.ru",
-      link: "mailto:masters@knitted-history.ru",
-    },
-    {
-      icon: <MailIcon className="w-6 h-6 sm:w-7 sm:h-7" color="#94D06C" />,
-      title: "Отдел продаж и партнерство",
-      value: "partners@knitted-history.ru",
-      link: "mailto:partners@knitted-history.ru",
-    },
-    {
-      icon: <PhoneIcon className="w-6 h-6 sm:w-7 sm:h-7" color="#D97C8E" />,
-      title: "Телефон горячей линии",
-      value: "+7 (495) 123-45-67",
-      link: "tel:+74951234567",
-      note: "Пн-Пт с 10:00 до 19:00",
-    },
-  ];
-
-  const socialLinks = [
-    { name: "Telegram", href: "https://t.me/knitted-istria", color: "#2AABEE" },
-    { name: "ВКонтакте", href: "https://vk.com/knitted-istria", color: "#607EB5" },
-    { name: "Одноклассники", href: "https://ok.ru/knitted-istria", color: "#FF7700" },
-  ];
-
-  const officeHours = [
-    { day: "Понедельник - Пятница", hours: "10:00 - 19:00" },
-    { day: "Суббота", hours: "11:00 - 16:00" },
-    { day: "Воскресенье", hours: "Выходной" },
-  ];
+  const contactItems = [{icon: <MailIcon className="w-6 h-6 sm:w-7 sm:h-7" color="#D97C8E" />, title: "Email для общих вопросов", value: "hello@knitted-history.ru", link: "mailto:hello@knitted-history.ru"}, {icon: <MailIcon className="w-6 h-6 sm:w-7 sm:h-7" color="#F4A67F" />, title: "Поддержка мастеров", value: "masters@knitted-history.ru", link: "mailto:masters@knitted-history.ru"}, {icon: <MailIcon className="w-6 h-6 sm:w-7 sm:h-7" color="#94D06C" />, title: "Отдел продаж и партнерство", value: "partners@knitted-history.ru", link: "mailto:partners@knitted-history.ru"}, {icon: <PhoneIcon className="w-6 h-6 sm:w-7 sm:h-7" color="#D97C8E" />, title: "Телефон горячей линии", value: "+7 (495) 123-45-67", link: "tel:+74951234567", note: "Пн-Пт с 10:00 до 19:00"}];
+  const socialLinks = [{ name: "Telegram", href: "https://t.me/knitted-istria", color: "#2AABEE" }, { name: "ВКонтакте", href: "https://vk.com/knitted-istria", color: "#607EB5" }, { name: "Одноклассники", href: "https://ok.ru/knitted-istria", color: "#FF7700" }];
+  const officeHours = [{ day: "Понедельник - Пятница", hours: "10:00 - 19:00" }, { day: "Суббота", hours: "11:00 - 16:00" }, { day: "Воскресенье", hours: "Выходной" }];
 
   return (
     <div className="min-h-screen bg-main">
-      {/* Hero секция */}
       <section className="relative bg-gradient-to-br from-firm-orange/5 via-main to-firm-pink/5 py-16 sm:py-20 md:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-            className="mb-6 sm:mb-8 inline-flex items-center justify-center"
-          >
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }} className="mb-6 sm:mb-8 inline-flex items-center justify-center">
             <div className="w-16 h-16 sm:w-20 sm:h-20 bg-linear-to-r from-firm-orange to-firm-pink rounded-2xl flex items-center justify-center shadow-lg">
               <ChatIcon className="w-8 h-8 sm:w-10 sm:h-10" color="#f9f9f9" />
             </div>
           </motion.div>
 
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            className="font-['Montserrat_Alternates'] font-bold text-3xl sm:text-4xl md:text-5xl lg:text-6xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent mb-4 sm:mb-6"
-          >
-            Контакты
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.6, ease: "easeOut" }}
-            className="text-firm-gray text-sm sm:text-base md:text-lg max-w-2xl mx-auto leading-relaxed"
-          >
-            Мы всегда рады помочь и ответить на ваши вопросы
-          </motion.p>
+          <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: "easeOut" }} className="font-['Montserrat_Alternates'] font-bold text-3xl sm:text-4xl md:text-5xl lg:text-6xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent mb-4 sm:mb-6">Контакты</motion.h1>
+          <motion.p initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.6, ease: "easeOut" }} className="text-firm-gray text-sm sm:text-base md:text-lg max-w-2xl mx-auto leading-relaxed">Мы всегда рады помочь и ответить на ваши вопросы</motion.p>
         </div>
       </section>
 
-      {/* Контактная информация */}
       <section className="py-12 sm:py-16 md:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
-            {/* Контакты */}
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-            >
-              <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl text-text mb-4">
-                Свяжитесь с нами
-              </h2>
+            <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.6, ease: "easeOut" }}>
+              <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl text-text mb-4">Свяжитесь с нами</h2>
               <div className="w-16 h-1 bg-linear-to-r from-firm-orange to-firm-pink rounded-full mb-6" />
-              <p className="text-firm-gray text-sm sm:text-base mb-8">
-                Выберите удобный способ связи — мы постараемся ответить как можно быстрее.
-              </p>
+              <p className="text-firm-gray text-sm sm:text-base mb-8">Выберите удобный способ связи — мы постараемся ответить как можно быстрее.</p>
 
               <div className="space-y-5">
                 {contactItems.map((item, idx) => (
-                  <motion.a
-                    key={idx}
-                    href={item.link}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: idx * 0.1, duration: 0.5, ease: "easeOut" }}
-                    className="flex items-start gap-4 p-4 bg-forms rounded-xl hover:shadow-md transition-all duration-300 group"
-                  >
+                  <motion.a key={idx} href={item.link} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: idx * 0.1, duration: 0.5, ease: "easeOut" }} className="flex items-start gap-4 p-4 bg-forms rounded-xl hover:shadow-md transition-all duration-300 group">
                     <div className="shrink-0 mt-1">{item.icon}</div>
                     <div>
                       <p className="text-firm-gray text-xs sm:text-sm">{item.title}</p>
-                      <p className="font-['Montserrat_Alternates'] font-medium text-text text-sm sm:text-base group-hover:text-firm-orange transition-colors">
-                        {item.value}
-                      </p>
-                      {item.note && (
-                        <p className="text-firm-gray text-xs mt-1">{item.note}</p>
-                      )}
+                      <p className="font-['Montserrat_Alternates'] font-medium text-text text-sm sm:text-base group-hover:text-firm-orange transition-colors">{item.value}</p>
+                      {item.note && (<p className="text-firm-gray text-xs mt-1">{item.note}</p>)}
                     </div>
                   </motion.a>
                 ))}
               </div>
 
-              {/* Социальные сети */}
               <div className="mt-8">
-                <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text mb-4">
-                  Мы в соцсетях
-                </h3>
+                <h3 className="font-['Montserrat_Alternates'] font-semibold text-lg text-text mb-4">Мы в соцсетях</h3>
                 <div className="flex gap-4">
                   {socialLinks.map((social, idx) => (
-                    <motion.a
-                      key={social.name}
-                      href={social.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      whileInView={{ opacity: 1, scale: 1 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: idx * 0.1, duration: 0.3, ease: "easeOut" }}
-                      whileHover={{ y: -3, scale: 1.05 }}
-                      className="w-10 h-10 rounded-full bg-forms flex items-center justify-center hover:shadow-lg transition-all duration-300"
-                    >
+                    <motion.a key={social.name} href={social.href} target="_blank" rel="noopener noreferrer" initial={{ opacity: 0, scale: 0.8 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: idx * 0.1, duration: 0.3, ease: "easeOut" }} whileHover={{ y: -3, scale: 1.05 }} className="w-10 h-10 rounded-full bg-forms flex items-center justify-center hover:shadow-lg transition-all duration-300">
                       {social.name === "Telegram" && (
                         <svg width="20" height="20" viewBox="0 0 67 67" fill="none">
                           <path d="M33.5 0C15.008 0 0 15.008 0 33.5C0 51.992 15.008 67 33.5 67C51.992 67 67 51.992 67 33.5C67 15.008 51.992 0 33.5 0ZM49.044 22.78C48.5415 28.073 46.364 40.937 45.2585 46.8665C44.7895 49.379 43.8515 50.2165 42.9805 50.317C41.0375 50.4845 39.5635 49.044 37.6875 47.8045C34.7395 45.8615 33.0645 44.6555 30.217 42.7795C26.9005 40.602 29.0445 39.396 30.954 37.453C31.4565 36.9505 40.0325 29.145 40.2 28.4415C40.2233 28.3349 40.2202 28.2243 40.191 28.1192C40.1618 28.0142 40.1074 27.9178 40.0325 27.8385C39.8315 27.671 39.5635 27.738 39.329 27.7715C39.0275 27.8385 34.3375 30.954 25.192 37.118C23.852 38.0225 22.646 38.4915 21.574 38.458C20.368 38.4245 18.09 37.788 16.3815 37.2185C14.271 36.5485 12.6295 36.18 12.7635 35.0075C12.8305 34.4045 13.668 33.8015 15.2425 33.165C25.0245 28.9105 31.5235 26.0965 34.773 24.7565C44.086 20.8705 45.9955 20.2005 47.2685 20.2005C47.5365 20.2005 48.173 20.2675 48.575 20.6025C48.91 20.8705 49.0105 21.239 49.044 21.507C49.0105 21.708 49.0775 22.311 49.044 22.78Z" fill={social.color}/>
@@ -181,37 +87,19 @@ export default function ContactsPage() {
                 </div>
               </div>
             </motion.div>
-
-            {/* Адрес и часы работы */}
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-              className="space-y-8"
-            >
-              {/* Адрес */}
+            <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.6, ease: "easeOut" }} className="space-y-8">
               <div className="bg-forms rounded-2xl p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <LocateIcon className="w-6 h-6 sm:w-7 sm:h-7" color="#F4A67F" />
-                  <h3 className="font-['Montserrat_Alternates'] font-semibold text-xl text-text">
-                    Адрес
-                  </h3>
+                  <h3 className="font-['Montserrat_Alternates'] font-semibold text-xl text-text">Адрес</h3>
                 </div>
-                <p className="text-firm-gray text-sm sm:text-base leading-relaxed">
-                  г. Москва, ул. Тверская, д. 15, стр. 1
-                  <br />
-                  Бизнес-центр &quot;Тверской&quot;, 3 этаж, офис 304
-                </p>
+                <p className="text-firm-gray text-sm sm:text-base leading-relaxed">108841, г. Москва, г. Троицк, пл. Фабричная, д. 1, стр. 1, помещ. 1</p>
               </div>
 
-              {/* Часы работы */}
               <div className="bg-forms rounded-2xl p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <ClockIcon className="w-6 h-6 sm:w-7 sm:h-7" color="#D97C8E" />
-                  <h3 className="font-['Montserrat_Alternates'] font-semibold text-xl text-text">
-                    Часы работы
-                  </h3>
+                  <h3 className="font-['Montserrat_Alternates'] font-semibold text-xl text-text">Часы работы</h3>
                 </div>
                 <div className="space-y-2">
                   {officeHours.map((item, idx) => (
@@ -223,57 +111,24 @@ export default function ContactsPage() {
                 </div>
               </div>
 
-              {/* Карта */}
               <div className="bg-forms rounded-2xl p-6">
-                <h3 className="font-['Montserrat_Alternates'] font-semibold text-xl text-text mb-4">
-                  Мы на карте
-                </h3>
+                <h3 className="font-['Montserrat_Alternates'] font-semibold text-xl text-text mb-4">Мы на карте</h3>
                 <div className="aspect-video bg-main rounded-xl overflow-hidden shadow-md">
-                  <iframe
-                    src="https://yandex.ru/map-widget/v1/?um=constructor%3A1a2b3c4d5e6f7g8h9i0j&source=constructor"
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    allowFullScreen
-                    loading="lazy"
-                    title="Карта офиса"
-                    className="grayscale hover:grayscale-0 transition-all duration-500"
-                  />
+                  <iframe src="https://yandex.ru/map-widget/v1/?um=constructor%3A1a2b3c4d5e6f7g8h9i0j&source=constructor" width="100%" height="100%" style={{ border: 0 }} allowFullScreen loading="lazy" title="Карта офиса" className="grayscale hover:grayscale-0 transition-all duration-500" />
                 </div>
-                <p className="text-firm-gray text-xs text-center mt-3">
-                  Метро &quot;Тверская&quot; / &quot;Пушкинская&quot;, выход к ул. Тверская
-                </p>
+                <p className="text-firm-gray text-xs text-center mt-3">г. Троицк, пл. Фабричная, д. 1, стр. 1, помещ. 1</p>
               </div>
             </motion.div>
           </div>
         </div>
       </section>
 
-      {/* Для прессы */}
       <section className="py-12 sm:py-16 bg-forms">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-          >
-            <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl text-text mb-4">
-              Для представителей СМИ
-            </h2>
-            <p className="text-firm-gray text-sm sm:text-base max-w-2xl mx-auto mb-6">
-              По вопросам сотрудничества и аккредитации СМИ, пожалуйста, свяжитесь с нашим пресс-центром
-            </p>
-            <Link href="mailto:press@knitted-history.ru">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl font-medium hover:shadow-lg transition-all duration-300"
-              >
-                <MailIcon className="w-4 h-4" color="#f9f9f9" />
-                press@knitted-history.ru
-              </motion.button>
-            </Link>
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.6, ease: "easeOut" }}>
+            <h2 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl text-text mb-4">Для представителей СМИ</h2>
+            <p className="text-firm-gray text-sm sm:text-base max-w-2xl mx-auto mb-6">По вопросам сотрудничества и аккредитации СМИ, пожалуйста, свяжитесь с нашим пресс-центром</p>
+            <Link href="mailto:press@knitted-history.ru"><motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl font-medium hover:shadow-lg transition-all duration-300"><MailIcon className="w-4 h-4" color="#f9f9f9" />press@knitted-history.ru</motion.button></Link>
           </motion.div>
         </div>
       </section>

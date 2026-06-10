@@ -7,35 +7,6 @@ import { logError, logInfo, logApiRequest } from "@/lib/error-logger";
 import { sanitize } from "@/lib/sanitize";
 import { cachedQuery, invalidateCache } from "@/lib/db-optimized";
 import { z } from "zod";
-import { PostgrestError } from "@supabase/supabase-js";
-
-// Типы для данных
-interface AuthorData {
-    full_name: string | null;
-    avatar_url: string | null;
-    city: string | null;
-}
-
-interface ImageData {
-    id: string;
-    image_url: string;
-    sort_order: number;
-}
-
-interface CommentData {
-    id: string;
-    content: string;
-    created_at: string;
-    updated_at: string;
-    is_edited: boolean;
-    author_id: string;
-}
-
-interface CommentAuthor {
-    user_id: string;
-    full_name: string | null;
-    avatar_url: string | null;
-}
 
 interface FormattedComment {
     id: string;
@@ -48,23 +19,6 @@ interface FormattedComment {
     author_avatar: string | null;
 }
 
-interface PostData {
-    id: string;
-    title: string;
-    content: string;
-    excerpt: string | null;
-    category: string | null;
-    tags: string[] | null;
-    main_image_url: string | null;
-    views_count: number;
-    likes_count: number;
-    status: string;
-    created_at: string;
-    updated_at: string;
-    published_at: string | null;
-    master_id: string;
-}
-
 interface PostUpdateData {
     title: string;
     content: string;
@@ -74,18 +28,7 @@ interface PostUpdateData {
     tags?: string[] | null;
 }
 
-// Тип для ответа Supabase с ошибкой
-interface SupabaseResponse<T> {
-    data: T | null;
-    error: PostgrestError | null;
-}
-
-const updatePostSchema = z.object({
-    title: z.string().min(3, 'Заголовок должен содержать минимум 3 символа').max(255),
-    content: z.string().min(10, 'Содержание должно содержать минимум 10 символов'),
-    category: z.string().optional(),
-    tags: z.string().optional(),
-});
+const updatePostSchema = z.object({title: z.string().min(3, 'Заголовок должен содержать минимум 3 символа').max(255), content: z.string().min(10, 'Содержание должно содержать минимум 10 символов'), category: z.string().optional(), tags: z.string().optional()});
 
 const getLimiter = rateLimit({ limit: 120, windowMs: 60 * 1000 });
 const putLimiter = rateLimit({ limit: 20, windowMs: 60 * 1000 });
@@ -101,181 +44,67 @@ function processTags(tags: string | undefined): string[] | null {
     return tags.split(',').map(t => sanitize.text(t.trim())).filter(t => t.length > 0);
 }
 
-export async function GET(
-    request: Request,
-    { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
     const startTime = Date.now();
     
     try {
         const { id } = await params;
         const session = await getServerSession(authOptions);
         
-        if (!id || !isValidUUID(id)) {
-            return NextResponse.json({ error: 'Неверный формат ID поста' }, { status: 400 });
-        }
+        if (!id || !isValidUUID(id)) { return NextResponse.json({ error: 'Неверный формат ID поста' }, { status: 400 })}
 
         const rateLimitResult = getLimiter(request);
-        if (!rateLimitResult.success) {
-            return NextResponse.json({ 
-                error: 'Слишком много запросов. Попробуйте через минуту.' 
-            }, { status: 429 });
-        }
+        if (!rateLimitResult.success) {return NextResponse.json({error: 'Слишком много запросов. Попробуйте через минуту.'}, { status: 429 })}
 
         const cacheKey = `blog_post_${id}`;
         
-        const formattedPost = await cachedQuery(cacheKey, async () => {
-            updatePostViews(id).catch(err => 
-                logError('Failed to update post views', err, 'warning')
-            );
+        const formattedPost = await cachedQuery(cacheKey, async () => {updatePostViews(id).catch(err => logError('Failed to update post views', err, 'warning'));
 
-            // Получаем пост
-            const { data: post, error } = await supabase
-                .from('blog_posts')
-                .select(`
-                    id,
-                    title,
-                    content,
-                    excerpt,
-                    category,
-                    tags,
-                    main_image_url,
-                    views_count,
-                    likes_count,
-                    status,
-                    created_at,
-                    updated_at,
-                    published_at,
-                    master_id
-                `)
-                .eq('id', id)
-                .single();
+            const { data: post, error } = await supabase.from('blog_posts').select(`id, title, content, excerpt, category, tags, main_image_url, views_count, likes_count, status, created_at, updated_at, published_at, master_id`).eq('id', id).single();
 
             if (error) {
-                if (error.code === 'PGRST116') {
-                    throw new Error('NOT_FOUND');
-                }
+                if (error.code === 'PGRST116') {throw new Error('NOT_FOUND')}
                 logError('Error fetching blog post', error);
                 throw new Error('DATABASE_ERROR');
             }
 
-            if (!post) {
-                throw new Error('NOT_FOUND');
-            }
+            if (!post) {throw new Error('NOT_FOUND')}
 
-            // Получаем данные автора поста из таблицы profiles
-            const { data: authorProfile, error: profileError } = await supabase
-                .from('profiles')
-                .select('full_name, avatar_url, city')
-                .eq('user_id', post.master_id)
-                .single();
+            const { data: authorProfile, error: profileError } = await supabase.from('profiles').select('full_name, avatar_url, city').eq('user_id', post.master_id).single();
 
-            if (profileError) {
-                logError('Error fetching author profile', profileError, 'warning');
-            }
+            if (profileError) {logError('Error fetching author profile', profileError, 'warning')}
 
-            // Получаем изображения
-            const { data: images } = await supabase
-                .from('blog_images')
-                .select('id, image_url, sort_order')
-                .eq('post_id', id)
-                .order('sort_order', { ascending: true });
+            const { data: images } = await supabase.from('blog_images').select('id, image_url, sort_order').eq('post_id', id).order('sort_order', { ascending: true });
 
-            // Получаем комментарии
-            const { data: commentsData } = await supabase
-                .from('blog_comments')
-                .select(`
-                    id,
-                    content,
-                    created_at,
-                    updated_at,
-                    is_edited,
-                    author_id
-                `)
-                .eq('post_id', id)
-                .eq('status', 'approved')
-                .order('created_at', { ascending: false });
+            const { data: commentsData } = await supabase.from('blog_comments').select(`id, content, created_at, updated_at, is_edited, author_id`).eq('post_id', id).eq('status', 'approved').order('created_at', { ascending: false });
 
-            // Получаем данные авторов комментариев из таблицы profiles
             let comments: FormattedComment[] = [];
             if (commentsData && commentsData.length > 0) {
                 const authorIds = [...new Set(commentsData.map(c => c.author_id))];
                 
-                const { data: commentAuthors } = await supabase
-                    .from('profiles')
-                    .select('user_id, full_name, avatar_url')
-                    .in('user_id', authorIds);
+                const { data: commentAuthors } = await supabase.from('profiles').select('user_id, full_name, avatar_url').in('user_id', authorIds);
 
-                const authorMap = new Map<string, { full_name: string | null; avatar_url: string | null }>();
-                commentAuthors?.forEach(author => {
-                    authorMap.set(author.user_id, {
-                        full_name: author.full_name,
-                        avatar_url: author.avatar_url
-                    });
-                });
+                const authorMap = new Map<string, {full_name: string | null; avatar_url: string | null }>();
+                commentAuthors?.forEach(author => {authorMap.set(author.user_id, {full_name: author.full_name, avatar_url: author.avatar_url})})
 
-                comments = commentsData.map(comment => ({
-                    id: comment.id,
-                    content: sanitize.text(comment.content),
-                    created_at: comment.created_at,
-                    updated_at: comment.updated_at,
-                    is_edited: comment.is_edited,
-                    author_id: comment.author_id,
-                    author_name: sanitize.text(authorMap.get(comment.author_id)?.full_name || 'Пользователь'),
-                    author_avatar: authorMap.get(comment.author_id)?.avatar_url || null
-                }));
+                comments = commentsData.map(comment => ({id: comment.id, content: sanitize.text(comment.content), created_at: comment.created_at, updated_at: comment.updated_at, is_edited: comment.is_edited, author_id: comment.author_id, author_name: sanitize.text(authorMap.get(comment.author_id)?.full_name || 'Пользователь'), author_avatar: authorMap.get(comment.author_id)?.avatar_url || null}));
             }
 
-            // Проверяем лайк
             let isLiked = false;
             if (session?.user?.id) {
-                const { data: like } = await supabase
-                    .from('blog_likes')
-                    .select('id')
-                    .eq('post_id', id)
-                    .eq('user_id', session.user.id)
-                    .maybeSingle();
+                const { data: like } = await supabase.from('blog_likes').select('id').eq('post_id', id).eq('user_id', session.user.id).maybeSingle();
                 isLiked = !!like;
             }
 
-            return {
-                id: post.id,
-                title: sanitize.text(post.title),
-                content: post.content,
-                excerpt: sanitize.text(post.excerpt || post.content?.substring(0, 200)),
-                category: post.category,
-                tags: post.tags,
-                main_image_url: post.main_image_url,
-                views_count: post.views_count || 0,
-                likes_count: post.likes_count || 0,
-                status: post.status,
-                created_at: post.created_at,
-                updated_at: post.updated_at,
-                published_at: post.published_at,
-                master_id: post.master_id,
-                master_name: sanitize.text(authorProfile?.full_name || 'Мастер'),
-                master_avatar: authorProfile?.avatar_url,
-                master_city: sanitize.text(authorProfile?.city || ''),
-                images: images || [],
-                comments: comments,
-                comments_count: comments.length,
-                is_liked: isLiked
-            };
+            return {id: post.id, title: sanitize.text(post.title), content: post.content, excerpt: sanitize.text(post.excerpt || post.content?.substring(0, 200)), category: post.category, tags: post.tags, main_image_url: post.main_image_url, views_count: post.views_count || 0, likes_count: post.likes_count || 0, status: post.status, created_at: post.created_at, updated_at: post.updated_at, published_at: post.published_at, master_id: post.master_id, master_name: sanitize.text(authorProfile?.full_name || 'Мастер'), master_avatar: authorProfile?.avatar_url, master_city: sanitize.text(authorProfile?.city || ''), images: images || [], comments: comments, comments_count: comments.length, is_liked: isLiked}
         }, 300);
 
         logApiRequest('GET', `/api/blog/posts/${id}`, 200, Date.now() - startTime, session?.user?.id);
 
-        return NextResponse.json(formattedPost, {
-            status: 200,
-            headers: {
-                'Cache-Control': 'private, max-age=300'
-            }
-        });
+        return NextResponse.json(formattedPost, {status: 200, headers: {'Cache-Control': 'private, max-age=300'}});
         
     } catch (error) {
-        if (error instanceof Error && error.message === 'NOT_FOUND') {
-            return NextResponse.json({ error: 'Пост не найден' }, { status: 404 });
-        }
+        if (error instanceof Error && error.message === 'NOT_FOUND') {return NextResponse.json({ error: 'Пост не найден' }, { status: 404 })}
         logError('Error fetching blog post', error);
         return NextResponse.json({ error: 'Ошибка загрузки поста' }, { status: 500 });
     }
@@ -289,9 +118,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         const rateLimitResult = putLimiter(request);
         if (!rateLimitResult.success) {
             logInfo('Rate limit exceeded for blog post update', { ip });
-            return NextResponse.json({ 
-                error: 'Слишком много запросов. Попробуйте через минуту.' 
-            }, { status: 429 });
+            return NextResponse.json({error: 'Слишком много запросов. Попробуйте через минуту.'}, { status: 429 });
         }
 
         const session = await getServerSession(authOptions);
@@ -302,28 +129,17 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
         const { id } = await params;
         
-        if (!id || !isValidUUID(id)) {
-            return NextResponse.json({ error: 'Неверный формат ID поста' }, { status: 400 });
-        }
+        if (!id || !isValidUUID(id)) {return NextResponse.json({ error: 'Неверный формат ID поста' }, { status: 400 })}
 
         const body = await request.json();
         
-        const validatedData = updatePostSchema.parse({
-            title: body.title,
-            content: body.content,
-            category: body.category,
-            tags: body.tags
-        });
+        const validatedData = updatePostSchema.parse({title: body.title, content: body.content, category: body.category, tags: body.tags});
 
         const { title, content, category, tags } = validatedData;
         const sanitizedTitle = sanitize.text(title.trim());
         const sanitizedContent = sanitize.html(content.trim());
 
-        const { data: post, error: checkError } = await supabase
-            .from('blog_posts')
-            .select('master_id, title, status')
-            .eq('id', id)
-            .single();
+        const { data: post, error: checkError } = await supabase.from('blog_posts').select('master_id, title, status').eq('id', id).single();
 
         if (checkError) {
             if (checkError.code === 'PGRST116') {
@@ -334,40 +150,25 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
             return NextResponse.json({ error: 'Ошибка проверки поста' }, { status: 500 });
         }
 
-        if (!post) {
-            return NextResponse.json({ error: 'Пост не найден' }, { status: 404 });
-        }
+        if (!post) {return NextResponse.json({ error: 'Пост не найден' }, { status: 404 })}
 
         const isAuthor = post.master_id === session.user.id;
         const isAdmin = session.user.role === 'admin';
 
         if (!isAuthor && !isAdmin) {
-            logInfo('Unauthorized blog post update attempt', { 
-                postId: id, 
-                userId: session.user.id,
-                isAuthor,
-                isAdmin
-            });
+            logInfo('Unauthorized blog post update attempt', {postId: id, userId: session.user.id, isAuthor, isAdmin});
             return NextResponse.json({ error: 'Доступ запрещен' }, { status: 403 });
         }
 
         const now = new Date().toISOString();
         const processedTags = processTags(tags);
 
-        const updateData: PostUpdateData = {
-            title: sanitizedTitle,
-            content: sanitizedContent,
-            excerpt: sanitizedContent.substring(0, 300),
-            updated_at: now
-        };
+        const updateData: PostUpdateData = {title: sanitizedTitle, content: sanitizedContent, excerpt: sanitizedContent.substring(0, 300), updated_at: now};
 
         if (category !== undefined) updateData.category = category?.trim() || null;
         if (processedTags !== undefined) updateData.tags = processedTags;
 
-        const { error: updateError } = await supabase
-            .from('blog_posts')
-            .update(updateData)
-            .eq('id', id);
+        const { error: updateError } = await supabase.from('blog_posts').update(updateData).eq('id', id);
 
         if (updateError) {
             logError('Error updating blog post', updateError);
@@ -377,29 +178,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         invalidateCache(`blog_post_${id}`);
         invalidateCache(/^blog_posts_list/);
 
-        await supabase
-            .from('audit_logs')
-            .insert({
-                user_id: session.user.id,
-                action: 'BLOG_POST_UPDATED',
-                entity_type: 'blog_post',
-                entity_id: id,
-                old_values: { title: post.title },
-                new_values: { title: sanitizedTitle },
-                created_at: now
-            });
+        await supabase.from('audit_logs').insert({user_id: session.user.id, action: 'BLOG_POST_UPDATED', entity_type: 'blog_post', entity_id: id, old_values: { title: post.title }, new_values: { title: sanitizedTitle }, created_at: now});
 
         logApiRequest('PUT', `/api/blog/posts/${id}`, 200, Date.now() - startTime, session.user.id);
 
-        return NextResponse.json({ 
-            success: true, 
-            message: 'Пост успешно обновлен'
-        }, { status: 200 });
+        return NextResponse.json({success: true, message: 'Пост успешно обновлен'}, { status: 200 });
         
     } catch (error) {
-        if (error instanceof z.ZodError) {
-            return NextResponse.json({ error: error.issues[0]?.message || 'Ошибка валидации' }, { status: 400 });
-        }
+        if (error instanceof z.ZodError) {return NextResponse.json({ error: error.issues[0]?.message || 'Ошибка валидации' }, { status: 400 })}
         logError('Error updating blog post', error);
         return NextResponse.json({ error: 'Ошибка обновления поста' }, { status: 500 });
     }
@@ -413,9 +199,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
         const rateLimitResult = deleteLimiter(request);
         if (!rateLimitResult.success) {
             logInfo('Rate limit exceeded for blog post delete', { ip });
-            return NextResponse.json({ 
-                error: 'Слишком много запросов. Попробуйте через минуту.' 
-            }, { status: 429 });
+            return NextResponse.json({error: 'Слишком много запросов. Попробуйте через минуту.'}, { status: 429 });
         }
 
         const session = await getServerSession(authOptions);
@@ -426,15 +210,9 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
         const { id } = await params;
         
-        if (!id || !isValidUUID(id)) {
-            return NextResponse.json({ error: 'Неверный формат ID поста' }, { status: 400 });
-        }
+        if (!id || !isValidUUID(id)) {return NextResponse.json({ error: 'Неверный формат ID поста' }, { status: 400 })}
 
-        const { data: post, error: checkError } = await supabase
-            .from('blog_posts')
-            .select('master_id, title')
-            .eq('id', id)
-            .single();
+        const { data: post, error: checkError } = await supabase.from('blog_posts').select('master_id, title').eq('id', id).single();
 
         if (checkError) {
             if (checkError.code === 'PGRST116') {
@@ -445,29 +223,19 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
             return NextResponse.json({ error: 'Ошибка проверки поста' }, { status: 500 });
         }
 
-        if (!post) {
-            return NextResponse.json({ error: 'Пост не найден' }, { status: 404 });
-        }
+        if (!post) {return NextResponse.json({ error: 'Пост не найден' }, { status: 404 })}
 
         const isAuthor = post.master_id === session.user.id;
         const isAdmin = session.user.role === 'admin';
 
         if (!isAuthor && !isAdmin) {
-            logInfo('Unauthorized blog post delete attempt', { 
-                postId: id, 
-                userId: session.user.id,
-                isAuthor,
-                isAdmin
-            });
+            logInfo('Unauthorized blog post delete attempt', {postId: id, userId: session.user.id, isAuthor, isAdmin});
             return NextResponse.json({ error: 'Доступ запрещен' }, { status: 403 });
         }
 
         const now = new Date().toISOString();
 
-        const { error: deleteError } = await supabase
-            .from('blog_posts')
-            .delete()
-            .eq('id', id);
+        const { error: deleteError } = await supabase.from('blog_posts').delete().eq('id', id);
 
         if (deleteError) {
             logError('Error deleting blog post', deleteError);
@@ -477,23 +245,11 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
         invalidateCache(`blog_post_${id}`);
         invalidateCache(/^blog_posts_list/);
 
-        await supabase
-            .from('audit_logs')
-            .insert({
-                user_id: session.user.id,
-                action: 'BLOG_POST_DELETED',
-                entity_type: 'blog_post',
-                entity_id: id,
-                old_values: { title: post.title },
-                created_at: now
-            });
+        await supabase.from('audit_logs').insert({user_id: session.user.id, action: 'BLOG_POST_DELETED', entity_type: 'blog_post', entity_id: id, old_values: { title: post.title }, created_at: now});
 
         logApiRequest('DELETE', `/api/blog/posts/${id}`, 200, Date.now() - startTime, session.user.id);
 
-        return NextResponse.json({ 
-            success: true, 
-            message: 'Пост успешно удален'
-        }, { status: 200 });
+        return NextResponse.json({success: true, message: 'Пост успешно удален'}, { status: 200 });
         
     } catch (error) {
         logError('Error deleting blog post', error);
@@ -505,17 +261,7 @@ async function updatePostViews(postId: string): Promise<void> {
     try {
         await supabase.rpc('increment_post_views', { post_id: postId });
     } catch (error) {
-        const { data: post } = await supabase
-            .from('blog_posts')
-            .select('views_count')
-            .eq('id', postId)
-            .single();
-        
-        if (post) {
-            await supabase
-                .from('blog_posts')
-                .update({ views_count: (post.views_count || 0) + 1 })
-                .eq('id', postId);
-        }
+        const { data: post } = await supabase.from('blog_posts').select('views_count').eq('id', postId).single();
+        if (post) {await supabase.from('blog_posts').update({ views_count: (post.views_count || 0) + 1 }).eq('id', postId)}
     }
 }

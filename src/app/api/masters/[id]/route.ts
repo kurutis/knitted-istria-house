@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { rateLimit, getClientIP } from "@/lib/rate-limit";
+import { rateLimit } from "@/lib/rate-limit";
 import { cachedQuery } from "@/lib/db-optimized";
-import { logError, logInfo, logApiRequest } from "@/lib/error-logger";
+import { logError, logApiRequest } from "@/lib/error-logger";
 
 const limiter = rateLimit({ limit: 120, windowMs: 60 * 1000 });
 
@@ -11,111 +11,58 @@ function isValidUUID(uuid: string): boolean {
     return uuidRegex.test(uuid);
 }
 
-interface OrderItemData {
-    quantity: number;
-    product_id: string;
-    orders: Array<{
-        status: string;
-        payment_status: string;
-    }>;
-}
 
-export async function GET(
-    request: Request,
-    { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
     const startTime = Date.now();
     
     try {
         const { id } = await params;
         
-        if (!isValidUUID(id)) {
-            return NextResponse.json({ error: 'Неверный формат ID мастера' }, { status: 400 });
-        }
+        if (!isValidUUID(id)) return NextResponse.json({ error: 'Неверный формат ID мастера' }, { status: 400 });
+        
 
-        const ip = getClientIP(request);
         const rateLimitResult = limiter(request);
-        if (!rateLimitResult.success) {
-            return NextResponse.json({ 
-                error: 'Слишком много запросов. Попробуйте через минуту.' 
-            }, { status: 429 });
-        }
+        if (!rateLimitResult.success) return NextResponse.json({error: 'Слишком много запросов. Попробуйте через минуту.'}, { status: 429 });
+        
 
         const cacheKey = `master_profile_${id}`;
         
         const result = await cachedQuery(cacheKey, async () => {
-            // 1. Получаем пользователя с проверкой роли master
-            const { data: user, error: userError } = await supabase
-                .from('users')
-                .select('id, email, created_at, role, is_banned, is_active')
-                .eq('id', id)
-                .single();
+            const { data: user, error: userError } = await supabase.from('users').select('id, email, created_at, role, is_banned, is_active').eq('id', id).single();
 
             if (userError) {
-                if (userError.code === 'PGRST116') {
-                    throw new Error('NOT_FOUND');
-                }
+                if (userError.code === 'PGRST116') throw new Error('NOT_FOUND');
+                
                 logError('Error fetching user in master profile', userError);
                 throw new Error('DATABASE_ERROR');
             }
 
-            if (user.role !== 'master') {
-                throw new Error('NOT_A_MASTER');
-            }
+            if (user.role !== 'master') throw new Error('NOT_A_MASTER');
+            
 
-            if (user.is_banned) {
-                throw new Error('MASTER_BANNED');
-            }
+            if (user.is_banned) throw new Error('MASTER_BANNED');
+            
 
-            // 2. Получаем профиль из таблицы profiles
-            const { data: profile, error: profileError } = await supabase
-                .from('profiles')
-                .select('full_name, phone, city, avatar_url')
-                .eq('user_id', user.id)
-                .maybeSingle();
+            const { data: profile, error: profileError } = await supabase.from('profiles').select('full_name, phone, city, avatar_url').eq('user_id', user.id).maybeSingle();
 
-            if (profileError) {
-                logError('Error fetching profile in master API', profileError, 'warning');
-            }
+            if (profileError) logError('Error fetching profile in master API', profileError, 'warning');
+            
 
-            // 3. Получаем данные мастера
-            const { data: masterData, error: masterError } = await supabase
-                .from('masters')
-                .select('description, is_verified, is_partner, rating, custom_orders_enabled, moderation_status')
-                .eq('user_id', user.id)
-                .maybeSingle();
+            const { data: masterData, error: masterError } = await supabase.from('masters').select('description, is_verified, is_partner, rating, custom_orders_enabled, moderation_status').eq('user_id', user.id).maybeSingle();
 
-            if (masterError) {
-                logError('Error fetching master data', masterError, 'warning');
-            }
+            if (masterError) logError('Error fetching master data', masterError, 'warning');
+            
+            const { count: followersCount, error: followersError } = await supabase.from('master_followers').select('id', { count: 'exact', head: true }).eq('master_id', user.id);
 
-            // 4. Получаем количество подписчиков
-            const { count: followersCount, error: followersError } = await supabase
-                .from('master_followers')
-                .select('id', { count: 'exact', head: true })
-                .eq('master_id', user.id);
+            if (followersError) logError('Error fetching followers count', followersError, 'warning');
+            
 
-            if (followersError) {
-                logError('Error fetching followers count', followersError, 'warning');
-            }
+            const { count: productsCount, error: productsError } = await supabase.from('products').select('id', { count: 'exact', head: true }).eq('master_id', user.id).eq('status', 'active');
 
-            // 5. Получаем количество активных товаров
-            const { count: productsCount, error: productsError } = await supabase
-                .from('products')
-                .select('id', { count: 'exact', head: true })
-                .eq('master_id', user.id)
-                .eq('status', 'active');
+            if (productsError) logError('Error fetching products count', productsError, 'warning');
+            
 
-            if (productsError) {
-                logError('Error fetching products count', productsError, 'warning');
-            }
-
-            // ========== 6. РАСЧЕТ ПРОДАЖ ==========
-            // Получаем все товары мастера
-            const { data: masterProducts, error: masterProductsError } = await supabase
-                .from('products')
-                .select('id, price')
-                .eq('master_id', user.id);
+            const { data: masterProducts, error: masterProductsError } = await supabase.from('products').select('id, price').eq('master_id', user.id);
 
             let totalSales = 0;
             let totalRevenue = 0;
@@ -124,32 +71,16 @@ export async function GET(
                 const productIds = masterProducts.map(p => p.id);
                 const productPriceMap = new Map(masterProducts.map(p => [p.id, parseFloat(p.price) || 0]));
                 
-                // Получаем все order_items для товаров мастера
-                const { data: orderItems, error: itemsError } = await supabase
-                    .from('order_items')
-                    .select(`
-                        quantity,
-                        product_id,
-                        order_id
-                    `)
-                    .in('product_id', productIds);
+                const { data: orderItems, error: itemsError } = await supabase.from('order_items').select(`quantity, product_id, order_id`).in('product_id', productIds);
 
                 if (!itemsError && orderItems && orderItems.length > 0) {
-                    // Получаем все уникальные order_id
                     const orderIds = [...new Set(orderItems.map(item => item.order_id))];
                     
-                    // Получаем статусы заказов
-                    const { data: orders, error: ordersError } = await supabase
-                        .from('orders')
-                        .select('id, status, payment_status')
-                        .in('id', orderIds);
+                    const { data: orders, error: ordersError } = await supabase.from('orders').select('id, status, payment_status').in('id', orderIds);
                     
                     const orderStatusMap = new Map();
-                    orders?.forEach(order => {
-                        orderStatusMap.set(order.id, order);
-                    });
+                    orders?.forEach(order => {orderStatusMap.set(order.id, order)});
                     
-                    // Фильтруем только оплаченные и доставленные/обработанные заказы
                     for (const item of orderItems) {
                         const order = orderStatusMap.get(item.order_id);
                         if (order && order.status !== 'cancelled' && order.payment_status === 'paid') {
@@ -161,12 +92,7 @@ export async function GET(
                 }
             }
 
-            // 7. Получаем средний рейтинг из отзывов
-            const { data: reviews, error: reviewsError } = await supabase
-                .from('reviews')
-                .select('rating')
-                .eq('target_type', 'master')
-                .eq('target_id', user.id);
+            const { data: reviews, error: reviewsError } = await supabase.from('reviews').select('rating').eq('target_type', 'master').eq('target_id', user.id);
 
             let averageRating = masterData?.rating || 0;
             let totalReviews = 0;
@@ -177,73 +103,26 @@ export async function GET(
                 averageRating = ratingSum / totalReviews;
             }
 
-            // 8. Получаем топ-3 товаров мастера
-            const { data: topProducts, error: topProductsError } = await supabase
-                .from('products')
-                .select('id, title, price, main_image_url, views')
-                .eq('master_id', user.id)
-                .eq('status', 'active')
-                .order('views', { ascending: false })
-                .limit(3);
+            const { data: topProducts, error: topProductsError } = await supabase.from('products').select('id, title, price, main_image_url, views').eq('master_id', user.id).eq('status', 'active').order('views', { ascending: false }).limit(3);
 
-            if (topProductsError) {
-                logError('Error fetching top products', topProductsError, 'warning');
-            }
+            if (topProductsError) logError('Error fetching top products', topProductsError, 'warning');
+            
 
-            // Формируем ответ
-            return {
-                id: user.id,
-                email: user.email,
-                member_since: user.created_at,
-                name: profile?.full_name || user.email?.split('@')[0] || 'Мастер',
-                full_name: profile?.full_name || null,
-                phone: profile?.phone || null,
-                city: profile?.city || null,
-                avatar_url: profile?.avatar_url || null,
-                description: masterData?.description || '',
-                is_verified: masterData?.is_verified || false,
-                is_partner: masterData?.is_partner || false,
-                rating: parseFloat(averageRating.toFixed(1)),
-                total_sales: totalSales,
-                total_revenue: Math.round(totalRevenue),
-                custom_orders_enabled: masterData?.custom_orders_enabled || false,
-                followers_count: followersCount || 0,
-                products_count: productsCount || 0,
-                pieces_created: totalSales,
-                total_reviews: totalReviews,
-                moderation_status: masterData?.moderation_status || 'approved',
-                top_products: topProducts?.map(p => ({
-                    id: p.id,
-                    title: p.title,
-                    price: parseFloat(p.price),
-                    image_url: p.main_image_url,
-                    views: p.views || 0
-                })) || []
-            };
+            return {id: user.id, email: user.email, member_since: user.created_at, name: profile?.full_name || user.email?.split('@')[0] || 'Мастер', full_name: profile?.full_name || null, phone: profile?.phone || null, city: profile?.city || null, avatar_url: profile?.avatar_url || null, description: masterData?.description || '', is_verified: masterData?.is_verified || false, is_partner: masterData?.is_partner || false, rating: parseFloat(averageRating.toFixed(1)), total_sales: totalSales, total_revenue: Math.round(totalRevenue), custom_orders_enabled: masterData?.custom_orders_enabled || false, followers_count: followersCount || 0, products_count: productsCount || 0, pieces_created: totalSales, total_reviews: totalReviews, moderation_status: masterData?.moderation_status || 'approved', top_products: topProducts?.map(p => ({id: p.id, title: p.title, price: parseFloat(p.price), image_url: p.main_image_url, views: p.views || 0})) || []};
         }, 300);
 
         logApiRequest('GET', `/api/masters/${id}`, 200, Date.now() - startTime);
 
-        return NextResponse.json({
-            success: true,
-            data: result,
-            meta: {
-                cached: Date.now() - startTime < 100,
-                timestamp: new Date().toISOString()
-            }
-        }, { status: 200 });
+        return NextResponse.json({success: true, data: result, meta: {cached: Date.now() - startTime < 100, timestamp: new Date().toISOString()}}, { status: 200 });
         
     } catch (error) {
         if (error instanceof Error) {
-            if (error.message === 'NOT_FOUND') {
-                return NextResponse.json({ error: 'Мастер не найден' }, { status: 404 });
-            }
-            if (error.message === 'NOT_A_MASTER') {
-                return NextResponse.json({ error: 'Пользователь не является мастером' }, { status: 404 });
-            }
-            if (error.message === 'MASTER_BANNED') {
-                return NextResponse.json({ error: 'Профиль мастера заблокирован' }, { status: 403 });
-            }
+            if (error.message === 'NOT_FOUND') return NextResponse.json({ error: 'Мастер не найден' }, { status: 404 });
+            
+            if (error.message === 'NOT_A_MASTER') return NextResponse.json({ error: 'Пользователь не является мастером' }, { status: 404 });
+            
+            if (error.message === 'MASTER_BANNED') return NextResponse.json({ error: 'Профиль мастера заблокирован' }, { status: 403 });
+            
         }
         logError('Error fetching master profile', error);
         return NextResponse.json({ error: 'Ошибка загрузки профиля мастера' }, { status: 500 });

@@ -26,19 +26,12 @@ export async function GET(request: Request) {
         const rateLimitResult = limiter(request);
         if (!rateLimitResult.success) {
             logInfo('Rate limit exceeded for categories', { ip: getClientIP(request) });
-            return NextResponse.json({ 
-                categories: [], 
-                error: 'Слишком много запросов. Попробуйте через минуту.' 
-            }, { status: 429 });
+            return NextResponse.json({categories: [], error: 'Слишком много запросов. Попробуйте через минуту.'}, { status: 429 });
         }
 
         const cacheKey = 'categories_full_tree';
         const result = await cachedQuery(cacheKey, async () => {
-            // Получаем все категории
-            const { data: categories, error } = await supabase
-                .from('categories')
-                .select('id, name, description, parent_category_id, icon_url')
-                .order('name', { ascending: true });
+            const { data: categories, error } = await supabase.from('categories').select('id, name, description, parent_category_id, icon_url').order('name', { ascending: true });
 
             if (error) {
                 logError('Error fetching categories', error);
@@ -47,53 +40,21 @@ export async function GET(request: Request) {
 
             console.log('Fetched categories count:', categories?.length || 0);
 
-            if (!categories || categories.length === 0) {
-                console.log('No categories found in database');
-                return { categories: [] };
-            }
+            if (!categories || categories.length === 0) {return { categories: [] }}
+            
 
-            // Подсчет товаров для каждой категории
-            const { data: products, error: productsError } = await supabase
-                .from('products')
-                .select('category')
-                .eq('status', 'active')
-                .not('category', 'is', null);
+            const { data: products, error: productsError } = await supabase.from('products').select('category').eq('status', 'active').not('category', 'is', null);
 
-            if (productsError) {
-                console.error('Error fetching products for count:', productsError);
-            }
+            if (productsError) {console.error('Error fetching products for count:', productsError)}
 
             const countMap = new Map();
-            if (products) {
-                products.forEach(p => {
-                    if (p.category) {
-                        countMap.set(p.category, (countMap.get(p.category) || 0) + 1);
-                    }
-                });
-            }
+            if (products) {products.forEach(p => {if (p.category) {countMap.set(p.category, (countMap.get(p.category) || 0) + 1)}})}
 
-            console.log('Products count map:', Array.from(countMap.entries()));
-
-            // Построение дерева категорий
             const categoriesMap = new Map();
             const rootCategories = [];
 
-            // Сначала создаем все узлы
-            for (const cat of categories) {
-                categoriesMap.set(cat.id, {
-                    id: cat.id,
-                    name: sanitize.text(cat.name),
-                    description: sanitize.text(cat.description || ''),
-                    parent_category_id: cat.parent_category_id,
-                    icon_url: cat.icon_url,
-                    products_count: countMap.get(cat.name) || 0,
-                    subcategories: [],
-                    level: 0,
-                    path: [sanitize.text(cat.name)]
-                });
-            }
+            for (const cat of categories) {categoriesMap.set(cat.id, {id: cat.id, name: sanitize.text(cat.name), description: sanitize.text(cat.description || ''), parent_category_id: cat.parent_category_id, icon_url: cat.icon_url, products_count: countMap.get(cat.name) || 0, subcategories: [], level: 0, path: [sanitize.text(cat.name)]})}
 
-            // Затем строим иерархию
             for (const cat of categories) {
                 const categoryNode = categoriesMap.get(cat.id);
                 if (cat.parent_category_id && categoriesMap.has(cat.parent_category_id)) {
@@ -106,39 +67,21 @@ export async function GET(request: Request) {
                 }
             }
 
-            // Сортируем подкатегории по имени
             const sortSubcategories = (items: CategoryNode[]) => {
                 items.sort((a, b) => a.name.localeCompare(b.name));
-                items.forEach(item => {
-                    if (item.subcategories?.length) {
-                        sortSubcategories(item.subcategories);
-                    }
-                });
+                items.forEach(item => {if (item.subcategories?.length) {sortSubcategories(item.subcategories)}});
             };
             sortSubcategories(rootCategories);
-
-            console.log('Root categories count:', rootCategories.length);
-            console.log('Root categories:', rootCategories.map(c => c.name));
 
             return { categories: rootCategories };
         }, 300);
 
         logApiRequest('GET', '/api/catalog/categories', 200, Date.now() - startTime);
 
-        return NextResponse.json({ 
-            success: true,
-            categories: result.categories,
-            meta: {
-                cached: Date.now() - startTime < 50,
-                timestamp: new Date().toISOString()
-            }
-        }, { status: 200 });
+        return NextResponse.json({success: true, categories: result.categories, meta: {cached: Date.now() - startTime < 50, timestamp: new Date().toISOString()}}, { status: 200 });
         
     } catch (error) {
         logError('Error fetching categories', error);
-        return NextResponse.json({ 
-            categories: [], 
-            error: 'Ошибка загрузки категорий' 
-        }, { status: 500 });
+        return NextResponse.json({categories: [], error: 'Ошибка загрузки категорий'}, { status: 500 });
     }
 }

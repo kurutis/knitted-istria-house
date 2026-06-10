@@ -1,4 +1,3 @@
-// app/api/masters/follow/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -7,145 +6,82 @@ import { rateLimit, getClientIP } from "@/lib/rate-limit";
 import { invalidateCache } from "@/lib/db-optimized";
 import { logError, logInfo, logApiRequest } from "@/lib/error-logger";
 
-// Rate limiting
 const postLimiter = rateLimit({ limit: 30, windowMs: 60 * 1000 });
 const deleteLimiter = rateLimit({ limit: 30, windowMs: 60 * 1000 });
 
-// Валидация UUID
 function isValidUUID(uuid: string): boolean {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     return uuidRegex.test(uuid);
 }
 
-// POST - подписаться на мастера
 export async function POST(request: Request) {
     const startTime = Date.now();
     
     try {
         const session = await getServerSession(authOptions);
         
-        if (!session?.user) {
-            return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
-        }
+        if (!session?.user) return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
+        
 
-        // Rate limiting
         const ip = getClientIP(request);
         const rateLimitResult = postLimiter(request);
         if (!rateLimitResult.success) {
             logInfo('Rate limit exceeded for follow POST', { ip });
-            return NextResponse.json({ 
-                error: 'Слишком много запросов. Попробуйте через минуту.' 
-            }, { status: 429 });
+            return NextResponse.json({error: 'Слишком много запросов. Попробуйте через минуту.'}, { status: 429 });
         }
 
         const { masterId } = await request.json();
 
-        if (!masterId) {
-            return NextResponse.json({ error: 'ID мастера обязателен' }, { status: 400 });
-        }
+        if (!masterId) return NextResponse.json({ error: 'ID мастера обязателен' }, { status: 400 });
+        
 
-        if (!isValidUUID(masterId)) {
-            return NextResponse.json({ error: 'Неверный формат ID мастера' }, { status: 400 });
-        }
+        if (!isValidUUID(masterId)) return NextResponse.json({ error: 'Неверный формат ID мастера' }, { status: 400 });
+        
 
-        // Нельзя подписаться на самого себя
-        if (masterId === session.user.id) {
-            return NextResponse.json({ error: 'Нельзя подписаться на самого себя' }, { status: 400 });
-        }
+        if (masterId === session.user.id) return NextResponse.json({ error: 'Нельзя подписаться на самого себя' }, { status: 400 });
+        
 
-        // Проверяем, существует ли мастер
-        const { data: master, error: masterError } = await supabase
-            .from('users')
-            .select('id, email, role')
-            .eq('id', masterId)
-            .eq('role', 'master')
-            .maybeSingle();
+        const { data: master, error: masterError } = await supabase.from('users').select('id, email, role').eq('id', masterId).eq('role', 'master').maybeSingle();
 
         if (masterError || !master) {
             logInfo('Master not found for follow', { masterId });
             return NextResponse.json({ error: 'Мастер не найден' }, { status: 404 });
         }
 
-        // Проверяем, не забанен ли мастер
-        const { data: masterProfile, error: profileError } = await supabase
-            .from('masters')
-            .select('is_banned')
-            .eq('user_id', masterId)
-            .maybeSingle();
+        const { data: masterProfile, error: profileError } = await supabase.from('masters').select('is_banned').eq('user_id', masterId).maybeSingle();
 
-        if (profileError) {
-            logError('Error checking master ban status', profileError, 'warning');
-        }
+        if (profileError) logError('Error checking master ban status', profileError, 'warning');
+        
 
-        if (masterProfile?.is_banned) {
-            return NextResponse.json({ error: 'Невозможно подписаться на забаненного мастера' }, { status: 400 });
-        }
+        if (masterProfile?.is_banned) return NextResponse.json({ error: 'Невозможно подписаться на забаненного мастера' }, { status: 400 });
+        
 
-        // Проверяем, не подписан ли уже
-        const { data: existing, error: checkError } = await supabase
-            .from('master_followers')
-            .select('id')
-            .eq('master_id', masterId)
-            .eq('follower_id', session.user.id)
-            .maybeSingle();
+        const { data: existing, error: checkError } = await supabase.from('master_followers').select('id').eq('master_id', masterId).eq('follower_id', session.user.id).maybeSingle();
 
         if (checkError && checkError.code !== 'PGRST116') {
             logError('Error checking existing follow', checkError);
             return NextResponse.json({ error: 'Ошибка проверки подписки' }, { status: 500 });
         }
 
-        if (existing) {
-            return NextResponse.json({ 
-                success: true,
-                message: 'Вы уже подписаны на этого мастера',
-                is_following: true,
-                followers_count: null
-            }, { status: 200 });
-        }
+        if (existing) return NextResponse.json({success: true, message: 'Вы уже подписаны на этого мастера', is_following: true, followers_count: null }, { status: 200 });
+        
 
         const now = new Date().toISOString();
 
-        // Добавляем подписку
-        const { error: insertError } = await supabase
-            .from('master_followers')
-            .insert({
-                master_id: masterId,
-                follower_id: session.user.id,
-                created_at: now
-            });
+        const { error: insertError } = await supabase.from('master_followers').insert({master_id: masterId, follower_id: session.user.id, created_at: now});
 
         if (insertError) {
             logError('Error following master', insertError);
             return NextResponse.json({ error: 'Ошибка при подписке: ' + insertError.message }, { status: 500 });
         }
 
-        // Получаем обновленное количество подписчиков
-        const { count, error: countError } = await supabase
-            .from('master_followers')
-            .select('id', { count: 'exact', head: true })
-            .eq('master_id', masterId);
+        const { count, error: countError } = await supabase.from('master_followers').select('id', { count: 'exact', head: true }).eq('master_id', masterId);
 
-        if (countError) {
-            logError('Error counting followers', countError, 'warning');
-        }
+        if (countError) logError('Error counting followers', countError, 'warning');
+        
 
-        // Создаем уведомление для мастера
-        await supabase
-            .from('notifications')
-            .insert({
-                user_id: masterId,
-                title: 'Новый подписчик',
-                message: `${session.user.email || session.user.name} подписался на ваши обновления`,
-                type: 'follow',
-                metadata: { 
-                    follower_id: session.user.id,
-                    followed_at: now
-                },
-                created_at: now,
-                is_read: false
-            });
+        await supabase.from('notifications').insert({user_id: masterId, title: 'Новый подписчик', message: `${session.user.email || session.user.name} подписался на ваши обновления`, type: 'follow', metadata: {follower_id: session.user.id, followed_at: now}, created_at: now, is_read: false});
 
-        // Инвалидируем кэши
         invalidateCache(`follow_status_${masterId}_${session.user.id}`);
         invalidateCache(`follow_status_${masterId}_anon`);
         invalidateCache(`master_public_profile_${masterId}`);
@@ -154,19 +90,9 @@ export async function POST(request: Request) {
         invalidateCache(new RegExp(`follow_status_${masterId}_.*`));
 
         logApiRequest('POST', '/api/masters/follow', 201, Date.now() - startTime, session.user.id);
-        logInfo('User followed master', {
-            masterId,
-            followerId: session.user.id,
-            totalFollowers: count || 0,
-            duration: Date.now() - startTime
-        });
+        logInfo('User followed master', {masterId, followerId: session.user.id, totalFollowers: count || 0, duration: Date.now() - startTime});
 
-        return NextResponse.json({ 
-            success: true,
-            message: 'Вы подписались на мастера',
-            is_following: true,
-            followers_count: count || 0
-        }, { status: 201 });
+        return NextResponse.json({success: true, message: 'Вы подписались на мастера', is_following: true, followers_count: count || 0}, { status: 201 });
         
     } catch (error) {
         logError('Error following master', error);
@@ -174,82 +100,52 @@ export async function POST(request: Request) {
     }
 }
 
-// DELETE - отписаться от мастера
 export async function DELETE(request: Request) {
     const startTime = Date.now();
     
     try {
         const session = await getServerSession(authOptions);
         
-        if (!session?.user) {
-            return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
-        }
+        if (!session?.user) return NextResponse.json({ error: 'Неавторизован' }, { status: 401 });
+        
 
-        // Rate limiting
         const ip = getClientIP(request);
         const rateLimitResult = deleteLimiter(request);
         if (!rateLimitResult.success) {
             logInfo('Rate limit exceeded for follow DELETE', { ip });
-            return NextResponse.json({ 
-                error: 'Слишком много запросов. Попробуйте через минуту.' 
-            }, { status: 429 });
+            return NextResponse.json({error: 'Слишком много запросов. Попробуйте через минуту.'}, { status: 429 });
         }
 
         const { masterId } = await request.json();
 
-        if (!masterId) {
-            return NextResponse.json({ error: 'ID мастера обязателен' }, { status: 400 });
-        }
+        if (!masterId) return NextResponse.json({ error: 'ID мастера обязателен' }, { status: 400 });
+        
 
-        if (!isValidUUID(masterId)) {
-            return NextResponse.json({ error: 'Неверный формат ID мастера' }, { status: 400 });
-        }
+        if (!isValidUUID(masterId)) return NextResponse.json({ error: 'Неверный формат ID мастера' }, { status: 400 });
+        
 
-        // Проверяем, существует ли подписка
-        const { data: existing, error: checkError } = await supabase
-            .from('master_followers')
-            .select('id, created_at')
-            .eq('master_id', masterId)
-            .eq('follower_id', session.user.id)
-            .maybeSingle();
+        const { data: existing, error: checkError } = await supabase.from('master_followers').select('id, created_at').eq('master_id', masterId).eq('follower_id', session.user.id).maybeSingle();
 
         if (checkError && checkError.code !== 'PGRST116') {
             logError('Error checking existing follow', checkError);
             return NextResponse.json({ error: 'Ошибка проверки подписки' }, { status: 500 });
         }
 
-        if (!existing) {
-            return NextResponse.json({ 
-                success: true,
-                message: 'Вы не подписаны на этого мастера',
-                is_following: false,
-                followers_count: null
-            }, { status: 200 });
-        }
+        if (!existing) return NextResponse.json({success: true,  message: 'Вы не подписаны на этого мастера', is_following: false, followers_count: null}, { status: 200 });
+        
 
-        // Удаляем подписку
-        const { error: deleteError } = await supabase
-            .from('master_followers')
-            .delete()
-            .eq('master_id', masterId)
-            .eq('follower_id', session.user.id);
+        const { error: deleteError } = await supabase.from('master_followers').delete().eq('master_id', masterId).eq('follower_id', session.user.id);
 
         if (deleteError) {
             logError('Error unfollowing master', deleteError);
             return NextResponse.json({ error: 'Ошибка при отписке' }, { status: 500 });
         }
 
-        // Получаем обновленное количество подписчиков
-        const { count, error: countError } = await supabase
-            .from('master_followers')
-            .select('id', { count: 'exact', head: true })
-            .eq('master_id', masterId);
+        const { count, error: countError } = await supabase.from('master_followers').select('id', { count: 'exact', head: true }).eq('master_id', masterId);
 
-        if (countError) {
-            logError('Error counting followers after unfollow', countError, 'warning');
-        }
+        if (countError) logError('Error counting followers after unfollow', countError, 'warning');
+        
 
-        // Инвалидируем кэши
         invalidateCache(`follow_status_${masterId}_${session.user.id}`);
         invalidateCache(`follow_status_${masterId}_anon`);
         invalidateCache(`master_public_profile_${masterId}`);
@@ -258,20 +154,9 @@ export async function DELETE(request: Request) {
         invalidateCache(new RegExp(`follow_status_${masterId}_.*`));
 
         logApiRequest('DELETE', '/api/masters/follow', 200, Date.now() - startTime, session.user.id);
-        logInfo('User unfollowed master', {
-            masterId,
-            followerId: session.user.id,
-            wasFollowingSince: existing.created_at,
-            totalFollowers: count || 0,
-            duration: Date.now() - startTime
-        });
+        logInfo('User unfollowed master', {masterId, followerId: session.user.id, wasFollowingSince: existing.created_at, totalFollowers: count || 0, duration: Date.now() - startTime});
 
-        return NextResponse.json({ 
-            success: true,
-            message: 'Вы отписались от мастера',
-            is_following: false,
-            followers_count: count || 0
-        }, { status: 200 });
+        return NextResponse.json({success: true, message: 'Вы отписались от мастера', is_following: false, followers_count: count || 0}, { status: 200 });
         
     } catch (error) {
         logError('Error unfollowing master', error);
