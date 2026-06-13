@@ -390,7 +390,7 @@ export default function ChatsPage() {
 
           <div className="relative group">
             <div className={`rounded-2xl p-3 ${isMine ? "bg-linear-to-r from-firm-orange to-firm-pink text-main" : "bg-gray-100 text-text"}`}>
-              <p className={`rounded-2xl p-3 wrap-break-words text-sm ${isMine ? "text-main" : "text-text"}`}>{message.content}</p>
+              <p className={`wrap-break-words text-sm ${isMine ? "text-main" : "text-text"}`}>{message.content}</p>
 
               {message.attachments && message.attachments.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
