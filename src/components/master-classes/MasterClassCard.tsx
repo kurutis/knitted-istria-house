@@ -149,7 +149,16 @@ export default function MasterClassCard({masterClass, session, onRegister, onCan
                         ) : isRegistered ? (
                             <div className="flex gap-2">
                                 {masterClass.type === 'online' && masterClass.online_link && (<motion.button onClick={() => window.open(masterClass.online_link, '_blank')} className="flex items-center gap-1 px-3 py-1.5 bg-firm-green text-main rounded-lg text-sm hover:bg-green-400 transition" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{ duration: 0.15 }}><LaunchIcon /><span className='text-main'>Запустить</span></motion.button>)}
-                                <motion.button onClick={() => onCancel(masterClass.id)} className="flex items-center gap-1 px-3 py-1.5 border border-firm-red text-firm-red rounded-lg text-sm hover:bg-firm-red hover:text-main transition" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{ duration: 0.15 }}><CancelIcon /><span className='text-firm-red group-hover:text-main'>Отменить</span></motion.button>
+                                <motion.button
+  onClick={() => onCancel(masterClass.id)}
+  className="group flex items-center gap-1 px-3 py-1.5 border border-firm-red text-firm-red rounded-lg text-sm hover:bg-firm-red hover:text-main transition-all duration-300"
+  whileHover={{ scale: 1.05 }}
+  whileTap={{ scale: 0.95 }}
+  transition={{ duration: 0.15 }}
+>
+  <CancelIcon className="w-4 h-4 fill-firm-red group-hover:fill-main transition-colors" />
+  <span className="group-hover:text-main">Отменить</span> {/* теперь group работает */}
+</motion.button>
                             </div>
                         ) : (
                             <motion.button onClick={() => onRegister(masterClass.id)} className="flex items-center gap-1 px-4 py-1.5 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-lg text-sm hover:shadow-lg transition" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{ duration: 0.15 }}><RegisterIcon /><span className='text-main'>Записаться</span></motion.button>
