@@ -149,8 +149,10 @@ export default function MasterClassCard({masterClass, session, onRegister, onCan
                         ) : isRegistered ? (
                             <div className="flex gap-2">
                                 {masterClass.type === 'online' && masterClass.online_link && (<motion.button onClick={() => window.open(masterClass.online_link, '_blank')} className="flex items-center gap-1 px-3 py-1.5 bg-firm-green text-main rounded-lg text-sm hover:bg-green-400 transition" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{ duration: 0.15 }}><LaunchIcon /><span className='text-main'>Запустить</span></motion.button>)}
-                               <motion.button className="flex items-center gap-1 px-3 py-1.5 border border-firm-red text-firm-red rounded-lg text-sm hover:bg-firm-red transition-all duration-300">
-  <CancelIcon className="cancel-icon" color="#D77C7C" size={14} />
+                               <motion.button className="group flex items-center gap-1 px-3 py-1.5 border border-firm-red text-firm-red rounded-lg text-sm hover:bg-firm-red transition-all duration-300">
+  <span className="[&_svg_path]:stroke-firm-red group-hover:[&_svg_path]:stroke-main">
+    <CancelIcon color="#D77C7C" size={14} />
+  </span>
   <span className="group-hover:text-main">Отменить</span>
 </motion.button>
                             </div>
