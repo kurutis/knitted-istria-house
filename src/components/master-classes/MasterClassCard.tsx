@@ -150,7 +150,6 @@ export default function MasterClassCard({masterClass, session, onRegister, onCan
                         ) : isRegistered ? (
                             <div className="flex gap-2">
                                 {masterClass.type === 'online' && masterClass.online_link && (<motion.button onClick={() => window.open(masterClass.online_link, '_blank')} className="flex items-center gap-1 px-3 py-1.5 bg-firm-green text-main rounded-lg text-sm hover:bg-green-400 transition" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{ duration: 0.15 }}><LaunchIcon /><span className='text-main'>Запустить</span></motion.button>)}
-                               const [hover, setHover] = useState(false);
 
 <motion.button
   onClick={() => onCancel(masterClass.id)}
@@ -165,7 +164,7 @@ export default function MasterClassCard({masterClass, session, onRegister, onCan
   onMouseLeave={() => setHover(false)}
 >
   <CancelIcon color={hover ? '#f9f9f9' : '#D77C7C'} size={14} />
-  <span>Отменить</span>
+  <span className='text-firm-red hover:text-main'>Отменить</span>
 </motion.button>
                             </div>
                         ) : (
