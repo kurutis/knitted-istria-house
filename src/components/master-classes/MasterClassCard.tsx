@@ -32,6 +32,7 @@ interface MasterClassCardProps {
 export default function MasterClassCard({masterClass, session, onRegister, onCancel }: MasterClassCardProps) {
     const [imageError, setImageError] = useState(false)
     const [avatarError, setAvatarError] = useState(false)
+    const [hover, setHover] = useState(false);
     
     const masterName = masterClass.master_name || 'Мастер'
     const masterAvatar = masterClass.master_avatar ? getProxiedAvatarUrl(masterClass.master_avatar) : null
@@ -149,15 +150,22 @@ export default function MasterClassCard({masterClass, session, onRegister, onCan
                         ) : isRegistered ? (
                             <div className="flex gap-2">
                                 {masterClass.type === 'online' && masterClass.online_link && (<motion.button onClick={() => window.open(masterClass.online_link, '_blank')} className="flex items-center gap-1 px-3 py-1.5 bg-firm-green text-main rounded-lg text-sm hover:bg-green-400 transition" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{ duration: 0.15 }}><LaunchIcon /><span className='text-main'>Запустить</span></motion.button>)}
-                               <motion.button
+                               const [hover, setHover] = useState(false);
+
+<motion.button
   onClick={() => onCancel(masterClass.id)}
-  className="group flex items-center gap-1 px-3 py-1.5 border border-firm-red text-firm-red rounded-lg text-sm hover:bg-firm-red hover:text-main transition-all duration-300"
+  className="flex items-center gap-1 px-3 py-1.5 border border-firm-red rounded-lg text-sm transition-all duration-300"
+  style={{
+    backgroundColor: hover ? 'var(--color-firm-red)' : 'transparent',
+    color: hover ? 'var(--color-main)' : 'var(--color-firm-red)',
+  }}
   whileHover={{ scale: 1.05 }}
   whileTap={{ scale: 0.95 }}
-  transition={{ duration: 0.15 }}
+  onMouseEnter={() => setHover(true)}
+  onMouseLeave={() => setHover(false)}
 >
-  <CancelIcon className="w-3.5 h-3.5 stroke-firm-red group-hover:stroke-main" size={14} />
-  <span>Отменить</span> {/* цвет унаследует от кнопки */}
+  <CancelIcon color={hover ? '#f9f9f9' : '#D77C7C'} size={14} />
+  <span>Отменить</span>
 </motion.button>
                             </div>
                         ) : (
