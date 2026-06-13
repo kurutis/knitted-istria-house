@@ -471,7 +471,7 @@ export default function ShoppingCartPage() {
     onClick={handlePlaceOrder}
     disabled={orderLoading}
     className="w-full py-3 bg-linear-to-r from-firm-orange to-firm-pink rounded-xl hover:shadow-lg transition font-['Montserrat_Alternates'] font-semibold disabled:opacity-50"
-    style={{ color: 'var(--color-main)' }}   // принудительный цвет для всего содержимого
+    style={{ color: 'var(--color-main)' }}
     whileHover={{ scale: 1.02 }}
     whileTap={{ scale: 0.98 }}
   >
@@ -484,10 +484,10 @@ export default function ShoppingCartPage() {
             borderTopColor: 'transparent'
           }}
         />
-        <span>Оформление...</span>
+        <span style={{ color: 'var(--color-main)' }}>Оформление...</span>
       </div>
     ) : (
-      "Подтвердить заказ"
+      <span style={{ color: 'var(--color-main)' }}>Подтвердить заказ</span>
     )}
   </motion.button>
 )}
