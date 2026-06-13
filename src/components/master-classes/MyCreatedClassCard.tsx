@@ -15,9 +15,7 @@ import { Productslcon } from '@/components/icons/Productslcon'
 
 const getProxiedAvatarUrl = (url: string | null): string | null => {
     if (!url) return null
-    if (url.includes('/api/proxy/avatar') || url.includes('selstorage.ru')) {
-        return url
-    }
+    if (url.includes('/api/proxy/avatar') || url.includes('selstorage.ru')) return url
     return `/api/proxy/avatar?url=${encodeURIComponent(url)}`
 }
 
