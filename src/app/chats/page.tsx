@@ -355,7 +355,6 @@ export default function ChatsPage() {
     return name?.charAt(0).toUpperCase() || "U";
   };
 
-  // Компонент сообщения (общий для десктопа и мобилки)
   const MessageBubble = ({ message, isMine, showAvatar, index }: {message: Message; isMine: boolean; showAvatar: boolean; index: number;}) => {
     const isEditing = editingMessageId === message.id;
     const isDeleting = deletingMessageId === message.id;
@@ -383,7 +382,7 @@ export default function ChatsPage() {
       <motion.div key={message.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
         <div className={`flex gap-2 max-w-[70%] ${isMine ? "flex-row-reverse" : ""}`} onTouchStart={() => !isMobile ? null : handleTouchStart(message.id)} onTouchEnd={handleTouchEnd}>
           {!isMine && showAvatar && (
-            <div className="w-8 h-8 rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main text-xs font-bold flex-shrink-0 overflow-hidden">
+            <div className="w-8 h-8 rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main text-xs font-bold shrink-0 overflow-hidden">
               {message.sender_avatar ? (<img src={message.sender_avatar} alt="" className="w-full h-full object-cover" />) : (getInitials(message.sender_name))}
             </div>
           )}
@@ -391,7 +390,7 @@ export default function ChatsPage() {
 
           <div className="relative group">
             <div className={`rounded-2xl p-3 ${isMine ? "bg-linear-to-r from-firm-orange to-firm-pink text-main" : "bg-gray-100 text-text"}`}>
-              <p className="wrap-break-words text-sm">{message.content}</p>
+              <p className={`rounded-2xl p-3 wrap-break-words text-sm ${isMine ? "text-main" : "text-text"}`}>{message.content}</p>
 
               {message.attachments && message.attachments.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -617,7 +616,7 @@ export default function ChatsPage() {
               <div className="space-y-2">
                 {supportChat && (
                   <button onClick={() => setSelectedChat(supportChat)} className="w-full p-4 bg-main rounded-2xl shadow-md border border-gray-100 flex items-center gap-3" >
-                    <div className="w-12 h-12 rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center shrink-0">
                       <SupportIcon size={22} color="white" />
                     </div>
                     <div className="flex-1 text-left min-w-0">
@@ -656,7 +655,7 @@ export default function ChatsPage() {
                       <p className="text-sm text-firm-gray truncate">{chat.last_message}</p>
                     </div>
                     {chat.unread_count > 0 && (
-                      <div className="w-5 h-5 bg-firm-orange rounded-full flex items-center justify-center flex-shrink-0">
+                      <div className="w-5 h-5 bg-firm-orange rounded-full flex items-center justify-center shrink-0">
                         <span className="text-main text-xs font-bold">{chat.unread_count}</span>
                       </div>
                     )}
@@ -712,9 +711,7 @@ export default function ChatsPage() {
                   messages.map((message, index) => {
                     const isMine = message.sender_id === session?.user?.id;
                     const showAvatar = !isMine && (index === 0 || messages[index - 1]?.sender_id !== message.sender_id);
-                    return (
-                      <MessageBubble key={message.id}  message={message} isMine={isMine} showAvatar={showAvatar} index={index} />)})
-                )}
+                    return (<MessageBubble key={message.id}  message={message} isMine={isMine} showAvatar={showAvatar} index={index} />)}))}
                 <div ref={messagesEndRef} />
               </div>
 
