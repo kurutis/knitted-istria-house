@@ -411,8 +411,18 @@ export default function BuyerProfile({
     }}
   >
     <EditIcon className="w-3 h-3 sm:w-4 sm:h-4" color={isEditHovered ? '#f9f9f9' : '#F4A67F'} />
-    <span className="hidden sm:inline">Редактировать</span>
-    <span className="sm:hidden">Ред.</span>
+    <span 
+      className="hidden sm:inline" 
+      style={{ color: isEditHovered ? '#f9f9f9' : '#F4A67F' }}
+    >
+      Редактировать
+    </span>
+    <span 
+      className="sm:hidden" 
+      style={{ color: isEditHovered ? '#f9f9f9' : '#F4A67F' }}
+    >
+      Ред.
+    </span>
   </motion.button>
 ) : (
   <motion.button
