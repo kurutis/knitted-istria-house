@@ -49,7 +49,7 @@ export default function PopularProducts() {
     const fetchProducts = async () => {
         try {
             setLoading(true)
-            const response = await fetch(`/api/catalog/products?sort=${activeTab === 'popular' ? 'popular' : 'newest'}&limit=6`)
+            const response = await fetch(`/api/catalog/products?sort=${activeTab === 'popular' ? 'popular' : 'newest'}&limit=8`)
             const data = await response.json()
         
             const productsData = Array.isArray(data.products) ? data.products : []
