@@ -326,7 +326,7 @@ export default function MasterClassesPage() {
             <div className="max-w-7xl mx-auto px-4 py-6 sm:py-8">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                     <h1 className="font-['Montserrat_Alternates'] font-semibold text-2xl sm:text-3xl lg:text-4xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent flex items-center gap-3">Мастер-классы</h1>
-                    {isMaster && (<button onClick={() => setShowCreateModal(true)} className="px-5 py-2.5 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition flex items-center gap-2 text-sm font-medium"><span className="text-lg">+</span><span>Создать мастер-класс</span></button>)}
+                    {isMaster && (<button onClick={() => setShowCreateModal(true)} className="px-5 py-2.5 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition flex items-center gap-2 text-sm font-medium"><span className="text-lg text-main">+</span><span className="text-main">Создать мастер-класс</span></button>)}
                 </div>
 
                 <div className="flex gap-2 sm:gap-6 mb-8 border-b border-gray-200">
