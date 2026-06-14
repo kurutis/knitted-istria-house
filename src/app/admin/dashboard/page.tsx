@@ -18,7 +18,6 @@ import { RefreshIcon } from "@/components/icons/RefreshIcon";
 import { ClockIcon } from "@/components/icons/ClockIcon";
 import { CheckCircleIcon } from "@/components/icons/CheckCircleIcon";
 import { TruckIcon } from "@/components/icons/TruckIcon";
-import { PackageIcon } from "@/components/icons/PackageIcon";
 
 
 const TrendingUpIcon = ({ className, color }: { className?: string; color?: string }) => (
@@ -329,7 +328,7 @@ export default function AdminDashboardPage() {
                         </div>
                     </motion.div>
 
-                    <motion.div variants={fadeInUp} className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
+                    <motion.div variants={fadeInUp} className="bg-main rounded-2xl shadow-lg overflow-hidden border border-gray-100">
                         <div className="p-4 sm:p-6 border-b border-gray-100">
                             <h2 className="font-montserrat font-semibold text-lg sm:text-xl text-text">Последние заказы</h2>
                         </div>
