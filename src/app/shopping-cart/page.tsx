@@ -467,15 +467,30 @@ export default function ShoppingCartPage() {
               {step === 2 && ( <motion.button onClick={() => setStep(3)} className="w-full py-3 bg-linar-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition font-['Montserrat_Alternates'] font-semibold" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>Перейти к подтверждению →</motion.button>)}
 
               {step === 3 && (
-                <motion.button onClick={handlePlaceOrder} disabled={orderLoading} className="w-full py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition font-['Montserrat_Alternates'] font-semibold disabled:opacity-50" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  {orderLoading ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Оформление...
-                    </div>
-                  ) : ("Подтвердить заказ")}
-                </motion.button>
-              )}
+  <motion.button
+    onClick={handlePlaceOrder}
+    disabled={orderLoading}
+    className="w-full py-3 bg-linear-to-r from-firm-orange to-firm-pink rounded-xl hover:shadow-lg transition font-['Montserrat_Alternates'] font-semibold disabled:opacity-50"
+    style={{ color: 'var(--color-main)' }}
+    whileHover={{ scale: 1.02 }}
+    whileTap={{ scale: 0.98 }}
+  >
+    {orderLoading ? (
+      <div className="flex items-center justify-center gap-2">
+        <div
+          className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin"
+          style={{
+            borderColor: 'var(--color-main)',
+            borderTopColor: 'transparent'
+          }}
+        />
+        <span style={{ color: 'var(--color-main)' }}>Оформление...</span>
+      </div>
+    ) : (
+      <span style={{ color: 'var(--color-main)' }}>Подтвердить заказ</span>
+    )}
+  </motion.button>
+)}
 
               <p className="text-xs text-firm-gray text-center mt-4">Нажимая кнопку, вы соглашаетесь с условиями оферты</p>
             </div>
