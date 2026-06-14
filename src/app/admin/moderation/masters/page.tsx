@@ -219,7 +219,7 @@ export default function AdminModerationMastersPage() {
                                             <div className="flex flex-col lg:flex-row justify-between items-start gap-4">
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-start gap-4">
-                                                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold text-lg overflow-hidden shadow-md shrink-0">
+                                                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center text-main font-bold text-lg overflow-hidden shadow-md shrink-0">
                                                             {master.avatar_url ? (<img src={master.avatar_url} alt={displayName(master)} className="w-full h-full object-cover" onError={(e) => {(e.target as HTMLImageElement).style.display = 'none'}} />) : null}
                                                             {!master.avatar_url && (<span className="text-main">{displayName(master).charAt(0).toUpperCase()}</span>)}
                                                         </div>
@@ -278,7 +278,7 @@ export default function AdminModerationMastersPage() {
                                                 <motion.tr key={master.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ delay: index * 0.05 }} className="border-b border-gray-100 hover:bg-gray-50 transition-all duration-300">
                                                     <td className="p-4">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="w-10 h-10 rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden shadow-md flex-shrink-0">
+                                                            <div className="w-10 h-10 rounded-full bg-linear-to-r from-firm-orange to-firm-pink flex items-center justify-center text-white font-bold overflow-hidden shadow-md shrink-0">
                                                                 {master.avatar_url ? (<img src={master.avatar_url} alt={displayName(master)} className="w-full h-full object-cover" onError={(e) => {(e.target as HTMLImageElement).style.display = 'none'}} />) : null}
                                                                 {!master.avatar_url && (<span className="text-sm">{displayName(master).charAt(0).toUpperCase()}</span>)}
                                                             </div>
@@ -308,7 +308,7 @@ export default function AdminModerationMastersPage() {
                                                     </td>
                                                     <td className="p-4">
                                                         <div className="flex flex-wrap gap-2">
-                                                            <Link href={`/admin/users/${master.user_id}`} className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-linear-to-r from-firm-orange to-firm-pink text-white rounded-lg hover:shadow-md transition-all duration-300"><UserIcon className="w-3.5 h-3.5" color="#f9f9f9" />Профиль</Link>
+                                                            <Link href={`/masters/${master.user_id}`} className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-linear-to-r from-firm-orange to-firm-pink text-white rounded-lg hover:shadow-md transition-all duration-300"><UserIcon className="w-3.5 h-3.5" color="#f9f9f9" />Профиль</Link>
                                                             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => handleRemoveVerification(master.id)} disabled={actionLoading === master.id}  className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-linear-to-r from-yellow-500 to-yellow-600 text-white rounded-lg hover:shadow-md transition-all duration-300 disabled:opacity-50"><CloseIcon className="w-3.5 h-3.5" color="#f9f9f9" />{actionLoading === master.id ? '...' : 'Отозвать'}</motion.button>
                                                         </div>
                                                     </td>
