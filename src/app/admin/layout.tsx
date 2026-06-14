@@ -175,41 +175,49 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                                 <span>{item.name}</span>
                                             </div>
                                             <ul className="ml-8 mt-1 space-y-1">
-                                                {item.children.map((child) => (
-                                                    <li key={child.name}>
-                                                        <Link
-                                                            href={child.href}
-                                                            onClick={() => setSidebarOpen(false)}
-                                                            className={`block px-4 py-2 rounded-lg transition-all duration-300 font-['Montserrat_Alternates'] text-sm ${
-                                                                isActive(child.href)
-                                                                    ? 'bg-linear-to-r from-firm-orange to-firm-pink text-main shadow-md'
-                                                                    : 'text-firm-gray hover:bg-footer'
-                                                            }`}
-                                                        >
-                                                            <div className="flex items-center gap-2">
-                                                                {child.icon && renderIcon(child.icon, !!isActive(child.href))}
-                                                                {child.name}
-                                                            </div>
-                                                        </Link>
-                                                    </li>
-                                                ))}
+                                                {item.children.map((child) => {
+                                                    const active = !!isActive(child.href);
+                                                    return (
+                                                        <li key={child.name}>
+                                                            <Link
+                                                                href={child.href}
+                                                                onClick={() => setSidebarOpen(false)}
+                                                                className={`block px-4 py-2 rounded-lg transition-all duration-300 font-['Montserrat_Alternates'] text-sm ${
+                                                                    active
+                                                                        ? 'bg-linear-to-r from-firm-orange to-firm-pink shadow-md'
+                                                                        : 'text-firm-gray hover:bg-footer'
+                                                                }`}
+                                                                style={{ color: active ? '#f9f9f9' : undefined }}
+                                                            >
+                                                                <div className="flex items-center gap-2">
+                                                                    {child.icon && renderIcon(child.icon, active)}
+                                                                    <span style={{ color: active ? '#f9f9f9' : undefined }}>{child.name}</span>
+                                                                </div>
+                                                            </Link>
+                                                        </li>
+                                                    );
+                                                })}
                                             </ul>
                                         </div>
                                     ) : item.href ? (
-                                        <Link
-                                            href={item.href}
-                                            onClick={() => setSidebarOpen(false)}
-                                            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 font-['Montserrat_Alternates'] ${
-                                                isActive(item.href)
-                                                    ? 'bg-linear-to-r from-firm-orange to-firm-pink text-main shadow-md'
-                                                    : 'text-text hover:bg-footer'
-                                            }`}
-                                        >
-                                            <span className={isActive(item.href) ? 'text-main' : 'text-firm-gray'}>
-                                                {renderIcon(item.icon, !!isActive(item.href))}
-                                            </span>
-                                            <span>{item.name}</span>
-                                        </Link>
+                                        (() => {
+                                            const active = !!isActive(item.href);
+                                            return (
+                                                <Link
+                                                    href={item.href}
+                                                    onClick={() => setSidebarOpen(false)}
+                                                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 font-['Montserrat_Alternates'] ${
+                                                        active
+                                                            ? 'bg-linear-to-r from-firm-orange to-firm-pink shadow-md'
+                                                            : 'text-text hover:bg-footer'
+                                                    }`}
+                                                    style={{ color: active ? '#f9f9f9' : undefined }}
+                                                >
+                                                    <span>{renderIcon(item.icon, active)}</span>
+                                                    <span style={{ color: active ? '#f9f9f9' : undefined }}>{item.name}</span>
+                                                </Link>
+                                            );
+                                        })()
                                     ) : null}
                                 </motion.li>
                             ))}
