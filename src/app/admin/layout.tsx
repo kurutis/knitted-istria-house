@@ -26,85 +26,37 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             router.push('/auth/signin?callbackUrl=/admin');
             return;
         }
-        if (session.user?.role !== 'admin') {
-            router.push('/');
-        }
+        if (session.user?.role !== 'admin') router.push('/')
     }, [session, status, router]);
 
     if (status === 'loading') {
         return (
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex items-center justify-center min-h-[60vh] bg-main"
-            >
+            <motion.div  initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-center min-h-[60vh] bg-main">
                 <div className="text-center">
-                    <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                        className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto"
-                    />
+                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-16 h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto" />
                     <p className="mt-4 font-['Montserrat_Alternates'] text-firm-gray">Загрузка админ панели...</p>
                 </div>
             </motion.div>
         );
     }
 
-    if (!session || session.user?.role !== 'admin') {
-        return null;
-    }
+    if (!session || session.user?.role !== 'admin') return null;
+    
 
     const renderIcon = (icon: React.ReactNode, isActive: boolean) => {
         const color = isActive ? '#f9f9f9' : '#737682';
         return React.cloneElement(icon as React.ReactElement<{ color?: string }>, { color });
     };
 
-    const navigation: {
-        name: string;
-        href?: string;
-        icon: React.ReactNode;
-        children?: { name: string; href: string; icon?: React.ReactNode }[];
-    }[] = [
-        { name: 'Дашборд', href: '/admin/dashboard', icon: <DashboardIcon size={22} /> },
-        { name: 'Пользователи', href: '/admin/users', icon: <UsersIcon size={22} /> },
-        {
-            name: 'Модерация',
-            icon: <TagIcon size={22} />,
-            children: [
-                { name: 'Мастера', href: '/admin/moderation/masters', icon: <MasterIcon size={18} /> },
-                { name: 'Товары', href: '/admin/moderation/products', icon: <ProductsIcon size={18} /> },
-                { name: 'Блог', href: '/admin/moderation/blog', icon: <BlogIcon size={18} /> }
-            ]
-        },
-        {
-            name: 'Каталог',
-            icon: <ProductsIcon size={22} />,
-            children: [
-                { name: 'Пряжа', href: '/admin/catalog/yarn' },
-                { name: 'Категории товаров', href: '/admin/catalog/categories' }
-            ]
-        },
-        {
-            name: 'Поддержка',
-            icon: <SupportIcon size={22} />,
-            children: [
-                { name: 'Обращения', href: '/admin/support' },
-                { name: 'База знаний', href: '/admin/support/knowledge-base' }
-            ]
-        }
-    ];
+    const navigation: { name: string; href?: string; icon: React.ReactNode; children?: { name: string; href: string; icon?: React.ReactNode }[]}[] = [{ name: 'Дашборд', href: '/admin/dashboard', icon: <DashboardIcon size={22} /> }, { name: 'Пользователи', href: '/admin/users', icon: <UsersIcon size={22} /> }, {name: 'Модерация', icon: <TagIcon size={22} />, children: [{ name: 'Мастера', href: '/admin/moderation/masters', icon: <MasterIcon size={18} /> }, { name: 'Товары', href: '/admin/moderation/products', icon: <ProductsIcon size={18} /> }, { name: 'Блог', href: '/admin/moderation/blog', icon: <BlogIcon size={18} /> }]}, {name: 'Каталог', icon: <ProductsIcon size={22} />, children: [{ name: 'Пряжа', href: '/admin/catalog/yarn' }, { name: 'Категории товаров', href: '/admin/catalog/categories' }]}, {name: 'Поддержка', icon: <SupportIcon size={22} />, children: [{ name: 'Обращения', href: '/admin/support' }, { name: 'База знаний', href: '/admin/support/knowledge-base' }]}];
 
     const isActive = (href?: string) => href && pathname === href;
 
     return (
         <div className="min-h-screen bg-main">
-            {/* Мобильная шапка */}
             <div className="lg:hidden sticky top-0 z-50 bg-main border-b border-gray-200">
                 <div className="flex items-center gap-3 px-4 py-3">
-                    <button
-                        onClick={() => setSidebarOpen(true)}
-                        className="p-2 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
-                    >
+                    <button onClick={() => setSidebarOpen(true)} className="p-2 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl shadow-md hover:shadow-lg transition-all duration-300">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
@@ -112,45 +64,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <nav className="flex items-center gap-2 text-sm">
                         <Link href="/admin/dashboard" className="text-firm-gray hover:text-firm-orange transition font-['Montserrat_Alternates']">Админ</Link>
                         <span className="text-firm-gray">/</span>
-                        <span className="text-text font-['Montserrat_Alternates'] font-medium capitalize truncate">
-                            {pathname.split('/').pop()?.replace(/-/g, ' ') || 'Дашборд'}
-                        </span>
+                        <span className="text-text font-['Montserrat_Alternates'] font-medium capitalize truncate">{pathname.split('/').pop()?.replace(/-/g, ' ') || 'Дашборд'}</span>
                     </nav>
                 </div>
             </div>
 
-            {/* Оверлей для мобильного меню */}
             <AnimatePresence>
-                {sidebarOpen && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-main-black/40 backdrop-blur-sm z-40 lg:hidden"
-                        onClick={() => setSidebarOpen(false)}
-                    />
-                )}
+                {sidebarOpen && (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-main-black/40 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />)}
             </AnimatePresence>
 
-            {/* Боковая панель */}
-            <aside
-                className={`fixed top-0 left-0 z-50 w-72 h-full bg-white shadow-2xl transition-transform duration-300 overflow-y-auto ${
-                    sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-                }`}
-            >
+            <aside className={`fixed top-0 left-0 z-50 w-72 h-full bg-white shadow-2xl transition-transform duration-300 overflow-y-auto ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
                 <div className="flex flex-col h-full">
                     <div className="p-6 border-b border-gray-200">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <span className="text-2xl">🧶</span>
-                                <h1 className="font-['Montserrat_Alternates'] font-bold text-xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">
-                                    Админ панель
-                                </h1>
+                                <h1 className="font-['Montserrat_Alternates'] font-bold text-xl bg-linear-to-r from-firm-orange to-firm-pink bg-clip-text text-transparent">Админ панель</h1>
                             </div>
-                            <button
-                                onClick={() => setSidebarOpen(false)}
-                                className="lg:hidden p-1 text-firm-gray hover:text-text transition-colors"
-                            >
+                            <button onClick={() => setSidebarOpen(false)} className="lg:hidden p-1 text-firm-gray hover:text-text transition-colors">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
@@ -162,12 +92,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <nav className="flex-1 p-4">
                         <ul className="space-y-1">
                             {navigation.map((item, index) => (
-                                <motion.li
-                                    key={item.name}
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: index * 0.05 }}
-                                >
+                                <motion.li key={item.name} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.05 }}>
                                     {item.children ? (
                                         <div>
                                             <div className="flex items-center gap-3 px-4 py-3 text-text font-['Montserrat_Alternates'] font-medium rounded-lg">
@@ -179,16 +104,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                                     const active = !!isActive(child.href);
                                                     return (
                                                         <li key={child.name}>
-                                                            <Link
-                                                                href={child.href}
-                                                                onClick={() => setSidebarOpen(false)}
-                                                                className={`block px-4 py-2 rounded-lg transition-all duration-300 font-['Montserrat_Alternates'] text-sm ${
-                                                                    active
-                                                                        ? 'bg-linear-to-r from-firm-orange to-firm-pink shadow-md'
-                                                                        : 'text-firm-gray hover:bg-footer'
-                                                                }`}
-                                                                style={{ color: active ? '#f9f9f9' : undefined }}
-                                                            >
+                                                            <Link href={child.href} onClick={() => setSidebarOpen(false)} className={`block px-4 py-2 rounded-lg transition-all duration-300 font-['Montserrat_Alternates'] text-sm ${active ? 'bg-linear-to-r from-firm-orange to-firm-pink shadow-md' : 'text-firm-gray hover:bg-footer'}`} style={{ color: active ? '#f9f9f9' : undefined }}>
                                                                 <div className="flex items-center gap-2">
                                                                     {child.icon && renderIcon(child.icon, active)}
                                                                     <span style={{ color: active ? '#f9f9f9' : undefined }}>{child.name}</span>
@@ -203,16 +119,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                         (() => {
                                             const active = !!isActive(item.href);
                                             return (
-                                                <Link
-                                                    href={item.href}
-                                                    onClick={() => setSidebarOpen(false)}
-                                                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 font-['Montserrat_Alternates'] ${
-                                                        active
-                                                            ? 'bg-linear-to-r from-firm-orange to-firm-pink shadow-md'
-                                                            : 'text-text hover:bg-footer'
-                                                    }`}
-                                                    style={{ color: active ? '#f9f9f9' : undefined }}
-                                                >
+                                                <Link href={item.href} onClick={() => setSidebarOpen(false)} className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 font-['Montserrat_Alternates'] ${active ? 'bg-linear-to-r from-firm-orange to-firm-pink shadow-md' : 'text-text hover:bg-footer'}`} style={{ color: active ? '#f9f9f9' : undefined }}>
                                                     <span>{renderIcon(item.icon, active)}</span>
                                                     <span style={{ color: active ? '#f9f9f9' : undefined }}>{item.name}</span>
                                                 </Link>
@@ -236,17 +143,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                 </div>
                             </div>
                         </div>
-                        <Link
-                            href="/"
-                            className="flex items-center justify-center gap-2 w-full py-2 text-sm bg-linear-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300"
-                        >
-                            На сайт →
-                        </Link>
+                        <Link href="/" className="flex items-center justify-center gap-2 w-full py-2 text-sm bg-linear-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300">На сайт →</Link>
                     </div>
                 </div>
             </aside>
 
-            {/* Основной контент */}
             <main className="lg:ml-72 min-h-screen">
                 <div className="hidden lg:block bg-white border-b border-gray-200 sticky top-0 z-30">
                     <div className="px-6 py-4">
