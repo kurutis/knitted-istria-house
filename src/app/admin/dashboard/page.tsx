@@ -9,7 +9,6 @@ import toast from "react-hot-toast";
 import AddYarnModal from "@/components/admin/AddYarnModal";
 import CreateUserModal from "@/components/admin/CreateUserModal";
 
-// Иконки из вашей библиотеки
 import { UserIcon } from "@/components/icons/UserIcon";
 import { ProductsIcon } from "@/components/icons/ProductsIcon";
 import { CartIcon } from "@/components/icons/CartIcon";
@@ -21,7 +20,7 @@ import { CheckCircleIcon } from "@/components/icons/CheckCircleIcon";
 import { TruckIcon } from "@/components/icons/TruckIcon";
 import { PackageIcon } from "@/components/icons/PackageIcon";
 
-// Временные иконки (создайте их в библиотеке позже
+
 const TrendingUpIcon = ({ className, color }: { className?: string; color?: string }) => (
     <svg className={className} fill="none" stroke={color} viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -38,7 +37,6 @@ const UserPlusIcon = ({ className, color }: { className?: string; color?: string
     </svg>
 );
 
-// Интерфейсы
 interface DashboardStats {
     totalUsers: number;
     totalMasters: number;
@@ -55,7 +53,6 @@ interface DashboardStats {
     lastUpdated: string;
 }
 
-// Компонент статуса заказа
 const OrderStatusBadge = ({ status }: { status: string }) => {
     const getStatusColor = () => {
         switch (status) {
@@ -90,18 +87,13 @@ const OrderStatusBadge = ({ status }: { status: string }) => {
     );
 };
 
-// Компонент бейджа роли
 const RoleBadge = ({ role }: { role: string }) => {
     const getRoleColor = () => {
         if (role === "Мастер") return "bg-green-50 text-green-700 border-green-200";
         if (role === "Администратор") return "bg-red-50 text-red-700 border-red-200";
         return "bg-blue-50 text-blue-700 border-blue-200";
     };
-    return (
-        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getRoleColor()}`}>
-            {role}
-        </span>
-    );
+    return (<span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getRoleColor()}`}>{role}</span>);
 };
 
 export default function AdminDashboardPage() {
@@ -114,6 +106,7 @@ export default function AdminDashboardPage() {
     const [showYarnModal, setShowYarnModal] = useState(false);
     const [showUserModal, setShowUserModal] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [isHovered, setIsHovered] = useState(false);
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -169,11 +162,7 @@ export default function AdminDashboardPage() {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="text-center">
-                    <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                        className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto"
-                    />
+                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-firm-orange border-t-transparent rounded-full mx-auto" />
                     <p className="mt-4 font-montserrat text-firm-gray text-sm sm:text-base">Загрузка панели управления...</p>
                 </div>
             </div>
@@ -185,13 +174,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="text-center">
                     <p className="text-firm-red mb-4">{error}</p>
-                    <button
-                        onClick={() => loadDashboardStats()}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-firm-orange to-firm-pink text-white rounded-xl hover:shadow-lg transition-all duration-300"
-                    >
-                        <RefreshIcon className="w-4 h-4" color="#f9f9f9" />
-                        Попробовать снова
-                    </button>
+                    <button onClick={() => loadDashboardStats()} className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300"><RefreshIcon className="w-4 h-4" color="#f9f9f9" />Попробовать снова</button>
                 </div>
             </div>
         );
@@ -199,12 +182,7 @@ export default function AdminDashboardPage() {
 
     if (!stats) return null;
 
-    const statCards = [
-        { label: "Пользователи", value: stats.totalUsers, icon: <UserIcon className="w-6 h-6 sm:w-8 sm:h-8" />, color: "#3B82F6", bg: "bg-blue-50", trend: stats.trends?.users ?? 0, link: "/admin/users" },
-        { label: "Мастера", value: stats.totalMasters, icon: <DashboardIcon className="w-6 h-6 sm:w-8 sm:h-8" />, color: "#D97C8E", bg: "bg-pink-50", trend: 0, link: "/admin/moderation/masters" },
-        { label: "Товары", value: stats.totalProducts, icon: <ProductsIcon className="w-6 h-6 sm:w-8 sm:h-8" />, color: "#F4A67F", bg: "bg-orange-50", trend: 0, link: "/admin/moderation/products" },
-        { label: "Заказы", value: stats.totalOrders, icon: <CartIcon className="w-6 h-6 sm:w-8 sm:h-8" />, color: "#94D06C", bg: "bg-green-50", trend: stats.trends?.orders ?? 0, link: "/admin/dashboard" },
-    ];
+    const statCards = [{ label: "Пользователи", value: stats.totalUsers, icon: <UserIcon className="w-6 h-6 sm:w-8 sm:h-8" />, color: "#3B82F6", bg: "bg-blue-50", trend: stats.trends?.users ?? 0, link: "/admin/users" }, { label: "Мастера", value: stats.totalMasters, icon: <DashboardIcon className="w-6 h-6 sm:w-8 sm:h-8" />, color: "#D97C8E", bg: "bg-pink-50", trend: 0, link: "/admin/moderation/masters" }, { label: "Товары", value: stats.totalProducts, icon: <ProductsIcon className="w-6 h-6 sm:w-8 sm:h-8" />, color: "#F4A67F", bg: "bg-orange-50", trend: 0, link: "/admin/moderation/products" }, { label: "Заказы", value: stats.totalOrders, icon: <CartIcon className="w-6 h-6 sm:w-8 sm:h-8" />, color: "#94D06C", bg: "bg-green-50", trend: stats.trends?.orders ?? 0, link: "/admin/dashboard" },];
 
     return (
         <>
@@ -314,7 +292,7 @@ export default function AdminDashboardPage() {
                         <h2 className="font-montserrat font-semibold text-lg sm:text-xl text-text mb-4">Быстрые действия</h2>
                         <div className="flex flex-wrap gap-3">
                             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowYarnModal(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl text-sm hover:shadow-lg transition-all duration-300"><PlusIcon className="w-4 h-4" color="#f9f9f9" />Добавить пряжу</motion.button>
-                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowUserModal(true)} className="inline-flex items-center gap-2 px-4 py-2 border-2 border-firm-pink text-firm-pink rounded-xl text-sm hover:bg-firm-pink hover:text-main transition-all duration-300"><UserPlusIcon className="w-4 h-4" color="#D97C8E" />Создать пользователя</motion.button>
+                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowUserModal(true)} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)} className="inline-flex items-center gap-2 px-4 py-2 border-2 border-firm-pink rounded-xl text-sm transition-all duration-300" style={{backgroundColor: isHovered ? 'var(--color-firm-pink)' : 'transparent', color: isHovered ? 'var(--color-main)' : 'var(--color-firm-pink)'}}><UserPlusIcon className="w-4 h-4" color={isHovered ? '#f9f9f9' : '#D97C8E'} />Создать пользователя</motion.button>
                         </div>
                     </motion.div>
 
