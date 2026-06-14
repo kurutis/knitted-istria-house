@@ -483,26 +483,7 @@ export default function MasterPage() {
 
                         <motion.div variants={fadeInUp} className="flex flex-wrap justify-center md:justify-start gap-3">
                             {session && !isCurrentUserMaster && (<FollowButton isFollowing={isFollowing} onClick={handleFollow} loading={followLoading} />)}
-                            {master.custom_orders_enabled && (
-  <motion.button
-    whileHover={{ scale: 1.02 }}
-    whileTap={{ scale: 0.98 }}
-    onClick={() => setShowCustomModal(true)}
-    onMouseEnter={() => setIsOrderHovered(true)}
-    onMouseLeave={() => setIsOrderHovered(false)}
-    className="text-sm px-5 sm:px-6 py-2 border-2 border-firm-pink rounded-xl transition-all duration-300 flex items-center gap-2"
-    style={{
-      backgroundColor: isOrderHovered ? 'var(--color-firm-pink)' : 'transparent',
-      color: isOrderHovered ? 'var(--color-main)' : 'var(--color-firm-pink)'
-    }}
-  >
-    <Productslcon
-      className="w-4 h-4"
-      color={isOrderHovered ? '#f9f9f9' : '#D97C8E'}
-    />
-    <span>Обсудить заказ</span>
-  </motion.button>
-)}
+                            {master.custom_orders_enabled && (<motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowCustomModal(true)} onMouseEnter={() => setIsOrderHovered(true)} onMouseLeave={() => setIsOrderHovered(false)} className="text-sm px-5 sm:px-6 py-2 border-2 border-firm-pink rounded-xl transition-all duration-300 flex items-center gap-2" style={{backgroundColor: isOrderHovered ? 'var(--color-firm-pink)' : 'transparent'}}><Productslcon className="w-4 h-4" color={isOrderHovered ? '#f9f9f9' : '#D97C8E'} /><span style={{color: isOrderHovered ? 'var(--color-main)' : 'var(--color-firm-pink)'}}>Обсудить заказ</span></motion.button>)}
                         </motion.div>
                     </motion.div>
                 </div>
