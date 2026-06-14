@@ -457,7 +457,7 @@ export default function MasterPage() {
                     <motion.div variants={staggerContainer} initial="initial" animate="animate" className="flex-1 text-center md:text-left">
                         <motion.div variants={fadeInUp} className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-3">
                             <h1 className="font-['Montserrat_Alternates'] font-bold text-2xl sm:text-3xl text-text">{master.name}</h1>
-                            {master.is_verified && (<span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs"><CheckCircleIcon className="w-3 h-3" color="#94D06C" />Верифицирован</span>)}
+                            {master.is_verified && (<span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-firm-green rounded-full text-xs"><CheckCircleIcon className="w-3 h-3" color="#94D06C" />Верифицирован</span>)}
                             {master.is_partner && (<span className="inline-flex items-center gap-1 px-2 py-0.5 bg-firm-orange/10 text-firm-orange rounded-full text-xs"><StarIcon className="w-3 h-3" color="#F4A67F" />Партнер фабрики</span>)}
                         </motion.div>
 
