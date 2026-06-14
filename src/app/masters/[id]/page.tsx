@@ -442,7 +442,6 @@ export default function MasterPage() {
                     <span className="text-text truncate">{master.name}</span>
                 </div>
 
-                {/* Профиль мастера */}
                 <div className="flex flex-col md:flex-row gap-6 sm:gap-8 mb-10 sm:mb-12">
                     <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 0.1 }} className="shrink-0 self-center md:self-start">
                         <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-full bg-gradient-to-r from-firm-orange to-firm-pink flex items-center justify-center overflow-hidden shadow-lg ring-4 ring-white">
@@ -483,7 +482,7 @@ export default function MasterPage() {
 
                         <motion.div variants={fadeInUp} className="flex flex-wrap justify-center md:justify-start gap-3">
                             {session && !isCurrentUserMaster && (<FollowButton isFollowing={isFollowing} onClick={handleFollow} loading={followLoading} />)}
-                            {master.custom_orders_enabled && (<motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowCustomModal(true)} className="px-5 sm:px-6 py-2 border-2 border-firm-pink text-firm-pink rounded-xl hover:bg-firm-pink hover:text-main transition-all duration-300 flex items-center gap-2"><Productslcon className="w-4 h-4" color="currentColor" /><span className="text-sm">Обсудить заказ</span></motion.button>)}
+                            {master.custom_orders_enabled && (<motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowCustomModal(true)} className="text-sm px-5 sm:px-6 py-2 border-2 border-firm-pink text-firm-pink rounded-xl hover:bg-firm-pink hover:text-main transition-all duration-300 flex items-center gap-2"><Productslcon className="w-4 h-4" color="currentColor" />Обсудить заказ</motion.button>)}
                         </motion.div>
                     </motion.div>
                 </div>
