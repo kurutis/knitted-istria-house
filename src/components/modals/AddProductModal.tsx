@@ -104,11 +104,9 @@ export default function AddProductModal({isOpen, onClose, onSuccess, categories,
       }
 
       try {
-        // Сжимаем изображение
         const compressed = await compressImage(file, 1000, 0.75);
         compressedFiles.push(compressed);
         
-        // Создаём превью из сжатого файла
         const reader = new FileReader();
         const previewPromise = new Promise<string>((resolve) => {
           reader.onloadend = () => resolve(reader.result as string);

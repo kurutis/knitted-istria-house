@@ -483,8 +483,8 @@ export default function BlogPostPage() {
 
         {isAuthor && (
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex justify-end gap-3 mb-6">
-            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setIsEditing(true)} className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-linear-to-r from-firm-orange to-firm-pink text-mian rounded-xl hover:shadow-lg transition-all duration-300 flex items-center gap-2"><EditIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" color="#f9f9f9" /><span className="hidden sm:inline">Редактировать</span></motion.button>
-            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleDeletePost} disabled={deleting} className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-firm-red text-main rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center gap-2"><DeleteIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" color="#f9f9f9" /><span className="hidden sm:inline">{deleting ? "Удаление..." : "Удалить"}</span></motion.button>
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setIsEditing(true)} className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300 flex items-center gap-2"><EditIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" color="#f9f9f9" /><span className="hidden sm:inline text-main">Редактировать</span></motion.button>
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleDeletePost} disabled={deleting} className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-firm-red text-main rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center gap-2"><DeleteIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" color="#f9f9f9" /><span className="hidden sm:inline text-main">{deleting ? "Удаление..." : "Удалить"}</span></motion.button>
           </motion.div>
         )}
 
