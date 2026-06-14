@@ -88,6 +88,7 @@ const FollowButton = ({ isFollowing, onClick, loading }: { isFollowing: boolean;
 export default function MasterPage() {
     const { id } = useParams()
     const { data: session } = useSession()
+    const [isOrderHovered, setIsOrderHovered] = useState(false)
     const [master, setMaster] = useState<Master | null>(null)
     const [products, setProducts] = useState<Product[]>([])
     const [reviews, setReviews] = useState<Review[]>([])
@@ -482,7 +483,26 @@ export default function MasterPage() {
 
                         <motion.div variants={fadeInUp} className="flex flex-wrap justify-center md:justify-start gap-3">
                             {session && !isCurrentUserMaster && (<FollowButton isFollowing={isFollowing} onClick={handleFollow} loading={followLoading} />)}
-                            {master.custom_orders_enabled && (<motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setShowCustomModal(true)} className="text-sm px-5 sm:px-6 py-2 border-2 border-firm-pink text-firm-pink rounded-xl hover:bg-firm-pink hover:text-main transition-all duration-300 flex items-center gap-2"><Productslcon className="w-4 h-4" color="currentColor" />Обсудить заказ</motion.button>)}
+                            {master.custom_orders_enabled && (
+  <motion.button
+    whileHover={{ scale: 1.02 }}
+    whileTap={{ scale: 0.98 }}
+    onClick={() => setShowCustomModal(true)}
+    onMouseEnter={() => setIsOrderHovered(true)}
+    onMouseLeave={() => setIsOrderHovered(false)}
+    className="text-sm px-5 sm:px-6 py-2 border-2 border-firm-pink rounded-xl transition-all duration-300 flex items-center gap-2"
+    style={{
+      backgroundColor: isOrderHovered ? 'var(--color-firm-pink)' : 'transparent',
+      color: isOrderHovered ? 'var(--color-main)' : 'var(--color-firm-pink)'
+    }}
+  >
+    <Productslcon
+      className="w-4 h-4"
+      color={isOrderHovered ? '#f9f9f9' : '#D97C8E'}
+    />
+    <span>Обсудить заказ</span>
+  </motion.button>
+)}
                         </motion.div>
                     </motion.div>
                 </div>
