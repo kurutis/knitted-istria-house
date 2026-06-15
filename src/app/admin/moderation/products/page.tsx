@@ -315,7 +315,7 @@ export default function AdminModerationProductsPage() {
 
                                                 {product.status === 'active' && (
                                                     <div className="flex flex-wrap gap-3 mt-4">
-                                                        <button onClick={() => handleReturnToDraft(product.id)} disabled={actionLoading === product.id} className="px-4 py-2 bg-firm-orange text-mian rounded-xl text-sm font-medium hover:opacity-80 transition disabled:opacity-50 flex items-center gap-2">{actionLoading === product.id ? (<RefreshIcon size={16} color="#f9f9f9" className="animate-spin" />) : (<EditIcon size={16} color="#f9f9f9" />)}Отправить на доработку</button>
+                                                        <button onClick={() => handleReturnToDraft(product.id)} disabled={actionLoading === product.id} className="px-4 py-2 text-main bg-firm-orange text-mian rounded-xl text-sm font-medium hover:opacity-80 transition disabled:opacity-50 flex items-center gap-2">{actionLoading === product.id ? (<RefreshIcon size={16} color="#f9f9f9" className="animate-spin" />) : (<EditIcon size={16} color="#f9f9f9" />)}Отправить на доработку</button>
                                                     </div>
                                                 )}
                                             </div>
