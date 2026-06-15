@@ -216,7 +216,7 @@ export default function AdminModerationProductsPage() {
             case 'active':
                 return (
                     <div className="flex flex-wrap gap-3 mt-4">
-                        <button onClick={() => handleReturnToDraft(selectedProduct!.id)} className="flex-1 py-2 bg-firm-orange text-main  rounded-lg hover:opacity-80 transition flex items-center justify-center gap-2"><EditIcon size={18} color="#f9f9f9" />Отправить на доработку</button>
+                        <button onClick={() => handleReturnToDraft(selectedProduct!.id)} className="flex-1 py-2 bg-firm-orange text-main  rounded-lg hover:opacity-80 transition flex items-center justify-center gap-2"><EditIcon size={18} color="#f9f9f9" /><span className="text-main">Отправить на доработку</span></button>
                     </div>
                 )
             default:
