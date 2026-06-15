@@ -375,7 +375,7 @@ export default function AdminCategoriesPage() {
                                             <textarea name="description" value={formData.description} onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} rows={3} className="w-full p-3 rounded-xl bg-forms text-text outline-none focus:ring-2 focus:ring-firm-pink transition-all duration-300" placeholder="Описание категории..." />
                                         </div>
                                         <div className="flex gap-3 pt-4">
-                                            <button type="submit" disabled={saving} className="flex-1 py-2 bg-lineaar-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 font-medium flex items-center justify-center gap-2">{saving ? (<><RefreshIcon size={16} color="#f9f9f9" className="animate-spin" />Сохранение...</>) : (<><PlusIcon size={16} color="#f9f9f9" />Добавить</>)}</button>
+                                            <button type="submit" disabled={saving} className="flex-1 py-2 bg-linear-to-r from-firm-orange to-firm-pink text-main rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 font-medium flex items-center justify-center gap-2">{saving ? (<><RefreshIcon size={16} color="#f9f9f9" className="animate-spin" />Сохранение...</>) : (<><PlusIcon size={16} color="#f9f9f9" />Добавить</>)}</button>
                                             <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-2 border border-gray-300 rounded-xl hover:bg-forms transition-all duration-300 text-text">Отмена</button>
                                         </div>
                                     </form>
