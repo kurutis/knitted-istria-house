@@ -1,6 +1,6 @@
 'use client'
 
-import { signIn } from "next-auth/react"
+import { signIn, getSession } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
 import React, { useState, Suspense } from "react"
 import Link from "next/link"
@@ -51,7 +51,12 @@ function SignInForm() {
                 toast.error(result.error)
             } else if (result?.ok) {
                 toast.success('Вход выполнен успешно!')
-                router.push(callbackUrl)
+                const session = await getSession()
+                if (session?.user?.role === 'admin') {
+                    router.push('/admin/dashboard')
+                } else {
+                    router.push(callbackUrl)
+                }
                 router.refresh()
             }
         } catch (err) {
